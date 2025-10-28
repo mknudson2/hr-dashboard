@@ -15,11 +15,30 @@ export default function DashboardPage() {
       .finally(() => setLoading(false));
   }, []);
 
+  const colorClasses = {
+    blue: {
+      text: "text-blue-600 dark:text-blue-400",
+      hover: "hover:border-blue-500/50"
+    },
+    green: {
+      text: "text-green-600 dark:text-green-400",
+      hover: "hover:border-green-500/50"
+    },
+    purple: {
+      text: "text-purple-600 dark:text-purple-400",
+      hover: "hover:border-purple-500/50"
+    },
+    red: {
+      text: "text-red-600 dark:text-red-400",
+      hover: "hover:border-red-500/50"
+    }
+  };
+
   const stats = [
-    { label: "Total Employees", value: data?.total_employees || 5, color: "blue" },
-    { label: "Active", value: data?.active_employees || 4, color: "green" },
-    { label: "YTD Hires", value: data?.ytd_hires || 0, color: "purple" },
-    { label: "Turnover Rate", value: data?.turnover_rate ? `${data.turnover_rate}%` : "20%", color: "red" },
+    { label: "Total Employees", value: data?.total_employees || 5, color: "blue" as const },
+    { label: "Active", value: data?.active_employees || 4, color: "green" as const },
+    { label: "YTD Hires", value: data?.ytd_hires || 0, color: "purple" as const },
+    { label: "Turnover Rate", value: data?.turnover_rate ? `${data.turnover_rate}%` : "20%", color: "red" as const },
   ];
 
   if (loading) {
@@ -64,15 +83,13 @@ export default function DashboardPage() {
             className={`
               rounded-xl border dark:border-gray-700 bg-white dark:bg-gray-800 shadow-sm
               p-4 transition-all duration-200
-              hover:shadow-md hover:border-${stat.color}-500/50
+              hover:shadow-md ${colorClasses[stat.color].hover}
             `}
           >
             <h3 className="text-sm font-medium text-gray-600 dark:text-gray-400">
               {stat.label}
             </h3>
-            <p
-              className={`mt-2 text-2xl font-bold text-${stat.color}-600 dark:text-${stat.color}-400`}
-            >
+            <p className={`mt-2 text-2xl font-bold ${colorClasses[stat.color].text}`}>
               {stat.value}
             </p>
           </div>
