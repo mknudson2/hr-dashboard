@@ -42,9 +42,9 @@ export default function EmployeesPage() {
                             </td>
                             <td className="px-4 py-2">
                                 <span
-                                    className={`px-3 py-1 rounded-full text-sm font-medium ${emp.status === "Active"
-                                        ? "bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300"
-                                        : "bg-red-100 text-red-700 dark:bg-red-900 dark:text-red-300"
+                                    className={`px-3 py-1 rounded-full text-sm font-medium transition-colors ${emp.status === "Active"
+                                        ? "bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300 hover:bg-green-200 dark:hover:bg-green-800"
+                                        : "bg-red-100 text-red-700 dark:bg-red-900 dark:text-red-300 hover:bg-red-200 dark:hover:bg-red-800"
                                         }`}
                                 >
                                     {emp.status}

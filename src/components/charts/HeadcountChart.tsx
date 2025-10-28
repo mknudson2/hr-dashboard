@@ -16,13 +16,16 @@ import { motion, AnimatePresence } from "framer-motion";
 ChartJS.register(LineElement, CategoryScale, LinearScale, PointElement, Tooltip, Legend, Filler);
 
 export default function HeadcountChart({ data }: { data: number[] }) {
-    const { theme } = useTheme();
+    const { resolvedTheme } = useTheme();
     const [isDark, setIsDark] = useState(false);
+    const [chartColor, setChartColor] = useState("#2563eb");
     const chartRef = useRef<any>(null);
 
     useEffect(() => {
-        setIsDark(theme === "dark");
-    }, [theme]);
+        const isDarkMode = resolvedTheme === "dark";
+        setIsDark(isDarkMode);
+        setChartColor(isDarkMode ? "#60a5fa" : "#2563eb");
+    }, [resolvedTheme]);
 
     // 🩵 Animate the glow color
     useEffect(() => {
@@ -63,14 +66,14 @@ export default function HeadcountChart({ data }: { data: number[] }) {
             {
                 label: "Headcount",
                 data,
-                tension: 0.4,
+                tension: 0.3,
                 fill: true,
                 borderWidth: 3,
-                borderColor: isDark ? "rgba(96,165,250,0.7)" : "rgba(37,99,235,0.7)",
-                backgroundColor: isDark
-                    ? "rgba(96,165,250,0.15)"
-                    : "rgba(37,99,235,0.12)",
-                pointRadius: 4,
+                borderColor: chartColor,
+                backgroundColor: `${chartColor}33`,
+                pointBackgroundColor: chartColor,
+                pointBorderColor: "#fff",
+                pointRadius: 5,
                 pointHoverRadius: 6,
             },
         ],
@@ -82,19 +85,20 @@ export default function HeadcountChart({ data }: { data: number[] }) {
         animation: false as const,
         plugins: {
             legend: {
+                position: "top" as const,
                 labels: {
-                    color: isDark ? "#e5e7eb" : "#374151",
+                    color: isDark ? "#d1d5db" : "#374151",
                 },
             },
         },
         scales: {
             x: {
-                ticks: { color: isDark ? "#9ca3af" : "#4b5563" },
-                grid: { color: isDark ? "rgba(255,255,255,0.1)" : "rgba(0,0,0,0.05)" },
+                ticks: { color: isDark ? "#9ca3af" : "#6b7280" },
+                grid: { display: false },
             },
             y: {
-                ticks: { color: isDark ? "#9ca3af" : "#4b5563" },
-                grid: { color: isDark ? "rgba(255,255,255,0.1)" : "rgba(0,0,0,0.05)" },
+                ticks: { color: isDark ? "#9ca3af" : "#6b7280" },
+                grid: { color: isDark ? "#374151" : "#e5e7eb" },
             },
         },
     };
@@ -107,9 +111,18 @@ export default function HeadcountChart({ data }: { data: number[] }) {
                 animate={{ opacity: 1, scale: 1 }}
                 exit={{ opacity: 0, scale: 0.97 }}
                 transition={{ duration: 0.4 }}
-                className="h-80 relative"
+                className="
+                    p-6 mt-6 rounded-2xl border border-gray-200 dark:border-gray-700
+                    bg-white dark:bg-gray-800 shadow-sm transition-all duration-300 ease-in-out
+                    hover:shadow-lg hover:border-blue-400/60 hover:-translate-y-0.5
+                "
             >
-                <Line ref={chartRef} data={chartData} options={options} />
+                <h3 className="text-lg font-semibold mb-4 text-gray-900 dark:text-gray-100">
+                    Headcount Trend
+                </h3>
+                <div className="h-80">
+                    <Line ref={chartRef} data={chartData} options={options} />
+                </div>
             </motion.div>
         </AnimatePresence>
     );
