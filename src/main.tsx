@@ -3,7 +3,9 @@ import ReactDOM from "react-dom/client";
 import "./index.css";
 import { BrowserRouter } from "react-router-dom";
 import { ThemeProvider } from "next-themes";
+import { ToastProvider } from "./context/ToastContext";
 import App from "./App";
+import Toast from "./components/ui/Toast";
 
 ReactDOM.createRoot(document.getElementById("root")!).render(
   <React.StrictMode>
@@ -14,7 +16,9 @@ ReactDOM.createRoot(document.getElementById("root")!).render(
       storageKey="hr-dashboard-theme"
     >
       <BrowserRouter>
-        <App />
+        <ToastProvider>
+          <App />
+        </ToastProvider>
       </BrowserRouter>
     </ThemeProvider>
   </React.StrictMode>
