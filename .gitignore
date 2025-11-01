@@ -1,18 +1,39 @@
-# Logs
-logs
-*.log
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+venv/
+ENV/
+develop-eggs/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# Node
+node_modules/
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 pnpm-debug.log*
 lerna-debug.log*
 
-# Dependencies
-node_modules
-
 # Build outputs
-dist
-dist-ssr
+dist/
+dist-ssr/
+build/
+frontend/dist/
+frontend/build/
 *.local
 
 # Environment variables (IMPORTANT: Never commit these!)
@@ -23,18 +44,33 @@ dist-ssr
 .env.production.local
 .env*.local
 
+# Database
+*.db
+*.sqlite
+*.sqlite3
+hr_dashboard.db
+
+# Logs
+logs/
+*.log
+
 # Build caches
 .vite
 .turbo
 .cache
+.cache/
 
 # Test coverage
-coverage
+coverage/
 *.lcov
+.coverage
+htmlcov/
+.pytest_cache/
 
 # Temporary files
 *.tmp
 *.temp
+*.bak
 
 # Editor directories and files
 .vscode/*
@@ -46,6 +82,9 @@ coverage
 *.njsproj
 *.sln
 *.sw?
+*.swp
+*.swo
+*~
 
 # Claude Code settings (contains local paths)
 .claude/settings.local.json

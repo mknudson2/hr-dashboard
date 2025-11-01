@@ -1,0 +1,15 @@
+{
+  "permissions": {
+    "allow": [
+      "mcp__ide__getDiagnostics",
+      "Bash(for dir in /Users/michaelknudson/Desktop/hr-dashboard/backend/app /Users/michaelknudson/Desktop/hr-dashboard/backend/app/db /Users/michaelknudson/Desktop/hr-dashboard/backend/app/api /Users/michaelknudson/Desktop/hr-dashboard/backend/app/services)",
+      "Bash(do if [ -f \"$dir/__init__.py\" ])",
+      "Bash(then echo \"EXISTS: $dir/__init__.py\")",
+      "Bash(else echo \"MISSING: $dir/__init__.py\")",
+      "Bash(fi)",
+      "Bash(done)"
+    ],
+    "deny": [],
+    "ask": []
+  }
+}
