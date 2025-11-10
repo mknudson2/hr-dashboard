@@ -1,0 +1,5 @@
+Employee Id,Preferred/First Name,Last Name,Type,Worked CostCenter,Worked Department,Worked Team,Hire Date,Term Date,Termination Type,Status,Location,Rate
+1000,John,Doe,FT,01-Admin,Human Resources,HR Operations,2020-01-15,,,Active,New York,75000
+1001,Jane,Smith,FT,02-Sales,Sales,East Coast,2019-06-01,,,Active,Boston,80000
+1002,Bob,Johnson,PT,03-IT,Engineering,Development,2021-03-10,,,Active,Remote,45000
+1003,Alice,Williams,FT,02-Sales,Sales,West Coast,2018-09-20,2024-12-31,Voluntary,Terminated,San Francisco,85000

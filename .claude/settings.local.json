@@ -1,0 +1,31 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npm run build:*)",
+      "Bash(npx tsc:*)",
+      "Bash(python -m py_compile:*)",
+      "Bash(python:*)",
+      "Bash(source venv/bin/activate)",
+      "Bash(pip install:*)",
+      "Bash(npm run dev:*)",
+      "Bash(PYTHONPATH=/Users/michaelknudson/Desktop/hr-dashboard/backend python:*)",
+      "Bash(sqlite3:*)",
+      "Bash(pkill:*)",
+      "Bash(curl:*)",
+      "Bash(python3:*)",
+      "WebSearch",
+      "Bash(PYTHONPATH=/Users/michaelknudson/Desktop/hr-dashboard/backend python3:*)",
+      "Bash(xargs kill -9)",
+      "Bash(head -c 100 echo \"\" echo \"\" echo \"Frontend (http://localhost:5173):\" curl -s http://localhost:5173)",
+      "Bash(export PYTHONPATH=/Users/michaelknudson/Desktop/hr-dashboard/backend:*)",
+      "Bash(lsof:*)",
+      "Bash(git add:*)",
+      "Bash(git commit:*)",
+      "Bash(git push:*)",
+      "Bash(git fetch:*)",
+      "Bash(git pull:*)"
+    ],
+    "deny": [],
+    "ask": []
+  }
+}

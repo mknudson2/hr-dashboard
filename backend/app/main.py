@@ -2,7 +2,7 @@ from fastapi import FastAPI, Depends
 from sqlalchemy.orm import Session
 from fastapi.middleware.cors import CORSMiddleware
 from app.db import models, database, crud
-from app.api import analytics, employees, notifications, fmla
+from app.api import analytics, employees, notifications, fmla, garnishments, turnover, events, compensation, market_data, performance, onboarding, offboarding, equipment, contribution_limits, pto, auth, users, aca, eeo, settings
 from app.services.scheduler import start_scheduler, stop_scheduler
 from contextlib import asynccontextmanager
 
@@ -52,7 +52,23 @@ def root():
 
 
 # Include Routers
+app.include_router(auth.router)
 app.include_router(employees.router)
 app.include_router(analytics.router)
 app.include_router(notifications.router)
 app.include_router(fmla.router)
+app.include_router(garnishments.router)
+app.include_router(turnover.router)
+app.include_router(events.router)
+app.include_router(compensation.router)
+app.include_router(market_data.router)
+app.include_router(performance.router)
+app.include_router(onboarding.router)
+app.include_router(offboarding.router)
+app.include_router(equipment.router)
+app.include_router(contribution_limits.router)
+app.include_router(pto.router)
+app.include_router(users.router)
+app.include_router(aca.router)
+app.include_router(eeo.router)
+app.include_router(settings.router)

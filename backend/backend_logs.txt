@@ -1,0 +1,11 @@
+INFO:     Will watch for changes in these directories: ['/Users/michaelknudson/Desktop/hr-dashboard/backend']
+INFO:     Uvicorn running on http://127.0.0.1:8000 (Press CTRL+C to quit)
+INFO:     Started reloader process [98468] using StatReload
+INFO:     Started server process [98474]
+INFO:     Waiting for application startup.
+INFO:apscheduler.scheduler:Adding job tentatively -- it will be properly scheduled when the scheduler starts
+INFO:apscheduler.scheduler:Added job "Send weekly HR reports" to job store "default"
+INFO:apscheduler.scheduler:Scheduler started
+INFO:app.services.scheduler:✅ Scheduler started successfully
+INFO:app.services.scheduler:📅 Weekly reports scheduled for every Monday at 9:00 AM
+INFO:     Application startup complete.

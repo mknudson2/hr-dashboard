@@ -7,6 +7,7 @@ from sqlalchemy import func
 from pydantic import BaseModel
 from app.db.database import get_db
 from app.db import models
+import pytz
 
 
 router = APIRouter(prefix="/fmla", tags=["fmla"])
@@ -40,6 +41,11 @@ class FMLACaseUpdate(BaseModel):
     recertification_date: Optional[str] = None
     return_to_work_date: Optional[str] = None
     notes: Optional[str] = None
+
+
+class FMLACaseNoteCreate(BaseModel):
+    case_id: int
+    note_text: str
 
 
 @router.get("/")
@@ -257,6 +263,11 @@ def get_fmla_case(case_id: int, db: Session = Depends(get_db)):
         models.FMLALeaveEntry.case_id == case_id
     ).order_by(models.FMLALeaveEntry.leave_date.desc()).all()
 
+    # Get case notes
+    case_notes = db.query(models.FMLACaseNote).filter(
+        models.FMLACaseNote.case_id == case_id
+    ).order_by(models.FMLACaseNote.created_at.desc()).all()
+
     return {
         "id": case.id,
         "case_number": case.case_number,
@@ -287,6 +298,14 @@ def get_fmla_case(case_id: int, db: Session = Depends(get_db)):
                 "notes": entry.notes,
             }
             for entry in leave_entries
+        ],
+        "case_notes": [
+            {
+                "id": note.id,
+                "note_text": note.note_text,
+                "created_at": note.created_at.isoformat(),
+            }
+            for note in case_notes
         ],
     }
 
@@ -425,4 +444,43 @@ def get_employee_fmla_history(employee_id: str, db: Session = Depends(get_db)):
             }
             for case in cases
         ],
+    }
+
+
+@router.post("/cases/{case_id}/notes")
+def add_case_note(case_id: int, note_data: FMLACaseNoteCreate, db: Session = Depends(get_db)):
+    """Add a note to an FMLA case.
+
+    Args:
+        case_id: FMLA case ID
+        note_data: Note creation data
+        db: Database session
+
+    Returns:
+        Created note
+    """
+    # Check if case exists
+    case = db.query(models.FMLACase).filter(models.FMLACase.id == case_id).first()
+
+    if not case:
+        raise HTTPException(status_code=404, detail="FMLA case not found")
+
+    # Create note with current timestamp
+    new_note = models.FMLACaseNote(
+        case_id=case_id,
+        note_text=note_data.note_text,
+        created_at=date.today(),
+    )
+
+    db.add(new_note)
+    db.commit()
+    db.refresh(new_note)
+
+    return {
+        "message": "Note added successfully",
+        "note": {
+            "id": new_note.id,
+            "note_text": new_note.note_text,
+            "created_at": new_note.created_at.isoformat(),
+        }
     }

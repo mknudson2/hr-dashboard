@@ -336,3 +336,245 @@ def get_pto_utilization_by_group(session: Session) -> Dict[str, object]:
         "by_team": group_by("team"),
         "as_of": datetime.now().isoformat(),
     }
+
+
+# ------------------ WAGE NORMALIZATION ------------------ #
+
+def normalize_to_annual_wage(employee: models.Employee) -> float:
+    """
+    Normalize an employee's wage to annual equivalent for fair comparison.
+
+    Rules:
+    - If annual_wage exists, use it
+    - If wage_type is "Hourly", calculate: hourly_wage × 2080 hours (40 hrs/wk × 52 weeks)
+    - If wage_type is "Salary", use wage as annual
+    - Return 0 if no valid wage data
+
+    Args:
+        employee: Employee model instance
+
+    Returns:
+        Normalized annual wage as float
+    """
+    # Prefer pre-calculated annual_wage if available
+    if employee.annual_wage is not None and employee.annual_wage > 0:
+        return round(employee.annual_wage, 2)
+
+    # Check wage_type and calculate accordingly
+    if employee.wage_type and employee.wage_type.lower() == "hourly":
+        if employee.hourly_wage is not None and employee.hourly_wage > 0:
+            # Standard full-time calculation: 40 hours/week × 52 weeks = 2080 hours
+            return round(employee.hourly_wage * 2080, 2)
+        elif employee.wage is not None and employee.wage > 0:
+            # Fallback to wage field if hourly_wage not set
+            return round(employee.wage * 2080, 2)
+
+    elif employee.wage_type and employee.wage_type.lower() == "salary":
+        if employee.wage is not None and employee.wage > 0:
+            return round(employee.wage, 2)
+
+    # Fallback: try wage field directly
+    if employee.wage is not None and employee.wage > 0:
+        return round(employee.wage, 2)
+
+    return 0.0
+
+
+def normalize_to_hourly_wage(employee: models.Employee) -> float:
+    """
+    Normalize an employee's wage to hourly equivalent for fair comparison.
+
+    Rules:
+    - If hourly_wage exists, use it
+    - If wage_type is "Salary", calculate: annual_wage / 2080 hours
+    - Return 0 if no valid wage data
+
+    Args:
+        employee: Employee model instance
+
+    Returns:
+        Normalized hourly wage as float
+    """
+    # Prefer pre-calculated hourly_wage if available
+    if employee.hourly_wage is not None and employee.hourly_wage > 0:
+        return round(employee.hourly_wage, 2)
+
+    # Check wage_type and calculate accordingly
+    if employee.wage_type and employee.wage_type.lower() == "salary":
+        annual = normalize_to_annual_wage(employee)
+        if annual > 0:
+            return round(annual / 2080, 2)
+
+    elif employee.wage_type and employee.wage_type.lower() == "hourly":
+        if employee.wage is not None and employee.wage > 0:
+            return round(employee.wage, 2)
+
+    return 0.0
+
+
+def get_employee_type_category(employee: models.Employee) -> str:
+    """
+    Determine employee type category for filtering and grouping.
+
+    Returns:
+        "Full-Time", "Part-Time", or "Unknown"
+    """
+    if employee.type:
+        emp_type = employee.type.lower()
+        if "full" in emp_type or "ft" in emp_type:
+            return "Full-Time"
+        elif "part" in emp_type or "pt" in emp_type:
+            return "Part-Time"
+
+    return "Unknown"
+
+
+def get_wage_type_category(employee: models.Employee) -> str:
+    """
+    Determine wage type category for filtering and grouping.
+
+    Returns:
+        "Salary", "Hourly", or "Unknown"
+    """
+    if employee.wage_type:
+        wage_type = employee.wage_type.lower()
+        if "salary" in wage_type:
+            return "Salary"
+        elif "hourly" in wage_type or "hour" in wage_type:
+            return "Hourly"
+
+    return "Unknown"
+
+
+def get_normalized_compensation(employee: models.Employee) -> Dict[str, Any]:
+    """
+    Get comprehensive normalized compensation data for an employee.
+
+    Returns a dictionary with:
+    - annual_wage: Normalized annual wage
+    - hourly_wage: Normalized hourly wage
+    - benefits_annual: Annual benefits cost
+    - taxes_annual: Annual employer taxes
+    - total_compensation: Total annual employer cost
+    - employee_type: Full-Time, Part-Time, or Unknown
+    - wage_type: Salary, Hourly, or Unknown
+
+    Args:
+        employee: Employee model instance
+
+    Returns:
+        Dictionary with normalized compensation data
+    """
+    annual = normalize_to_annual_wage(employee)
+    hourly = normalize_to_hourly_wage(employee)
+
+    # Get benefits and taxes (default to 0 if not set)
+    benefits = employee.benefits_cost_annual or employee.benefits_cost or 0.0
+    taxes = employee.employer_taxes_annual or 0.0
+
+    # Calculate total compensation
+    total_comp = annual + benefits + taxes
+
+    return {
+        "annual_wage": round(annual, 2),
+        "hourly_wage": round(hourly, 2),
+        "benefits_annual": round(benefits, 2),
+        "taxes_annual": round(taxes, 2),
+        "total_compensation": round(total_comp, 2),
+        "employee_type": get_employee_type_category(employee),
+        "wage_type": get_wage_type_category(employee),
+    }
+
+
+def get_compensation_by_group(
+    session: Session,
+    group_by: str = "department",
+    employee_type_filter: str = None,
+    wage_type_filter: str = None
+) -> Dict[str, Any]:
+    """
+    Get average normalized compensation grouped by department, cost center, or team.
+
+    Args:
+        session: Database session
+        group_by: Field to group by - "department", "cost_center", or "team"
+        employee_type_filter: Optional filter - "Full-Time" or "Part-Time"
+        wage_type_filter: Optional filter - "Salary" or "Hourly"
+
+    Returns:
+        Dictionary with grouped compensation averages
+    """
+    today = date.today()
+
+    # Get active employees
+    employees = session.query(models.Employee).filter(
+        models.Employee.hire_date <= today,
+        or_(models.Employee.termination_date == None,
+            models.Employee.termination_date > today),
+    ).all()
+
+    # Apply filters
+    filtered_employees = []
+    for emp in employees:
+        # Apply employee type filter
+        if employee_type_filter:
+            if get_employee_type_category(emp) != employee_type_filter:
+                continue
+
+        # Apply wage type filter
+        if wage_type_filter:
+            if get_wage_type_category(emp) != wage_type_filter:
+                continue
+
+        filtered_employees.append(emp)
+
+    # Group by specified field
+    valid_fields = ["department", "cost_center", "team"]
+    if group_by not in valid_fields:
+        group_by = "department"
+
+    groups: Dict[str, List[Dict[str, Any]]] = {}
+
+    for emp in filtered_employees:
+        # Get grouping key
+        if group_by == "department":
+            key = emp.department or "Unassigned"
+        elif group_by == "cost_center":
+            key = emp.cost_center or "Unassigned"
+        else:  # team
+            key = emp.team or "Unassigned"
+
+        # Get normalized compensation
+        comp = get_normalized_compensation(emp)
+
+        if key not in groups:
+            groups[key] = []
+        groups[key].append(comp)
+
+    # Calculate averages for each group
+    result = {}
+    for key, comps in groups.items():
+        if not comps:
+            continue
+
+        result[key] = {
+            "count": len(comps),
+            "avg_annual_wage": round(sum(c["annual_wage"] for c in comps) / len(comps), 2),
+            "avg_hourly_wage": round(sum(c["hourly_wage"] for c in comps) / len(comps), 2),
+            "avg_benefits": round(sum(c["benefits_annual"] for c in comps) / len(comps), 2),
+            "avg_taxes": round(sum(c["taxes_annual"] for c in comps) / len(comps), 2),
+            "avg_total_comp": round(sum(c["total_compensation"] for c in comps) / len(comps), 2),
+            "min_annual": round(min(c["annual_wage"] for c in comps), 2),
+            "max_annual": round(max(c["annual_wage"] for c in comps), 2),
+        }
+
+    return {
+        "groups": result,
+        "group_by": group_by,
+        "filters": {
+            "employee_type": employee_type_filter,
+            "wage_type": wage_type_filter,
+        },
+        "total_employees": len(filtered_employees),
+        "as_of": today.isoformat(),
+    }
