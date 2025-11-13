@@ -1,0 +1,37 @@
+{% extends "base/base.html" %}
+
+{% block title %}Concur Notification - Terminating Employee: {{ employee_name }}{% endblock %}
+
+{% block header_title %}NBS HR Notification{% endblock %}
+{% block header_subtitle %}Travel Account Deactivation Required{% endblock %}
+
+{% block greeting %}
+<p style="font-size: 18px;">Hi!</p>
+{% endblock %}
+
+{% block content %}
+<p style="font-size: 18px;">
+    {{ employee_name }} {{ verb }} terminated from NBS. Would you please deactivate {{ pronoun }} Concur account?
+</p>
+
+<div class="info-box info-box-info">
+    <strong>Employee Details:</strong>
+    <ul style="margin: 10px 0 0 0;">
+        <li><strong>Name:</strong> {{ employee_name }}</li>
+        <li><strong>Employee ID:</strong> {{ employee_id }}</li>
+        <li><strong>Termination Date:</strong> {{ termination_date }}</li>
+        {% if department %}<li><strong>Department:</strong> {{ department }}</li>{% endif %}
+    </ul>
+</div>
+
+<p style="font-size: 18px;">
+    Thank you!
+</p>
+{% endblock %}
+
+{% block closing %}
+<p style="margin-top: 30px;">
+    Best regards,<br>
+    <strong>{{ from_name|default('HR Team') }}</strong>
+</p>
+{% endblock %}

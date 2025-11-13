@@ -103,20 +103,33 @@ def get_current_user(
     """Get the current authenticated user from JWT token."""
     token = credentials.credentials
 
+    print(f"🔍 DEBUG: Token received: {token[:50]}...")
+
     try:
         payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+        print(f"✅ DEBUG: Token decoded successfully. Payload: {payload}")
         username: str = payload.get("sub")
         if username is None:
+            print("❌ DEBUG: No 'sub' in payload")
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
                 detail="Could not validate credentials"
             )
+        print(f"👤 DEBUG: Username from token: {username}")
     except jwt.ExpiredSignatureError:
+        print("⏰ DEBUG: Token expired")
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Token has expired"
         )
-    except jwt.JWTError:
+    except jwt.exceptions.DecodeError as e:
+        print(f"🔥 DEBUG: DecodeError: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Could not validate credentials"
+        )
+    except Exception as e:
+        print(f"💥 DEBUG: Unexpected error: {type(e).__name__}: {str(e)}")
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Could not validate credentials"

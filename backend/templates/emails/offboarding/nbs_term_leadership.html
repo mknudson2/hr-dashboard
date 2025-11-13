@@ -1,0 +1,46 @@
+{% extends "base/base.html" %}
+
+{% block title %}Leadership Notification - Terminating Employee: {{ employee_name }}{% endblock %}
+
+{% block header_title %}NBS Leadership Notification{% endblock %}
+{% block header_subtitle %}Employee Termination Notice{% endblock %}
+
+{% block greeting %}
+<p style="font-size: 18px;">Hello Leadership Team,</p>
+{% endblock %}
+
+{% block content %}
+<p style="font-size: 18px;">
+    This is to inform you that {{ employee_name }} {{ verb }} terminated from NBS.
+</p>
+
+<div class="info-box info-box-info">
+    <strong>Employee Details:</strong>
+    <ul style="margin: 10px 0 0 0;">
+        <li><strong>Name:</strong> {{ employee_name }}</li>
+        <li><strong>Employee ID:</strong> {{ employee_id }}</li>
+        <li><strong>Department:</strong> {{ department }}</li>
+        <li><strong>Role:</strong> {{ role }}</li>
+        <li><strong>Supervisor:</strong> {{ supervisor }}</li>
+        <li><strong>Termination Date:</strong> {{ termination_date }}</li>
+    </ul>
+</div>
+
+{% if transition_notes %}
+<div class="info-box info-box-warning">
+    <strong>Transition Notes:</strong>
+    <p style="margin: 10px 0 0 0;">{{ transition_notes }}</p>
+</div>
+{% endif %}
+
+<p style="font-size: 18px;">
+    Please let HR know if you have any questions or concerns.
+</p>
+{% endblock %}
+
+{% block closing %}
+<p style="margin-top: 30px;">
+    Best regards,<br>
+    <strong>{{ from_name|default('HR Team') }}</strong>
+</p>
+{% endblock %}

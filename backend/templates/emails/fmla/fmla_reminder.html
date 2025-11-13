@@ -1,0 +1,108 @@
+{% extends "base/base.html" %}
+
+{% block title %}FMLA Return Reminder - {{ employee_name }}{% endblock %}
+
+{% block header_title %}FMLA Return Date Reminder{% endblock %}
+{% block header_subtitle %}Your leave is ending soon{% endblock %}
+
+{% block greeting %}
+<p style="font-size: 18px;">Hi {{ employee_name }}!</p>
+{% endblock %}
+
+{% block content %}
+<p style="font-size: 18px;">
+    We hope you're doing well. This is a friendly reminder that your FMLA leave is scheduled to end soon.
+</p>
+
+<div class="info-box info-box-info">
+    <strong>Your Leave Details:</strong>
+    <ul style="margin: 10px 0 0 0;">
+        <li><strong>Leave Start Date:</strong> {{ start_date }}</li>
+        <li><strong>Expected Return Date:</strong> {{ return_date }}</li>
+        <li><strong>Days Until Return:</strong> {{ days_until_return }}</li>
+    </ul>
+</div>
+
+<h3>Please Confirm Your Return</h3>
+<p>
+    To help us prepare for your return, please let us know your plans:
+</p>
+
+<div class="checklist-item">
+    <span class="checkbox"></span> I will return to work on {{ return_date }} as scheduled
+</div>
+<div class="checklist-item">
+    <span class="checkbox"></span> I need to extend my leave (medical certification required)
+</div>
+<div class="checklist-item">
+    <span class="checkbox"></span> I am able to return earlier than {{ return_date }}
+</div>
+<div class="checklist-item">
+    <span class="checkbox"></span> I need to discuss my return date and/or accommodations
+</div>
+
+<div class="info-box info-box-warning">
+    <strong>Action Required:</strong>
+    <p style="margin: 10px 0 0 0;">
+        Please respond to this email by {{ response_deadline|default('3 business days') }} to confirm your return plans.
+    </p>
+</div>
+
+{% if fitness_for_duty_required %}
+<h3>Fitness for Duty Certification Required</h3>
+<div class="info-box info-box-error">
+    <p style="margin: 0;">
+        Before returning to work, you must provide a fitness-for-duty certification from your healthcare provider.
+        This certification should confirm that you are able to perform the essential functions of your position.
+    </p>
+    <p style="margin: 10px 0 0 0;">
+        <strong>Please submit this certification at least 2 business days before your return date.</strong>
+    </p>
+</div>
+{% endif %}
+
+<h3>If You Need to Extend Your Leave</h3>
+<p>If you need additional time off beyond {{ return_date }}, please:</p>
+<ul>
+    <li>Contact HR as soon as possible</li>
+    <li>Provide updated medical certification from your healthcare provider</li>
+    <li>Note: Extension requests must be submitted before your current leave end date</li>
+</ul>
+
+<h3>Preparing for Your Return</h3>
+<p>As you prepare to return to work:</p>
+<ul>
+    <li>Review any company updates or changes during your absence</li>
+    <li>Contact your manager to discuss transition plans</li>
+    <li>Ensure all required certifications are submitted to HR</li>
+    <li>Plan to attend a brief welcome-back meeting on your first day</li>
+</ul>
+
+{% if accommodations_info %}
+<div class="info-box info-box-info">
+    <strong>Workplace Accommodations:</strong>
+    <p style="margin: 10px 0 0 0;">
+        If you require any workplace accommodations upon your return, please contact HR to discuss options.
+        We're committed to supporting a smooth transition back to work.
+    </p>
+</div>
+{% endif %}
+
+<h3>Questions?</h3>
+<p>If you have any questions or concerns, please contact:</p>
+<ul>
+    <li><strong>HR Contact:</strong> {{ hr_contact|default('HR Department') }} - {{ hr_email|default('hr@nbsbenefits.com') }}</li>
+    <li><strong>Your Manager:</strong> {{ manager_name }}{% if manager_email %} - {{ manager_email }}{% endif %}</li>
+</ul>
+
+<p style="font-size: 18px;">
+    We're looking forward to having you back!
+</p>
+{% endblock %}
+
+{% block closing %}
+<p style="margin-top: 30px;">
+    Best regards,<br>
+    <strong>{{ from_name|default('HR Team') }}</strong>
+</p>
+{% endblock %}

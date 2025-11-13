@@ -484,3 +484,330 @@ def add_case_note(case_id: int, note_data: FMLACaseNoteCreate, db: Session = Dep
             "created_at": new_note.created_at.isoformat(),
         }
     }
+
+
+# =============================================================================
+# FMLA WH-381 Notice of Eligibility Form Generation
+# =============================================================================
+
+from app.services.fmla_form_service import FMLAFormService
+from app.api.auth import get_current_user
+
+
+class FMLANoticeRequestCreate(BaseModel):
+    """Schema for creating FMLA WH-381 Notice request"""
+    employee_id: int
+    request_date: date
+    leave_start_date: date
+    leave_end_date: Optional[date] = None
+    leave_reason: str  # birth_adoption, own_health, family_care, military_exigency, military_caregiver
+    family_relationship: Optional[str] = None
+    certification_required: bool = False
+    certification_type: Optional[str] = None
+    certification_attached: bool = False
+    relationship_cert_required: bool = False
+    is_key_employee: bool = False
+    some_unpaid: bool = True
+    employer_requires_paid: bool = True
+    other_leave_arrangement: Optional[str] = None
+    internal_notes: Optional[str] = None
+    generate_notice: bool = True
+
+
+class FMLANoticeResponse(BaseModel):
+    """Response for FMLA Notice request"""
+    id: int
+    employee_id: int
+    request_date: str
+    leave_start_date: str
+    is_eligible: bool
+    status: str
+    filled_form_path: Optional[str]
+
+
+class EligibilityCheckRequest(BaseModel):
+    """Schema for checking FMLA eligibility"""
+    employee_id: int
+    leave_start_date: date
+
+
+@router.post("/check-eligibility")
+def check_fmla_eligibility(
+    request: EligibilityCheckRequest,
+    db: Session = Depends(get_db),
+    current_user: dict = Depends(get_current_user)
+):
+    """Check if an employee is eligible for FMLA leave"""
+    # Get employee
+    employee = db.query(models.Employee).filter(models.Employee.id == request.employee_id).first()
+    if not employee:
+        raise HTTPException(status_code=404, detail="Employee not found")
+
+    # Check eligibility
+    fmla_service = FMLAFormService()
+    employment_type = employee.employment_type or "Full Time"
+    eligibility = fmla_service.calculate_eligibility(
+        employee,
+        request.leave_start_date,
+        employment_type
+    )
+
+    return eligibility
+
+
+@router.post("/create-notice")
+def create_fmla_notice(
+    request: FMLANoticeRequestCreate,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(get_current_user)
+):
+    """Create FMLA WH-381 Notice of Eligibility and Rights & Responsibilities"""
+    # Get employee
+    employee = db.query(models.Employee).filter(models.Employee.id == request.employee_id).first()
+    if not employee:
+        raise HTTPException(status_code=404, detail="Employee not found")
+
+    # Check eligibility
+    fmla_service = FMLAFormService()
+    employment_type = employee.employment_type or "Full Time"
+    eligibility = fmla_service.calculate_eligibility(
+        employee,
+        request.leave_start_date,
+        employment_type
+    )
+
+    # Calculate certification due date
+    cert_due_date = None
+    if request.certification_required:
+        cert_due_date = request.request_date + timedelta(days=30)
+
+    # Create FMLA leave request record
+    fmla_request = models.FMLALeaveRequest(
+        employee_id=request.employee_id,
+        request_date=request.request_date,
+        leave_start_date=request.leave_start_date,
+        leave_end_date=request.leave_end_date,
+        leave_reason=request.leave_reason,
+        family_relationship=request.family_relationship,
+        is_eligible=eligibility['is_eligible'],
+        months_employed=eligibility['months_employed'],
+        hours_worked_12months=eligibility['hours_worked_12months'],
+        ineligibility_reasons=eligibility['ineligibility_reasons'],
+        certification_required=request.certification_required,
+        certification_type=request.certification_type,
+        certification_due_date=cert_due_date,
+        certification_attached=request.certification_attached,
+        relationship_cert_required=request.relationship_cert_required,
+        is_key_employee=request.is_key_employee,
+        some_unpaid=request.some_unpaid,
+        employer_requires_paid=request.employer_requires_paid,
+        other_leave_arrangement=request.other_leave_arrangement,
+        internal_notes=request.internal_notes,
+        created_by=current_user.username,
+        status='draft'
+    )
+
+    db.add(fmla_request)
+    db.commit()
+    db.refresh(fmla_request)
+
+    # Generate notice if requested
+    if request.generate_notice:
+        try:
+            # Prepare request data for form generation
+            request_data = {
+                'request_date': request.request_date,
+                'leave_start_date': request.leave_start_date,
+                'leave_end_date': request.leave_end_date,
+                'leave_reason': request.leave_reason,
+                'family_relationship': request.family_relationship,
+                'certification_required': request.certification_required,
+                'certification_attached': request.certification_attached,
+                'relationship_cert_required': request.relationship_cert_required,
+                'is_key_employee': request.is_key_employee,
+                'some_unpaid': request.some_unpaid,
+                'employer_requires_paid': request.employer_requires_paid,
+                'other_leave_arrangement': request.other_leave_arrangement,
+            }
+
+            # Generate the form
+            filled_form_path = fmla_service.generate_form(employee, request_data)
+
+            # Update the request with the form path
+            fmla_request.filled_form_path = filled_form_path
+            fmla_request.status = 'notice_generated'
+
+            db.commit()
+            db.refresh(fmla_request)
+
+        except Exception as e:
+            # If form generation fails, still return the request but with error status
+            fmla_request.status = 'error'
+            fmla_request.internal_notes = f"{fmla_request.internal_notes or ''}\n\nForm generation error: {str(e)}"
+            db.commit()
+            db.refresh(fmla_request)
+
+    return {
+        "id": fmla_request.id,
+        "employee_id": fmla_request.employee_id,
+        "request_date": fmla_request.request_date.isoformat(),
+        "leave_start_date": fmla_request.leave_start_date.isoformat(),
+        "is_eligible": fmla_request.is_eligible,
+        "status": fmla_request.status,
+        "filled_form_path": fmla_request.filled_form_path,
+    }
+
+
+@router.get("/notices")
+def list_fmla_notices(
+    employee_id: Optional[int] = None,
+    status: Optional[str] = None,
+    db: Session = Depends(get_db),
+    current_user: dict = Depends(get_current_user)
+):
+    """List FMLA WH-381 notices with optional filtering"""
+    query = db.query(models.FMLALeaveRequest)
+
+    if employee_id:
+        query = query.filter(models.FMLALeaveRequest.employee_id == employee_id)
+
+    if status:
+        query = query.filter(models.FMLALeaveRequest.status == status)
+
+    notices = query.order_by(models.FMLALeaveRequest.created_at.desc()).all()
+
+    return [{
+        "id": notice.id,
+        "employee_id": notice.employee_id,
+        "request_date": notice.request_date.isoformat(),
+        "leave_start_date": notice.leave_start_date.isoformat(),
+        "leave_reason": notice.leave_reason,
+        "is_eligible": notice.is_eligible,
+        "status": notice.status,
+        "created_at": notice.created_at.isoformat(),
+    } for notice in notices]
+
+
+@router.get("/notices/{notice_id}")
+def get_fmla_notice(
+    notice_id: int,
+    db: Session = Depends(get_db),
+    current_user: dict = Depends(get_current_user)
+):
+    """Get a specific FMLA WH-381 notice"""
+    notice = db.query(models.FMLALeaveRequest).filter(models.FMLALeaveRequest.id == notice_id).first()
+    if not notice:
+        raise HTTPException(status_code=404, detail="FMLA notice not found")
+
+    employee = db.query(models.Employee).filter(models.Employee.id == notice.employee_id).first()
+
+    return {
+        "id": notice.id,
+        "employee_id": notice.employee_id,
+        "employee_name": f"{employee.first_name} {employee.last_name}" if employee else "Unknown",
+        "request_date": notice.request_date.isoformat(),
+        "leave_start_date": notice.leave_start_date.isoformat(),
+        "leave_end_date": notice.leave_end_date.isoformat() if notice.leave_end_date else None,
+        "leave_reason": notice.leave_reason,
+        "family_relationship": notice.family_relationship,
+        "is_eligible": notice.is_eligible,
+        "months_employed": notice.months_employed,
+        "hours_worked_12months": notice.hours_worked_12months,
+        "status": notice.status,
+        "filled_form_path": notice.filled_form_path,
+        "notice_sent_date": notice.notice_sent_date.isoformat() if notice.notice_sent_date else None,
+        "created_at": notice.created_at.isoformat(),
+        "internal_notes": notice.internal_notes,
+    }
+
+
+@router.get("/notices/{notice_id}/download")
+def download_fmla_notice(
+    notice_id: int,
+    db: Session = Depends(get_db),
+    current_user: dict = Depends(get_current_user)
+):
+    """Download the filled WH-381 form"""
+    from fastapi.responses import FileResponse
+    import os
+
+    # Get the FMLA notice
+    notice = db.query(models.FMLALeaveRequest).filter(models.FMLALeaveRequest.id == notice_id).first()
+    if not notice:
+        raise HTTPException(status_code=404, detail="FMLA notice not found")
+
+    if not notice.filled_form_path:
+        raise HTTPException(status_code=404, detail="No form has been generated for this notice")
+
+    # Check if file exists
+    if not os.path.exists(notice.filled_form_path):
+        raise HTTPException(status_code=404, detail="Form file not found")
+
+    # Get employee for filename
+    employee = db.query(models.Employee).filter(models.Employee.id == notice.employee_id).first()
+    filename = f"FMLA_WH381_{employee.first_name}_{employee.last_name}_{notice.id}.pdf"
+
+    return FileResponse(
+        path=notice.filled_form_path,
+        filename=filename,
+        media_type='application/pdf'
+    )
+
+
+@router.post("/notices/{notice_id}/send-email")
+async def send_fmla_notice_email(
+    notice_id: int,
+    db: Session = Depends(get_db),
+    current_user: dict = Depends(get_current_user)
+):
+    """Send FMLA notice to employee via email"""
+    from app.services.email_service import email_service
+
+    # Get the FMLA notice
+    notice = db.query(models.FMLALeaveRequest).filter(models.FMLALeaveRequest.id == notice_id).first()
+    if not notice:
+        raise HTTPException(status_code=404, detail="FMLA notice not found")
+
+    # Get employee
+    employee = db.query(models.Employee).filter(models.Employee.id == notice.employee_id).first()
+    if not employee:
+        raise HTTPException(status_code=404, detail="Employee not found")
+
+    # Check if employee has email
+    if not hasattr(employee, 'email') or not employee.email:
+        raise HTTPException(status_code=400, detail="Employee does not have an email address")
+
+    # Check if form has been generated
+    if not notice.filled_form_path:
+        raise HTTPException(status_code=400, detail="No form has been generated for this notice. Generate the notice first.")
+
+    # Send the email
+    try:
+        await email_service.send_fmla_notice(
+            to_email=employee.email,
+            employee_name=f"{employee.first_name} {employee.last_name}",
+            leave_start_date=notice.leave_start_date.strftime("%B %d, %Y"),
+            leave_reason=notice.leave_reason,
+            is_eligible=notice.is_eligible,
+            certification_required=notice.certification_required,
+            certification_due_date=notice.certification_due_date.strftime("%B %d, %Y") if notice.certification_due_date else None,
+            notice_pdf_path=notice.filled_form_path,
+            cc_hr=True
+        )
+
+        # Update notice status and delivery tracking
+        notice.notice_sent_date = datetime.now()
+        notice.notice_sent_method = 'email'
+        if notice.status == 'notice_generated':
+            notice.status = 'sent_to_employee'
+
+        db.commit()
+
+        return {
+            "message": "FMLA notice sent successfully",
+            "sent_to": employee.email,
+            "sent_at": notice.notice_sent_date.isoformat()
+        }
+
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to send email: {str(e)}")
