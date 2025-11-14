@@ -145,6 +145,8 @@ def get_offboarding_tasks(
 
     By default, excludes archived tasks (archived=True).
     Set include_archived=True to include archived tasks.
+
+    Returns parent tasks with nested subtasks.
     """
     query = db.query(models.OffboardingTask)
 
@@ -160,9 +162,81 @@ def get_offboarding_tasks(
     if status:
         query = query.filter(models.OffboardingTask.status == status)
 
+    # Only get parent tasks and standalone tasks (exclude subtasks from main list)
+    query = query.filter(
+        (models.OffboardingTask.is_subtask == False) | (models.OffboardingTask.is_subtask == None)
+    )
+
     tasks = query.order_by(models.OffboardingTask.due_date.asc()).all()
 
-    return {"tasks": tasks, "total": len(tasks)}
+    # Build response with subtasks nested under parent tasks
+    result = []
+    for task in tasks:
+        task_dict = {
+            "id": task.id,
+            "task_id": task.task_id,
+            "employee_id": task.employee_id,
+            "task_name": task.task_name,
+            "task_description": task.task_description,
+            "category": task.category,
+            "assigned_to": task.assigned_to,
+            "assigned_to_role": task.assigned_to_role,
+            "due_date": task.due_date.isoformat() if task.due_date else None,
+            "status": task.status,
+            "priority": task.priority,
+            "completed_date": task.completed_date,
+            "days_from_termination": task.days_from_termination,
+            "notes": task.notes,
+            "notes_history": task.notes_history,
+            "completion_notes": task.completion_notes,
+            "completed_by": task.completed_by,
+            "task_details": task.task_details,
+            "uncheck_history": task.uncheck_history,
+            "parent_task_id": task.parent_task_id,
+            "has_subtasks": task.has_subtasks,
+            "is_subtask": task.is_subtask,
+            "created_at": task.created_at.isoformat() if task.created_at else None,
+            "updated_at": task.updated_at.isoformat() if task.updated_at else None,
+        }
+
+        # If task has subtasks, fetch and nest them
+        if task.has_subtasks:
+            subtasks = db.query(models.OffboardingTask).filter(
+                models.OffboardingTask.parent_task_id == task.id
+            ).order_by(models.OffboardingTask.id.asc()).all()
+
+            task_dict["subtasks"] = [
+                {
+                    "id": st.id,
+                    "task_id": st.task_id,
+                    "employee_id": st.employee_id,
+                    "task_name": st.task_name,
+                    "task_description": st.task_description,
+                    "category": st.category,
+                    "assigned_to": st.assigned_to,
+                    "assigned_to_role": st.assigned_to_role,
+                    "due_date": st.due_date.isoformat() if st.due_date else None,
+                    "status": st.status,
+                    "priority": st.priority,
+                    "completed_date": st.completed_date,
+                    "days_from_termination": st.days_from_termination,
+                    "notes": st.notes,
+                    "notes_history": st.notes_history,
+                    "completion_notes": st.completion_notes,
+                    "completed_by": st.completed_by,
+                    "task_details": st.task_details,
+                    "parent_task_id": st.parent_task_id,
+                    "has_subtasks": st.has_subtasks,
+                    "is_subtask": st.is_subtask,
+                    "created_at": st.created_at.isoformat() if st.created_at else None,
+                    "updated_at": st.updated_at.isoformat() if st.updated_at else None,
+                }
+                for st in subtasks
+            ]
+
+        result.append(task_dict)
+
+    return {"tasks": result, "total": len(result)}
 
 
 @router.post("/tasks")
