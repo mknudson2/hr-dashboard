@@ -1,4 +1,4 @@
-import { Home, Users, BarChart } from "lucide-react";
+import { Home, Users, BarChart, Clock, CheckSquare, TrendingUp } from "lucide-react";
 import { Link } from "react-router-dom";
 
 export default function Sidebar() {
@@ -6,6 +6,9 @@ export default function Sidebar() {
         { label: "Dashboard", icon: <Home />, path: "/" },
         { label: "Employees", icon: <Users />, path: "/employees" },
         { label: "Analytics", icon: <BarChart />, path: "/analytics" },
+        { label: "Time Tracking", icon: <Clock />, path: "/time-tracking" },
+        { label: "Timesheet Approval", icon: <CheckSquare />, path: "/timesheet-approval" },
+        { label: "Capitalization Analytics", icon: <TrendingUp />, path: "/capitalization-analytics" },
     ];
 
     return (

@@ -21,11 +21,12 @@ export default function DepartmentChart() {
     const { resolvedTheme } = useTheme();
     const [deptData, setDeptData] = useState<DeptData>({});
     const [stacked, setStacked] = useState(false);
+    const [filter, setFilter] = useState<"department" | "cost_center" | "team">("department");
 
     useEffect(() => {
         async function fetchDepartments() {
             try {
-                const res = await fetch("http://127.0.0.1:8000/analytics/departments");
+                const res = await fetch(`http://127.0.0.1:8000/analytics/departments?group_by=${filter}`);
                 const json = await res.json();
                 setDeptData(json);
             } catch (error) {
@@ -33,7 +34,7 @@ export default function DepartmentChart() {
             }
         }
         fetchDepartments();
-    }, []);
+    }, [filter]);
 
     const labels = Object.keys(deptData);
     const activeCounts = labels.map((d) => deptData[d].active);
@@ -87,28 +88,42 @@ export default function DepartmentChart() {
     };
 
     return (
-        <div className="w-full h-80 mt-8 bg-white dark:bg-gray-800 rounded-2xl shadow border dark:border-gray-700 p-6">
-            <div className="flex items-center justify-between mb-4">
+        <div className="w-full mt-8 mb-8 bg-white dark:bg-gray-800 rounded-2xl shadow-sm p-6 transition-all duration-300 ease-in-out hover:shadow-lg hover:border-blue-400/60 hover:-translate-y-0.5 border border-transparent">
+            <div className="flex items-center justify-between mb-4 flex-wrap gap-3">
                 <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
-                    Department Breakdown — Active vs. YTD Terminations
+                    {filter === "department" ? "Department" : filter === "cost_center" ? "Cost Center" : "Team"} Breakdown — Active vs. YTD Terminations
                 </h3>
 
-                <motion.button
-                    whileTap={{ scale: 0.95 }}
-                    onClick={() => setStacked(!stacked)}
-                    className="px-3 py-1 text-sm rounded-md bg-blue-600 hover:bg-blue-700 text-white transition"
-                >
-                    {stacked ? "View Grouped" : "View Stacked"}
-                </motion.button>
+                <div className="flex items-center gap-2">
+                    <select
+                        value={filter}
+                        onChange={(e) => setFilter(e.target.value as "department" | "cost_center" | "team")}
+                        className="text-sm rounded-md border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-200 px-3 py-1.5 min-w-[140px]"
+                    >
+                        <option value="department">Department</option>
+                        <option value="cost_center">Cost Center</option>
+                        <option value="team">Team</option>
+                    </select>
+
+                    <motion.button
+                        whileTap={{ scale: 0.95 }}
+                        onClick={() => setStacked(!stacked)}
+                        className="px-3 py-1 text-sm rounded-md bg-blue-600 hover:bg-blue-700 text-white transition"
+                    >
+                        {stacked ? "View Grouped" : "View Stacked"}
+                    </motion.button>
+                </div>
             </div>
 
-            {labels.length > 0 ? (
-                <Bar data={data} options={options} />
-            ) : (
-                <p className="text-gray-500 dark:text-gray-400 text-center mt-8">
-                    No department data available.
-                </p>
-            )}
+            <div className="h-80">
+                {labels.length > 0 ? (
+                    <Bar data={data} options={options} />
+                ) : (
+                    <p className="text-gray-500 dark:text-gray-400 text-center mt-8">
+                        No department data available.
+                    </p>
+                )}
+            </div>
         </div>
     );
 }

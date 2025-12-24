@@ -59,3 +59,15 @@ export async function downloadAverageTenurePDF() {
     alert("Failed to download PDF. Check console for details.");
   }
 }
+
+export type PtoUtilResponse = {
+  by_department: Record<string, number>;
+  by_cost_center: Record<string, number>;
+  by_team: Record<string, number>;
+  as_of: string;
+};
+
+export async function fetchPtoUtilization(): Promise<PtoUtilResponse> {
+  const res = await fetch(`${API_BASE}/analytics/pto-utilization`);
+  return res.json();
+}

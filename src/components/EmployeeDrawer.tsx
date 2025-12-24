@@ -99,25 +99,34 @@ export default function EmployeeDrawer({ employee, onClose }: EmployeeDrawerProp
         },
     };
 
+    // ESC key support
+    useEffect(() => {
+        const handleEscape = (e: KeyboardEvent) => {
+            if (e.key === 'Escape') onClose();
+        };
+        window.addEventListener('keydown', handleEscape);
+        return () => window.removeEventListener('keydown', handleEscape);
+    }, [onClose]);
+
     return (
         <AnimatePresence>
-            <motion.div
-                key="overlay"
-                className="fixed inset-0 bg-black/40 z-40"
-                onClick={onClose}
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                exit={{ opacity: 0 }}
-            />
+            {employee && (
+                <>
+                    <motion.div
+                        className="fixed inset-0 bg-black/50 z-40"
+                        onClick={onClose}
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                    />
 
-            <motion.div
-                key="drawer"
-                className="fixed right-0 top-0 h-full w-full max-w-md bg-white dark:bg-gray-900 shadow-xl z-50 overflow-y-auto p-6"
-                initial={{ x: "100%" }}
-                animate={{ x: 0 }}
-                exit={{ x: "100%" }}
-                transition={{ type: "spring", stiffness: 260, damping: 30 }}
-            >
+                    <motion.div
+                        className="fixed right-0 top-0 h-full w-full max-w-md bg-white dark:bg-gray-900 shadow-xl z-50 overflow-y-auto p-6"
+                        initial={{ x: "100%" }}
+                        animate={{ x: 0 }}
+                        exit={{ x: "100%" }}
+                        transition={{ type: "spring", damping: 30, stiffness: 300 }}
+                    >
                 {/* Header */}
                 <div className="flex justify-between items-center mb-6">
                     <h2 className="text-xl font-semibold text-gray-900 dark:text-white flex items-center gap-2">
@@ -182,7 +191,9 @@ export default function EmployeeDrawer({ employee, onClose }: EmployeeDrawerProp
                         <Line data={attendanceData} options={baseOptions} />
                     </ChartCard>
                 </div>
-            </motion.div>
+                    </motion.div>
+                </>
+            )}
         </AnimatePresence>
     );
 }

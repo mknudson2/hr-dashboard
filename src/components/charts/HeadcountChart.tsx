@@ -15,7 +15,12 @@ import { motion, AnimatePresence } from "framer-motion";
 
 ChartJS.register(LineElement, CategoryScale, LinearScale, PointElement, Tooltip, Legend, Filler);
 
-export default function HeadcountChart({ data }: { data: number[] }) {
+interface HeadcountTrend {
+    labels: string[];
+    values: number[];
+}
+
+export default function HeadcountChart({ data }: { data: HeadcountTrend }) {
     const { resolvedTheme } = useTheme();
     const [isDark, setIsDark] = useState(false);
     const [chartColor, setChartColor] = useState("#2563eb");
@@ -60,12 +65,13 @@ export default function HeadcountChart({ data }: { data: number[] }) {
         return () => clearInterval(interval);
     }, [isDark]);
 
+    // ✅ Build chart data from API structure
     const chartData = {
-        labels: ["Jan", "Feb", "Mar", "Apr", "May"],
+        labels: data?.labels ?? [],
         datasets: [
             {
                 label: "Headcount",
-                data,
+                data: data?.values ?? [],
                 tension: 0.3,
                 fill: true,
                 borderWidth: 3,
@@ -90,6 +96,17 @@ export default function HeadcountChart({ data }: { data: number[] }) {
                     color: isDark ? "#d1d5db" : "#374151",
                 },
             },
+            tooltip: {
+                backgroundColor: isDark ? "#1f2937" : "#f9fafb",
+                titleColor: isDark ? "#f3f4f6" : "#111827",
+                bodyColor: isDark ? "#d1d5db" : "#374151",
+                borderWidth: 1,
+                borderColor: isDark ? "#374151" : "#e5e7eb",
+                displayColors: false,
+                callbacks: {
+                    label: (context: any) => `Headcount: ${context.parsed.y}`,
+                },
+            },
         },
         scales: {
             x: {
@@ -99,6 +116,8 @@ export default function HeadcountChart({ data }: { data: number[] }) {
             y: {
                 ticks: { color: isDark ? "#9ca3af" : "#6b7280" },
                 grid: { color: isDark ? "#374151" : "#e5e7eb" },
+                beginAtZero: true,
+                grace: "10%",
             },
         },
     };
@@ -112,17 +131,20 @@ export default function HeadcountChart({ data }: { data: number[] }) {
                 exit={{ opacity: 0, scale: 0.97 }}
                 transition={{ duration: 0.4 }}
                 className="
-                    p-6 mt-6 rounded-2xl border border-gray-200 dark:border-gray-700
-                    bg-white dark:bg-gray-800 shadow-sm transition-all duration-300 ease-in-out
-                    hover:shadow-lg hover:border-blue-400/60 hover:-translate-y-0.5
-                "
+          p-6 mt-6 rounded-2xl border border-gray-200 dark:border-gray-700
+          bg-white dark:bg-gray-800 shadow-sm transition-all duration-300 ease-in-out
+          hover:shadow-lg hover:border-blue-400/60 hover:-translate-y-0.5
+        "
             >
                 <h3 className="text-lg font-semibold mb-4 text-gray-900 dark:text-gray-100">
-                    Headcount Trend
+                    Headcount Trend (YTD)
                 </h3>
                 <div className="h-80">
                     <Line ref={chartRef} data={chartData} options={options} />
                 </div>
+                <p className="mt-3 text-sm text-gray-500 dark:text-gray-400 text-center">
+                    As of {new Date().toLocaleDateString("en-US", { month: "long", year: "numeric" })}
+                </p>
             </motion.div>
         </AnimatePresence>
     );

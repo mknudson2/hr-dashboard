@@ -1,0 +1,1135 @@
+
+> frontend@0.0.0 dev
+> vite
+
+
+  VITE v7.1.12  ready in 220 ms
+
+  ➜  Local:   http://localhost:5173/
+  ➜  Network: use --host to expose
+9:48:55 PM [vite] (client) hmr update /src/index.css, /src/components/BonusConditionsModal.tsx
+9:49:03 PM [vite] (client) hmr update /src/index.css, /src/components/BonusConditionsModal.tsx
+9:49:16 PM [vite] (client) hmr update /src/index.css, /src/components/BonusConditionsModal.tsx
+9:49:30 PM [vite] (client) hmr update /src/index.css, /src/components/BonusConditionsModal.tsx
+9:49:48 PM [vite] (client) hmr update /src/index.css, /src/components/BonusConditionsModal.tsx
+9:53:04 PM [vite] (client) hmr update /src/index.css, /src/components/BonusConditionsModal.tsx
+1:10:25 AM [vite] (client) hmr update /src/App.tsx, /src/index.css
+1:10:30 AM [vite] (client) hmr update /src/App.tsx, /src/index.css
+1:10:51 AM [vite] (client) hmr update /src/layouts/MainLayout.tsx, /src/index.css
+1:10:57 AM [vite] (client) hmr update /src/layouts/MainLayout.tsx, /src/index.css
+9:18:43 AM [vite] (client) hmr update /src/index.css, /src/pages/PTOTrackingPage.tsx
+9:18:52 AM [vite] (client) hmr update /src/index.css, /src/pages/PTOTrackingPage.tsx
+9:19:01 AM [vite] (client) hmr update /src/index.css, /src/pages/PTOTrackingPage.tsx
+9:19:32 AM [vite] (client) hmr update /src/index.css, /src/pages/PTOTrackingPage.tsx
+9:19:40 AM [vite] (client) hmr update /src/index.css, /src/pages/PTOTrackingPage.tsx
+9:47:15 AM [vite] (client) hmr update /src/App.tsx, /src/index.css
+9:47:15 AM [vite] Internal server error: /Users/michaelknudson/Desktop/hr-dashboard/frontend/src/App.tsx: Unterminated JSX contents. (55:13)
+
+  53 |         <Route path="/settings" element={<SettingsPage />} />
+  54 |       </Route>
+> 55 |     </Routes>
+     |              ^
+  56 |   );
+  57 | }
+  58 |
+  Plugin: vite:react-babel
+  File: /Users/michaelknudson/Desktop/hr-dashboard/frontend/src/App.tsx:55:13
+  53 |          <Route path="/settings" element={<SettingsPage />} />
+  54 |        </Route>
+  55 |      </Routes>
+     |               ^
+  56 |    );
+  57 |  }
+      at constructor (/Users/michaelknudson/Desktop/hr-dashboard/frontend/node_modules/@babel/parser/lib/index.js:367:19)
+      at TypeScriptParserMixin.raise (/Users/michaelknudson/Desktop/hr-dashboard/frontend/node_modules/@babel/parser/lib/index.js:6624:19)
+      at TypeScriptParserMixin.jsxReadToken (/Users/michaelknudson/Desktop/hr-dashboard/frontend/node_modules/@babel/parser/lib/index.js:4477:20)
+      at TypeScriptParserMixin.getTokenFromCode (/Users/michaelknudson/Desktop/hr-dashboard/frontend/node_modules/@babel/parser/lib/index.js:4803:12)
+      at TypeScriptParserMixin.getTokenFromCode (/Users/michaelknudson/Desktop/hr-dashboard/frontend/node_modules/@babel/parser/lib/index.js:10042:11)
+      at TypeScriptParserMixin.nextToken (/Users/michaelknudson/Desktop/hr-dashboard/frontend/node_modules/@babel/parser/lib/index.js:5807:10)
+      at TypeScriptParserMixin.next (/Users/michaelknudson/Desktop/hr-dashboard/frontend/node_modules/@babel/parser/lib/index.js:5717:10)
+      at TypeScriptParserMixin.eat (/Users/michaelknudson/Desktop/hr-dashboard/frontend/node_modules/@babel/parser/lib/index.js:5721:12)
+      at TypeScriptParserMixin.expect (/Users/michaelknudson/Desktop/hr-dashboard/frontend/node_modules/@babel/parser/lib/index.js:6923:15)
+      at TypeScriptParserMixin.jsxParseClosingElementAt (/Users/michaelknudson/Desktop/hr-dashboard/frontend/node_modules/@babel/parser/lib/index.js:4709:10)
+      at TypeScriptParserMixin.jsxParseElementAt (/Users/michaelknudson/Desktop/hr-dashboard/frontend/node_modules/@babel/parser/lib/index.js:4724:37)
+      at TypeScriptParserMixin.jsxParseElementAt (/Users/michaelknudson/Desktop/hr-dashboard/frontend/node_modules/@babel/parser/lib/index.js:4727:32)
+      at TypeScriptParserMixin.jsxParseElement (/Users/michaelknudson/Desktop/hr-dashboard/frontend/node_modules/@babel/parser/lib/index.js:4778:17)
+      at TypeScriptParserMixin.parseExprAtom (/Users/michaelknudson/Desktop/hr-dashboard/frontend/node_modules/@babel/parser/lib/index.js:4788:19)
+      at TypeScriptParserMixin.parseExprSubscripts (/Users/michaelknudson/Desktop/hr-dashboard/frontend/node_modules/@babel/parser/lib/index.js:11145:23)
+      at TypeScriptParserMixin.parseUpdate (/Users/michaelknudson/Desktop/hr-dashboard/frontend/node_modules/@babel/parser/lib/index.js:11130:21)
+      at TypeScriptParserMixin.parseMaybeUnary (/Users/michaelknudson/Desktop/hr-dashboard/frontend/node_modules/@babel/parser/lib/index.js:11110:23)
+      at TypeScriptParserMixin.parseMaybeUnary (/Users/michaelknudson/Desktop/hr-dashboard/frontend/node_modules/@babel/parser/lib/index.js:9890:18)
+      at TypeScriptParserMixin.parseMaybeUnaryOrPrivate (/Users/michaelknudson/Desktop/hr-dashboard/frontend/node_modules/@babel/parser/lib/index.js:10963:61)
+      at TypeScriptParserMixin.parseExprOps (/Users/michaelknudson/Desktop/hr-dashboard/frontend/node_modules/@babel/parser/lib/index.js:10968:23)
+      at TypeScriptParserMixin.parseMaybeConditional (/Users/michaelknudson/Desktop/hr-dashboard/frontend/node_modules/@babel/parser/lib/index.js:10945:23)
+      at TypeScriptParserMixin.parseMaybeAssign (/Users/michaelknudson/Desktop/hr-dashboard/frontend/node_modules/@babel/parser/lib/index.js:10895:21)
+      at /Users/michaelknudson/Desktop/hr-dashboard/frontend/node_modules/@babel/parser/lib/index.js:9828:39
+      at TypeScriptParserMixin.tryParse (/Users/michaelknudson/Desktop/hr-dashboard/frontend/node_modules/@babel/parser/lib/index.js:6932:20)
+      at TypeScriptParserMixin.parseMaybeAssign (/Users/michaelknudson/Desktop/hr-dashboard/frontend/node_modules/@babel/parser/lib/index.js:9828:18)
+      at /Users/michaelknudson/Desktop/hr-dashboard/frontend/node_modules/@babel/parser/lib/index.js:10864:39
+      at TypeScriptParserMixin.allowInAnd (/Users/michaelknudson/Desktop/hr-dashboard/frontend/node_modules/@babel/parser/lib/index.js:12500:12)
+      at TypeScriptParserMixin.parseMaybeAssignAllowIn (/Users/michaelknudson/Desktop/hr-dashboard/frontend/node_modules/@babel/parser/lib/index.js:10864:17)
+      at TypeScriptParserMixin.parseMaybeAssignAllowInOrVoidPattern (/Users/michaelknudson/Desktop/hr-dashboard/frontend/node_modules/@babel/parser/lib/index.js:12567:17)
+      at TypeScriptParserMixin.parseParenAndDistinguishExpression (/Users/michaelknudson/Desktop/hr-dashboard/frontend/node_modules/@babel/parser/lib/index.js:11747:28)
+      at TypeScriptParserMixin.parseExprAtom (/Users/michaelknudson/Desktop/hr-dashboard/frontend/node_modules/@babel/parser/lib/index.js:11395:23)
+      at TypeScriptParserMixin.parseExprAtom (/Users/michaelknudson/Desktop/hr-dashboard/frontend/node_modules/@babel/parser/lib/index.js:4793:20)
+      at TypeScriptParserMixin.parseExprSubscripts (/Users/michaelknudson/Desktop/hr-dashboard/frontend/node_modules/@babel/parser/lib/index.js:11145:23)
+      at TypeScriptParserMixin.parseUpdate (/Users/michaelknudson/Desktop/hr-dashboard/frontend/node_modules/@babel/parser/lib/index.js:11130:21)
+      at TypeScriptParserMixin.parseMaybeUnary (/Users/michaelknudson/Desktop/hr-dashboard/frontend/node_modules/@babel/parser/lib/index.js:11110:23)
+      at TypeScriptParserMixin.parseMaybeUnary (/Users/michaelknudson/Desktop/hr-dashboard/frontend/node_modules/@babel/parser/lib/index.js:9890:18)
+      at TypeScriptParserMixin.parseMaybeUnaryOrPrivate (/Users/michaelknudson/Desktop/hr-dashboard/frontend/node_modules/@babel/parser/lib/index.js:10963:61)
+      at TypeScriptParserMixin.parseExprOps (/Users/michaelknudson/Desktop/hr-dashboard/frontend/node_modules/@babel/parser/lib/index.js:10968:23)
+      at TypeScriptParserMixin.parseMaybeConditional (/Users/michaelknudson/Desktop/hr-dashboard/frontend/node_modules/@babel/parser/lib/index.js:10945:23)
+      at TypeScriptParserMixin.parseMaybeAssign (/Users/michaelknudson/Desktop/hr-dashboard/frontend/node_modules/@babel/parser/lib/index.js:10895:21)
+      at TypeScriptParserMixin.parseMaybeAssign (/Users/michaelknudson/Desktop/hr-dashboard/frontend/node_modules/@babel/parser/lib/index.js:9839:20)
+      at TypeScriptParserMixin.parseExpressionBase (/Users/michaelknudson/Desktop/hr-dashboard/frontend/node_modules/@babel/parser/lib/index.js:10848:23)
+      at /Users/michaelknudson/Desktop/hr-dashboard/frontend/node_modules/@babel/parser/lib/index.js:10844:39
+      at TypeScriptParserMixin.allowInAnd (/Users/michaelknudson/Desktop/hr-dashboard/frontend/node_modules/@babel/parser/lib/index.js:12495:16)
+      at TypeScriptParserMixin.parseExpression (/Users/michaelknudson/Desktop/hr-dashboard/frontend/node_modules/@babel/parser/lib/index.js:10844:17)
+      at TypeScriptParserMixin.parseReturnStatement (/Users/michaelknudson/Desktop/hr-dashboard/frontend/node_modules/@babel/parser/lib/index.js:13218:28)
+      at TypeScriptParserMixin.parseStatementContent (/Users/michaelknudson/Desktop/hr-dashboard/frontend/node_modules/@babel/parser/lib/index.js:12874:21)
+      at TypeScriptParserMixin.parseStatementContent (/Users/michaelknudson/Desktop/hr-dashboard/frontend/node_modules/@babel/parser/lib/index.js:9569:18)
+      at TypeScriptParserMixin.parseStatementLike (/Users/michaelknudson/Desktop/hr-dashboard/frontend/node_modules/@babel/parser/lib/index.js:12843:17)
+      at TypeScriptParserMixin.parseStatementListItem (/Users/michaelknudson/Desktop/hr-dashboard/frontend/node_modules/@babel/parser/lib/index.js:12823:17)
+9:47:21 AM [vite] (client) hmr update /src/App.tsx, /src/index.css
+9:47:25 AM [vite] (client) hmr update /src/App.tsx, /src/index.css
+9:47:31 AM [vite] (client) hmr update /src/layouts/MainLayout.tsx, /src/index.css
+9:47:37 AM [vite] (client) hmr update /src/layouts/MainLayout.tsx, /src/index.css
+9:47:49 AM [vite] (client) hmr update /src/layouts/MainLayout.tsx, /src/index.css
+9:47:57 AM [vite] (client) hmr update /src/index.css, /src/components/BonusConditionsModal.tsx
+9:50:19 AM [vite] (client) hmr update /src/index.css, /src/components/BonusConditionsModal.tsx
+9:50:25 AM [vite] (client) hmr update /src/index.css, /src/components/BonusConditionsModal.tsx
+9:50:28 AM [vite] (client) hmr update /src/index.css, /src/components/BonusConditionsModal.tsx
+9:50:52 AM [vite] (client) hmr update /src/index.css, /src/pages/PTOTrackingPage.tsx
+9:50:56 AM [vite] (client) hmr update /src/index.css, /src/pages/PTOTrackingPage.tsx
+9:51:00 AM [vite] (client) hmr update /src/index.css, /src/pages/PTOTrackingPage.tsx
+9:51:08 AM [vite] (client) hmr update /src/index.css, /src/pages/PTOTrackingPage.tsx
+9:51:22 AM [vite] (client) hmr update /src/pages/SettingsPage.tsx, /src/index.css
+9:51:26 AM [vite] (client) hmr update /src/pages/SettingsPage.tsx, /src/index.css
+9:58:02 AM [vite] (client) hmr update /src/index.css, /src/pages/LoginPage.tsx
+9:58:21 AM [vite] (client) hmr update /src/index.css, /src/pages/LoginPage.tsx
+9:58:24 AM [vite] (client) hmr update /src/index.css, /src/pages/LoginPage.tsx
+9:58:49 AM [vite] (client) hmr update /src/pages/SettingsPage.tsx, /src/index.css
+9:59:02 AM [vite] (client) hmr update /src/pages/SettingsPage.tsx, /src/index.css
+9:59:15 AM [vite] (client) hmr update /src/pages/SettingsPage.tsx, /src/index.css
+9:59:36 AM [vite] (client) hmr update /src/pages/SettingsPage.tsx, /src/index.css
+10:06:29 AM [vite] (client) hmr update /src/index.css, /src/pages/PTOTrackingPage.tsx
+10:06:29 AM [vite] (client) hmr update /src/index.css
+10:06:31 AM [vite] (client) hmr update /src/index.css
+10:06:39 AM [vite] (client) hmr update /src/index.css
+10:06:45 AM [vite] (client) hmr update /src/index.css
+10:06:54 AM [vite] (client) hmr update /src/index.css
+10:06:56 AM [vite] (client) hmr update /src/index.css
+10:07:00 AM [vite] (client) hmr update /src/index.css
+10:07:05 AM [vite] (client) hmr update /src/index.css
+10:07:10 AM [vite] (client) hmr update /src/index.css
+10:07:15 AM [vite] (client) hmr update /src/index.css
+10:07:19 AM [vite] (client) hmr update /src/index.css
+10:07:24 AM [vite] (client) hmr update /src/index.css
+10:07:28 AM [vite] (client) hmr update /src/index.css
+10:07:46 AM [vite] (client) hmr update /src/index.css
+10:07:50 AM [vite] (client) hmr update /src/index.css
+10:07:54 AM [vite] (client) hmr update /src/index.css
+10:08:02 AM [vite] (client) hmr update /src/layouts/MainLayout.tsx, /src/index.css
+10:08:06 AM [vite] (client) hmr update /src/App.tsx, /src/index.css
+10:08:11 AM [vite] (client) hmr update /src/App.tsx, /src/index.css
+10:10:05 AM [vite] (client) hmr update /src/pages/SettingsPage.tsx, /src/index.css
+10:11:22 AM [vite] (client) hmr update /src/App.tsx, /src/index.css
+10:11:26 AM [vite] (client) hmr update /src/App.tsx, /src/index.css
+10:19:41 AM [vite] (client) hmr update /src/layouts/MainLayout.tsx, /src/index.css
+10:19:46 AM [vite] (client) hmr update /src/App.tsx, /src/index.css
+10:19:52 AM [vite] (client) hmr update /src/App.tsx, /src/index.css
+11:19:50 AM [vite] (client) hmr update /src/index.css, /src/pages/UserManagementPage.tsx
+11:19:57 AM [vite] (client) hmr update /src/index.css, /src/pages/UserManagementPage.tsx
+11:20:06 AM [vite] (client) hmr update /src/index.css, /src/pages/UserManagementPage.tsx
+11:20:13 AM [vite] (client) hmr update /src/index.css, /src/pages/UserManagementPage.tsx
+11:20:47 AM [vite] (client) hmr update /src/index.css, /src/pages/UserManagementPage.tsx
+11:20:59 AM [vite] (client) hmr update /src/index.css, /src/pages/UserManagementPage.tsx
+11:26:18 AM [vite] (client) hmr update /src/index.css, /src/pages/LoginPage.tsx
+11:26:21 AM [vite] (client) hmr update /src/index.css, /src/pages/LoginPage.tsx
+11:26:26 AM [vite] (client) hmr update /src/index.css, /src/pages/LoginPage.tsx
+11:26:36 AM [vite] (client) hmr update /src/index.css, /src/pages/LoginPage.tsx
+11:26:50 AM [vite] (client) hmr update /src/index.css, /src/pages/LoginPage.tsx
+11:26:56 AM [vite] (client) hmr update /src/index.css, /src/pages/LoginPage.tsx
+11:27:10 AM [vite] (client) hmr update /src/pages/SettingsPage.tsx, /src/index.css
+11:27:32 AM [vite] (client) hmr update /src/pages/SettingsPage.tsx, /src/index.css
+11:31:35 AM [vite] (client) hmr update /src/layouts/MainLayout.tsx, /src/index.css
+11:33:12 AM [vite] (client) hmr update /src/index.css, /src/components/ChangePasswordModal.tsx
+11:33:17 AM [vite] (client) hmr update /src/index.css, /src/components/ChangePasswordModal.tsx
+11:36:48 AM [vite] (client) hmr update /src/index.css, /src/pages/LoginPage.tsx
+11:36:58 AM [vite] (client) hmr update /src/index.css, /src/pages/LoginPage.tsx
+11:37:08 AM [vite] (client) hmr update /src/index.css, /src/pages/LoginPage.tsx
+11:37:16 AM [vite] (client) hmr update /src/index.css, /src/pages/LoginPage.tsx
+11:39:17 AM [vite] (client) hmr update /src/index.css, /src/pages/UserManagementPage.tsx
+11:39:23 AM [vite] (client) hmr update /src/index.css, /src/pages/UserManagementPage.tsx
+11:39:31 AM [vite] (client) hmr update /src/index.css, /src/pages/UserManagementPage.tsx
+11:39:44 AM [vite] (client) hmr update /src/index.css, /src/pages/UserManagementPage.tsx
+11:40:01 AM [vite] (client) hmr update /src/index.css, /src/pages/UserManagementPage.tsx
+11:44:16 AM [vite] (client) hmr update /src/index.css, /src/pages/LoginPage.tsx
+11:44:22 AM [vite] (client) hmr update /src/index.css, /src/pages/LoginPage.tsx
+11:44:26 AM [vite] (client) hmr update /src/index.css, /src/pages/LoginPage.tsx
+11:44:32 AM [vite] (client) hmr update /src/index.css, /src/pages/LoginPage.tsx
+11:44:38 AM [vite] (client) hmr update /src/index.css, /src/components/ChangePasswordModal.tsx
+11:44:45 AM [vite] (client) hmr update /src/index.css, /src/components/ChangePasswordModal.tsx
+11:44:56 AM [vite] (client) hmr update /src/index.css, /src/components/ChangePasswordModal.tsx
+11:46:40 AM [vite] (client) hmr update /src/index.css, /src/components/ChangePasswordModal.tsx
+11:46:46 AM [vite] (client) hmr update /src/index.css, /src/components/ChangePasswordModal.tsx
+11:46:48 AM [vite] (client) hmr update /src/index.css, /src/components/ChangePasswordModal.tsx
+11:52:15 AM [vite] (client) hmr update /src/index.css, /src/components/ChangePasswordModal.tsx
+12:31:36 PM [vite] (client) hmr update /src/index.css, /src/components/ChangePasswordModal.tsx
+12:42:46 PM [vite] (client) hmr update /src/layouts/MainLayout.tsx, /src/index.css
+12:42:51 PM [vite] (client) hmr update /src/layouts/MainLayout.tsx, /src/index.css
+12:42:55 PM [vite] (client) hmr update /src/layouts/MainLayout.tsx, /src/index.css
+12:43:06 PM [vite] (client) hmr update /src/layouts/MainLayout.tsx, /src/index.css
+12:43:14 PM [vite] (client) hmr update /src/layouts/MainLayout.tsx, /src/index.css
+1:00:45 PM [vite] (client) hmr update /src/App.tsx, /src/index.css
+1:00:49 PM [vite] (client) hmr update /src/App.tsx, /src/index.css
+1:00:51 PM [vite] (client) hmr update /src/App.tsx, /src/index.css
+1:01:03 PM [vite] (client) hmr update /src/layouts/MainLayout.tsx, /src/index.css
+1:01:10 PM [vite] (client) hmr update /src/layouts/MainLayout.tsx, /src/index.css
+3:24:36 PM [vite] (client) hmr update /src/App.tsx, /src/index.css
+3:24:42 PM [vite] (client) hmr update /src/App.tsx, /src/index.css
+3:24:54 PM [vite] (client) hmr update /src/layouts/MainLayout.tsx, /src/index.css
+3:25:02 PM [vite] (client) hmr update /src/App.tsx, /src/index.css
+3:25:06 PM [vite] (client) hmr update /src/layouts/MainLayout.tsx, /src/index.css
+3:25:54 PM [vite] (client) hmr update /src/layouts/MainLayout.tsx, /src/index.css
+7:50:50 PM [vite] (client) hmr update /src/index.css, /src/pages/EEOPage.tsx
+7:50:57 PM [vite] (client) hmr update /src/index.css, /src/pages/EEOPage.tsx
+7:51:11 PM [vite] (client) hmr update /src/index.css, /src/pages/EEOPage.tsx
+7:51:24 PM [vite] (client) hmr update /src/index.css, /src/pages/EEOPage.tsx
+7:51:44 PM [vite] (client) hmr update /src/index.css, /src/pages/EEOPage.tsx
+7:52:04 PM [vite] (client) hmr update /src/index.css, /src/pages/EEOPage.tsx
+7:52:09 PM [vite] (client) hmr update /src/index.css, /src/pages/EEOPage.tsx
+8:03:30 PM [vite] (client) hmr update /src/index.css, /src/pages/EEOPage.tsx
+8:03:47 PM [vite] (client) hmr update /src/index.css, /src/pages/EEOPage.tsx
+8:03:55 PM [vite] (client) hmr update /src/index.css, /src/pages/EEOPage.tsx
+8:07:48 PM [vite] (client) hmr update /src/index.css, /src/pages/EEOPage.tsx
+8:13:05 PM [vite] (client) hmr update /src/index.css, /src/pages/EEOPage.tsx
+8:14:25 PM [vite] (client) hmr update /src/index.css, /src/pages/EEOPage.tsx
+8:20:02 PM [vite] (client) hmr update /src/index.css, /src/pages/EEOPage.tsx
+8:20:09 PM [vite] (client) hmr update /src/index.css, /src/pages/EEOPage.tsx
+8:20:24 PM [vite] (client) hmr update /src/index.css, /src/pages/EEOPage.tsx
+8:20:56 PM [vite] (client) hmr update /src/index.css, /src/pages/EEOPage.tsx
+8:29:51 PM [vite] (client) hmr update /src/index.css, /src/pages/EEOPage.tsx
+8:29:56 PM [vite] (client) hmr update /src/index.css, /src/pages/EEOPage.tsx
+8:30:00 PM [vite] (client) hmr update /src/index.css, /src/pages/EEOPage.tsx
+8:30:06 PM [vite] (client) hmr update /src/index.css, /src/pages/EEOPage.tsx
+8:30:14 PM [vite] (client) hmr update /src/index.css, /src/pages/EEOPage.tsx
+8:30:33 PM [vite] (client) hmr update /src/index.css, /src/pages/EEOPage.tsx
+8:30:59 PM [vite] (client) hmr update /src/index.css, /src/pages/EEOPage.tsx
+8:31:12 PM [vite] (client) hmr update /src/index.css, /src/pages/EEOPage.tsx
+8:31:18 PM [vite] (client) hmr update /src/index.css, /src/pages/EEOPage.tsx
+8:31:21 PM [vite] (client) hmr update /src/index.css, /src/pages/EEOPage.tsx
+8:31:46 PM [vite] (client) hmr update /src/index.css, /src/pages/EEOPage.tsx
+8:31:49 PM [vite] (client) hmr update /src/index.css, /src/pages/EEOPage.tsx
+8:43:20 PM [vite] (client) hmr update /src/index.css, /src/pages/EEOPage.tsx
+8:43:25 PM [vite] (client) hmr update /src/index.css, /src/pages/EEOPage.tsx
+8:43:30 PM [vite] (client) hmr update /src/index.css, /src/pages/EEOPage.tsx
+8:43:33 PM [vite] (client) hmr update /src/index.css, /src/pages/EEOPage.tsx
+8:43:39 PM [vite] (client) hmr update /src/index.css, /src/pages/EEOPage.tsx
+8:43:51 PM [vite] (client) hmr update /src/index.css, /src/pages/EEOPage.tsx
+9:51:54 PM [vite] (client) hmr update /src/index.css, /src/pages/ACAPage.tsx
+5:01:32 PM [vite] (client) hmr update /src/index.css, /src/components/OnboardingOffboardingModals.tsx
+5:01:41 PM [vite] (client) hmr update /src/index.css, /src/components/OnboardingOffboardingModals.tsx
+5:01:47 PM [vite] (client) hmr update /src/index.css, /src/components/OnboardingOffboardingModals.tsx
+5:02:01 PM [vite] (client) hmr update /src/index.css, /src/components/OnboardingOffboardingModals.tsx
+8:25:38 PM [vite] (client) hmr update /src/index.css, /src/components/OnboardingOffboardingModals.tsx
+8:25:44 PM [vite] (client) hmr update /src/index.css, /src/components/OnboardingOffboardingModals.tsx
+8:25:50 PM [vite] (client) hmr update /src/index.css, /src/components/OnboardingOffboardingModals.tsx
+8:30:32 PM [vite] (client) hmr update /src/index.css, /src/components/OnboardingOffboardingModals.tsx
+9:05:28 PM [vite] (client) hmr update /src/pages/OffboardingPage.tsx, /src/index.css
+9:05:34 PM [vite] (client) hmr update /src/pages/OffboardingPage.tsx, /src/index.css
+9:05:42 PM [vite] (client) hmr update /src/pages/OffboardingPage.tsx, /src/index.css
+9:05:52 PM [vite] (client) hmr update /src/pages/OffboardingPage.tsx, /src/index.css
+9:05:58 PM [vite] (client) hmr update /src/pages/OffboardingPage.tsx, /src/index.css
+9:06:02 PM [vite] (client) hmr update /src/pages/OffboardingPage.tsx, /src/index.css
+9:06:43 PM [vite] (client) hmr update /src/pages/OffboardingPage.tsx, /src/index.css
+9:13:51 PM [vite] (client) hmr update /src/pages/OffboardingPage.tsx, /src/index.css
+9:13:52 PM [vite] Internal server error: Failed to resolve import "@headlessui/react" from "src/components/SubtasksModal.tsx". Does the file exist?
+  Plugin: vite:import-analysis
+  File: /Users/michaelknudson/Desktop/hr-dashboard/frontend/src/components/SubtasksModal.tsx:2:35
+  1  |  import { jsxDEV } from "react/jsx-dev-runtime";
+  2  |  import { Fragment } from "react";
+  3  |  import { Dialog, Transition } from "@headlessui/react";
+     |                                      ^
+  4  |  import { X, CheckCircle, Mail } from "lucide-react";
+  5  |  export default function SubtasksModal({
+      at TransformPluginContext._formatLog (file:///Users/michaelknudson/Desktop/hr-dashboard/frontend/node_modules/vite/dist/node/chunks/config.js:31106:43)
+      at TransformPluginContext.error (file:///Users/michaelknudson/Desktop/hr-dashboard/frontend/node_modules/vite/dist/node/chunks/config.js:31103:14)
+      at normalizeUrl (file:///Users/michaelknudson/Desktop/hr-dashboard/frontend/node_modules/vite/dist/node/chunks/config.js:29590:18)
+      at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+      at async file:///Users/michaelknudson/Desktop/hr-dashboard/frontend/node_modules/vite/dist/node/chunks/config.js:29648:32
+      at async Promise.all (index 2)
+      at async TransformPluginContext.transform (file:///Users/michaelknudson/Desktop/hr-dashboard/frontend/node_modules/vite/dist/node/chunks/config.js:29616:4)
+      at async EnvironmentPluginContainer.transform (file:///Users/michaelknudson/Desktop/hr-dashboard/frontend/node_modules/vite/dist/node/chunks/config.js:30905:14)
+      at async loadAndTransform (file:///Users/michaelknudson/Desktop/hr-dashboard/frontend/node_modules/vite/dist/node/chunks/config.js:26043:26)
+9:13:52 PM [vite] (client) Pre-transform error: Failed to resolve import "@headlessui/react" from "src/components/SubtasksModal.tsx". Does the file exist?
+  Plugin: vite:import-analysis
+  File: /Users/michaelknudson/Desktop/hr-dashboard/frontend/src/components/SubtasksModal.tsx:2:35
+  1  |  import { jsxDEV } from "react/jsx-dev-runtime";
+  2  |  import { Fragment } from "react";
+  3  |  import { Dialog, Transition } from "@headlessui/react";
+     |                                      ^
+  4  |  import { X, CheckCircle, Mail } from "lucide-react";
+  5  |  export default function SubtasksModal({
+9:13:52 PM [vite] (client) hmr update /src/pages/OffboardingPage.tsx, /src/index.css
+9:13:52 PM [vite] (client) Pre-transform error: Failed to resolve import "@headlessui/react" from "src/components/SubtasksModal.tsx". Does the file exist?
+  Plugin: vite:import-analysis
+  File: /Users/michaelknudson/Desktop/hr-dashboard/frontend/src/components/SubtasksModal.tsx:2:35
+  1  |  import { jsxDEV } from "react/jsx-dev-runtime";
+  2  |  import { Fragment } from "react";
+  3  |  import { Dialog, Transition } from "@headlessui/react";
+     |                                      ^
+  4  |  import { X, CheckCircle, Mail } from "lucide-react";
+  5  |  export default function SubtasksModal({
+9:13:52 PM [vite] (client) hmr update /src/pages/OffboardingPage.tsx
+9:13:52 PM [vite] Internal server error: Failed to resolve import "@headlessui/react" from "src/components/SubtasksModal.tsx". Does the file exist?
+  Plugin: vite:import-analysis
+  File: /Users/michaelknudson/Desktop/hr-dashboard/frontend/src/components/SubtasksModal.tsx:2:35
+  1  |  import { jsxDEV } from "react/jsx-dev-runtime";
+  2  |  import { Fragment } from "react";
+  3  |  import { Dialog, Transition } from "@headlessui/react";
+     |                                      ^
+  4  |  import { X, CheckCircle, Mail } from "lucide-react";
+  5  |  export default function SubtasksModal({
+      at TransformPluginContext._formatLog (file:///Users/michaelknudson/Desktop/hr-dashboard/frontend/node_modules/vite/dist/node/chunks/config.js:31106:43)
+      at TransformPluginContext.error (file:///Users/michaelknudson/Desktop/hr-dashboard/frontend/node_modules/vite/dist/node/chunks/config.js:31103:14)
+      at normalizeUrl (file:///Users/michaelknudson/Desktop/hr-dashboard/frontend/node_modules/vite/dist/node/chunks/config.js:29590:18)
+      at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+      at async file:///Users/michaelknudson/Desktop/hr-dashboard/frontend/node_modules/vite/dist/node/chunks/config.js:29648:32
+      at async Promise.all (index 2)
+      at async TransformPluginContext.transform (file:///Users/michaelknudson/Desktop/hr-dashboard/frontend/node_modules/vite/dist/node/chunks/config.js:29616:4)
+      at async EnvironmentPluginContainer.transform (file:///Users/michaelknudson/Desktop/hr-dashboard/frontend/node_modules/vite/dist/node/chunks/config.js:30905:14)
+      at async loadAndTransform (file:///Users/michaelknudson/Desktop/hr-dashboard/frontend/node_modules/vite/dist/node/chunks/config.js:26043:26)
+9:13:52 PM [vite] (client) Pre-transform error: Failed to resolve import "@headlessui/react" from "src/components/SubtasksModal.tsx". Does the file exist?
+  Plugin: vite:import-analysis
+  File: /Users/michaelknudson/Desktop/hr-dashboard/frontend/src/components/SubtasksModal.tsx:2:35
+  1  |  import { jsxDEV } from "react/jsx-dev-runtime";
+  2  |  import { Fragment } from "react";
+  3  |  import { Dialog, Transition } from "@headlessui/react";
+     |                                      ^
+  4  |  import { X, CheckCircle, Mail } from "lucide-react";
+  5  |  export default function SubtasksModal({
+9:13:52 PM [vite] (client) hmr update /src/pages/OffboardingPage.tsx, /src/index.css
+9:13:52 PM [vite] (client) Pre-transform error: Failed to resolve import "@headlessui/react" from "src/components/SubtasksModal.tsx". Does the file exist?
+  Plugin: vite:import-analysis
+  File: /Users/michaelknudson/Desktop/hr-dashboard/frontend/src/components/SubtasksModal.tsx:2:35
+  1  |  import { jsxDEV } from "react/jsx-dev-runtime";
+  2  |  import { Fragment } from "react";
+  3  |  import { Dialog, Transition } from "@headlessui/react";
+     |                                      ^
+  4  |  import { X, CheckCircle, Mail } from "lucide-react";
+  5  |  export default function SubtasksModal({
+9:14:31 PM [vite] (client) hmr update /src/pages/OffboardingPage.tsx, /src/index.css
+9:14:32 PM [vite] (client) Pre-transform error: Failed to resolve import "@headlessui/react" from "src/components/SubtasksModal.tsx". Does the file exist?
+  Plugin: vite:import-analysis
+  File: /Users/michaelknudson/Desktop/hr-dashboard/frontend/src/components/SubtasksModal.tsx:2:35
+  1  |  import { jsxDEV } from "react/jsx-dev-runtime";
+  2  |  import { Fragment } from "react";
+  3  |  import { Dialog, Transition } from "@headlessui/react";
+     |                                      ^
+  4  |  import { X, CheckCircle, Mail } from "lucide-react";
+  5  |  export default function SubtasksModal({
+9:14:41 PM [vite] (client) hmr update /src/pages/OffboardingPage.tsx, /src/index.css
+9:14:41 PM [vite] (client) Pre-transform error: Failed to resolve import "@headlessui/react" from "src/components/SubtasksModal.tsx". Does the file exist?
+  Plugin: vite:import-analysis
+  File: /Users/michaelknudson/Desktop/hr-dashboard/frontend/src/components/SubtasksModal.tsx:2:35
+  1  |  import { jsxDEV } from "react/jsx-dev-runtime";
+  2  |  import { Fragment } from "react";
+  3  |  import { Dialog, Transition } from "@headlessui/react";
+     |                                      ^
+  4  |  import { X, CheckCircle, Mail } from "lucide-react";
+  5  |  export default function SubtasksModal({
+9:15:04 PM [vite] Internal server error: Failed to resolve import "@headlessui/react" from "src/components/SubtasksModal.tsx". Does the file exist?
+  Plugin: vite:import-analysis
+  File: /Users/michaelknudson/Desktop/hr-dashboard/frontend/src/components/SubtasksModal.tsx:2:35
+  1  |  import { jsxDEV } from "react/jsx-dev-runtime";
+  2  |  import { Fragment } from "react";
+  3  |  import { Dialog, Transition } from "@headlessui/react";
+     |                                      ^
+  4  |  import { X, CheckCircle, Mail } from "lucide-react";
+  5  |  export default function SubtasksModal({
+      at TransformPluginContext._formatLog (file:///Users/michaelknudson/Desktop/hr-dashboard/frontend/node_modules/vite/dist/node/chunks/config.js:31106:43)
+      at TransformPluginContext.error (file:///Users/michaelknudson/Desktop/hr-dashboard/frontend/node_modules/vite/dist/node/chunks/config.js:31103:14)
+      at normalizeUrl (file:///Users/michaelknudson/Desktop/hr-dashboard/frontend/node_modules/vite/dist/node/chunks/config.js:29590:18)
+      at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+      at async file:///Users/michaelknudson/Desktop/hr-dashboard/frontend/node_modules/vite/dist/node/chunks/config.js:29648:32
+      at async Promise.all (index 2)
+      at async TransformPluginContext.transform (file:///Users/michaelknudson/Desktop/hr-dashboard/frontend/node_modules/vite/dist/node/chunks/config.js:29616:4)
+      at async EnvironmentPluginContainer.transform (file:///Users/michaelknudson/Desktop/hr-dashboard/frontend/node_modules/vite/dist/node/chunks/config.js:30905:14)
+      at async loadAndTransform (file:///Users/michaelknudson/Desktop/hr-dashboard/frontend/node_modules/vite/dist/node/chunks/config.js:26043:26)
+      at async viteTransformMiddleware (file:///Users/michaelknudson/Desktop/hr-dashboard/frontend/node_modules/vite/dist/node/chunks/config.js:27118:20)
+9:17:30 PM [vite] Internal server error: Failed to resolve import "@headlessui/react" from "src/components/SubtasksModal.tsx". Does the file exist?
+  Plugin: vite:import-analysis
+  File: /Users/michaelknudson/Desktop/hr-dashboard/frontend/src/components/SubtasksModal.tsx:2:35
+  1  |  import { jsxDEV } from "react/jsx-dev-runtime";
+  2  |  import { Fragment } from "react";
+  3  |  import { Dialog, Transition } from "@headlessui/react";
+     |                                      ^
+  4  |  import { X, CheckCircle, Mail } from "lucide-react";
+  5  |  export default function SubtasksModal({
+      at TransformPluginContext._formatLog (file:///Users/michaelknudson/Desktop/hr-dashboard/frontend/node_modules/vite/dist/node/chunks/config.js:31106:43)
+      at TransformPluginContext.error (file:///Users/michaelknudson/Desktop/hr-dashboard/frontend/node_modules/vite/dist/node/chunks/config.js:31103:14)
+      at normalizeUrl (file:///Users/michaelknudson/Desktop/hr-dashboard/frontend/node_modules/vite/dist/node/chunks/config.js:29590:18)
+      at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+      at async file:///Users/michaelknudson/Desktop/hr-dashboard/frontend/node_modules/vite/dist/node/chunks/config.js:29648:32
+      at async Promise.all (index 2)
+      at async TransformPluginContext.transform (file:///Users/michaelknudson/Desktop/hr-dashboard/frontend/node_modules/vite/dist/node/chunks/config.js:29616:4)
+      at async EnvironmentPluginContainer.transform (file:///Users/michaelknudson/Desktop/hr-dashboard/frontend/node_modules/vite/dist/node/chunks/config.js:30905:14)
+      at async loadAndTransform (file:///Users/michaelknudson/Desktop/hr-dashboard/frontend/node_modules/vite/dist/node/chunks/config.js:26043:26)
+      at async viteTransformMiddleware (file:///Users/michaelknudson/Desktop/hr-dashboard/frontend/node_modules/vite/dist/node/chunks/config.js:27118:20)
+9:18:50 PM [vite] (client) hmr update /src/index.css, /src/pages/OffboardingPage.tsx
+9:24:10 PM [vite] (client) hmr update /src/index.css, /src/components/SubtasksModal.tsx
+9:24:15 PM [vite] (client) hmr update /src/index.css, /src/components/SubtasksModal.tsx
+9:24:46 PM [vite] (client) hmr update /src/pages/OffboardingPage.tsx, /src/index.css
+9:47:03 PM [vite] (client) hmr update /src/index.css, /src/components/SubtasksModal.tsx
+9:47:04 PM [vite] (client) hmr update /src/index.css, /src/components/SubtasksModal.tsx
+9:47:04 PM [vite] (client) hmr update /src/index.css, /src/components/SubtasksModal.tsx
+9:47:04 PM [vite] (client) hmr update /src/index.css, /src/components/SubtasksModal.tsx
+9:47:14 PM [vite] (client) hmr update /src/index.css, /src/components/SubtasksModal.tsx
+9:47:48 PM [vite] (client) hmr update /src/index.css, /src/components/SubtasksModal.tsx
+9:47:52 PM [vite] (client) hmr update /src/index.css, /src/components/SubtasksModal.tsx
+9:48:01 PM [vite] (client) hmr update /src/index.css, /src/components/SubtasksModal.tsx
+9:48:25 PM [vite] (client) hmr update /src/pages/OffboardingPage.tsx, /src/index.css
+9:48:42 PM [vite] (client) hmr update /src/pages/OffboardingPage.tsx, /src/index.css
+9:48:42 PM [vite] (client) hmr update /src/pages/OffboardingPage.tsx, /src/index.css
+9:48:48 PM [vite] (client) hmr update /src/pages/OffboardingPage.tsx, /src/index.css
+9:48:51 PM [vite] (client) hmr update /src/pages/OffboardingPage.tsx, /src/index.css
+9:53:50 PM [vite] (client) hmr update /src/pages/OffboardingPage.tsx, /src/index.css
+9:53:50 PM [vite] (client) hmr update /src/pages/OffboardingPage.tsx, /src/index.css
+9:56:32 PM [vite] (client) hmr update /src/pages/OffboardingPage.tsx, /src/index.css
+9:56:42 PM [vite] (client) hmr update /src/pages/OffboardingPage.tsx, /src/index.css
+9:57:09 PM [vite] (client) hmr update /src/pages/OffboardingPage.tsx, /src/index.css
+10:04:03 PM [vite] (client) hmr update /src/pages/OffboardingPage.tsx, /src/index.css
+10:04:22 PM [vite] (client) hmr update /src/pages/OffboardingPage.tsx, /src/index.css
+10:04:34 PM [vite] (client) hmr update /src/pages/OffboardingPage.tsx, /src/index.css
+10:04:48 PM [vite] (client) hmr update /src/pages/OffboardingPage.tsx, /src/index.css
+10:04:51 PM [vite] (client) hmr update /src/pages/OffboardingPage.tsx, /src/index.css
+10:05:21 PM [vite] (client) hmr update /src/pages/OffboardingPage.tsx, /src/index.css
+10:05:39 PM [vite] (client) hmr update /src/pages/OffboardingPage.tsx, /src/index.css
+10:13:51 PM [vite] (client) hmr update /src/index.css, /src/components/OffboardingTaskDrawer.tsx
+10:15:16 PM [vite] (client) hmr update /src/pages/OffboardingPage.tsx, /src/index.css
+10:15:19 PM [vite] (client) hmr update /src/pages/OffboardingPage.tsx, /src/index.css
+10:15:22 PM [vite] (client) hmr update /src/pages/OffboardingPage.tsx, /src/index.css
+10:15:33 PM [vite] (client) hmr update /src/pages/OffboardingPage.tsx, /src/index.css
+10:15:48 PM [vite] (client) hmr update /src/pages/OffboardingPage.tsx, /src/index.css
+10:15:51 PM [vite] (client) hmr update /src/pages/OffboardingPage.tsx, /src/index.css
+10:15:56 PM [vite] (client) hmr update /src/pages/OffboardingPage.tsx, /src/index.css
+10:16:09 PM [vite] (client) hmr update /src/pages/OffboardingPage.tsx, /src/index.css
+10:16:17 PM [vite] (client) hmr update /src/pages/OffboardingPage.tsx, /src/index.css
+10:16:23 PM [vite] (client) hmr update /src/pages/OffboardingPage.tsx, /src/index.css
+10:19:38 PM [vite] (client) hmr update /src/index.css, /src/components/OffboardingTaskDrawer.tsx
+10:19:48 PM [vite] (client) hmr update /src/index.css, /src/components/OffboardingTaskDrawer.tsx
+10:19:48 PM [vite] Internal server error: /Users/michaelknudson/Desktop/hr-dashboard/frontend/src/components/OffboardingTaskDrawer.tsx: Expected corresponding JSX closing tag for <motion.div>. (408:6)
+
+  406 |           </div>
+  407 |         </div>
+> 408 |       </div>
+      |       ^
+  409 |     </>
+  410 |   );
+  411 | }
+  Plugin: vite:react-babel
+  File: /Users/michaelknudson/Desktop/hr-dashboard/frontend/src/components/OffboardingTaskDrawer.tsx:408:6
+  406 |            </div>
+  407 |          </div>
+  408 |        </div>
+      |        ^
+  409 |      </>
+  410 |    );
+      at constructor (/Users/michaelknudson/Desktop/hr-dashboard/frontend/node_modules/@babel/parser/lib/index.js:367:19)
+      at TypeScriptParserMixin.raise (/Users/michaelknudson/Desktop/hr-dashboard/frontend/node_modules/@babel/parser/lib/index.js:6624:19)
+      at TypeScriptParserMixin.jsxParseElementAt (/Users/michaelknudson/Desktop/hr-dashboard/frontend/node_modules/@babel/parser/lib/index.js:4756:16)
+      at TypeScriptParserMixin.jsxParseElementAt (/Users/michaelknudson/Desktop/hr-dashboard/frontend/node_modules/@babel/parser/lib/index.js:4727:32)
+      at TypeScriptParserMixin.jsxParseElement (/Users/michaelknudson/Desktop/hr-dashboard/frontend/node_modules/@babel/parser/lib/index.js:4778:17)
+      at TypeScriptParserMixin.parseExprAtom (/Users/michaelknudson/Desktop/hr-dashboard/frontend/node_modules/@babel/parser/lib/index.js:4788:19)
+      at TypeScriptParserMixin.parseExprSubscripts (/Users/michaelknudson/Desktop/hr-dashboard/frontend/node_modules/@babel/parser/lib/index.js:11145:23)
+      at TypeScriptParserMixin.parseUpdate (/Users/michaelknudson/Desktop/hr-dashboard/frontend/node_modules/@babel/parser/lib/index.js:11130:21)
+      at TypeScriptParserMixin.parseMaybeUnary (/Users/michaelknudson/Desktop/hr-dashboard/frontend/node_modules/@babel/parser/lib/index.js:11110:23)
+      at TypeScriptParserMixin.parseMaybeUnary (/Users/michaelknudson/Desktop/hr-dashboard/frontend/node_modules/@babel/parser/lib/index.js:9890:18)
+      at TypeScriptParserMixin.parseMaybeUnaryOrPrivate (/Users/michaelknudson/Desktop/hr-dashboard/frontend/node_modules/@babel/parser/lib/index.js:10963:61)
+      at TypeScriptParserMixin.parseExprOps (/Users/michaelknudson/Desktop/hr-dashboard/frontend/node_modules/@babel/parser/lib/index.js:10968:23)
+      at TypeScriptParserMixin.parseMaybeConditional (/Users/michaelknudson/Desktop/hr-dashboard/frontend/node_modules/@babel/parser/lib/index.js:10945:23)
+      at TypeScriptParserMixin.parseMaybeAssign (/Users/michaelknudson/Desktop/hr-dashboard/frontend/node_modules/@babel/parser/lib/index.js:10895:21)
+      at /Users/michaelknudson/Desktop/hr-dashboard/frontend/node_modules/@babel/parser/lib/index.js:9828:39
+      at TypeScriptParserMixin.tryParse (/Users/michaelknudson/Desktop/hr-dashboard/frontend/node_modules/@babel/parser/lib/index.js:6932:20)
+      at TypeScriptParserMixin.parseMaybeAssign (/Users/michaelknudson/Desktop/hr-dashboard/frontend/node_modules/@babel/parser/lib/index.js:9828:18)
+      at /Users/michaelknudson/Desktop/hr-dashboard/frontend/node_modules/@babel/parser/lib/index.js:10864:39
+      at TypeScriptParserMixin.allowInAnd (/Users/michaelknudson/Desktop/hr-dashboard/frontend/node_modules/@babel/parser/lib/index.js:12500:12)
+      at TypeScriptParserMixin.parseMaybeAssignAllowIn (/Users/michaelknudson/Desktop/hr-dashboard/frontend/node_modules/@babel/parser/lib/index.js:10864:17)
+      at TypeScriptParserMixin.parseMaybeAssignAllowInOrVoidPattern (/Users/michaelknudson/Desktop/hr-dashboard/frontend/node_modules/@babel/parser/lib/index.js:12567:17)
+      at TypeScriptParserMixin.parseParenAndDistinguishExpression (/Users/michaelknudson/Desktop/hr-dashboard/frontend/node_modules/@babel/parser/lib/index.js:11747:28)
+      at TypeScriptParserMixin.parseExprAtom (/Users/michaelknudson/Desktop/hr-dashboard/frontend/node_modules/@babel/parser/lib/index.js:11395:23)
+      at TypeScriptParserMixin.parseExprAtom (/Users/michaelknudson/Desktop/hr-dashboard/frontend/node_modules/@babel/parser/lib/index.js:4793:20)
+      at TypeScriptParserMixin.parseExprSubscripts (/Users/michaelknudson/Desktop/hr-dashboard/frontend/node_modules/@babel/parser/lib/index.js:11145:23)
+      at TypeScriptParserMixin.parseUpdate (/Users/michaelknudson/Desktop/hr-dashboard/frontend/node_modules/@babel/parser/lib/index.js:11130:21)
+      at TypeScriptParserMixin.parseMaybeUnary (/Users/michaelknudson/Desktop/hr-dashboard/frontend/node_modules/@babel/parser/lib/index.js:11110:23)
+      at TypeScriptParserMixin.parseMaybeUnary (/Users/michaelknudson/Desktop/hr-dashboard/frontend/node_modules/@babel/parser/lib/index.js:9890:18)
+      at TypeScriptParserMixin.parseMaybeUnaryOrPrivate (/Users/michaelknudson/Desktop/hr-dashboard/frontend/node_modules/@babel/parser/lib/index.js:10963:61)
+      at TypeScriptParserMixin.parseExprOpBaseRightExpr (/Users/michaelknudson/Desktop/hr-dashboard/frontend/node_modules/@babel/parser/lib/index.js:11050:34)
+      at TypeScriptParserMixin.parseExprOpRightExpr (/Users/michaelknudson/Desktop/hr-dashboard/frontend/node_modules/@babel/parser/lib/index.js:11045:21)
+      at TypeScriptParserMixin.parseExprOp (/Users/michaelknudson/Desktop/hr-dashboard/frontend/node_modules/@babel/parser/lib/index.js:11011:27)
+      at TypeScriptParserMixin.parseExprOp (/Users/michaelknudson/Desktop/hr-dashboard/frontend/node_modules/@babel/parser/lib/index.js:9365:18)
+      at TypeScriptParserMixin.parseExprOp (/Users/michaelknudson/Desktop/hr-dashboard/frontend/node_modules/@babel/parser/lib/index.js:11017:21)
+      at TypeScriptParserMixin.parseExprOp (/Users/michaelknudson/Desktop/hr-dashboard/frontend/node_modules/@babel/parser/lib/index.js:9365:18)
+      at TypeScriptParserMixin.parseExprOps (/Users/michaelknudson/Desktop/hr-dashboard/frontend/node_modules/@babel/parser/lib/index.js:10972:17)
+      at TypeScriptParserMixin.parseMaybeConditional (/Users/michaelknudson/Desktop/hr-dashboard/frontend/node_modules/@babel/parser/lib/index.js:10945:23)
+      at TypeScriptParserMixin.parseMaybeAssign (/Users/michaelknudson/Desktop/hr-dashboard/frontend/node_modules/@babel/parser/lib/index.js:10895:21)
+      at TypeScriptParserMixin.parseMaybeAssign (/Users/michaelknudson/Desktop/hr-dashboard/frontend/node_modules/@babel/parser/lib/index.js:9839:20)
+      at TypeScriptParserMixin.parseExpressionBase (/Users/michaelknudson/Desktop/hr-dashboard/frontend/node_modules/@babel/parser/lib/index.js:10848:23)
+      at /Users/michaelknudson/Desktop/hr-dashboard/frontend/node_modules/@babel/parser/lib/index.js:10844:39
+      at TypeScriptParserMixin.allowInAnd (/Users/michaelknudson/Desktop/hr-dashboard/frontend/node_modules/@babel/parser/lib/index.js:12500:12)
+      at TypeScriptParserMixin.parseExpression (/Users/michaelknudson/Desktop/hr-dashboard/frontend/node_modules/@babel/parser/lib/index.js:10844:17)
+      at TypeScriptParserMixin.jsxParseExpressionContainer (/Users/michaelknudson/Desktop/hr-dashboard/frontend/node_modules/@babel/parser/lib/index.js:4661:31)
+      at TypeScriptParserMixin.jsxParseElementAt (/Users/michaelknudson/Desktop/hr-dashboard/frontend/node_modules/@babel/parser/lib/index.js:4740:36)
+      at TypeScriptParserMixin.jsxParseElement (/Users/michaelknudson/Desktop/hr-dashboard/frontend/node_modules/@babel/parser/lib/index.js:4778:17)
+      at TypeScriptParserMixin.parseExprAtom (/Users/michaelknudson/Desktop/hr-dashboard/frontend/node_modules/@babel/parser/lib/index.js:4788:19)
+      at TypeScriptParserMixin.parseExprSubscripts (/Users/michaelknudson/Desktop/hr-dashboard/frontend/node_modules/@babel/parser/lib/index.js:11145:23)
+      at TypeScriptParserMixin.parseUpdate (/Users/michaelknudson/Desktop/hr-dashboard/frontend/node_modules/@babel/parser/lib/index.js:11130:21)
+      at TypeScriptParserMixin.parseMaybeUnary (/Users/michaelknudson/Desktop/hr-dashboard/frontend/node_modules/@babel/parser/lib/index.js:11110:23)
+10:19:51 PM [vite] (client) hmr update /src/index.css, /src/components/OffboardingTaskDrawer.tsx
+10:19:51 PM [vite] Internal server error: /Users/michaelknudson/Desktop/hr-dashboard/frontend/src/components/OffboardingTaskDrawer.tsx: Expected corresponding JSX closing tag for <motion.div>. (408:6)
+
+  406 |           </div>
+  407 |         </div>
+> 408 |       </div>
+      |       ^
+  409 |     </>
+  410 |   );
+  411 | }
+  Plugin: vite:react-babel
+  File: /Users/michaelknudson/Desktop/hr-dashboard/frontend/src/components/OffboardingTaskDrawer.tsx:408:6
+  406 |            </div>
+  407 |          </div>
+  408 |        </div>
+      |        ^
+  409 |      </>
+  410 |    );
+      at constructor (/Users/michaelknudson/Desktop/hr-dashboard/frontend/node_modules/@babel/parser/lib/index.js:367:19)
+      at TypeScriptParserMixin.raise (/Users/michaelknudson/Desktop/hr-dashboard/frontend/node_modules/@babel/parser/lib/index.js:6624:19)
+      at TypeScriptParserMixin.jsxParseElementAt (/Users/michaelknudson/Desktop/hr-dashboard/frontend/node_modules/@babel/parser/lib/index.js:4756:16)
+      at TypeScriptParserMixin.jsxParseElementAt (/Users/michaelknudson/Desktop/hr-dashboard/frontend/node_modules/@babel/parser/lib/index.js:4727:32)
+      at TypeScriptParserMixin.jsxParseElement (/Users/michaelknudson/Desktop/hr-dashboard/frontend/node_modules/@babel/parser/lib/index.js:4778:17)
+      at TypeScriptParserMixin.parseExprAtom (/Users/michaelknudson/Desktop/hr-dashboard/frontend/node_modules/@babel/parser/lib/index.js:4788:19)
+      at TypeScriptParserMixin.parseExprSubscripts (/Users/michaelknudson/Desktop/hr-dashboard/frontend/node_modules/@babel/parser/lib/index.js:11145:23)
+      at TypeScriptParserMixin.parseUpdate (/Users/michaelknudson/Desktop/hr-dashboard/frontend/node_modules/@babel/parser/lib/index.js:11130:21)
+      at TypeScriptParserMixin.parseMaybeUnary (/Users/michaelknudson/Desktop/hr-dashboard/frontend/node_modules/@babel/parser/lib/index.js:11110:23)
+      at TypeScriptParserMixin.parseMaybeUnary (/Users/michaelknudson/Desktop/hr-dashboard/frontend/node_modules/@babel/parser/lib/index.js:9890:18)
+      at TypeScriptParserMixin.parseMaybeUnaryOrPrivate (/Users/michaelknudson/Desktop/hr-dashboard/frontend/node_modules/@babel/parser/lib/index.js:10963:61)
+      at TypeScriptParserMixin.parseExprOps (/Users/michaelknudson/Desktop/hr-dashboard/frontend/node_modules/@babel/parser/lib/index.js:10968:23)
+      at TypeScriptParserMixin.parseMaybeConditional (/Users/michaelknudson/Desktop/hr-dashboard/frontend/node_modules/@babel/parser/lib/index.js:10945:23)
+      at TypeScriptParserMixin.parseMaybeAssign (/Users/michaelknudson/Desktop/hr-dashboard/frontend/node_modules/@babel/parser/lib/index.js:10895:21)
+      at /Users/michaelknudson/Desktop/hr-dashboard/frontend/node_modules/@babel/parser/lib/index.js:9828:39
+      at TypeScriptParserMixin.tryParse (/Users/michaelknudson/Desktop/hr-dashboard/frontend/node_modules/@babel/parser/lib/index.js:6932:20)
+      at TypeScriptParserMixin.parseMaybeAssign (/Users/michaelknudson/Desktop/hr-dashboard/frontend/node_modules/@babel/parser/lib/index.js:9828:18)
+      at /Users/michaelknudson/Desktop/hr-dashboard/frontend/node_modules/@babel/parser/lib/index.js:10864:39
+      at TypeScriptParserMixin.allowInAnd (/Users/michaelknudson/Desktop/hr-dashboard/frontend/node_modules/@babel/parser/lib/index.js:12500:12)
+      at TypeScriptParserMixin.parseMaybeAssignAllowIn (/Users/michaelknudson/Desktop/hr-dashboard/frontend/node_modules/@babel/parser/lib/index.js:10864:17)
+      at TypeScriptParserMixin.parseMaybeAssignAllowInOrVoidPattern (/Users/michaelknudson/Desktop/hr-dashboard/frontend/node_modules/@babel/parser/lib/index.js:12567:17)
+      at TypeScriptParserMixin.parseParenAndDistinguishExpression (/Users/michaelknudson/Desktop/hr-dashboard/frontend/node_modules/@babel/parser/lib/index.js:11747:28)
+      at TypeScriptParserMixin.parseExprAtom (/Users/michaelknudson/Desktop/hr-dashboard/frontend/node_modules/@babel/parser/lib/index.js:11395:23)
+      at TypeScriptParserMixin.parseExprAtom (/Users/michaelknudson/Desktop/hr-dashboard/frontend/node_modules/@babel/parser/lib/index.js:4793:20)
+      at TypeScriptParserMixin.parseExprSubscripts (/Users/michaelknudson/Desktop/hr-dashboard/frontend/node_modules/@babel/parser/lib/index.js:11145:23)
+      at TypeScriptParserMixin.parseUpdate (/Users/michaelknudson/Desktop/hr-dashboard/frontend/node_modules/@babel/parser/lib/index.js:11130:21)
+      at TypeScriptParserMixin.parseMaybeUnary (/Users/michaelknudson/Desktop/hr-dashboard/frontend/node_modules/@babel/parser/lib/index.js:11110:23)
+      at TypeScriptParserMixin.parseMaybeUnary (/Users/michaelknudson/Desktop/hr-dashboard/frontend/node_modules/@babel/parser/lib/index.js:9890:18)
+      at TypeScriptParserMixin.parseMaybeUnaryOrPrivate (/Users/michaelknudson/Desktop/hr-dashboard/frontend/node_modules/@babel/parser/lib/index.js:10963:61)
+      at TypeScriptParserMixin.parseExprOpBaseRightExpr (/Users/michaelknudson/Desktop/hr-dashboard/frontend/node_modules/@babel/parser/lib/index.js:11050:34)
+      at TypeScriptParserMixin.parseExprOpRightExpr (/Users/michaelknudson/Desktop/hr-dashboard/frontend/node_modules/@babel/parser/lib/index.js:11045:21)
+      at TypeScriptParserMixin.parseExprOp (/Users/michaelknudson/Desktop/hr-dashboard/frontend/node_modules/@babel/parser/lib/index.js:11011:27)
+      at TypeScriptParserMixin.parseExprOp (/Users/michaelknudson/Desktop/hr-dashboard/frontend/node_modules/@babel/parser/lib/index.js:9365:18)
+      at TypeScriptParserMixin.parseExprOp (/Users/michaelknudson/Desktop/hr-dashboard/frontend/node_modules/@babel/parser/lib/index.js:11017:21)
+      at TypeScriptParserMixin.parseExprOp (/Users/michaelknudson/Desktop/hr-dashboard/frontend/node_modules/@babel/parser/lib/index.js:9365:18)
+      at TypeScriptParserMixin.parseExprOps (/Users/michaelknudson/Desktop/hr-dashboard/frontend/node_modules/@babel/parser/lib/index.js:10972:17)
+      at TypeScriptParserMixin.parseMaybeConditional (/Users/michaelknudson/Desktop/hr-dashboard/frontend/node_modules/@babel/parser/lib/index.js:10945:23)
+      at TypeScriptParserMixin.parseMaybeAssign (/Users/michaelknudson/Desktop/hr-dashboard/frontend/node_modules/@babel/parser/lib/index.js:10895:21)
+      at TypeScriptParserMixin.parseMaybeAssign (/Users/michaelknudson/Desktop/hr-dashboard/frontend/node_modules/@babel/parser/lib/index.js:9839:20)
+      at TypeScriptParserMixin.parseExpressionBase (/Users/michaelknudson/Desktop/hr-dashboard/frontend/node_modules/@babel/parser/lib/index.js:10848:23)
+      at /Users/michaelknudson/Desktop/hr-dashboard/frontend/node_modules/@babel/parser/lib/index.js:10844:39
+      at TypeScriptParserMixin.allowInAnd (/Users/michaelknudson/Desktop/hr-dashboard/frontend/node_modules/@babel/parser/lib/index.js:12500:12)
+      at TypeScriptParserMixin.parseExpression (/Users/michaelknudson/Desktop/hr-dashboard/frontend/node_modules/@babel/parser/lib/index.js:10844:17)
+      at TypeScriptParserMixin.jsxParseExpressionContainer (/Users/michaelknudson/Desktop/hr-dashboard/frontend/node_modules/@babel/parser/lib/index.js:4661:31)
+      at TypeScriptParserMixin.jsxParseElementAt (/Users/michaelknudson/Desktop/hr-dashboard/frontend/node_modules/@babel/parser/lib/index.js:4740:36)
+      at TypeScriptParserMixin.jsxParseElement (/Users/michaelknudson/Desktop/hr-dashboard/frontend/node_modules/@babel/parser/lib/index.js:4778:17)
+      at TypeScriptParserMixin.parseExprAtom (/Users/michaelknudson/Desktop/hr-dashboard/frontend/node_modules/@babel/parser/lib/index.js:4788:19)
+      at TypeScriptParserMixin.parseExprSubscripts (/Users/michaelknudson/Desktop/hr-dashboard/frontend/node_modules/@babel/parser/lib/index.js:11145:23)
+      at TypeScriptParserMixin.parseUpdate (/Users/michaelknudson/Desktop/hr-dashboard/frontend/node_modules/@babel/parser/lib/index.js:11130:21)
+      at TypeScriptParserMixin.parseMaybeUnary (/Users/michaelknudson/Desktop/hr-dashboard/frontend/node_modules/@babel/parser/lib/index.js:11110:23)
+10:20:05 PM [vite] (client) hmr update /src/index.css, /src/components/OffboardingTaskDrawer.tsx
+10:20:12 PM [vite] (client) hmr update /src/index.css, /src/components/SubtasksDrawer.tsx
+10:20:22 PM [vite] (client) hmr update /src/index.css, /src/components/SubtasksDrawer.tsx
+10:20:22 PM [vite] Internal server error: /Users/michaelknudson/Desktop/hr-dashboard/frontend/src/components/SubtasksDrawer.tsx: Expected corresponding JSX closing tag for <motion.div>. (512:6)
+
+  510 |           </div>
+  511 |         </div>
+> 512 |       </div>
+      |       ^
+  513 |
+  514 |       {/* Notes Modal */}
+  515 |       {showNoteModal && (
+  Plugin: vite:react-babel
+  File: /Users/michaelknudson/Desktop/hr-dashboard/frontend/src/components/SubtasksDrawer.tsx:512:6
+  510 |            </div>
+  511 |          </div>
+  512 |        </div>
+      |        ^
+  513 |  
+  514 |        {/* Notes Modal */}
+      at constructor (/Users/michaelknudson/Desktop/hr-dashboard/frontend/node_modules/@babel/parser/lib/index.js:367:19)
+      at TypeScriptParserMixin.raise (/Users/michaelknudson/Desktop/hr-dashboard/frontend/node_modules/@babel/parser/lib/index.js:6624:19)
+      at TypeScriptParserMixin.jsxParseElementAt (/Users/michaelknudson/Desktop/hr-dashboard/frontend/node_modules/@babel/parser/lib/index.js:4756:16)
+      at TypeScriptParserMixin.jsxParseElementAt (/Users/michaelknudson/Desktop/hr-dashboard/frontend/node_modules/@babel/parser/lib/index.js:4727:32)
+      at TypeScriptParserMixin.jsxParseElement (/Users/michaelknudson/Desktop/hr-dashboard/frontend/node_modules/@babel/parser/lib/index.js:4778:17)
+      at TypeScriptParserMixin.parseExprAtom (/Users/michaelknudson/Desktop/hr-dashboard/frontend/node_modules/@babel/parser/lib/index.js:4788:19)
+      at TypeScriptParserMixin.parseExprSubscripts (/Users/michaelknudson/Desktop/hr-dashboard/frontend/node_modules/@babel/parser/lib/index.js:11145:23)
+      at TypeScriptParserMixin.parseUpdate (/Users/michaelknudson/Desktop/hr-dashboard/frontend/node_modules/@babel/parser/lib/index.js:11130:21)
+      at TypeScriptParserMixin.parseMaybeUnary (/Users/michaelknudson/Desktop/hr-dashboard/frontend/node_modules/@babel/parser/lib/index.js:11110:23)
+      at TypeScriptParserMixin.parseMaybeUnary (/Users/michaelknudson/Desktop/hr-dashboard/frontend/node_modules/@babel/parser/lib/index.js:9890:18)
+      at TypeScriptParserMixin.parseMaybeUnaryOrPrivate (/Users/michaelknudson/Desktop/hr-dashboard/frontend/node_modules/@babel/parser/lib/index.js:10963:61)
+      at TypeScriptParserMixin.parseExprOps (/Users/michaelknudson/Desktop/hr-dashboard/frontend/node_modules/@babel/parser/lib/index.js:10968:23)
+      at TypeScriptParserMixin.parseMaybeConditional (/Users/michaelknudson/Desktop/hr-dashboard/frontend/node_modules/@babel/parser/lib/index.js:10945:23)
+      at TypeScriptParserMixin.parseMaybeAssign (/Users/michaelknudson/Desktop/hr-dashboard/frontend/node_modules/@babel/parser/lib/index.js:10895:21)
+      at /Users/michaelknudson/Desktop/hr-dashboard/frontend/node_modules/@babel/parser/lib/index.js:9828:39
+      at TypeScriptParserMixin.tryParse (/Users/michaelknudson/Desktop/hr-dashboard/frontend/node_modules/@babel/parser/lib/index.js:6932:20)
+      at TypeScriptParserMixin.parseMaybeAssign (/Users/michaelknudson/Desktop/hr-dashboard/frontend/node_modules/@babel/parser/lib/index.js:9828:18)
+      at /Users/michaelknudson/Desktop/hr-dashboard/frontend/node_modules/@babel/parser/lib/index.js:10864:39
+      at TypeScriptParserMixin.allowInAnd (/Users/michaelknudson/Desktop/hr-dashboard/frontend/node_modules/@babel/parser/lib/index.js:12500:12)
+      at TypeScriptParserMixin.parseMaybeAssignAllowIn (/Users/michaelknudson/Desktop/hr-dashboard/frontend/node_modules/@babel/parser/lib/index.js:10864:17)
+      at TypeScriptParserMixin.parseMaybeAssignAllowInOrVoidPattern (/Users/michaelknudson/Desktop/hr-dashboard/frontend/node_modules/@babel/parser/lib/index.js:12567:17)
+      at TypeScriptParserMixin.parseParenAndDistinguishExpression (/Users/michaelknudson/Desktop/hr-dashboard/frontend/node_modules/@babel/parser/lib/index.js:11747:28)
+      at TypeScriptParserMixin.parseExprAtom (/Users/michaelknudson/Desktop/hr-dashboard/frontend/node_modules/@babel/parser/lib/index.js:11395:23)
+      at TypeScriptParserMixin.parseExprAtom (/Users/michaelknudson/Desktop/hr-dashboard/frontend/node_modules/@babel/parser/lib/index.js:4793:20)
+      at TypeScriptParserMixin.parseExprSubscripts (/Users/michaelknudson/Desktop/hr-dashboard/frontend/node_modules/@babel/parser/lib/index.js:11145:23)
+      at TypeScriptParserMixin.parseUpdate (/Users/michaelknudson/Desktop/hr-dashboard/frontend/node_modules/@babel/parser/lib/index.js:11130:21)
+      at TypeScriptParserMixin.parseMaybeUnary (/Users/michaelknudson/Desktop/hr-dashboard/frontend/node_modules/@babel/parser/lib/index.js:11110:23)
+      at TypeScriptParserMixin.parseMaybeUnary (/Users/michaelknudson/Desktop/hr-dashboard/frontend/node_modules/@babel/parser/lib/index.js:9890:18)
+      at TypeScriptParserMixin.parseMaybeUnaryOrPrivate (/Users/michaelknudson/Desktop/hr-dashboard/frontend/node_modules/@babel/parser/lib/index.js:10963:61)
+      at TypeScriptParserMixin.parseExprOpBaseRightExpr (/Users/michaelknudson/Desktop/hr-dashboard/frontend/node_modules/@babel/parser/lib/index.js:11050:34)
+      at TypeScriptParserMixin.parseExprOpRightExpr (/Users/michaelknudson/Desktop/hr-dashboard/frontend/node_modules/@babel/parser/lib/index.js:11045:21)
+      at TypeScriptParserMixin.parseExprOp (/Users/michaelknudson/Desktop/hr-dashboard/frontend/node_modules/@babel/parser/lib/index.js:11011:27)
+      at TypeScriptParserMixin.parseExprOp (/Users/michaelknudson/Desktop/hr-dashboard/frontend/node_modules/@babel/parser/lib/index.js:9365:18)
+      at TypeScriptParserMixin.parseExprOp (/Users/michaelknudson/Desktop/hr-dashboard/frontend/node_modules/@babel/parser/lib/index.js:11017:21)
+      at TypeScriptParserMixin.parseExprOp (/Users/michaelknudson/Desktop/hr-dashboard/frontend/node_modules/@babel/parser/lib/index.js:9365:18)
+      at TypeScriptParserMixin.parseExprOps (/Users/michaelknudson/Desktop/hr-dashboard/frontend/node_modules/@babel/parser/lib/index.js:10972:17)
+      at TypeScriptParserMixin.parseMaybeConditional (/Users/michaelknudson/Desktop/hr-dashboard/frontend/node_modules/@babel/parser/lib/index.js:10945:23)
+      at TypeScriptParserMixin.parseMaybeAssign (/Users/michaelknudson/Desktop/hr-dashboard/frontend/node_modules/@babel/parser/lib/index.js:10895:21)
+      at TypeScriptParserMixin.parseMaybeAssign (/Users/michaelknudson/Desktop/hr-dashboard/frontend/node_modules/@babel/parser/lib/index.js:9839:20)
+      at TypeScriptParserMixin.parseExpressionBase (/Users/michaelknudson/Desktop/hr-dashboard/frontend/node_modules/@babel/parser/lib/index.js:10848:23)
+      at /Users/michaelknudson/Desktop/hr-dashboard/frontend/node_modules/@babel/parser/lib/index.js:10844:39
+      at TypeScriptParserMixin.allowInAnd (/Users/michaelknudson/Desktop/hr-dashboard/frontend/node_modules/@babel/parser/lib/index.js:12500:12)
+      at TypeScriptParserMixin.parseExpression (/Users/michaelknudson/Desktop/hr-dashboard/frontend/node_modules/@babel/parser/lib/index.js:10844:17)
+      at TypeScriptParserMixin.jsxParseExpressionContainer (/Users/michaelknudson/Desktop/hr-dashboard/frontend/node_modules/@babel/parser/lib/index.js:4661:31)
+      at TypeScriptParserMixin.jsxParseElementAt (/Users/michaelknudson/Desktop/hr-dashboard/frontend/node_modules/@babel/parser/lib/index.js:4740:36)
+      at TypeScriptParserMixin.jsxParseElement (/Users/michaelknudson/Desktop/hr-dashboard/frontend/node_modules/@babel/parser/lib/index.js:4778:17)
+      at TypeScriptParserMixin.parseExprAtom (/Users/michaelknudson/Desktop/hr-dashboard/frontend/node_modules/@babel/parser/lib/index.js:4788:19)
+      at TypeScriptParserMixin.parseExprSubscripts (/Users/michaelknudson/Desktop/hr-dashboard/frontend/node_modules/@babel/parser/lib/index.js:11145:23)
+      at TypeScriptParserMixin.parseUpdate (/Users/michaelknudson/Desktop/hr-dashboard/frontend/node_modules/@babel/parser/lib/index.js:11130:21)
+      at TypeScriptParserMixin.parseMaybeUnary (/Users/michaelknudson/Desktop/hr-dashboard/frontend/node_modules/@babel/parser/lib/index.js:11110:23)
+10:20:40 PM [vite] (client) hmr update /src/index.css, /src/components/SubtasksDrawer.tsx
+10:20:40 PM [vite] Internal server error: /Users/michaelknudson/Desktop/hr-dashboard/frontend/src/components/SubtasksDrawer.tsx: Unexpected token, expected "}" (545:3)
+
+  543 |       )}
+  544 |     </>
+> 545 |   );
+      |    ^
+  546 | }
+  547 |
+  Plugin: vite:react-babel
+  File: /Users/michaelknudson/Desktop/hr-dashboard/frontend/src/components/SubtasksDrawer.tsx:545:3
+  543 |        )}
+  544 |      </>
+  545 |    );
+      |     ^
+  546 |  }
+  547 |  
+      at constructor (/Users/michaelknudson/Desktop/hr-dashboard/frontend/node_modules/@babel/parser/lib/index.js:367:19)
+      at TypeScriptParserMixin.raise (/Users/michaelknudson/Desktop/hr-dashboard/frontend/node_modules/@babel/parser/lib/index.js:6624:19)
+      at TypeScriptParserMixin.unexpected (/Users/michaelknudson/Desktop/hr-dashboard/frontend/node_modules/@babel/parser/lib/index.js:6644:16)
+      at TypeScriptParserMixin.expect (/Users/michaelknudson/Desktop/hr-dashboard/frontend/node_modules/@babel/parser/lib/index.js:6924:12)
+      at TypeScriptParserMixin.jsxParseExpressionContainer (/Users/michaelknudson/Desktop/hr-dashboard/frontend/node_modules/@babel/parser/lib/index.js:4666:10)
+      at TypeScriptParserMixin.jsxParseElementAt (/Users/michaelknudson/Desktop/hr-dashboard/frontend/node_modules/@babel/parser/lib/index.js:4740:36)
+      at TypeScriptParserMixin.jsxParseElement (/Users/michaelknudson/Desktop/hr-dashboard/frontend/node_modules/@babel/parser/lib/index.js:4778:17)
+      at TypeScriptParserMixin.parseExprAtom (/Users/michaelknudson/Desktop/hr-dashboard/frontend/node_modules/@babel/parser/lib/index.js:4788:19)
+      at TypeScriptParserMixin.parseExprSubscripts (/Users/michaelknudson/Desktop/hr-dashboard/frontend/node_modules/@babel/parser/lib/index.js:11145:23)
+      at TypeScriptParserMixin.parseUpdate (/Users/michaelknudson/Desktop/hr-dashboard/frontend/node_modules/@babel/parser/lib/index.js:11130:21)
+      at TypeScriptParserMixin.parseMaybeUnary (/Users/michaelknudson/Desktop/hr-dashboard/frontend/node_modules/@babel/parser/lib/index.js:11110:23)
+      at TypeScriptParserMixin.parseMaybeUnary (/Users/michaelknudson/Desktop/hr-dashboard/frontend/node_modules/@babel/parser/lib/index.js:9890:18)
+      at TypeScriptParserMixin.parseMaybeUnaryOrPrivate (/Users/michaelknudson/Desktop/hr-dashboard/frontend/node_modules/@babel/parser/lib/index.js:10963:61)
+      at TypeScriptParserMixin.parseExprOps (/Users/michaelknudson/Desktop/hr-dashboard/frontend/node_modules/@babel/parser/lib/index.js:10968:23)
+      at TypeScriptParserMixin.parseMaybeConditional (/Users/michaelknudson/Desktop/hr-dashboard/frontend/node_modules/@babel/parser/lib/index.js:10945:23)
+      at TypeScriptParserMixin.parseMaybeAssign (/Users/michaelknudson/Desktop/hr-dashboard/frontend/node_modules/@babel/parser/lib/index.js:10895:21)
+      at /Users/michaelknudson/Desktop/hr-dashboard/frontend/node_modules/@babel/parser/lib/index.js:9828:39
+      at TypeScriptParserMixin.tryParse (/Users/michaelknudson/Desktop/hr-dashboard/frontend/node_modules/@babel/parser/lib/index.js:6932:20)
+      at TypeScriptParserMixin.parseMaybeAssign (/Users/michaelknudson/Desktop/hr-dashboard/frontend/node_modules/@babel/parser/lib/index.js:9828:18)
+      at /Users/michaelknudson/Desktop/hr-dashboard/frontend/node_modules/@babel/parser/lib/index.js:10864:39
+      at TypeScriptParserMixin.allowInAnd (/Users/michaelknudson/Desktop/hr-dashboard/frontend/node_modules/@babel/parser/lib/index.js:12500:12)
+      at TypeScriptParserMixin.parseMaybeAssignAllowIn (/Users/michaelknudson/Desktop/hr-dashboard/frontend/node_modules/@babel/parser/lib/index.js:10864:17)
+      at TypeScriptParserMixin.parseMaybeAssignAllowInOrVoidPattern (/Users/michaelknudson/Desktop/hr-dashboard/frontend/node_modules/@babel/parser/lib/index.js:12567:17)
+      at TypeScriptParserMixin.parseParenAndDistinguishExpression (/Users/michaelknudson/Desktop/hr-dashboard/frontend/node_modules/@babel/parser/lib/index.js:11747:28)
+      at TypeScriptParserMixin.parseExprAtom (/Users/michaelknudson/Desktop/hr-dashboard/frontend/node_modules/@babel/parser/lib/index.js:11395:23)
+      at TypeScriptParserMixin.parseExprAtom (/Users/michaelknudson/Desktop/hr-dashboard/frontend/node_modules/@babel/parser/lib/index.js:4793:20)
+      at TypeScriptParserMixin.parseExprSubscripts (/Users/michaelknudson/Desktop/hr-dashboard/frontend/node_modules/@babel/parser/lib/index.js:11145:23)
+      at TypeScriptParserMixin.parseUpdate (/Users/michaelknudson/Desktop/hr-dashboard/frontend/node_modules/@babel/parser/lib/index.js:11130:21)
+      at TypeScriptParserMixin.parseMaybeUnary (/Users/michaelknudson/Desktop/hr-dashboard/frontend/node_modules/@babel/parser/lib/index.js:11110:23)
+      at TypeScriptParserMixin.parseMaybeUnary (/Users/michaelknudson/Desktop/hr-dashboard/frontend/node_modules/@babel/parser/lib/index.js:9890:18)
+      at TypeScriptParserMixin.parseMaybeUnaryOrPrivate (/Users/michaelknudson/Desktop/hr-dashboard/frontend/node_modules/@babel/parser/lib/index.js:10963:61)
+      at TypeScriptParserMixin.parseExprOps (/Users/michaelknudson/Desktop/hr-dashboard/frontend/node_modules/@babel/parser/lib/index.js:10968:23)
+      at TypeScriptParserMixin.parseMaybeConditional (/Users/michaelknudson/Desktop/hr-dashboard/frontend/node_modules/@babel/parser/lib/index.js:10945:23)
+      at TypeScriptParserMixin.parseMaybeAssign (/Users/michaelknudson/Desktop/hr-dashboard/frontend/node_modules/@babel/parser/lib/index.js:10895:21)
+      at TypeScriptParserMixin.parseMaybeAssign (/Users/michaelknudson/Desktop/hr-dashboard/frontend/node_modules/@babel/parser/lib/index.js:9839:20)
+      at TypeScriptParserMixin.parseExpressionBase (/Users/michaelknudson/Desktop/hr-dashboard/frontend/node_modules/@babel/parser/lib/index.js:10848:23)
+      at /Users/michaelknudson/Desktop/hr-dashboard/frontend/node_modules/@babel/parser/lib/index.js:10844:39
+      at TypeScriptParserMixin.allowInAnd (/Users/michaelknudson/Desktop/hr-dashboard/frontend/node_modules/@babel/parser/lib/index.js:12495:16)
+      at TypeScriptParserMixin.parseExpression (/Users/michaelknudson/Desktop/hr-dashboard/frontend/node_modules/@babel/parser/lib/index.js:10844:17)
+      at TypeScriptParserMixin.parseReturnStatement (/Users/michaelknudson/Desktop/hr-dashboard/frontend/node_modules/@babel/parser/lib/index.js:13218:28)
+      at TypeScriptParserMixin.parseStatementContent (/Users/michaelknudson/Desktop/hr-dashboard/frontend/node_modules/@babel/parser/lib/index.js:12874:21)
+      at TypeScriptParserMixin.parseStatementContent (/Users/michaelknudson/Desktop/hr-dashboard/frontend/node_modules/@babel/parser/lib/index.js:9569:18)
+      at TypeScriptParserMixin.parseStatementLike (/Users/michaelknudson/Desktop/hr-dashboard/frontend/node_modules/@babel/parser/lib/index.js:12843:17)
+      at TypeScriptParserMixin.parseStatementListItem (/Users/michaelknudson/Desktop/hr-dashboard/frontend/node_modules/@babel/parser/lib/index.js:12823:17)
+      at TypeScriptParserMixin.parseBlockOrModuleBlockBody (/Users/michaelknudson/Desktop/hr-dashboard/frontend/node_modules/@babel/parser/lib/index.js:13392:61)
+      at TypeScriptParserMixin.parseBlockBody (/Users/michaelknudson/Desktop/hr-dashboard/frontend/node_modules/@babel/parser/lib/index.js:13385:10)
+      at TypeScriptParserMixin.parseBlock (/Users/michaelknudson/Desktop/hr-dashboard/frontend/node_modules/@babel/parser/lib/index.js:13373:10)
+      at TypeScriptParserMixin.parseFunctionBody (/Users/michaelknudson/Desktop/hr-dashboard/frontend/node_modules/@babel/parser/lib/index.js:12174:24)
+      at TypeScriptParserMixin.parseFunctionBodyAndFinish (/Users/michaelknudson/Desktop/hr-dashboard/frontend/node_modules/@babel/parser/lib/index.js:12160:10)
+      at TypeScriptParserMixin.parseFunctionBodyAndFinish (/Users/michaelknudson/Desktop/hr-dashboard/frontend/node_modules/@babel/parser/lib/index.js:9223:18)
+10:20:41 PM [vite] (client) Pre-transform error: /Users/michaelknudson/Desktop/hr-dashboard/frontend/src/components/SubtasksDrawer.tsx: Unexpected token, expected "}" (545:3)
+
+  543 |       )}
+  544 |     </>
+> 545 |   );
+      |    ^
+  546 | }
+  547 |
+  Plugin: vite:react-babel
+  File: /Users/michaelknudson/Desktop/hr-dashboard/frontend/src/components/SubtasksDrawer.tsx:545:3
+  543 |        )}
+  544 |      </>
+  545 |    );
+      |     ^
+  546 |  }
+  547 |  
+10:20:41 PM [vite] Internal server error: /Users/michaelknudson/Desktop/hr-dashboard/frontend/src/components/SubtasksDrawer.tsx: Unexpected token, expected "}" (545:3)
+
+  543 |       )}
+  544 |     </>
+> 545 |   );
+      |    ^
+  546 | }
+  547 |
+  Plugin: vite:react-babel
+  File: /Users/michaelknudson/Desktop/hr-dashboard/frontend/src/components/SubtasksDrawer.tsx:545:3
+  543 |        )}
+  544 |      </>
+  545 |    );
+      |     ^
+  546 |  }
+  547 |  
+      at constructor (/Users/michaelknudson/Desktop/hr-dashboard/frontend/node_modules/@babel/parser/lib/index.js:367:19)
+      at TypeScriptParserMixin.raise (/Users/michaelknudson/Desktop/hr-dashboard/frontend/node_modules/@babel/parser/lib/index.js:6624:19)
+      at TypeScriptParserMixin.unexpected (/Users/michaelknudson/Desktop/hr-dashboard/frontend/node_modules/@babel/parser/lib/index.js:6644:16)
+      at TypeScriptParserMixin.expect (/Users/michaelknudson/Desktop/hr-dashboard/frontend/node_modules/@babel/parser/lib/index.js:6924:12)
+      at TypeScriptParserMixin.jsxParseExpressionContainer (/Users/michaelknudson/Desktop/hr-dashboard/frontend/node_modules/@babel/parser/lib/index.js:4666:10)
+      at TypeScriptParserMixin.jsxParseElementAt (/Users/michaelknudson/Desktop/hr-dashboard/frontend/node_modules/@babel/parser/lib/index.js:4740:36)
+      at TypeScriptParserMixin.jsxParseElement (/Users/michaelknudson/Desktop/hr-dashboard/frontend/node_modules/@babel/parser/lib/index.js:4778:17)
+      at TypeScriptParserMixin.parseExprAtom (/Users/michaelknudson/Desktop/hr-dashboard/frontend/node_modules/@babel/parser/lib/index.js:4788:19)
+      at TypeScriptParserMixin.parseExprSubscripts (/Users/michaelknudson/Desktop/hr-dashboard/frontend/node_modules/@babel/parser/lib/index.js:11145:23)
+      at TypeScriptParserMixin.parseUpdate (/Users/michaelknudson/Desktop/hr-dashboard/frontend/node_modules/@babel/parser/lib/index.js:11130:21)
+      at TypeScriptParserMixin.parseMaybeUnary (/Users/michaelknudson/Desktop/hr-dashboard/frontend/node_modules/@babel/parser/lib/index.js:11110:23)
+      at TypeScriptParserMixin.parseMaybeUnary (/Users/michaelknudson/Desktop/hr-dashboard/frontend/node_modules/@babel/parser/lib/index.js:9890:18)
+      at TypeScriptParserMixin.parseMaybeUnaryOrPrivate (/Users/michaelknudson/Desktop/hr-dashboard/frontend/node_modules/@babel/parser/lib/index.js:10963:61)
+      at TypeScriptParserMixin.parseExprOps (/Users/michaelknudson/Desktop/hr-dashboard/frontend/node_modules/@babel/parser/lib/index.js:10968:23)
+      at TypeScriptParserMixin.parseMaybeConditional (/Users/michaelknudson/Desktop/hr-dashboard/frontend/node_modules/@babel/parser/lib/index.js:10945:23)
+      at TypeScriptParserMixin.parseMaybeAssign (/Users/michaelknudson/Desktop/hr-dashboard/frontend/node_modules/@babel/parser/lib/index.js:10895:21)
+      at /Users/michaelknudson/Desktop/hr-dashboard/frontend/node_modules/@babel/parser/lib/index.js:9828:39
+      at TypeScriptParserMixin.tryParse (/Users/michaelknudson/Desktop/hr-dashboard/frontend/node_modules/@babel/parser/lib/index.js:6932:20)
+      at TypeScriptParserMixin.parseMaybeAssign (/Users/michaelknudson/Desktop/hr-dashboard/frontend/node_modules/@babel/parser/lib/index.js:9828:18)
+      at /Users/michaelknudson/Desktop/hr-dashboard/frontend/node_modules/@babel/parser/lib/index.js:10864:39
+      at TypeScriptParserMixin.allowInAnd (/Users/michaelknudson/Desktop/hr-dashboard/frontend/node_modules/@babel/parser/lib/index.js:12500:12)
+      at TypeScriptParserMixin.parseMaybeAssignAllowIn (/Users/michaelknudson/Desktop/hr-dashboard/frontend/node_modules/@babel/parser/lib/index.js:10864:17)
+      at TypeScriptParserMixin.parseMaybeAssignAllowInOrVoidPattern (/Users/michaelknudson/Desktop/hr-dashboard/frontend/node_modules/@babel/parser/lib/index.js:12567:17)
+      at TypeScriptParserMixin.parseParenAndDistinguishExpression (/Users/michaelknudson/Desktop/hr-dashboard/frontend/node_modules/@babel/parser/lib/index.js:11747:28)
+      at TypeScriptParserMixin.parseExprAtom (/Users/michaelknudson/Desktop/hr-dashboard/frontend/node_modules/@babel/parser/lib/index.js:11395:23)
+      at TypeScriptParserMixin.parseExprAtom (/Users/michaelknudson/Desktop/hr-dashboard/frontend/node_modules/@babel/parser/lib/index.js:4793:20)
+      at TypeScriptParserMixin.parseExprSubscripts (/Users/michaelknudson/Desktop/hr-dashboard/frontend/node_modules/@babel/parser/lib/index.js:11145:23)
+      at TypeScriptParserMixin.parseUpdate (/Users/michaelknudson/Desktop/hr-dashboard/frontend/node_modules/@babel/parser/lib/index.js:11130:21)
+      at TypeScriptParserMixin.parseMaybeUnary (/Users/michaelknudson/Desktop/hr-dashboard/frontend/node_modules/@babel/parser/lib/index.js:11110:23)
+      at TypeScriptParserMixin.parseMaybeUnary (/Users/michaelknudson/Desktop/hr-dashboard/frontend/node_modules/@babel/parser/lib/index.js:9890:18)
+      at TypeScriptParserMixin.parseMaybeUnaryOrPrivate (/Users/michaelknudson/Desktop/hr-dashboard/frontend/node_modules/@babel/parser/lib/index.js:10963:61)
+      at TypeScriptParserMixin.parseExprOps (/Users/michaelknudson/Desktop/hr-dashboard/frontend/node_modules/@babel/parser/lib/index.js:10968:23)
+      at TypeScriptParserMixin.parseMaybeConditional (/Users/michaelknudson/Desktop/hr-dashboard/frontend/node_modules/@babel/parser/lib/index.js:10945:23)
+      at TypeScriptParserMixin.parseMaybeAssign (/Users/michaelknudson/Desktop/hr-dashboard/frontend/node_modules/@babel/parser/lib/index.js:10895:21)
+      at TypeScriptParserMixin.parseMaybeAssign (/Users/michaelknudson/Desktop/hr-dashboard/frontend/node_modules/@babel/parser/lib/index.js:9839:20)
+      at TypeScriptParserMixin.parseExpressionBase (/Users/michaelknudson/Desktop/hr-dashboard/frontend/node_modules/@babel/parser/lib/index.js:10848:23)
+      at /Users/michaelknudson/Desktop/hr-dashboard/frontend/node_modules/@babel/parser/lib/index.js:10844:39
+      at TypeScriptParserMixin.allowInAnd (/Users/michaelknudson/Desktop/hr-dashboard/frontend/node_modules/@babel/parser/lib/index.js:12495:16)
+      at TypeScriptParserMixin.parseExpression (/Users/michaelknudson/Desktop/hr-dashboard/frontend/node_modules/@babel/parser/lib/index.js:10844:17)
+      at TypeScriptParserMixin.parseReturnStatement (/Users/michaelknudson/Desktop/hr-dashboard/frontend/node_modules/@babel/parser/lib/index.js:13218:28)
+      at TypeScriptParserMixin.parseStatementContent (/Users/michaelknudson/Desktop/hr-dashboard/frontend/node_modules/@babel/parser/lib/index.js:12874:21)
+      at TypeScriptParserMixin.parseStatementContent (/Users/michaelknudson/Desktop/hr-dashboard/frontend/node_modules/@babel/parser/lib/index.js:9569:18)
+      at TypeScriptParserMixin.parseStatementLike (/Users/michaelknudson/Desktop/hr-dashboard/frontend/node_modules/@babel/parser/lib/index.js:12843:17)
+      at TypeScriptParserMixin.parseStatementListItem (/Users/michaelknudson/Desktop/hr-dashboard/frontend/node_modules/@babel/parser/lib/index.js:12823:17)
+      at TypeScriptParserMixin.parseBlockOrModuleBlockBody (/Users/michaelknudson/Desktop/hr-dashboard/frontend/node_modules/@babel/parser/lib/index.js:13392:61)
+      at TypeScriptParserMixin.parseBlockBody (/Users/michaelknudson/Desktop/hr-dashboard/frontend/node_modules/@babel/parser/lib/index.js:13385:10)
+      at TypeScriptParserMixin.parseBlock (/Users/michaelknudson/Desktop/hr-dashboard/frontend/node_modules/@babel/parser/lib/index.js:13373:10)
+      at TypeScriptParserMixin.parseFunctionBody (/Users/michaelknudson/Desktop/hr-dashboard/frontend/node_modules/@babel/parser/lib/index.js:12174:24)
+      at TypeScriptParserMixin.parseFunctionBodyAndFinish (/Users/michaelknudson/Desktop/hr-dashboard/frontend/node_modules/@babel/parser/lib/index.js:12160:10)
+      at TypeScriptParserMixin.parseFunctionBodyAndFinish (/Users/michaelknudson/Desktop/hr-dashboard/frontend/node_modules/@babel/parser/lib/index.js:9223:18)
+10:21:49 PM [vite] (client) hmr update /src/index.css, /src/components/SubtasksDrawer.tsx
+10:36:13 PM [vite] (client) hmr update /src/index.css, /src/components/OffboardingTaskDrawer.tsx
+10:36:22 PM [vite] (client) hmr update /src/index.css, /src/components/OffboardingTaskDrawer.tsx
+10:36:34 PM [vite] (client) hmr update /src/index.css, /src/components/OffboardingTaskDrawer.tsx
+10:36:42 PM [vite] (client) hmr update /src/index.css, /src/components/OffboardingTaskDrawer.tsx
+10:36:42 PM [vite] Internal server error: /Users/michaelknudson/Desktop/hr-dashboard/frontend/src/components/OffboardingTaskDrawer.tsx: Expected corresponding JSX closing tag for <div>. (456:10)
+
+  454 |           </div>
+  455 |         </div>
+> 456 |           </motion.div>
+      |           ^
+  457 |         </>
+  458 |       )}
+  459 |     </AnimatePresence>
+  Plugin: vite:react-babel
+  File: /Users/michaelknudson/Desktop/hr-dashboard/frontend/src/components/OffboardingTaskDrawer.tsx:456:10
+  454 |            </div>
+  455 |          </div>
+  456 |            </motion.div>
+      |            ^
+  457 |          </>
+  458 |        )}
+      at constructor (/Users/michaelknudson/Desktop/hr-dashboard/frontend/node_modules/@babel/parser/lib/index.js:367:19)
+      at TypeScriptParserMixin.raise (/Users/michaelknudson/Desktop/hr-dashboard/frontend/node_modules/@babel/parser/lib/index.js:6624:19)
+      at TypeScriptParserMixin.jsxParseElementAt (/Users/michaelknudson/Desktop/hr-dashboard/frontend/node_modules/@babel/parser/lib/index.js:4756:16)
+      at TypeScriptParserMixin.jsxParseElementAt (/Users/michaelknudson/Desktop/hr-dashboard/frontend/node_modules/@babel/parser/lib/index.js:4727:32)
+      at TypeScriptParserMixin.jsxParseElementAt (/Users/michaelknudson/Desktop/hr-dashboard/frontend/node_modules/@babel/parser/lib/index.js:4727:32)
+      at TypeScriptParserMixin.jsxParseElement (/Users/michaelknudson/Desktop/hr-dashboard/frontend/node_modules/@babel/parser/lib/index.js:4778:17)
+      at TypeScriptParserMixin.parseExprAtom (/Users/michaelknudson/Desktop/hr-dashboard/frontend/node_modules/@babel/parser/lib/index.js:4788:19)
+      at TypeScriptParserMixin.parseExprSubscripts (/Users/michaelknudson/Desktop/hr-dashboard/frontend/node_modules/@babel/parser/lib/index.js:11145:23)
+      at TypeScriptParserMixin.parseUpdate (/Users/michaelknudson/Desktop/hr-dashboard/frontend/node_modules/@babel/parser/lib/index.js:11130:21)
+      at TypeScriptParserMixin.parseMaybeUnary (/Users/michaelknudson/Desktop/hr-dashboard/frontend/node_modules/@babel/parser/lib/index.js:11110:23)
+      at TypeScriptParserMixin.parseMaybeUnary (/Users/michaelknudson/Desktop/hr-dashboard/frontend/node_modules/@babel/parser/lib/index.js:9890:18)
+      at TypeScriptParserMixin.parseMaybeUnaryOrPrivate (/Users/michaelknudson/Desktop/hr-dashboard/frontend/node_modules/@babel/parser/lib/index.js:10963:61)
+      at TypeScriptParserMixin.parseExprOps (/Users/michaelknudson/Desktop/hr-dashboard/frontend/node_modules/@babel/parser/lib/index.js:10968:23)
+      at TypeScriptParserMixin.parseMaybeConditional (/Users/michaelknudson/Desktop/hr-dashboard/frontend/node_modules/@babel/parser/lib/index.js:10945:23)
+      at TypeScriptParserMixin.parseMaybeAssign (/Users/michaelknudson/Desktop/hr-dashboard/frontend/node_modules/@babel/parser/lib/index.js:10895:21)
+      at /Users/michaelknudson/Desktop/hr-dashboard/frontend/node_modules/@babel/parser/lib/index.js:9828:39
+      at TypeScriptParserMixin.tryParse (/Users/michaelknudson/Desktop/hr-dashboard/frontend/node_modules/@babel/parser/lib/index.js:6932:20)
+      at TypeScriptParserMixin.parseMaybeAssign (/Users/michaelknudson/Desktop/hr-dashboard/frontend/node_modules/@babel/parser/lib/index.js:9828:18)
+      at /Users/michaelknudson/Desktop/hr-dashboard/frontend/node_modules/@babel/parser/lib/index.js:10864:39
+      at TypeScriptParserMixin.allowInAnd (/Users/michaelknudson/Desktop/hr-dashboard/frontend/node_modules/@babel/parser/lib/index.js:12500:12)
+      at TypeScriptParserMixin.parseMaybeAssignAllowIn (/Users/michaelknudson/Desktop/hr-dashboard/frontend/node_modules/@babel/parser/lib/index.js:10864:17)
+      at TypeScriptParserMixin.parseMaybeAssignAllowInOrVoidPattern (/Users/michaelknudson/Desktop/hr-dashboard/frontend/node_modules/@babel/parser/lib/index.js:12567:17)
+      at TypeScriptParserMixin.parseParenAndDistinguishExpression (/Users/michaelknudson/Desktop/hr-dashboard/frontend/node_modules/@babel/parser/lib/index.js:11747:28)
+      at TypeScriptParserMixin.parseExprAtom (/Users/michaelknudson/Desktop/hr-dashboard/frontend/node_modules/@babel/parser/lib/index.js:11395:23)
+      at TypeScriptParserMixin.parseExprAtom (/Users/michaelknudson/Desktop/hr-dashboard/frontend/node_modules/@babel/parser/lib/index.js:4793:20)
+      at TypeScriptParserMixin.parseExprSubscripts (/Users/michaelknudson/Desktop/hr-dashboard/frontend/node_modules/@babel/parser/lib/index.js:11145:23)
+      at TypeScriptParserMixin.parseUpdate (/Users/michaelknudson/Desktop/hr-dashboard/frontend/node_modules/@babel/parser/lib/index.js:11130:21)
+      at TypeScriptParserMixin.parseMaybeUnary (/Users/michaelknudson/Desktop/hr-dashboard/frontend/node_modules/@babel/parser/lib/index.js:11110:23)
+      at TypeScriptParserMixin.parseMaybeUnary (/Users/michaelknudson/Desktop/hr-dashboard/frontend/node_modules/@babel/parser/lib/index.js:9890:18)
+      at TypeScriptParserMixin.parseMaybeUnaryOrPrivate (/Users/michaelknudson/Desktop/hr-dashboard/frontend/node_modules/@babel/parser/lib/index.js:10963:61)
+      at TypeScriptParserMixin.parseExprOpBaseRightExpr (/Users/michaelknudson/Desktop/hr-dashboard/frontend/node_modules/@babel/parser/lib/index.js:11050:34)
+      at TypeScriptParserMixin.parseExprOpRightExpr (/Users/michaelknudson/Desktop/hr-dashboard/frontend/node_modules/@babel/parser/lib/index.js:11045:21)
+      at TypeScriptParserMixin.parseExprOp (/Users/michaelknudson/Desktop/hr-dashboard/frontend/node_modules/@babel/parser/lib/index.js:11011:27)
+      at TypeScriptParserMixin.parseExprOp (/Users/michaelknudson/Desktop/hr-dashboard/frontend/node_modules/@babel/parser/lib/index.js:9365:18)
+      at TypeScriptParserMixin.parseExprOp (/Users/michaelknudson/Desktop/hr-dashboard/frontend/node_modules/@babel/parser/lib/index.js:11017:21)
+      at TypeScriptParserMixin.parseExprOp (/Users/michaelknudson/Desktop/hr-dashboard/frontend/node_modules/@babel/parser/lib/index.js:9365:18)
+      at TypeScriptParserMixin.parseExprOps (/Users/michaelknudson/Desktop/hr-dashboard/frontend/node_modules/@babel/parser/lib/index.js:10972:17)
+      at TypeScriptParserMixin.parseMaybeConditional (/Users/michaelknudson/Desktop/hr-dashboard/frontend/node_modules/@babel/parser/lib/index.js:10945:23)
+      at TypeScriptParserMixin.parseMaybeAssign (/Users/michaelknudson/Desktop/hr-dashboard/frontend/node_modules/@babel/parser/lib/index.js:10895:21)
+      at TypeScriptParserMixin.parseMaybeAssign (/Users/michaelknudson/Desktop/hr-dashboard/frontend/node_modules/@babel/parser/lib/index.js:9839:20)
+      at TypeScriptParserMixin.parseExpressionBase (/Users/michaelknudson/Desktop/hr-dashboard/frontend/node_modules/@babel/parser/lib/index.js:10848:23)
+      at /Users/michaelknudson/Desktop/hr-dashboard/frontend/node_modules/@babel/parser/lib/index.js:10844:39
+      at TypeScriptParserMixin.allowInAnd (/Users/michaelknudson/Desktop/hr-dashboard/frontend/node_modules/@babel/parser/lib/index.js:12500:12)
+      at TypeScriptParserMixin.parseExpression (/Users/michaelknudson/Desktop/hr-dashboard/frontend/node_modules/@babel/parser/lib/index.js:10844:17)
+      at TypeScriptParserMixin.jsxParseExpressionContainer (/Users/michaelknudson/Desktop/hr-dashboard/frontend/node_modules/@babel/parser/lib/index.js:4661:31)
+      at TypeScriptParserMixin.jsxParseElementAt (/Users/michaelknudson/Desktop/hr-dashboard/frontend/node_modules/@babel/parser/lib/index.js:4740:36)
+      at TypeScriptParserMixin.jsxParseElement (/Users/michaelknudson/Desktop/hr-dashboard/frontend/node_modules/@babel/parser/lib/index.js:4778:17)
+      at TypeScriptParserMixin.parseExprAtom (/Users/michaelknudson/Desktop/hr-dashboard/frontend/node_modules/@babel/parser/lib/index.js:4788:19)
+      at TypeScriptParserMixin.parseExprSubscripts (/Users/michaelknudson/Desktop/hr-dashboard/frontend/node_modules/@babel/parser/lib/index.js:11145:23)
+      at TypeScriptParserMixin.parseUpdate (/Users/michaelknudson/Desktop/hr-dashboard/frontend/node_modules/@babel/parser/lib/index.js:11130:21)
+10:36:50 PM [vite] (client) hmr update /src/index.css, /src/components/OffboardingTaskDrawer.tsx
+10:37:09 PM [vite] (client) hmr update /src/index.css, /src/components/OffboardingTaskDrawer.tsx
+10:37:26 PM [vite] (client) hmr update /src/index.css, /src/components/OffboardingTaskDrawer.tsx
+10:37:41 PM [vite] (client) hmr update /src/index.css, /src/components/SubtasksDrawer.tsx
+10:44:17 PM [vite] (client) hmr update /src/pages/OffboardingPage.tsx, /src/index.css
+10:23:04 AM [vite] (client) hmr update /src/pages/OffboardingPage.tsx, /src/index.css
+10:23:09 AM [vite] (client) hmr update /src/pages/OffboardingPage.tsx, /src/index.css
+10:23:11 AM [vite] (client) hmr update /src/pages/OffboardingPage.tsx, /src/index.css
+10:23:19 AM [vite] (client) hmr update /src/pages/OffboardingPage.tsx, /src/index.css
+10:23:35 AM [vite] (client) hmr update /src/pages/OffboardingPage.tsx, /src/index.css
+10:23:39 AM [vite] (client) hmr update /src/pages/OffboardingPage.tsx, /src/index.css
+10:28:54 AM [vite] (client) hmr update /src/pages/OffboardingPage.tsx, /src/index.css
+10:37:01 AM [vite] (client) hmr update /src/pages/OffboardingPage.tsx, /src/index.css
+10:37:07 AM [vite] (client) hmr update /src/pages/OffboardingPage.tsx, /src/index.css
+12:38:10 PM [vite] (client) hmr update /src/pages/SettingsPage.tsx, /src/index.css
+12:38:17 PM [vite] (client) hmr update /src/pages/SettingsPage.tsx, /src/index.css
+12:38:21 PM [vite] (client) hmr update /src/pages/SettingsPage.tsx, /src/index.css
+12:38:24 PM [vite] (client) hmr update /src/pages/SettingsPage.tsx, /src/index.css
+12:38:29 PM [vite] (client) hmr update /src/pages/SettingsPage.tsx, /src/index.css
+12:38:49 PM [vite] (client) hmr update /src/pages/SettingsPage.tsx, /src/index.css
+12:38:53 PM [vite] (client) hmr update /src/pages/SettingsPage.tsx, /src/index.css
+12:39:06 PM [vite] (client) hmr update /src/layouts/MainLayout.tsx, /src/index.css
+12:39:14 PM [vite] (client) hmr update /src/layouts/MainLayout.tsx, /src/index.css
+12:39:26 PM [vite] (client) hmr update /src/layouts/MainLayout.tsx, /src/index.css
+12:54:27 PM [vite] (client) hmr update /src/layouts/MainLayout.tsx, /src/index.css
+12:54:33 PM [vite] (client) hmr update /src/pages/SettingsPage.tsx, /src/index.css
+12:54:41 PM [vite] (client) hmr update /src/pages/SettingsPage.tsx, /src/index.css
+12:54:46 PM [vite] (client) hmr update /src/pages/SettingsPage.tsx, /src/index.css
+12:54:52 PM [vite] (client) hmr update /src/pages/SettingsPage.tsx, /src/index.css
+12:56:37 PM [vite] (client) hmr update /src/pages/SettingsPage.tsx, /src/index.css
+8:42:12 PM [vite] (client) hmr update /src/App.tsx, /src/index.css
+8:42:13 PM [vite] (client) hmr update /src/App.tsx, /src/index.css
+8:42:18 PM [vite] (client) hmr update /src/App.tsx, /src/index.css
+8:42:44 PM [vite] (client) hmr update /src/layouts/MainLayout.tsx, /src/index.css
+8:42:44 PM [vite] (client) hmr update /src/layouts/MainLayout.tsx, /src/index.css
+8:42:50 PM [vite] (client) hmr update /src/layouts/MainLayout.tsx, /src/index.css
+8:42:53 PM [vite] (client) hmr update /src/layouts/MainLayout.tsx, /src/index.css
+9:02:11 PM [vite] (client) hmr update /src/index.css, /src/pages/EmailManagementPage.tsx
+9:02:21 PM [vite] (client) hmr update /src/index.css, /src/pages/EmailManagementPage.tsx
+9:02:27 PM [vite] (client) hmr update /src/index.css, /src/pages/EmailManagementPage.tsx
+9:02:28 PM [vite] (client) hmr update /src/index.css, /src/pages/EmailManagementPage.tsx
+9:02:34 PM [vite] (client) hmr update /src/index.css, /src/pages/EmailManagementPage.tsx
+9:02:43 PM [vite] (client) hmr update /src/index.css, /src/pages/EmailManagementPage.tsx
+9:02:51 PM [vite] (client) hmr update /src/index.css, /src/pages/EmailManagementPage.tsx
+9:03:02 PM [vite] (client) hmr update /src/index.css, /src/pages/EmailManagementPage.tsx
+9:03:22 PM [vite] (client) hmr update /src/index.css, /src/pages/EmailManagementPage.tsx
+9:03:26 PM [vite] (client) hmr update /src/index.css, /src/pages/EmailManagementPage.tsx
+9:03:39 PM [vite] (client) hmr update /src/index.css, /src/pages/EmailManagementPage.tsx
+9:03:55 PM [vite] (client) hmr update /src/index.css, /src/pages/EmailManagementPage.tsx
+9:04:22 PM [vite] (client) hmr update /src/index.css, /src/pages/EmailManagementPage.tsx
+9:04:26 PM [vite] (client) hmr update /src/index.css, /src/pages/EmailManagementPage.tsx
+9:04:29 PM [vite] (client) hmr update /src/index.css, /src/pages/EmailManagementPage.tsx
+9:04:40 PM [vite] (client) hmr update /src/index.css, /src/pages/EmailManagementPage.tsx
+9:04:55 PM [vite] (client) hmr update /src/index.css, /src/pages/EmailManagementPage.tsx
+9:05:01 PM [vite] (client) hmr update /src/index.css, /src/pages/EmailManagementPage.tsx
+9:05:07 PM [vite] (client) hmr update /src/index.css, /src/pages/EmailManagementPage.tsx
+9:05:30 PM [vite] (client) hmr update /src/index.css, /src/pages/EmailManagementPage.tsx
+9:16:45 PM [vite] (client) hmr update /src/pages/OffboardingPage.tsx, /src/index.css
+9:24:11 PM [vite] (client) hmr update /src/index.css, /src/components/SubtasksDrawer.tsx
+9:24:20 PM [vite] (client) hmr update /src/index.css, /src/components/SubtasksDrawer.tsx
+9:24:26 PM [vite] (client) hmr update /src/index.css, /src/components/SubtasksDrawer.tsx
+9:24:36 PM [vite] (client) hmr update /src/index.css, /src/components/SubtasksDrawer.tsx
+9:24:44 PM [vite] (client) hmr update /src/pages/OffboardingPage.tsx, /src/index.css
+9:25:06 PM [vite] (client) hmr update /src/pages/OffboardingPage.tsx, /src/index.css
+9:25:17 PM [vite] (client) hmr update /src/pages/OffboardingPage.tsx, /src/index.css
+9:25:27 PM [vite] (client) hmr update /src/pages/OffboardingPage.tsx, /src/index.css
+9:29:58 PM [vite] (client) hmr update /src/pages/OffboardingPage.tsx, /src/index.css
+12:18:33 PM [vite] (client) hmr update /src/index.css
+12:19:57 PM [vite] (client) hmr update /src/App.tsx, /src/index.css
+12:19:58 PM [vite] (client) ✨ new dependencies optimized: react-dropzone
+12:19:58 PM [vite] (client) ✨ optimized dependencies changed. reloading
+12:20:03 PM [vite] (client) hmr update /src/App.tsx, /src/index.css
+12:20:31 PM [vite] (client) hmr update /src/layouts/MainLayout.tsx, /src/index.css
+12:20:38 PM [vite] (client) hmr update /src/layouts/MainLayout.tsx, /src/index.css
+1:21:40 PM [vite] (client) hmr update /src/index.css, /src/pages/FileUploadPage.tsx
+1:21:49 PM [vite] (client) hmr update /src/index.css, /src/pages/FileUploadPage.tsx
+1:22:01 PM [vite] (client) hmr update /src/index.css, /src/pages/FileUploadPage.tsx
+1:22:22 PM [vite] (client) hmr update /src/index.css, /src/pages/FileUploadPage.tsx
+1:22:37 PM [vite] (client) hmr update /src/index.css, /src/pages/FileUploadPage.tsx
+1:23:33 PM [vite] (client) hmr update /src/index.css, /src/pages/FileUploadPage.tsx
+1:44:12 PM [vite] (client) hmr update /src/index.css, /src/pages/FileUploadPage.tsx
+1:44:25 PM [vite] (client) hmr update /src/index.css, /src/pages/FileUploadPage.tsx
+1:44:31 PM [vite] (client) hmr update /src/index.css, /src/pages/FileUploadPage.tsx
+1:44:38 PM [vite] (client) hmr update /src/index.css, /src/pages/FileUploadPage.tsx
+1:44:53 PM [vite] (client) hmr update /src/index.css, /src/pages/FileUploadPage.tsx
+1:45:30 PM [vite] (client) hmr update /src/index.css, /src/pages/FileUploadPage.tsx
+1:45:33 PM [vite] (client) hmr update /src/index.css, /src/pages/FileUploadPage.tsx
+1:50:10 PM [vite] (client) hmr update /src/index.css, /src/pages/FileUploadPage.tsx
+11:02:30 PM [vite] (client) hmr update /src/index.css, /src/components/FMLACaseDrawer.tsx
+11:02:43 PM [vite] (client) hmr update /src/index.css, /src/components/FMLACaseDrawer.tsx
+11:08:04 PM [vite] (client) hmr update /src/index.css, /src/components/FMLADocuments.tsx
+11:08:14 PM [vite] (client) hmr update /src/index.css, /src/components/FMLADocuments.tsx
+11:08:22 PM [vite] (client) hmr update /src/index.css, /src/components/FMLADocuments.tsx
+11:08:25 PM [vite] (client) hmr update /src/index.css, /src/components/FMLADocuments.tsx
+11:08:29 PM [vite] (client) hmr update /src/index.css, /src/components/FMLADocuments.tsx
+11:08:36 PM [vite] (client) hmr update /src/index.css, /src/components/FMLADocuments.tsx
+11:08:58 PM [vite] (client) hmr update /src/index.css, /src/components/FMLADocuments.tsx
+11:09:04 PM [vite] (client) hmr update /src/index.css, /src/components/FMLADocuments.tsx
+11:13:28 PM [vite] (client) hmr update /src/index.css, /src/components/FMLADocuments.tsx
+11:16:50 PM [vite] (client) hmr update /src/index.css, /src/components/FMLADocuments.tsx
+11:16:56 PM [vite] (client) hmr update /src/index.css, /src/components/FMLADocuments.tsx
+11:18:52 PM [vite] (client) hmr update /src/index.css, /src/components/FMLADocuments.tsx
+11:18:58 PM [vite] (client) hmr update /src/index.css, /src/components/FMLADocuments.tsx
+11:19:01 PM [vite] (client) hmr update /src/index.css, /src/components/FMLADocuments.tsx
+11:43:31 PM [vite] (client) hmr update /src/index.css, /src/components/FMLADocuments.tsx
+11:43:51 PM [vite] (client) hmr update /src/index.css, /src/components/FMLADocuments.tsx
+11:46:55 PM [vite] (client) hmr update /src/index.css, /src/components/FMLADocuments.tsx
+12:00:44 AM [vite] (client) hmr update /src/index.css, /src/components/FMLADocuments.tsx
+12:00:50 AM [vite] (client) hmr update /src/index.css, /src/components/FMLADocuments.tsx
+12:05:48 AM [vite] (client) hmr update /src/index.css, /src/components/FMLADocuments.tsx
+12:05:53 AM [vite] (client) hmr update /src/index.css, /src/components/FMLADocuments.tsx
+12:09:38 AM [vite] (client) hmr update /src/index.css, /src/components/FMLADocuments.tsx
+12:15:04 AM [vite] (client) hmr update /src/index.css, /src/components/FMLADocuments.tsx
+12:18:20 AM [vite] (client) hmr update /src/index.css, /src/components/FMLADocuments.tsx
+12:20:00 AM [vite] (client) hmr update /src/index.css, /src/components/FMLADocuments.tsx
+8:57:27 PM [vite] (client) hmr update /src/App.tsx, /src/index.css
+8:57:31 PM [vite] (client) hmr update /src/App.tsx, /src/index.css
+8:57:51 PM [vite] (client) hmr update /src/layouts/MainLayout.tsx, /src/index.css
+9:01:38 PM [vite] (client) hmr update /src/index.css, /src/pages/PayrollPage.tsx
+9:01:59 PM [vite] (client) hmr update /src/index.css, /src/pages/PayrollPage.tsx
+9:02:09 PM [vite] (client) hmr update /src/index.css, /src/pages/PayrollPage.tsx
+9:02:32 PM [vite] (client) hmr update /src/index.css, /src/pages/PayrollPage.tsx
+9:02:40 PM [vite] (client) hmr update /src/index.css, /src/pages/PayrollPage.tsx
+9:02:55 PM [vite] (client) hmr update /src/index.css, /src/components/PayrollDrawer.tsx
+9:03:12 PM [vite] (client) hmr update /src/index.css, /src/components/PayrollDrawer.tsx
+9:03:31 PM [vite] (client) hmr update /src/index.css, /src/components/PayrollDrawer.tsx
+9:03:48 PM [vite] (client) hmr update /src/index.css, /src/components/PayrollDrawer.tsx
+9:04:11 PM [vite] (client) hmr update /src/index.css, /src/components/PayrollDrawer.tsx
+9:09:26 PM [vite] (client) hmr update /src/index.css, /src/pages/PayrollPage.tsx
+9:35:13 PM [vite] (client) hmr update /src/index.css, /src/pages/PayrollPage.tsx
+9:35:18 PM [vite] (client) hmr update /src/index.css, /src/pages/PayrollPage.tsx
+9:35:22 PM [vite] (client) hmr update /src/index.css, /src/pages/PayrollPage.tsx
+9:38:06 PM [vite] (client) hmr update /src/index.css, /src/pages/PayrollPage.tsx
+9:38:22 PM [vite] (client) hmr update /src/index.css, /src/components/PayrollDrawer.tsx
+9:57:38 PM [vite] (client) hmr update /src/index.css, /src/pages/PayrollPage.tsx
+9:57:50 PM [vite] (client) hmr update /src/index.css, /src/components/PayrollDrawer.tsx
+10:04:26 PM [vite] (client) hmr update /src/index.css, /src/pages/PayrollPage.tsx
+10:05:09 PM [vite] (client) hmr update /src/index.css, /src/components/PayrollDrawer.tsx
+10:05:18 PM [vite] (client) hmr update /src/index.css, /src/components/PayrollDrawer.tsx
+10:07:33 PM [vite] (client) hmr update /src/index.css, /src/components/PayrollDrawer.tsx
+10:07:38 PM [vite] (client) hmr update /src/index.css, /src/components/PayrollDrawer.tsx
+10:07:42 PM [vite] (client) hmr update /src/index.css, /src/components/PayrollDrawer.tsx
+10:12:50 PM [vite] (client) hmr update /src/index.css, /src/components/PayrollDrawer.tsx
+10:13:10 PM [vite] (client) hmr update /src/index.css, /src/components/PayrollDrawer.tsx
+10:16:32 PM [vite] (client) hmr update /src/index.css, /src/components/PayrollDrawer.tsx
+10:16:37 PM [vite] (client) hmr update /src/index.css, /src/components/PayrollDrawer.tsx
+10:16:40 PM [vite] (client) hmr update /src/index.css, /src/components/PayrollDrawer.tsx
+10:16:53 PM [vite] (client) hmr update /src/index.css, /src/components/PayrollDrawer.tsx
+10:17:10 PM [vite] (client) hmr update /src/index.css, /src/components/PayrollDrawer.tsx
+10:18:58 PM [vite] (client) hmr update /src/index.css, /src/components/PayrollDrawer.tsx
+10:26:49 PM [vite] (client) hmr update /src/index.css, /src/components/PayrollDrawer.tsx
+10:26:55 PM [vite] (client) hmr update /src/index.css, /src/components/PayrollDrawer.tsx
+10:26:59 PM [vite] (client) hmr update /src/index.css, /src/components/PayrollDrawer.tsx
+10:27:12 PM [vite] (client) hmr update /src/index.css, /src/components/PayrollDrawer.tsx
+10:36:29 PM [vite] (client) hmr update /src/index.css, /src/components/PayrollDrawer.tsx
+10:36:35 PM [vite] (client) hmr update /src/index.css, /src/components/PayrollDrawer.tsx
+10:39:28 PM [vite] (client) hmr update /src/index.css, /src/components/PayrollDrawer.tsx
+10:39:38 PM [vite] (client) hmr update /src/index.css, /src/components/PayrollDrawer.tsx
+10:40:06 PM [vite] (client) hmr update /src/index.css, /src/components/PayrollDrawer.tsx
+10:43:33 PM [vite] (client) hmr update /src/index.css, /src/components/PayrollDrawer.tsx
+10:43:36 PM [vite] (client) hmr update /src/index.css, /src/components/PayrollDrawer.tsx
+10:43:46 PM [vite] (client) hmr update /src/index.css, /src/components/PayrollDrawer.tsx
+10:43:53 PM [vite] (client) hmr update /src/index.css, /src/components/PayrollDrawer.tsx
+10:45:57 PM [vite] (client) hmr update /src/index.css, /src/components/PayrollDrawer.tsx
+10:46:11 PM [vite] (client) hmr update /src/index.css, /src/components/PayrollDrawer.tsx
+10:46:19 PM [vite] (client) hmr update /src/index.css, /src/components/PayrollDrawer.tsx
+11:03:41 PM [vite] (client) hmr update /src/index.css, /src/components/PayrollDrawer.tsx
+11:03:49 PM [vite] (client) hmr update /src/index.css, /src/components/PayrollDrawer.tsx
+11:04:00 PM [vite] (client) hmr update /src/index.css, /src/components/PayrollDrawer.tsx
+11:04:03 PM [vite] (client) hmr update /src/index.css, /src/components/PayrollDrawer.tsx
+11:04:27 PM [vite] (client) hmr update /src/index.css, /src/components/PayrollDrawer.tsx
+10:39:19 PM [vite] (client) hmr update /src/pages/OffboardingPage.tsx, /src/index.css
+10:39:25 PM [vite] (client) hmr update /src/pages/OffboardingPage.tsx, /src/index.css
+10:40:01 PM [vite] (client) hmr update /src/pages/OffboardingPage.tsx, /src/index.css
+10:40:33 PM [vite] (client) hmr update /src/index.css, /src/components/OffboardingTaskDrawer.tsx
+10:40:41 PM [vite] (client) hmr update /src/index.css, /src/components/OffboardingTaskDrawer.tsx
+10:41:11 PM [vite] (client) hmr update /src/index.css, /src/components/OffboardingTaskDrawer.tsx
+10:41:22 PM [vite] (client) hmr update /src/index.css, /src/components/OffboardingTaskDrawer.tsx
+10:41:59 PM [vite] (client) hmr update /src/index.css, /src/components/OffboardingTaskDrawer.tsx
+10:42:37 PM [vite] (client) hmr update /src/index.css, /src/components/OffboardingTaskDrawer.tsx
+10:42:43 PM [vite] (client) hmr update /src/index.css, /src/components/OffboardingTaskDrawer.tsx
+10:42:50 PM [vite] (client) hmr update /src/index.css, /src/components/OffboardingTaskDrawer.tsx
+10:43:00 PM [vite] (client) hmr update /src/index.css, /src/components/OffboardingTaskDrawer.tsx
+10:43:38 PM [vite] (client) hmr update /src/index.css, /src/components/OffboardingTaskDrawer.tsx
+10:45:13 PM [vite] (client) hmr update /src/index.css, /src/components/OffboardingTaskDrawer.tsx
+10:45:18 PM [vite] (client) hmr update /src/index.css, /src/components/OffboardingTaskDrawer.tsx
+10:45:20 PM [vite] (client) hmr update /src/index.css, /src/components/OffboardingTaskDrawer.tsx
+10:45:28 PM [vite] (client) hmr update /src/index.css, /src/components/OffboardingTaskDrawer.tsx
+10:45:58 PM [vite] (client) hmr update /src/index.css, /src/components/OffboardingTaskDrawer.tsx
+10:52:44 PM [vite] (client) hmr update /src/pages/OffboardingPage.tsx, /src/index.css
+10:52:49 PM [vite] (client) hmr update /src/pages/OffboardingPage.tsx, /src/index.css
+10:54:09 PM [vite] (client) hmr update /src/pages/OffboardingPage.tsx, /src/index.css
+10:55:51 PM [vite] (client) hmr update /src/pages/OffboardingPage.tsx, /src/index.css
+10:56:00 PM [vite] (client) hmr update /src/pages/OffboardingPage.tsx, /src/index.css
+10:58:42 PM [vite] (client) hmr update /src/pages/OffboardingPage.tsx, /src/index.css
+10:58:47 PM [vite] (client) hmr update /src/pages/OffboardingPage.tsx, /src/index.css
+11:01:31 PM [vite] (client) hmr update /src/index.css, /src/components/OffboardingTaskDrawer.tsx
+11:01:51 PM [vite] (client) hmr update /src/index.css, /src/components/OffboardingTaskDrawer.tsx
+11:01:54 PM [vite] (client) hmr update /src/index.css, /src/components/OffboardingTaskDrawer.tsx
+11:02:07 PM [vite] (client) hmr update /src/index.css, /src/components/OffboardingTaskDrawer.tsx
+11:02:37 PM [vite] (client) hmr update /src/index.css, /src/components/OffboardingTaskDrawer.tsx
+11:03:09 PM [vite] (client) hmr update /src/index.css, /src/components/OffboardingTaskDrawer.tsx
+11:03:22 PM [vite] (client) hmr update /src/index.css, /src/components/OffboardingTaskDrawer.tsx
+11:03:25 PM [vite] (client) hmr update /src/index.css, /src/components/OffboardingTaskDrawer.tsx
+11:07:54 PM [vite] (client) hmr update /src/index.css, /src/components/OffboardingTaskDrawer.tsx
+11:08:04 PM [vite] (client) hmr update /src/index.css, /src/components/OffboardingTaskDrawer.tsx
+11:08:18 PM [vite] (client) hmr update /src/index.css, /src/components/OffboardingTaskDrawer.tsx
+11:10:49 PM [vite] (client) hmr update /src/index.css, /src/components/OffboardingTaskDrawer.tsx
+11:23:48 PM [vite] (client) hmr update /src/index.css, /src/components/OffboardingTaskDrawer.tsx
+11:24:11 PM [vite] (client) hmr update /src/index.css, /src/components/OffboardingTaskDrawer.tsx
+11:25:26 PM [vite] (client) hmr update /src/index.css, /src/components/OffboardingTaskDrawer.tsx
+11:31:41 PM [vite] (client) hmr update /src/index.css, /src/components/OffboardingTaskDrawer.tsx
+11:31:46 PM [vite] (client) hmr update /src/index.css, /src/components/OffboardingTaskDrawer.tsx
+11:39:13 PM [vite] (client) hmr update /src/index.css, /src/components/OffboardingTaskDrawer.tsx
+11:39:24 PM [vite] (client) hmr update /src/index.css, /src/components/OffboardingTaskDrawer.tsx
+11:39:36 PM [vite] (client) hmr update /src/index.css, /src/components/OffboardingTaskDrawer.tsx
+4:51:20 PM [vite] (client) hmr update /src/App.tsx, /src/index.css
+4:51:26 PM [vite] (client) hmr update /src/App.tsx, /src/index.css
+5:20:05 PM [vite] (client) hmr update /src/App.tsx, /src/index.css
+5:20:10 PM [vite] (client) hmr update /src/App.tsx, /src/index.css
+8:41:41 PM [vite] (client) hmr update /src/App.tsx, /src/index.css
+8:41:41 PM [vite] Internal server error: Failed to resolve import "@/components/ui/card" from "src/pages/CapitalizationAnalyticsPage.tsx". Does the file exist?
+  Plugin: vite:import-analysis
+  File: /Users/michaelknudson/Desktop/hr-dashboard/frontend/src/pages/CapitalizationAnalyticsPage.tsx:3:57
+  3  |  import { useEffect, useState } from "react";
+  4  |  import axios from "axios";
+  5  |  import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+     |                                                            ^
+  6  |  import { Button } from "@/components/ui/button";
+  7  |  import { Input } from "@/components/ui/input";
+      at TransformPluginContext._formatLog (file:///Users/michaelknudson/Desktop/hr-dashboard/frontend/node_modules/vite/dist/node/chunks/config.js:31106:43)
+      at TransformPluginContext.error (file:///Users/michaelknudson/Desktop/hr-dashboard/frontend/node_modules/vite/dist/node/chunks/config.js:31103:14)
+      at normalizeUrl (file:///Users/michaelknudson/Desktop/hr-dashboard/frontend/node_modules/vite/dist/node/chunks/config.js:29590:18)
+      at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+      at async file:///Users/michaelknudson/Desktop/hr-dashboard/frontend/node_modules/vite/dist/node/chunks/config.js:29648:32
+      at async Promise.all (index 3)
+      at async TransformPluginContext.transform (file:///Users/michaelknudson/Desktop/hr-dashboard/frontend/node_modules/vite/dist/node/chunks/config.js:29616:4)
+      at async EnvironmentPluginContainer.transform (file:///Users/michaelknudson/Desktop/hr-dashboard/frontend/node_modules/vite/dist/node/chunks/config.js:30905:14)
+      at async loadAndTransform (file:///Users/michaelknudson/Desktop/hr-dashboard/frontend/node_modules/vite/dist/node/chunks/config.js:26043:26)
+8:41:41 PM [vite] (client) Pre-transform error: Failed to resolve import "@/components/ui/card" from "src/pages/CapitalizationAnalyticsPage.tsx". Does the file exist?
+  Plugin: vite:import-analysis
+  File: /Users/michaelknudson/Desktop/hr-dashboard/frontend/src/pages/CapitalizationAnalyticsPage.tsx:3:57
+  3  |  import { useEffect, useState } from "react";
+  4  |  import axios from "axios";
+  5  |  import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+     |                                                            ^
+  6  |  import { Button } from "@/components/ui/button";
+  7  |  import { Input } from "@/components/ui/input";
+8:41:45 PM [vite] (client) hmr update /src/App.tsx, /src/index.css
+8:41:45 PM [vite] (client) Pre-transform error: Failed to resolve import "@/components/ui/card" from "src/pages/CapitalizationAnalyticsPage.tsx". Does the file exist?
+  Plugin: vite:import-analysis
+  File: /Users/michaelknudson/Desktop/hr-dashboard/frontend/src/pages/CapitalizationAnalyticsPage.tsx:3:57
+  3  |  import { useEffect, useState } from "react";
+  4  |  import axios from "axios";
+  5  |  import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+     |                                                            ^
+  6  |  import { Button } from "@/components/ui/button";
+  7  |  import { Input } from "@/components/ui/input";
+8:44:17 PM [vite] Internal server error: Failed to resolve import "@/components/ui/card" from "src/pages/CapitalizationAnalyticsPage.tsx". Does the file exist?
+  Plugin: vite:import-analysis
+  File: /Users/michaelknudson/Desktop/hr-dashboard/frontend/src/pages/CapitalizationAnalyticsPage.tsx:3:57
+  3  |  import { useEffect, useState } from "react";
+  4  |  import axios from "axios";
+  5  |  import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+     |                                                            ^
+  6  |  import { Button } from "@/components/ui/button";
+  7  |  import { Input } from "@/components/ui/input";
+      at TransformPluginContext._formatLog (file:///Users/michaelknudson/Desktop/hr-dashboard/frontend/node_modules/vite/dist/node/chunks/config.js:31106:43)
+      at TransformPluginContext.error (file:///Users/michaelknudson/Desktop/hr-dashboard/frontend/node_modules/vite/dist/node/chunks/config.js:31103:14)
+      at normalizeUrl (file:///Users/michaelknudson/Desktop/hr-dashboard/frontend/node_modules/vite/dist/node/chunks/config.js:29590:18)
+      at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+      at async file:///Users/michaelknudson/Desktop/hr-dashboard/frontend/node_modules/vite/dist/node/chunks/config.js:29648:32
+      at async Promise.all (index 3)
+      at async TransformPluginContext.transform (file:///Users/michaelknudson/Desktop/hr-dashboard/frontend/node_modules/vite/dist/node/chunks/config.js:29616:4)
+      at async EnvironmentPluginContainer.transform (file:///Users/michaelknudson/Desktop/hr-dashboard/frontend/node_modules/vite/dist/node/chunks/config.js:30905:14)
+      at async loadAndTransform (file:///Users/michaelknudson/Desktop/hr-dashboard/frontend/node_modules/vite/dist/node/chunks/config.js:26043:26)
+      at async viteTransformMiddleware (file:///Users/michaelknudson/Desktop/hr-dashboard/frontend/node_modules/vite/dist/node/chunks/config.js:27118:20)
+8:46:07 PM [vite] (client) hmr update /src/index.css, /src/App.tsx
+8:47:57 PM [vite] (client) hmr update /src/index.css
+8:50:07 PM [vite] (client) hmr update /src/layouts/MainLayout.tsx, /src/index.css
+8:50:23 PM [vite] (client) hmr update /src/layouts/MainLayout.tsx, /src/index.css
+8:55:03 PM [vite] (client) hmr update /src/App.tsx, /src/index.css
+8:55:09 PM [vite] (client) hmr update /src/App.tsx, /src/index.css
+8:55:17 PM [vite] (client) hmr update /src/layouts/MainLayout.tsx, /src/index.css
+8:57:17 PM [vite] (client) hmr update /src/index.css, /src/pages/CapitalizedLaborPage.tsx
+8:57:23 PM [vite] (client) hmr update /src/index.css, /src/pages/CapitalizedLaborPage.tsx
+8:57:29 PM [vite] (client) hmr update /src/index.css, /src/pages/CapitalizedLaborPage.tsx
+9:20:29 AM [vite] (client) hmr update /src/index.css

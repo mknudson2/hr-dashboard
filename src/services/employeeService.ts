@@ -17,3 +17,8 @@ export async function listEmployees() {
   const res = await fetch("http://localhost:8000/employees");
   return res.json();
 }
+
+export async function getEmployees() {
+  const res = await fetch("http://localhost:8000/employees");
+  return res.json();
+}
