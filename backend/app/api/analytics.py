@@ -286,19 +286,16 @@ def get_employee_details(employee_id: str, db: Session = Depends(get_db)):
     else:
         tenure_years = 0
 
-    # Determine if active
-    is_active = (
-        employee.hire_date
-        and employee.hire_date <= today
-        and (employee.termination_date is None or employee.termination_date > today)
-    )
+    # Use database status field - it's the source of truth
+    # (previously computed from dates, but this caused issues when status was changed without clearing termination_date)
+    employee_status = employee.status if employee.status else "Active"
 
     return {
         "employee_id": employee.employee_id,
         "first_name": employee.first_name,
         "last_name": employee.last_name,
         "full_name": f"{employee.first_name} {employee.last_name}",
-        "status": "Active" if is_active else "Terminated",
+        "status": employee_status,
         "type": employee.type,
         "location": employee.location,
         "department": employee.department,

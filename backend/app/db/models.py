@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, Date, Float, Boolean, ForeignKey, DateTime, JSON, Text
+from sqlalchemy import Column, Integer, String, Date, Float, Boolean, ForeignKey, DateTime, JSON, Text, Index
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
 from .database import Base
@@ -21,6 +21,13 @@ class Employee(Base):
     hire_date = Column(Date)
     termination_date = Column(Date, nullable=True)
     termination_type = Column(String, nullable=True)
+
+    # Rehire/Reactivation tracking
+    rehire_date = Column(Date, nullable=True)  # Date of rehire if previously terminated
+    original_hire_date = Column(Date, nullable=True)  # Original hire date before rehire
+    reactivation_reason = Column(String, nullable=True)  # 'mistakenly_terminated', 'rehired', 'termination_cancelled'
+    reactivation_notes = Column(Text, nullable=True)  # Additional notes about reactivation
+    status_change_history = Column(JSON, nullable=True)  # History of status changes with timestamps
 
     # Position information
     position = Column(String, nullable=True)
@@ -46,6 +53,14 @@ class Employee(Base):
 
     # Personal information
     birth_date = Column(Date, nullable=True)
+
+    # Personal contact information (for offboarding documents, etc.)
+    personal_email = Column(String, nullable=True)
+    personal_phone = Column(String, nullable=True)
+    address_street = Column(String, nullable=True)
+    address_city = Column(String, nullable=True)
+    address_state = Column(String, nullable=True)
+    address_zip = Column(String, nullable=True)
 
     # Privacy settings
     show_birthday = Column(Boolean, default=True)  # Show birthday on dashboard/exports
@@ -2120,3 +2135,684 @@ class PayrollTask(Base):
     
     def __repr__(self):
         return f"<PayrollTask {self.id}: {self.title}>"
+
+
+# ==================== CAPITALIZED LABOR TRACKING MODELS ====================
+
+class Project(Base):
+    """Project for capitalized labor tracking."""
+    __tablename__ = "projects"
+
+    id = Column(Integer, primary_key=True, index=True)
+    project_code = Column(String(50), unique=True, nullable=False, index=True, comment="Unique project code (e.g., PROJ-2024-001)")
+    project_name = Column(String(200), nullable=False, comment="Human-readable project name")
+    description = Column(Text, nullable=True, comment="Detailed project description")
+
+    # Capitalization settings
+    is_capitalizable = Column(Boolean, default=False, nullable=False, comment="Whether labor on this project can be capitalized")
+    capitalization_type = Column(String(50), nullable=True, comment="Type: 'software_development', 'asset_construction', 'other'")
+    capitalization_start_date = Column(Date, nullable=True, comment="Date when capitalization begins (project feasibility complete)")
+    capitalization_end_date = Column(Date, nullable=True, comment="Date when capitalization ends (asset placed in service)")
+
+    # Project classification
+    department = Column(String(100), nullable=True, comment="Department responsible for project")
+    cost_center = Column(String(50), nullable=True, comment="Cost center for project expenses")
+    project_manager_id = Column(Integer, ForeignKey("employees.id"), nullable=True, comment="Employee ID of project manager")
+
+    # Financial tracking
+    total_budget = Column(Float, nullable=True, comment="Total project budget")
+    labor_budget = Column(Float, nullable=True, comment="Labor budget for project")
+    total_labor_cost = Column(Float, default=0.0, comment="Total labor cost accumulated")
+    total_capitalized_cost = Column(Float, default=0.0, comment="Total capitalized labor cost")
+
+    # Status and dates
+    status = Column(String(50), default="active", nullable=False, comment="Status: 'active', 'completed', 'on_hold', 'cancelled'")
+    start_date = Column(Date, nullable=True, comment="Project start date")
+    end_date = Column(Date, nullable=True, comment="Actual or planned end date")
+
+    # Asset tracking (for capitalized projects)
+    asset_id = Column(String(100), nullable=True, comment="Asset ID if capitalized as fixed asset")
+    amortization_period_months = Column(Integer, nullable=True, comment="Amortization period in months (e.g., 36 for 3 years)")
+    amortization_start_date = Column(Date, nullable=True, comment="Date when amortization begins")
+
+    # Audit trail
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    updated_at = Column(DateTime(timezone=True), onupdate=func.now())
+    created_by_id = Column(Integer, ForeignKey("users.id"), nullable=True)
+
+    # Relationships
+    project_manager = relationship("Employee", foreign_keys=[project_manager_id])
+    time_entries = relationship("TimeEntry", back_populates="project")
+    capitalization_calculations = relationship("CapitalizationCalculation", back_populates="project")
+
+    def __repr__(self):
+        return f"<Project {self.project_code}: {self.project_name}>"
+
+
+class PayPeriod(Base):
+    """Pay period for time tracking."""
+    __tablename__ = "pay_periods"
+
+    id = Column(Integer, primary_key=True, index=True)
+    period_number = Column(Integer, nullable=False, comment="Pay period number in year (1-26 for bi-weekly)")
+    year = Column(Integer, nullable=False, comment="Calendar year")
+
+    # Period dates
+    start_date = Column(Date, nullable=False, index=True, comment="First day of pay period")
+    end_date = Column(Date, nullable=False, index=True, comment="Last day of pay period")
+    pay_date = Column(Date, nullable=True, comment="Date when employees are paid")
+
+    # Status
+    status = Column(String(50), default="open", nullable=False, comment="Status: 'open', 'locked', 'processed', 'finalized'")
+    locked_at = Column(DateTime(timezone=True), nullable=True, comment="When period was locked for processing")
+    locked_by_id = Column(Integer, ForeignKey("users.id"), nullable=True)
+
+    # Audit trail
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    updated_at = Column(DateTime(timezone=True), onupdate=func.now())
+
+    # Relationships
+    timesheets = relationship("Timesheet", back_populates="pay_period")
+
+    def __repr__(self):
+        return f"<PayPeriod {self.year}-{self.period_number}: {self.start_date} to {self.end_date}>"
+
+
+class Timesheet(Base):
+    """Weekly timesheet for employee time tracking."""
+    __tablename__ = "timesheets"
+
+    id = Column(Integer, primary_key=True, index=True)
+    employee_id = Column(Integer, ForeignKey("employees.id"), nullable=False, index=True)
+    pay_period_id = Column(Integer, ForeignKey("pay_periods.id"), nullable=False, index=True)
+
+    # Totals
+    total_hours = Column(Float, default=0.0, comment="Total hours for timesheet")
+    regular_hours = Column(Float, default=0.0, comment="Regular hours (up to 40/week)")
+    overtime_hours = Column(Float, default=0.0, comment="Overtime hours (over 40/week)")
+
+    # Workflow status
+    status = Column(String(50), default="draft", nullable=False, comment="Status: 'draft', 'submitted', 'approved', 'rejected', 'needs_revision'")
+    submitted_at = Column(DateTime(timezone=True), nullable=True, comment="When employee submitted timesheet")
+    approved_at = Column(DateTime(timezone=True), nullable=True, comment="When manager approved timesheet")
+    approved_by_id = Column(Integer, ForeignKey("users.id"), nullable=True, comment="Manager who approved")
+
+    # Rejection/revision tracking
+    rejection_reason = Column(Text, nullable=True, comment="Reason for rejection or revision request")
+    revision_count = Column(Integer, default=0, comment="Number of times revised")
+
+    # Audit trail
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    updated_at = Column(DateTime(timezone=True), onupdate=func.now())
+
+    # Relationships
+    employee = relationship("Employee", foreign_keys=[employee_id])
+    pay_period = relationship("PayPeriod", back_populates="timesheets")
+    approved_by = relationship("User", foreign_keys=[approved_by_id])
+    time_entries = relationship("TimeEntry", back_populates="timesheet", cascade="all, delete-orphan")
+
+    def __repr__(self):
+        return f"<Timesheet {self.id}: Employee {self.employee_id}, Period {self.pay_period_id}>"
+
+
+class TimeEntry(Base):
+    """Individual time entry for a specific project/task."""
+    __tablename__ = "time_entries"
+
+    id = Column(Integer, primary_key=True, index=True)
+    timesheet_id = Column(Integer, ForeignKey("timesheets.id"), nullable=False, index=True)
+    employee_id = Column(Integer, ForeignKey("employees.id"), nullable=False, index=True)
+    project_id = Column(Integer, ForeignKey("projects.id"), nullable=False, index=True)
+
+    # Time details
+    work_date = Column(Date, nullable=False, index=True, comment="Date work was performed")
+    clock_in = Column(DateTime(timezone=True), nullable=True, comment="Clock in timestamp")
+    clock_out = Column(DateTime(timezone=True), nullable=True, comment="Clock out timestamp")
+    hours = Column(Float, nullable=False, comment="Total hours worked")
+
+    # Labor classification
+    labor_type = Column(String(50), default="direct", nullable=False, comment="Type: 'direct', 'indirect', 'overhead'")
+    is_overtime = Column(Boolean, default=False, comment="Whether this is overtime hours")
+
+    # Task details
+    task_description = Column(Text, nullable=True, comment="Description of work performed")
+    task_code = Column(String(50), nullable=True, comment="Task/WBS code if applicable")
+
+    # Capitalization
+    is_capitalizable = Column(Boolean, default=False, comment="Whether these hours are capitalizable")
+    capitalization_category = Column(String(100), nullable=True, comment="Category for capitalization reporting")
+
+    # Cost calculation (for admin view)
+    labor_rate_at_entry = Column(Float, nullable=True, comment="Fully burdened rate at time of entry (audit snapshot)")
+    fully_burdened_cost = Column(Float, nullable=True, comment="Calculated fully burdened cost for this entry")
+    import_source_id = Column(Integer, ForeignKey("labor_data_imports.id"), nullable=True, comment="Source import if from file upload")
+
+    # Approval and editing
+    is_approved = Column(Boolean, default=False, comment="Whether this entry has been approved")
+    is_edited = Column(Boolean, default=False, comment="Whether entry was edited after initial creation")
+    edited_by_id = Column(Integer, ForeignKey("users.id"), nullable=True, comment="User who edited the entry")
+    edited_at = Column(DateTime(timezone=True), nullable=True, comment="When entry was last edited")
+    edit_reason = Column(Text, nullable=True, comment="Reason for edit")
+
+    # Audit trail
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    updated_at = Column(DateTime(timezone=True), onupdate=func.now())
+    created_by_id = Column(Integer, ForeignKey("users.id"), nullable=True)
+
+    # Relationships
+    timesheet = relationship("Timesheet", back_populates="time_entries")
+    employee = relationship("Employee", foreign_keys=[employee_id])
+    project = relationship("Project", back_populates="time_entries")
+    edited_by = relationship("User", foreign_keys=[edited_by_id])
+    audit_logs = relationship("TimeEntryAudit", back_populates="time_entry", cascade="all, delete-orphan")
+    import_source = relationship("LaborDataImport", foreign_keys=[import_source_id])
+
+    def __repr__(self):
+        return f"<TimeEntry {self.id}: {self.employee_id} - {self.work_date} - {self.hours}h>"
+
+
+class TimeEntryAudit(Base):
+    """Immutable audit log for time entry changes."""
+    __tablename__ = "time_entry_audit"
+
+    id = Column(Integer, primary_key=True, index=True)
+    time_entry_id = Column(Integer, ForeignKey("time_entries.id"), nullable=False, index=True)
+
+    # Audit details
+    action = Column(String(50), nullable=False, comment="Action: 'created', 'updated', 'deleted', 'approved', 'rejected'")
+    changed_by_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    changed_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
+
+    # Changed data (store as JSON for flexibility)
+    old_values = Column(JSON, nullable=True, comment="Previous values before change")
+    new_values = Column(JSON, nullable=True, comment="New values after change")
+    changed_fields = Column(JSON, nullable=True, comment="List of fields that changed")
+
+    # Context
+    change_reason = Column(Text, nullable=True, comment="Reason for change")
+    ip_address = Column(String(45), nullable=True, comment="IP address of user making change")
+    user_agent = Column(String(500), nullable=True, comment="Browser/client user agent")
+
+    # Relationships
+    time_entry = relationship("TimeEntry", back_populates="audit_logs")
+    changed_by = relationship("User", foreign_keys=[changed_by_id])
+
+    def __repr__(self):
+        return f"<TimeEntryAudit {self.id}: {self.action} on Entry {self.time_entry_id}>"
+
+
+class PayrollBatch(Base):
+    """Payroll batch for integrating with payroll processing."""
+    __tablename__ = "payroll_batches"
+
+    id = Column(Integer, primary_key=True, index=True)
+    batch_number = Column(String(50), unique=True, nullable=False, index=True)
+    pay_period_id = Column(Integer, ForeignKey("pay_periods.id"), nullable=False)
+
+    # Batch details
+    batch_date = Column(Date, nullable=False, comment="Date batch was created")
+    process_date = Column(Date, nullable=True, comment="Date batch was processed")
+    status = Column(String(50), default="pending", nullable=False, comment="Status: 'pending', 'processing', 'completed', 'error'")
+
+    # Totals
+    total_employees = Column(Integer, default=0, comment="Number of employees in batch")
+    total_hours = Column(Float, default=0.0, comment="Total hours in batch")
+    total_regular_hours = Column(Float, default=0.0)
+    total_overtime_hours = Column(Float, default=0.0)
+    total_gross_pay = Column(Float, default=0.0, comment="Total gross pay amount")
+
+    # Integration
+    export_file_path = Column(String(500), nullable=True, comment="Path to exported payroll file")
+    exported_at = Column(DateTime(timezone=True), nullable=True)
+    exported_by_id = Column(Integer, ForeignKey("users.id"), nullable=True)
+
+    # Error tracking
+    error_message = Column(Text, nullable=True)
+    error_count = Column(Integer, default=0)
+
+    # Audit trail
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    updated_at = Column(DateTime(timezone=True), onupdate=func.now())
+    created_by_id = Column(Integer, ForeignKey("users.id"), nullable=True)
+
+    # Relationships
+    pay_period = relationship("PayPeriod")
+    line_items = relationship("PayrollBatchLineItem", back_populates="batch", cascade="all, delete-orphan")
+
+    def __repr__(self):
+        return f"<PayrollBatch {self.batch_number}: {self.status}>"
+
+
+class PayrollBatchLineItem(Base):
+    """Individual line item in payroll batch."""
+    __tablename__ = "payroll_batch_line_items"
+
+    id = Column(Integer, primary_key=True, index=True)
+    batch_id = Column(Integer, ForeignKey("payroll_batches.id"), nullable=False, index=True)
+    employee_id = Column(Integer, ForeignKey("employees.id"), nullable=False)
+    timesheet_id = Column(Integer, ForeignKey("timesheets.id"), nullable=False)
+
+    # Hours breakdown
+    regular_hours = Column(Float, default=0.0)
+    overtime_hours = Column(Float, default=0.0)
+    total_hours = Column(Float, default=0.0)
+
+    # Pay breakdown
+    regular_pay = Column(Float, default=0.0)
+    overtime_pay = Column(Float, default=0.0)
+    gross_pay = Column(Float, default=0.0)
+
+    # Labor cost breakdown
+    direct_labor_hours = Column(Float, default=0.0, comment="Hours on direct labor projects")
+    indirect_labor_hours = Column(Float, default=0.0, comment="Hours on indirect labor")
+    capitalizable_hours = Column(Float, default=0.0, comment="Hours eligible for capitalization")
+    capitalizable_cost = Column(Float, default=0.0, comment="Cost eligible for capitalization")
+
+    # Audit trail
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+    # Relationships
+    batch = relationship("PayrollBatch", back_populates="line_items")
+    employee = relationship("Employee")
+    timesheet = relationship("Timesheet")
+
+    def __repr__(self):
+        return f"<PayrollBatchLineItem {self.id}: Employee {self.employee_id}>"
+
+
+class CapitalizationCalculation(Base):
+    """Monthly capitalization calculation for projects."""
+    __tablename__ = "capitalization_calculations"
+
+    id = Column(Integer, primary_key=True, index=True)
+    project_id = Column(Integer, ForeignKey("projects.id"), nullable=False, index=True)
+
+    # Period
+    calculation_month = Column(Integer, nullable=False, comment="Month (1-12)")
+    calculation_year = Column(Integer, nullable=False, comment="Year")
+    calculation_date = Column(Date, nullable=False, index=True, comment="Date calculation was performed")
+
+    # Labor totals
+    total_hours = Column(Float, default=0.0, comment="Total labor hours for period")
+    direct_labor_hours = Column(Float, default=0.0)
+    indirect_labor_hours = Column(Float, default=0.0)
+
+    # Cost totals
+    total_labor_cost = Column(Float, default=0.0, comment="Total labor cost for period")
+    direct_labor_cost = Column(Float, default=0.0)
+    indirect_labor_cost = Column(Float, default=0.0)
+    overhead_allocation = Column(Float, default=0.0, comment="Allocated overhead costs")
+
+    # Capitalization amounts
+    capitalizable_labor_cost = Column(Float, default=0.0, comment="Labor cost eligible for capitalization")
+    capitalized_amount = Column(Float, default=0.0, comment="Actual amount capitalized (may differ due to limits)")
+    non_capitalized_amount = Column(Float, default=0.0, comment="Amount expensed instead of capitalized")
+
+    # Accounting entries
+    journal_entry_number = Column(String(50), nullable=True, comment="GL journal entry number")
+    posted_to_gl = Column(Boolean, default=False, comment="Whether posted to general ledger")
+    posted_at = Column(DateTime(timezone=True), nullable=True)
+
+    # Compliance and documentation
+    calculation_notes = Column(Text, nullable=True, comment="Notes about calculation methodology or exceptions")
+    reviewed_by_id = Column(Integer, ForeignKey("users.id"), nullable=True, comment="User who reviewed calculation")
+    reviewed_at = Column(DateTime(timezone=True), nullable=True)
+    approval_status = Column(String(50), default="pending", comment="Status: 'pending', 'approved', 'rejected'")
+
+    # Audit trail
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    updated_at = Column(DateTime(timezone=True), onupdate=func.now())
+    created_by_id = Column(Integer, ForeignKey("users.id"), nullable=True)
+
+    # Relationships
+    project = relationship("Project", back_populates="capitalization_calculations")
+
+    def __repr__(self):
+        return f"<CapitalizationCalculation {self.id}: Project {self.project_id} - {self.calculation_year}-{self.calculation_month:02d}>"
+
+
+class CapitalizationAuditLog(Base):
+    """Immutable audit log for capitalization-related actions."""
+    __tablename__ = "capitalization_audit_log"
+
+    id = Column(Integer, primary_key=True, index=True)
+
+    # Entity tracking
+    entity_type = Column(String(100), nullable=False, comment="Type: 'project', 'calculation', 'timesheet', 'time_entry'")
+    entity_id = Column(Integer, nullable=False, index=True, comment="ID of the entity")
+
+    # Action details
+    action = Column(String(100), nullable=False, comment="Action performed")
+    action_category = Column(String(50), nullable=False, comment="Category: 'create', 'update', 'delete', 'approve', 'post', 'export'")
+
+    # User and context
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    user_role = Column(String(50), nullable=True, comment="User's role at time of action")
+    timestamp = Column(DateTime(timezone=True), server_default=func.now(), nullable=False, index=True)
+
+    # Change details
+    old_values = Column(JSON, nullable=True, comment="Previous state")
+    new_values = Column(JSON, nullable=True, comment="New state")
+    changed_fields = Column(JSON, nullable=True, comment="Fields that changed")
+
+    # Context and compliance
+    change_reason = Column(Text, nullable=True, comment="Reason for change")
+    ip_address = Column(String(45), nullable=True)
+    session_id = Column(String(100), nullable=True)
+
+    # SOX compliance fields
+    is_financial_impact = Column(Boolean, default=False, comment="Whether change impacts financial statements")
+    requires_approval = Column(Boolean, default=False, comment="Whether change requires additional approval")
+    approval_status = Column(String(50), nullable=True, comment="Approval status if required")
+
+    # Relationships
+    user = relationship("User", foreign_keys=[user_id])
+
+    def __repr__(self):
+        return f"<CapitalizationAuditLog {self.id}: {self.action} on {self.entity_type} {self.entity_id}>"
+
+
+# ==================== CAPITALIZED LABOR ADMIN MODELS ====================
+
+
+class EmployeeLaborRate(Base):
+    """Point-in-time fully burdened labor rates for cost calculations.
+
+    Stores historical labor rates to ensure accurate cost calculations
+    even when rates change. Each rate record has an effective date range.
+    """
+    __tablename__ = "employee_labor_rates"
+
+    id = Column(Integer, primary_key=True, index=True)
+    employee_id = Column(Integer, ForeignKey("employees.id"), nullable=False, index=True)
+
+    # Effective dates (for historical rate preservation)
+    effective_date = Column(Date, nullable=False, index=True, comment="Date this rate becomes effective")
+    end_date = Column(Date, nullable=True, comment="Date this rate ends (NULL = currently active)")
+
+    # Base compensation
+    hourly_rate = Column(Float, nullable=False, comment="Base hourly rate")
+    overtime_multiplier = Column(Float, default=1.5, comment="Overtime rate multiplier (default 1.5x)")
+
+    # Benefits burden
+    benefits_hourly = Column(Float, default=0.0, comment="Hourly benefits cost")
+    benefits_percentage = Column(Float, nullable=True, comment="Alternative: benefits as % of base wage")
+
+    # Employer taxes burden
+    employer_taxes_hourly = Column(Float, default=0.0, comment="Hourly employer tax cost")
+    employer_taxes_percentage = Column(Float, nullable=True, comment="Employer tax rate (FICA, FUTA, SUTA)")
+
+    # Overhead allocation
+    overhead_rate_hourly = Column(Float, default=0.0, comment="Hourly overhead allocation")
+    overhead_rate_percentage = Column(Float, nullable=True, comment="Overhead as % of base wage")
+
+    # Fully burdened rate (calculated)
+    fully_burdened_rate = Column(Float, nullable=False, comment="Total fully burdened hourly cost")
+
+    # Source and audit trail
+    rate_source = Column(String(50), default="manual", comment="Source: 'payroll_import', 'manual', 'calculated'")
+    calculation_methodology = Column(Text, nullable=True, comment="Documentation of how rate was derived")
+
+    # Locking (after period close)
+    is_locked = Column(Boolean, default=False, comment="Locked after period close - prevents changes")
+    locked_at = Column(DateTime(timezone=True), nullable=True)
+    locked_by_id = Column(Integer, ForeignKey("users.id"), nullable=True)
+
+    # Audit trail
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    updated_at = Column(DateTime(timezone=True), onupdate=func.now())
+    created_by_id = Column(Integer, ForeignKey("users.id"), nullable=True)
+
+    # Relationships
+    employee = relationship("Employee", foreign_keys=[employee_id])
+    created_by = relationship("User", foreign_keys=[created_by_id])
+    locked_by = relationship("User", foreign_keys=[locked_by_id])
+
+    __table_args__ = (
+        Index('ix_employee_labor_rates_employee_effective', 'employee_id', 'effective_date'),
+    )
+
+    def __repr__(self):
+        return f"<EmployeeLaborRate {self.id}: Employee {self.employee_id} @ ${self.fully_burdened_rate:.2f}/hr from {self.effective_date}>"
+
+
+class LaborDataImport(Base):
+    """Tracks imported time and payroll data files for audit and reconciliation."""
+    __tablename__ = "labor_data_imports"
+
+    id = Column(Integer, primary_key=True, index=True)
+    file_upload_id = Column(Integer, ForeignKey("file_uploads.id"), nullable=True, index=True)
+
+    # Import identification
+    import_type = Column(String(50), nullable=False, comment="Type: 'time_data', 'payroll_data', 'rate_data'")
+    import_name = Column(String(255), nullable=True, comment="User-friendly name for this import")
+    file_name = Column(String(255), nullable=True, comment="Original filename")
+
+    # Period association
+    pay_period_id = Column(Integer, ForeignKey("pay_periods.id"), nullable=True, index=True)
+    capitalization_period_id = Column(Integer, ForeignKey("capitalization_periods.id"), nullable=True, index=True)
+
+    # Date range of imported data
+    start_date = Column(Date, nullable=False, comment="Start date of data in import")
+    end_date = Column(Date, nullable=False, comment="End date of data in import")
+
+    # Import metadata
+    import_date = Column(DateTime(timezone=True), server_default=func.now())
+    imported_by_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+
+    # Column mapping used (store for reproducibility)
+    column_mapping = Column(JSON, nullable=True, comment="Column mapping configuration used")
+
+    # Statistics
+    total_records = Column(Integer, default=0, comment="Total records in file")
+    successful_records = Column(Integer, default=0, comment="Records successfully imported")
+    failed_records = Column(Integer, default=0, comment="Records that failed validation/import")
+    warning_records = Column(Integer, default=0, comment="Records imported with warnings")
+    skipped_records = Column(Integer, default=0, comment="Records skipped (duplicates, etc.)")
+
+    # Validation
+    validation_status = Column(String(50), default="pending", comment="Status: 'pending', 'validated', 'errors', 'warnings'")
+    validation_errors = Column(JSON, nullable=True, comment="Detailed validation error messages")
+    validation_warnings = Column(JSON, nullable=True, comment="Validation warnings")
+
+    # Reconciliation (for payroll imports)
+    source_total_hours = Column(Float, nullable=True, comment="Total hours from import file")
+    calculated_total_hours = Column(Float, nullable=True, comment="Total hours calculated from system")
+    hours_variance = Column(Float, nullable=True, comment="Difference between source and calculated")
+    source_total_cost = Column(Float, nullable=True, comment="Total cost from import file")
+    calculated_total_cost = Column(Float, nullable=True, comment="Total cost calculated from system")
+    cost_variance = Column(Float, nullable=True, comment="Difference between source and calculated cost")
+    reconciliation_status = Column(String(50), nullable=True, comment="Status: 'matched', 'variance', 'unreconciled'")
+    reconciliation_notes = Column(Text, nullable=True, comment="Notes about reconciliation")
+
+    # Status workflow
+    status = Column(String(50), default="pending", nullable=False,
+                   comment="Status: 'pending', 'validating', 'validated', 'processing', 'completed', 'failed', 'rolled_back'")
+    error_message = Column(Text, nullable=True, comment="Error message if failed")
+    processed_at = Column(DateTime(timezone=True), nullable=True)
+    completed_at = Column(DateTime(timezone=True), nullable=True)
+
+    # Rollback support
+    is_rolled_back = Column(Boolean, default=False)
+    rolled_back_at = Column(DateTime(timezone=True), nullable=True)
+    rolled_back_by_id = Column(Integer, ForeignKey("users.id"), nullable=True)
+    rollback_reason = Column(Text, nullable=True)
+
+    # Audit trail
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    updated_at = Column(DateTime(timezone=True), onupdate=func.now())
+
+    # Relationships
+    file_upload = relationship("FileUpload", foreign_keys=[file_upload_id])
+    pay_period = relationship("PayPeriod", foreign_keys=[pay_period_id])
+    imported_by = relationship("User", foreign_keys=[imported_by_id])
+    rolled_back_by = relationship("User", foreign_keys=[rolled_back_by_id])
+
+    def __repr__(self):
+        return f"<LaborDataImport {self.id}: {self.import_type} - {self.status}>"
+
+
+class CapitalizationPeriod(Base):
+    """Reporting periods for capitalization calculations with locking and approval workflow.
+
+    Supports monthly, quarterly, and annual periods with hierarchical relationships.
+    """
+    __tablename__ = "capitalization_periods"
+
+    id = Column(Integer, primary_key=True, index=True)
+    period_id = Column(String(50), unique=True, nullable=False, index=True, comment="Unique ID like 'CAP-2025-01'")
+
+    # Period definition
+    period_type = Column(String(20), nullable=False, comment="Type: 'monthly', 'quarterly', 'annual'")
+    year = Column(Integer, nullable=False, index=True)
+    month = Column(Integer, nullable=True, comment="Month 1-12 for monthly periods")
+    quarter = Column(Integer, nullable=True, comment="Quarter 1-4 for quarterly periods")
+
+    # Date range
+    start_date = Column(Date, nullable=False, index=True)
+    end_date = Column(Date, nullable=False, index=True)
+
+    # Parent period (for hierarchy: monthly -> quarterly -> annual)
+    parent_period_id = Column(Integer, ForeignKey("capitalization_periods.id"), nullable=True)
+
+    # Status workflow
+    status = Column(String(50), default="open", nullable=False,
+                   comment="Status: 'open', 'calculating', 'in_review', 'approved', 'locked', 'closed'")
+
+    # Calculation tracking
+    last_calculated_at = Column(DateTime(timezone=True), nullable=True)
+    calculated_by_id = Column(Integer, ForeignKey("users.id"), nullable=True)
+    calculation_version = Column(Integer, default=0, comment="Version number of calculations")
+
+    # Submission for approval
+    submitted_for_approval_at = Column(DateTime(timezone=True), nullable=True)
+    submitted_by_id = Column(Integer, ForeignKey("users.id"), nullable=True)
+    submission_notes = Column(Text, nullable=True)
+
+    # Approval
+    approved_at = Column(DateTime(timezone=True), nullable=True)
+    approved_by_id = Column(Integer, ForeignKey("users.id"), nullable=True)
+    approval_notes = Column(Text, nullable=True)
+
+    # Rejection (if not approved)
+    rejected_at = Column(DateTime(timezone=True), nullable=True)
+    rejected_by_id = Column(Integer, ForeignKey("users.id"), nullable=True)
+    rejection_reason = Column(Text, nullable=True)
+
+    # Locking (final close)
+    locked_at = Column(DateTime(timezone=True), nullable=True)
+    locked_by_id = Column(Integer, ForeignKey("users.id"), nullable=True)
+    lock_reason = Column(Text, nullable=True)
+
+    # Cached totals (updated on calculation)
+    total_hours = Column(Float, default=0.0, comment="Total approved hours in period")
+    total_regular_hours = Column(Float, default=0.0)
+    total_overtime_hours = Column(Float, default=0.0)
+    total_capitalizable_hours = Column(Float, default=0.0, comment="Hours on capitalizable projects")
+    total_non_capitalizable_hours = Column(Float, default=0.0)
+    total_direct_hours = Column(Float, default=0.0)
+    total_indirect_hours = Column(Float, default=0.0)
+    total_overhead_hours = Column(Float, default=0.0)
+
+    # Cached cost totals
+    total_labor_cost = Column(Float, default=0.0, comment="Total fully burdened labor cost")
+    total_capitalized_cost = Column(Float, default=0.0, comment="Total cost capitalized")
+    total_expensed_cost = Column(Float, default=0.0, comment="Total cost expensed")
+
+    # Metrics
+    capitalization_rate = Column(Float, default=0.0, comment="Capitalized hours / total hours %")
+    employee_count = Column(Integer, default=0, comment="Number of employees with time in period")
+    project_count = Column(Integer, default=0, comment="Number of projects with time in period")
+
+    # Notes
+    notes = Column(Text, nullable=True, comment="General notes about the period")
+
+    # Audit trail
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    updated_at = Column(DateTime(timezone=True), onupdate=func.now())
+    created_by_id = Column(Integer, ForeignKey("users.id"), nullable=True)
+
+    # Relationships
+    parent_period = relationship("CapitalizationPeriod", remote_side=[id], backref="child_periods")
+    submitted_by = relationship("User", foreign_keys=[submitted_by_id])
+    approved_by = relationship("User", foreign_keys=[approved_by_id])
+    rejected_by = relationship("User", foreign_keys=[rejected_by_id])
+    locked_by = relationship("User", foreign_keys=[locked_by_id])
+    calculated_by = relationship("User", foreign_keys=[calculated_by_id])
+    created_by = relationship("User", foreign_keys=[created_by_id])
+    employee_summaries = relationship("EmployeeCapitalizationSummary", back_populates="period", cascade="all, delete-orphan")
+
+    __table_args__ = (
+        Index('ix_cap_periods_year_type', 'year', 'period_type'),
+        Index('ix_cap_periods_dates', 'start_date', 'end_date'),
+    )
+
+    def __repr__(self):
+        return f"<CapitalizationPeriod {self.period_id}: {self.status}>"
+
+
+class EmployeeCapitalizationSummary(Base):
+    """Pre-aggregated employee-level capitalization data per period.
+
+    This table caches calculated data for efficient reporting and reduces
+    the need to recalculate from raw time entries.
+    """
+    __tablename__ = "employee_capitalization_summaries"
+
+    id = Column(Integer, primary_key=True, index=True)
+    employee_id = Column(Integer, ForeignKey("employees.id"), nullable=False, index=True)
+    period_id = Column(Integer, ForeignKey("capitalization_periods.id"), nullable=False, index=True)
+
+    # Hours breakdown
+    total_hours = Column(Float, default=0.0, comment="Total hours in period")
+    regular_hours = Column(Float, default=0.0, comment="Non-overtime hours")
+    overtime_hours = Column(Float, default=0.0, comment="Overtime hours")
+    direct_hours = Column(Float, default=0.0, comment="Direct labor hours")
+    indirect_hours = Column(Float, default=0.0, comment="Indirect labor hours")
+    overhead_hours = Column(Float, default=0.0, comment="Overhead labor hours")
+    capitalizable_hours = Column(Float, default=0.0, comment="Hours on capitalizable projects")
+    non_capitalizable_hours = Column(Float, default=0.0, comment="Hours on non-capitalizable projects")
+
+    # Cost breakdown (using fully burdened rates)
+    base_labor_cost = Column(Float, default=0.0, comment="Base wage cost (hours * hourly rate)")
+    overtime_premium_cost = Column(Float, default=0.0, comment="OT premium (OT hours * base * 0.5)")
+    benefits_cost = Column(Float, default=0.0, comment="Benefits cost allocation")
+    employer_taxes_cost = Column(Float, default=0.0, comment="Employer tax cost allocation")
+    overhead_cost = Column(Float, default=0.0, comment="Overhead cost allocation")
+    fully_burdened_cost = Column(Float, default=0.0, comment="Total fully burdened cost")
+
+    # Capitalization amounts
+    capitalizable_cost = Column(Float, default=0.0, comment="Cost eligible for capitalization")
+    non_capitalizable_cost = Column(Float, default=0.0, comment="Cost to be expensed")
+
+    # Rate tracking (for audit trail - which rate was used)
+    labor_rate_id = Column(Integer, ForeignKey("employee_labor_rates.id"), nullable=True)
+    hourly_rate_used = Column(Float, nullable=True, comment="Base hourly rate used in calculation")
+    fully_burdened_rate_used = Column(Float, nullable=True, comment="Fully burdened rate used")
+
+    # Metrics
+    capitalization_rate = Column(Float, default=0.0, comment="Capitalizable hours / total hours %")
+    project_count = Column(Integer, default=0, comment="Number of unique projects worked on")
+
+    # Breakdown by project (JSON for flexibility)
+    project_breakdown = Column(JSON, nullable=True, comment="Hours/cost by project")
+
+    # Calculation metadata
+    calculated_at = Column(DateTime(timezone=True), server_default=func.now())
+    calculation_version = Column(Integer, default=1)
+
+    # Audit trail
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    updated_at = Column(DateTime(timezone=True), onupdate=func.now())
+
+    # Relationships
+    employee = relationship("Employee", foreign_keys=[employee_id])
+    period = relationship("CapitalizationPeriod", back_populates="employee_summaries")
+    labor_rate = relationship("EmployeeLaborRate", foreign_keys=[labor_rate_id])
+
+    __table_args__ = (
+        Index('ix_emp_cap_summary_emp_period', 'employee_id', 'period_id', unique=True),
+    )
+
+    def __repr__(self):
+        return f"<EmployeeCapitalizationSummary {self.id}: Employee {self.employee_id}, Period {self.period_id}>"

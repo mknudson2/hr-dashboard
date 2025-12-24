@@ -1,9 +1,11 @@
 from fastapi import APIRouter, Depends, HTTPException, UploadFile, File
 from sqlalchemy.orm import Session
+from pydantic import BaseModel
 from app.db import models, database
 import csv
 import io
-from typing import List, Dict
+from typing import List, Dict, Optional
+from datetime import datetime, timedelta
 
 router = APIRouter(prefix="/employees", tags=["employees"])
 
@@ -233,9 +235,10 @@ def update_employee(employee_id: str, update_data: dict, db: Session = Depends(g
     should_create_offboarding = (status_changed_to_terminated or termination_date_set) and employee.termination_date
 
     if should_create_offboarding:
-        # Check if offboarding tasks already exist
+        # Check if non-archived offboarding tasks already exist
         existing_tasks = db.query(models.OffboardingTask).filter(
-            models.OffboardingTask.employee_id == employee_id
+            models.OffboardingTask.employee_id == employee_id,
+            models.OffboardingTask.archived == False
         ).first()
 
         if not existing_tasks:
@@ -388,6 +391,290 @@ def update_employee(employee_id: str, update_data: dict, db: Session = Depends(g
         "status": employee.status,
         "termination_date": employee.termination_date.isoformat() if employee.termination_date else None,
         "offboarding_created": status_changed_to_terminated
+    }
+
+
+class StatusChangeRequest(BaseModel):
+    new_status: str
+    reason: Optional[str] = None  # 'mistakenly_terminated', 'rehired', 'termination_cancelled'
+    rehire_date: Optional[str] = None
+    cancellation_reason: Optional[str] = None
+    notes: Optional[str] = None
+
+
+@router.post("/{employee_id}/status-change")
+def change_employee_status_with_reason(
+    employee_id: str,
+    request: StatusChangeRequest,
+    db: Session = Depends(get_db)
+):
+    """
+    Change an employee's status with a reason and proper handling.
+
+    For Terminated -> Active transitions:
+    - mistakenly_terminated: Deletes all offboarding tasks and clears termination data
+    - rehired: Archives offboarding tasks as historical, sets rehire date
+    - termination_cancelled: Archives tasks with cancellation reason
+
+    For Active -> Terminated transitions:
+    - Creates offboarding tasks automatically
+    """
+    from datetime import datetime as dt
+    import json as json_lib
+
+    employee = db.query(models.Employee).filter(
+        models.Employee.employee_id == employee_id
+    ).first()
+
+    if not employee:
+        raise HTTPException(status_code=404, detail="Employee not found")
+
+    old_status = employee.status
+    new_status = request.new_status
+
+    # Build status change history entry
+    history_entry = {
+        "timestamp": datetime.now().isoformat(),
+        "from_status": old_status,
+        "to_status": new_status,
+        "reason": request.reason,
+        "notes": request.notes
+    }
+
+    # Get existing history or initialize
+    if employee.status_change_history:
+        try:
+            history = employee.status_change_history if isinstance(employee.status_change_history, list) else []
+        except:
+            history = []
+    else:
+        history = []
+
+    history.append(history_entry)
+
+    # Handle Terminated -> Active transitions
+    if old_status == "Terminated" and new_status == "Active":
+        if not request.reason:
+            raise HTTPException(
+                status_code=400,
+                detail="A reason is required when reactivating a terminated employee"
+            )
+
+        if request.reason == "mistakenly_terminated":
+            # Full reset - delete all offboarding tasks and clear termination data
+            db.query(models.OffboardingTask).filter(
+                models.OffboardingTask.employee_id == employee_id
+            ).delete()
+
+            employee.termination_date = None
+            employee.termination_type = None
+            employee.reactivation_reason = "mistakenly_terminated"
+            employee.reactivation_notes = request.notes
+
+        elif request.reason == "rehired":
+            # Archive previous offboarding tasks
+            offboarding_tasks = db.query(models.OffboardingTask).filter(
+                models.OffboardingTask.employee_id == employee_id
+            ).all()
+
+            for task in offboarding_tasks:
+                task.archived = True
+                if task.task_details is None:
+                    task.task_details = {}
+                task.task_details["archived_at"] = datetime.now().isoformat()
+                task.task_details["archived_reason"] = "Employee rehired"
+                task.task_details["original_termination_date"] = employee.termination_date.isoformat() if employee.termination_date else None
+
+            # Store original hire date if not already stored
+            if not employee.original_hire_date and employee.hire_date:
+                employee.original_hire_date = employee.hire_date
+
+            # Set rehire date
+            if request.rehire_date:
+                employee.rehire_date = dt.strptime(request.rehire_date, "%Y-%m-%d").date()
+                # Update hire_date to rehire date for tenure calculations
+                employee.hire_date = employee.rehire_date
+            else:
+                employee.rehire_date = datetime.now().date()
+                employee.hire_date = employee.rehire_date
+
+            # Keep termination date as historical but clear active termination status
+            # Store in history
+            history_entry["previous_termination_date"] = employee.termination_date.isoformat() if employee.termination_date else None
+
+            employee.termination_date = None
+            employee.termination_type = None
+            employee.reactivation_reason = "rehired"
+            employee.reactivation_notes = request.notes
+
+        elif request.reason == "termination_cancelled":
+            if not request.cancellation_reason:
+                raise HTTPException(
+                    status_code=400,
+                    detail="A cancellation reason is required"
+                )
+
+            # Archive offboarding tasks with cancellation note
+            offboarding_tasks = db.query(models.OffboardingTask).filter(
+                models.OffboardingTask.employee_id == employee_id
+            ).all()
+
+            for task in offboarding_tasks:
+                task.archived = True
+                if task.task_details is None:
+                    task.task_details = {}
+                task.task_details["archived_at"] = datetime.now().isoformat()
+                task.task_details["archived_reason"] = f"Termination cancelled: {request.cancellation_reason}"
+
+            employee.termination_date = None
+            employee.termination_type = None
+            employee.reactivation_reason = "termination_cancelled"
+            employee.reactivation_notes = f"{request.cancellation_reason}\n\n{request.notes or ''}"
+
+    # Handle Active -> Terminated transitions
+    elif old_status != "Terminated" and new_status == "Terminated":
+        employee.termination_date = datetime.now().date()
+        employee.reactivation_reason = None
+        employee.reactivation_notes = None
+
+        # Check if offboarding tasks already exist (non-archived)
+        existing_tasks = db.query(models.OffboardingTask).filter(
+            models.OffboardingTask.employee_id == employee_id,
+            models.OffboardingTask.archived == False
+        ).first()
+
+        if not existing_tasks:
+            # Create offboarding tasks (reuse existing logic)
+            try:
+                import os
+                config_path = os.path.join(os.path.dirname(__file__), "..", "config", "default_offboarding_checklist.json")
+                with open(config_path, 'r') as f:
+                    checklist = json_lib.load(f)
+                all_tasks = checklist["tasks"]
+
+                employment_type = employee.employment_type if employee.employment_type else "Full Time"
+                termination_type = "Voluntary"
+
+                filtered_tasks = []
+                for task in all_tasks:
+                    if "conditional" in task:
+                        condition = task["conditional"]
+                        if condition == "full_time" and employment_type not in ["Full Time"]:
+                            continue
+                        if condition == "part_time" and employment_type not in ["Part Time"]:
+                            continue
+                        if condition == "has_benefits" and employment_type not in ["Full Time", "International"]:
+                            continue
+                        if condition == "cobra_eligible" and employment_type != "Full Time":
+                            continue
+                    filtered_tasks.append(task)
+
+                year = datetime.now().year
+                max_task = db.query(models.OffboardingTask).filter(
+                    models.OffboardingTask.task_id.like(f"OFF-TASK-{year}-%")
+                ).order_by(models.OffboardingTask.task_id.desc()).first()
+
+                if max_task and max_task.task_id:
+                    try:
+                        last_num = int(max_task.task_id.split('-')[-1])
+                    except:
+                        last_num = 0
+                else:
+                    last_num = 0
+
+                task_counter = last_num
+
+                for task_template in filtered_tasks:
+                    task_counter += 1
+                    task_id = f"OFF-TASK-{year}-{str(task_counter).zfill(4)}"
+
+                    due_date = None
+                    if employee.termination_date and task_template.get("days_from_termination") is not None:
+                        due_date = employee.termination_date + timedelta(days=task_template["days_from_termination"])
+
+                    has_subtasks = task_template.get("has_subtasks", False)
+
+                    new_task = models.OffboardingTask(
+                        task_id=task_id,
+                        employee_id=employee_id,
+                        template_id=1,
+                        task_name=task_template["task_name"],
+                        task_description=task_template.get("task_description"),
+                        category=task_template["category"],
+                        assigned_to_role=task_template.get("assigned_to_role"),
+                        due_date=due_date,
+                        days_from_termination=task_template.get("days_from_termination"),
+                        priority=task_template["priority"],
+                        status="Not Started",
+                        has_subtasks=has_subtasks,
+                        is_subtask=False,
+                        created_at=datetime.now()
+                    )
+
+                    task_details = {}
+                    if task_template.get("is_toggle"):
+                        task_details["is_toggle"] = True
+                    if task_template.get("has_action_button"):
+                        task_details["has_action_button"] = True
+                        task_details["action_button_label"] = task_template.get("action_button_label")
+                    if task_details:
+                        new_task.task_details = task_details
+
+                    db.add(new_task)
+                    db.flush()
+
+                    if has_subtasks and "subtasks" in task_template:
+                        for subtask_template in task_template["subtasks"]:
+                            if "conditional" in subtask_template:
+                                condition = subtask_template["conditional"]
+                                if condition == "full_time" and employment_type not in ["Full Time"]:
+                                    continue
+                                if condition == "part_time" and employment_type not in ["Part Time"]:
+                                    continue
+
+                            task_counter += 1
+                            subtask_id = f"OFF-TASK-{year}-{str(task_counter).zfill(4)}"
+
+                            subtask_due_date = None
+                            if employee.termination_date and subtask_template.get("days_from_termination") is not None:
+                                subtask_due_date = employee.termination_date + timedelta(days=subtask_template["days_from_termination"])
+
+                            new_subtask = models.OffboardingTask(
+                                task_id=subtask_id,
+                                employee_id=employee_id,
+                                template_id=1,
+                                task_name=subtask_template["task_name"],
+                                task_description=subtask_template.get("task_description"),
+                                category=subtask_template["category"],
+                                assigned_to_role=subtask_template.get("assigned_to_role"),
+                                due_date=subtask_due_date,
+                                days_from_termination=subtask_template.get("days_from_termination"),
+                                priority=subtask_template["priority"],
+                                status="Not Started",
+                                has_subtasks=False,
+                                is_subtask=True,
+                                parent_task_id=new_task.id,
+                                created_at=datetime.now()
+                            )
+                            db.add(new_subtask)
+
+            except Exception as e:
+                print(f"Error creating offboarding tasks: {e}")
+
+    # Update status and history
+    employee.status = new_status
+    employee.status_change_history = history
+
+    db.commit()
+    db.refresh(employee)
+
+    return {
+        "message": f"Employee status changed from {old_status} to {new_status}",
+        "employee_id": employee.employee_id,
+        "status": employee.status,
+        "reason": request.reason,
+        "termination_date": employee.termination_date.isoformat() if employee.termination_date else None,
+        "rehire_date": employee.rehire_date.isoformat() if employee.rehire_date else None
     }
 
 
