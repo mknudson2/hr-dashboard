@@ -38,7 +38,11 @@
       "Bash(find:*)",
       "Bash(export PYTHONPATH=/Users/michaelknudson/Desktop/hr-dashboard/backend:$PYTHONPATH:*)",
       "Bash(./venv/bin/pip show:*)",
-      "Bash(kill:*)"
+      "Bash(kill:*)",
+      "WebFetch(domain:www.nbsbenefits.com)",
+      "Bash(/tmp/logo-data-uri.txt)",
+      "Bash(./venv/bin/pip:*)",
+      "Bash(ls:*)"
     ],
     "deny": [],
     "ask": []

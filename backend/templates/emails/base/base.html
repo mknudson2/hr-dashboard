@@ -12,7 +12,7 @@
             -ms-text-size-adjust: 100%;
             margin: 0;
             padding: 0;
-            font-family: Arial, Helvetica, sans-serif;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, Helvetica, sans-serif;
         }
 
         /* Prevent Webkit and Windows Mobile platforms from changing default font sizes */
@@ -46,9 +46,9 @@
             border: none;
         }
 
-        /* Base Styles */
+        /* Base Styles - Dark Mode */
         body {
-            background-color: #f4f4f4;
+            background-color: #020617;
             margin: 0;
             padding: 0;
         }
@@ -56,181 +56,265 @@
         .email-container {
             max-width: 600px;
             margin: 0 auto;
-            background-color: #ffffff;
+            background-color: #0f172a;
         }
 
-        /* Header Styles */
+        /* Header Styles - NBS Branding */
         .email-header {
-            background-color: #2563eb;
-            padding: 30px 20px;
+            background: linear-gradient(135deg, #1e3a8a 0%, #1e40af 100%);
+            padding: 40px 30px;
             text-align: center;
+            border-top: 4px solid #2563eb;
+            position: relative;
+        }
+
+        /* NBS Wave Accent */
+        .email-header::before {
+            content: '';
+            position: absolute;
+            top: -4px;
+            left: 0;
+            right: 0;
+            height: 4px;
+            background: linear-gradient(90deg, #2563eb 0%, #3b82f6 50%, #2563eb 100%);
         }
 
         .email-header h1 {
-            color: #ffffff;
+            color: #FFFFFF;
             margin: 0;
-            font-size: 24px;
-            font-weight: bold;
+            font-size: 28px;
+            font-weight: 300;
+            letter-spacing: -0.5px;
         }
 
-        .email-header p {
-            color: #e0e7ff;
-            margin: 10px 0 0 0;
-            font-size: 14px;
-        }
-
-        /* Body Styles */
-        .email-body {
-            padding: 30px 20px;
-            color: #333333;
-            line-height: 1.6;
-        }
-
-        .email-body h2 {
-            color: #1f2937;
-            font-size: 20px;
-            margin-top: 0;
-            margin-bottom: 15px;
-        }
-
-        .email-body h3 {
-            color: #374151;
-            font-size: 18px;
-            margin-top: 20px;
-            margin-bottom: 10px;
-        }
-
-        .email-body p {
-            margin: 0 0 15px 0;
-            font-size: 14px;
-        }
-
-        .email-body ul {
-            margin: 0 0 15px 0;
-            padding-left: 20px;
-        }
-
-        .email-body li {
+        .email-header .nbs-logo {
+            color: #3b82f6;
+            font-weight: 500;
+            font-size: 32px;
+            letter-spacing: 1px;
             margin-bottom: 8px;
         }
 
-        /* Info Box Styles */
+        .email-header p {
+            color: #9ca3af;
+            margin: 12px 0 0 0;
+            font-size: 14px;
+            font-weight: 300;
+        }
+
+        /* Body Styles - Dark Mode */
+        .email-body {
+            padding: 40px 30px;
+            color: #FFFFFF;
+            line-height: 1.8;
+            background-color: #0f172a;
+        }
+
+        .email-body h2 {
+            color: #3b82f6;
+            font-size: 22px;
+            margin-top: 0;
+            margin-bottom: 20px;
+            font-weight: 500;
+            letter-spacing: -0.3px;
+        }
+
+        .email-body h3 {
+            color: #FFFFFF;
+            font-size: 18px;
+            margin-top: 30px;
+            margin-bottom: 15px;
+            font-weight: 500;
+        }
+
+        .email-body p {
+            margin: 0 0 18px 0;
+            font-size: 15px;
+            color: #FFFFFF;
+        }
+
+        .email-body ul {
+            margin: 0 0 20px 0;
+            padding-left: 24px;
+        }
+
+        .email-body li {
+            margin-bottom: 10px;
+            color: #FFFFFF;
+        }
+
+        .email-body strong {
+            color: #FFFFFF;
+            font-weight: 600;
+        }
+
+        /* Info Box Styles - Dark Mode */
         .info-box {
-            background-color: #f3f4f6;
-            padding: 20px;
+            background-color: #1e293b;
+            padding: 24px;
             border-radius: 8px;
-            margin: 20px 0;
+            margin: 24px 0;
+            border-left: 4px solid #334155;
         }
 
         .info-box-success {
-            background-color: #d1fae5;
+            background-color: #1e293b;
             border-left: 4px solid #10b981;
         }
 
         .info-box-warning {
-            background-color: #fef3c7;
-            border-left: 4px solid #f59e0b;
+            background-color: #1e293b;
+            border-left: 4px solid #3b82f6;
         }
 
         .info-box-error {
-            background-color: #fee2e2;
+            background-color: #1e293b;
             border-left: 4px solid #ef4444;
         }
 
         .info-box-info {
-            background-color: #dbeafe;
+            background-color: #1e293b;
             border-left: 4px solid #3b82f6;
         }
 
-        /* Button Styles */
+        .info-box p {
+            margin: 0;
+            color: #FFFFFF;
+        }
+
+        /* Button Styles - Blue Accent */
         .button {
             display: inline-block;
-            padding: 12px 24px;
+            padding: 14px 32px;
             background-color: #2563eb;
-            color: #ffffff !important;
+            color: #FFFFFF !important;
             text-decoration: none;
-            border-radius: 6px;
-            font-weight: bold;
-            margin: 10px 0;
+            border-radius: 8px;
+            font-weight: 600;
+            margin: 15px 0;
+            box-shadow: 0 2px 8px rgba(37, 99, 235, 0.3);
+            transition: all 0.3s ease;
         }
 
         .button:hover {
             background-color: #1d4ed8;
+            box-shadow: 0 4px 12px rgba(37, 99, 235, 0.4);
         }
 
         .button-secondary {
-            background-color: #6b7280;
+            background-color: #3a3a3a;
+            color: #FFFFFF !important;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
         }
 
         .button-secondary:hover {
-            background-color: #4b5563;
+            background-color: #4a4a4a;
         }
 
         .button-success {
             background-color: #10b981;
+            color: #FFFFFF !important;
         }
 
         .button-success:hover {
             background-color: #059669;
         }
 
-        /* Table Styles */
+        /* Table Styles - Dark Mode */
         .data-table {
             width: 100%;
             border-collapse: collapse;
-            margin: 15px 0;
+            margin: 20px 0;
+            background-color: #1e293b;
+            border-radius: 8px;
+            overflow: hidden;
         }
 
         .data-table th {
-            background-color: #f9fafb;
-            padding: 12px;
+            background-color: #1e3a8a;
+            padding: 16px;
             text-align: left;
-            font-weight: bold;
-            border-bottom: 2px solid #e5e7eb;
+            font-weight: 600;
+            border-bottom: 2px solid #3b82f6;
+            color: #FFFFFF;
         }
 
         .data-table td {
-            padding: 12px;
-            border-bottom: 1px solid #e5e7eb;
+            padding: 14px 16px;
+            border-bottom: 1px solid #334155;
+            color: #FFFFFF;
         }
 
-        /* Checklist Styles */
+        .data-table tr:last-child td {
+            border-bottom: none;
+        }
+
+        .data-table tr:hover {
+            background-color: #334155;
+        }
+
+        /* Checklist Styles - Dark Mode */
         .checklist-item {
-            padding: 12px;
-            margin: 8px 0;
+            padding: 16px;
+            margin: 12px 0;
             border-left: 4px solid #3b82f6;
-            background-color: #ffffff;
-            border: 1px solid #e5e7eb;
-            border-radius: 4px;
+            background-color: #1e293b;
+            border: 1px solid #334155;
+            border-radius: 6px;
+            color: #FFFFFF;
         }
 
         .checkbox {
             display: inline-block;
-            width: 18px;
-            height: 18px;
-            border: 2px solid #9ca3af;
-            border-radius: 3px;
-            margin-right: 10px;
+            width: 20px;
+            height: 20px;
+            border: 2px solid #6b7280;
+            border-radius: 4px;
+            margin-right: 12px;
             vertical-align: middle;
+            background-color: #0f172a;
         }
 
-        /* Footer Styles */
+        /* Footer Styles - Dark Mode */
         .email-footer {
-            background-color: #f9fafb;
-            padding: 20px;
+            background-color: #020617;
+            padding: 30px 20px;
             text-align: center;
-            font-size: 12px;
+            font-size: 13px;
             color: #6b7280;
-            border-top: 1px solid #e5e7eb;
+            border-top: 1px solid #1e293b;
         }
 
         .email-footer p {
-            margin: 5px 0;
+            margin: 8px 0;
         }
 
         .email-footer a {
-            color: #2563eb;
+            color: #3b82f6;
             text-decoration: none;
+            font-weight: 500;
+        }
+
+        .email-footer a:hover {
+            color: #60a5fa;
+            text-decoration: underline;
+        }
+
+        .email-footer strong {
+            color: #9ca3af;
+        }
+
+        /* Divider */
+        .divider {
+            height: 1px;
+            background: linear-gradient(90deg, transparent 0%, #334155 50%, transparent 100%);
+            margin: 30px 0;
+        }
+
+        /* Highlight Text */
+        .highlight {
+            color: #3b82f6;
+            font-weight: 600;
         }
 
         /* Responsive Styles */
@@ -240,15 +324,15 @@
             }
 
             .email-body {
-                padding: 20px 15px !important;
+                padding: 30px 20px !important;
             }
 
             .email-header {
-                padding: 20px 15px !important;
+                padding: 30px 20px !important;
             }
 
             .email-footer {
-                padding: 15px !important;
+                padding: 20px 15px !important;
             }
 
             .button {
@@ -256,11 +340,29 @@
                 width: 100% !important;
                 box-sizing: border-box !important;
             }
+
+            .email-header h1 {
+                font-size: 24px !important;
+            }
+
+            .email-header .nbs-logo {
+                font-size: 28px !important;
+            }
+        }
+
+        /* Dark Mode Media Query Support */
+        @media (prefers-color-scheme: dark) {
+            body {
+                background-color: #020617 !important;
+            }
+            .email-container {
+                background-color: #0f172a !important;
+            }
         }
     </style>
 </head>
 <body>
-    <table cellpadding="0" cellspacing="0" border="0" width="100%" style="background-color: #f4f4f4; padding: 20px 0;">
+    <table cellpadding="0" cellspacing="0" border="0" width="100%" style="background-color: #020617; padding: 20px 0;">
         <tr>
             <td align="center">
                 <!-- Email Container -->
@@ -270,7 +372,9 @@
                     <tr>
                         <td class="email-header">
                             {% block header %}
-                            <h1>{% block header_title %}{{ company_name|default('NBS HR Dashboard') }}{% endblock %}</h1>
+                            <!-- NBS Logo -->
+                            <div class="nbs-logo">NBS</div>
+                            <h1>{% block header_title %}{{ company_name|default('National Benefit Services') }}{% endblock %}</h1>
                             <p>{% block header_subtitle %}{{ header_subtitle|default('') }}{% endblock %}</p>
                             {% endblock %}
                         </td>
@@ -280,7 +384,7 @@
                     <tr>
                         <td class="email-body">
                             {% block greeting %}
-                            <p>Hello {% if recipient_name %}{{ recipient_name }}{% else %}there{% endif %},</p>
+                            <p>Hello {% if recipient_name %}<strong>{{ recipient_name }}</strong>{% else %}there{% endif %},</p>
                             {% endblock %}
 
                             {% block content %}
@@ -288,10 +392,25 @@
                             {% endblock %}
 
                             {% block closing %}
-                            <p style="margin-top: 30px;">
-                                Best regards,<br>
-                                <strong>{{ from_name|default('HR Team') }}</strong>
+                            <div class="divider"></div>
+                            <p style="margin-top: 30px; margin-bottom: 5px;">
+                                All the best,
                             </p>
+                            <table style="margin-top: 20px; border: 0; padding: 0;">
+                                <tr>
+                                    <td style="padding: 0; border: 0;">
+                                        <p style="margin: 0; color: #FFFFFF; font-size: 16px; font-weight: 600;">Michael Knudson, Ph.D.</p>
+                                        <p style="margin: 5px 0; color: #9ca3af; font-size: 14px;">Manager, Payroll & Benefits, Human Resources</p>
+                                        <p style="margin: 15px 0 5px 0; color: #3b82f6; font-size: 14px; font-weight: 600;">Comprehensive Benefit and Retirement Plan Administration</p>
+                                        <p style="margin: 5px 0; color: #9ca3af; font-size: 13px;">Mountain Time Zone</p>
+                                        <p style="margin: 5px 0; color: #9ca3af; font-size: 13px;">Phone (801) 858-0266 | Fax (801) 858-0252</p>
+                                        <p style="margin: 5px 0; color: #9ca3af; font-size: 13px;">
+                                            <a href="mailto:mknudson@nbsbenefits.com" style="color: #3b82f6; text-decoration: none;">mknudson@nbsbenefits.com</a> |
+                                            <a href="https://www.nbsbenefits.com" style="color: #3b82f6; text-decoration: none;">www.nbsbenefits.com</a>
+                                        </p>
+                                    </td>
+                                </tr>
+                            </table>
                             {% endblock %}
                         </td>
                     </tr>
@@ -300,21 +419,22 @@
                     <tr>
                         <td class="email-footer">
                             {% block footer %}
-                            <p><strong>{{ company_name|default('NBS') }} HR Dashboard</strong></p>
-                            <p>This is an automated message. Please do not reply to this email.</p>
-                            <p>
+                            <p><strong>National Benefit Services</strong> | HR Dashboard</p>
+                            <p style="font-size: 12px; margin: 12px 0;">This is an automated message. Please do not reply to this email.</p>
+                            <p style="margin: 15px 0;">
                                 {% block footer_links %}
                                 {% if unsubscribe_link %}
-                                <a href="{{ unsubscribe_link }}">Unsubscribe</a> |
+                                <a href="{{ unsubscribe_link }}">Unsubscribe</a> &nbsp;|&nbsp;
                                 {% endif %}
-                                <a href="{{ company_website|default('#') }}">Visit Website</a> |
-                                <a href="mailto:{{ support_email|default('hr@company.com') }}">Contact Support</a>
+                                <a href="{{ company_website|default('https://www.nbsbenefits.com') }}">Visit Website</a> &nbsp;|&nbsp;
+                                <a href="mailto:{{ support_email|default('hr@nbsbenefits.com') }}">Contact Support</a>
                                 {% endblock %}
                             </p>
-                            <p style="font-size: 11px; color: #9ca3af; margin-top: 15px;">
+                            <p style="font-size: 11px; color: #6b7280; margin-top: 20px; line-height: 1.6;">
                                 {% block footer_disclaimer %}
-                                © {{ current_year }} {{ company_name|default('NBS') }}. All rights reserved.<br>
-                                This email was sent to {{ recipient_email|default('you') }}.
+                                © {{ current_year|default('2025') }} National Benefit Services. All rights reserved.<br>
+                                This email was sent to {{ recipient_email|default('you') }}.<br><br>
+                                The information contained in this electronic mail message is confidential information intended only for the use of the individual or entity named above and may be privileged. If the reader of this message is not the intended recipient or the employee or agent responsible to deliver it to the intended recipient, you are hereby notified that any dissemination, distribution or copying of this communication is strictly prohibited. If you have received this communication in error, please immediately notify us by telephone (800-274-0503), and delete the original message. Thank you.
                                 {% endblock %}
                             </p>
                             {% endblock %}

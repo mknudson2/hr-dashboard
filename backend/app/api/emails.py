@@ -137,6 +137,53 @@ class TestEmailRequest(BaseModel):
     template_type: str  # welcome, birthday, anniversary, fmla_approval, etc.
 
 
+class GarnishmentTerminationRequest(BaseModel):
+    """Request model for sending garnishment termination notification."""
+    to_email: EmailStr
+    employee_name: str
+    employee_id: str
+    termination_date: str
+    case_number: str
+    garnishment_type: str
+    agency_name: str
+    case_reference: Optional[str] = None
+    amount_paid: Optional[float] = None
+    amount_remaining: Optional[float] = None
+    department: Optional[str] = None
+    from_name: Optional[str] = None
+    from_email: Optional[EmailStr] = None
+
+
+class FundsTransferRequest(BaseModel):
+    """Request model for sending funds transfer email."""
+    to_email: EmailStr
+    employee_name: str
+    employee_id: str
+    termination_date: str
+    # Payroll Account fields
+    payroll_direct_deposits: Optional[float] = None
+    payroll_tax: Optional[float] = None
+    payroll_401k: Optional[float] = None
+    payroll_hsa: Optional[float] = None
+    payroll_garnishment: Optional[float] = None
+    payroll_total: Optional[float] = None
+    # Insurance Account - Employer Contributions
+    insurance_employer_employee: Optional[float] = None
+    insurance_employer_spouse: Optional[float] = None
+    insurance_employer_children: Optional[float] = None
+    insurance_employer_family: Optional[float] = None
+    insurance_employer_kaiser: Optional[float] = None
+    # Insurance Account - Employee Contributions
+    insurance_employee_employee: Optional[float] = None
+    insurance_employee_spouse: Optional[float] = None
+    insurance_employee_children: Optional[float] = None
+    insurance_employee_family: Optional[float] = None
+    insurance_employee_kaiser: Optional[float] = None
+    insurance_total: Optional[float] = None
+    department: Optional[str] = None
+    from_name: Optional[str] = None
+
+
 # =============================================================================
 # ONBOARDING EMAIL ENDPOINTS
 # =============================================================================
@@ -323,6 +370,74 @@ async def send_all_nbs_term_emails_by_employee(employee_id: str, db: Session = D
 
     # Call the existing bulk email function
     return await send_all_nbs_term_emails(request_data)
+
+
+@router.post("/offboarding/garnishment-termination")
+async def send_garnishment_termination_email(request: GarnishmentTerminationRequest):
+    """Send garnishment agency termination notification email."""
+    try:
+        await email_service.send_garnishment_termination(
+            to_email=request.to_email,
+            employee_name=request.employee_name,
+            employee_id=request.employee_id,
+            termination_date=request.termination_date,
+            case_number=request.case_number,
+            garnishment_type=request.garnishment_type,
+            agency_name=request.agency_name,
+            case_reference=request.case_reference,
+            amount_paid=request.amount_paid,
+            amount_remaining=request.amount_remaining,
+            department=request.department,
+            from_name=request.from_name,
+            from_email=request.from_email
+        )
+        return {
+            "message": "Garnishment termination email sent successfully",
+            "to": request.to_email,
+            "case_number": request.case_number
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to send email: {str(e)}")
+
+
+@router.post("/offboarding/funds-transfer")
+async def send_funds_transfer_email(request: FundsTransferRequest):
+    """Send funds transfer request email to Shelli."""
+    try:
+        await email_service.send_funds_transfer(
+            to_email=request.to_email,
+            employee_name=request.employee_name,
+            employee_id=request.employee_id,
+            termination_date=request.termination_date,
+            payroll_direct_deposits=request.payroll_direct_deposits,
+            payroll_tax=request.payroll_tax,
+            payroll_401k=request.payroll_401k,
+            payroll_hsa=request.payroll_hsa,
+            payroll_garnishment=request.payroll_garnishment,
+            payroll_total=request.payroll_total,
+            insurance_employer_employee=request.insurance_employer_employee,
+            insurance_employer_spouse=request.insurance_employer_spouse,
+            insurance_employer_children=request.insurance_employer_children,
+            insurance_employer_family=request.insurance_employer_family,
+            insurance_employer_kaiser=request.insurance_employer_kaiser,
+            insurance_employee_employee=request.insurance_employee_employee,
+            insurance_employee_spouse=request.insurance_employee_spouse,
+            insurance_employee_children=request.insurance_employee_children,
+            insurance_employee_family=request.insurance_employee_family,
+            insurance_employee_kaiser=request.insurance_employee_kaiser,
+            insurance_total=request.insurance_total,
+            department=request.department,
+            from_name=request.from_name
+        )
+        return {
+            "message": "Funds transfer email sent successfully",
+            "to": request.to_email
+        }
+    except Exception as e:
+        import traceback
+        print(f"ERROR sending funds transfer email: {str(e)}")
+        print(traceback.format_exc())
+        raise HTTPException(status_code=500, detail=f"Failed to send funds transfer email: {str(e)}")
 
 
 # =============================================================================

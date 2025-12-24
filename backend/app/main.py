@@ -2,7 +2,7 @@ from fastapi import FastAPI, Depends
 from sqlalchemy.orm import Session
 from fastapi.middleware.cors import CORSMiddleware
 from app.db import models, database, crud
-from app.api import analytics, employees, notifications, fmla, garnishments, turnover, events, compensation, market_data, performance, onboarding, offboarding, equipment, contribution_limits, pto, auth, users, aca, eeo, settings, emails, file_uploads, sftp, payroll
+from app.api import analytics, employees, notifications, fmla, garnishments, turnover, events, compensation, market_data, performance, onboarding, offboarding, equipment, contribution_limits, pto, auth, users, aca, eeo, settings, emails, file_uploads, sftp, payroll, capitalized_labor, capitalized_labor_admin
 from app.services.scheduler import start_scheduler, stop_scheduler
 from app.services.scheduler_service import scheduler as sftp_scheduler
 from contextlib import asynccontextmanager
@@ -83,3 +83,5 @@ app.include_router(emails.router)
 app.include_router(file_uploads.router)
 app.include_router(sftp.router)
 app.include_router(payroll.router)
+app.include_router(capitalized_labor.router)
+app.include_router(capitalized_labor_admin.router, prefix="/capitalized-labor")

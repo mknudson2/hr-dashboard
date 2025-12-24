@@ -31,6 +31,18 @@ class EmailService:
             autoescape=True
         )
 
+        # Add custom currency filter
+        def currency_filter(value):
+            """Format a number as currency with comma separators."""
+            if value is None:
+                return '0.00'
+            try:
+                return '{:,.2f}'.format(float(value))
+            except (ValueError, TypeError):
+                return '0.00'
+
+        self.jinja_env.filters['currency'] = currency_filter
+
         # Configure FastMail based on provider
         self.fastmail = self._configure_provider()
 
@@ -721,6 +733,188 @@ class EmailService:
             to_emails=[to_email],
             subject=f"Wage Change: {employee_name}",
             body_html=body_html
+        )
+
+    # ==========================================================================
+    # GARNISHMENT TERMINATION EMAILS
+    # ==========================================================================
+
+    async def send_garnishment_termination(
+        self,
+        to_email: EmailStr,
+        employee_name: str,
+        employee_id: str,
+        termination_date: str,
+        case_number: str,
+        garnishment_type: str,
+        agency_name: str,
+        case_reference: Optional[str] = None,
+        amount_paid: Optional[float] = None,
+        amount_remaining: Optional[float] = None,
+        department: Optional[str] = None,
+        from_name: Optional[str] = None,
+        from_email: Optional[EmailStr] = None
+    ):
+        """
+        Send garnishment agency termination notification email.
+
+        Args:
+            to_email: Agency email address
+            employee_name: Full name of terminated employee
+            employee_id: Employee ID
+            termination_date: Date of termination
+            case_number: Garnishment case number
+            garnishment_type: Type of garnishment (Child Support, Tax Levy, etc.)
+            agency_name: Name of garnishment agency
+            case_reference: Agency's case reference number (optional)
+            amount_paid: Total amount paid to agency (optional)
+            amount_remaining: Amount still owed (optional)
+            department: Employee's department (optional)
+            from_name: Sender name (optional)
+            from_email: Sender email (optional)
+        """
+        context = {
+            "employee_name": employee_name,
+            "employee_id": employee_id,
+            "termination_date": termination_date,
+            "case_number": case_number,
+            "garnishment_type": garnishment_type,
+            "agency_name": agency_name,
+            "case_reference": case_reference,
+            "amount_paid": amount_paid,
+            "amount_remaining": amount_remaining,
+            "department": department,
+            "from_name": from_name or "HR Department",
+            "from_email": from_email
+        }
+
+        html_content = self._render_template(
+            "emails/offboarding/garnishment_termination.html",
+            context
+        )
+
+        subject = f"Employee Termination Notification - {employee_name} - Case #{case_number}"
+
+        await self.send_email(
+            to_emails=[to_email],
+            subject=subject,
+            body_html=html_content
+        )
+
+    async def send_funds_transfer(
+        self,
+        to_email: EmailStr,
+        employee_name: str,
+        employee_id: str,
+        termination_date: str,
+        payroll_direct_deposits: Optional[float] = None,
+        payroll_tax: Optional[float] = None,
+        payroll_401k: Optional[float] = None,
+        payroll_hsa: Optional[float] = None,
+        payroll_garnishment: Optional[float] = None,
+        payroll_total: Optional[float] = None,
+        insurance_employer_employee: Optional[float] = None,
+        insurance_employer_spouse: Optional[float] = None,
+        insurance_employer_children: Optional[float] = None,
+        insurance_employer_family: Optional[float] = None,
+        insurance_employer_kaiser: Optional[float] = None,
+        insurance_employee_employee: Optional[float] = None,
+        insurance_employee_spouse: Optional[float] = None,
+        insurance_employee_children: Optional[float] = None,
+        insurance_employee_family: Optional[float] = None,
+        insurance_employee_kaiser: Optional[float] = None,
+        insurance_total: Optional[float] = None,
+        department: Optional[str] = None,
+        from_name: Optional[str] = None
+    ):
+        """
+        Send funds transfer request email for terminated employee.
+
+        Args:
+            to_email: Recipient email (typically Shelli)
+            employee_name: Full name of terminated employee
+            employee_id: Employee ID
+            termination_date: Date of termination
+            payroll_direct_deposits: Direct deposit amount
+            payroll_tax: Tax amount
+            payroll_401k: 401k amount (EE + ER)
+            payroll_hsa: HSA amount (EE + ER)
+            payroll_garnishment: Garnishment amount
+            payroll_total: Total for payroll account
+            insurance_employer_employee: Employer contribution for Employee coverage
+            insurance_employer_spouse: Employer contribution for Employee + Spouse
+            insurance_employer_children: Employer contribution for Employee + Child(ren)
+            insurance_employer_family: Employer contribution for Family coverage
+            insurance_employer_kaiser: Employer contribution for Kaiser
+            insurance_employee_employee: Employee contribution for Employee coverage
+            insurance_employee_spouse: Employee contribution for Employee + Spouse
+            insurance_employee_children: Employee contribution for Employee + Child(ren)
+            insurance_employee_family: Employee contribution for Family coverage
+            insurance_employee_kaiser: Employee contribution for Kaiser
+            insurance_total: Total for insurance account
+            department: Employee's department (optional)
+            from_name: Sender name (optional)
+        """
+        # Calculate employer and employee totals
+        insurance_employer_total = (
+            (insurance_employer_employee or 0) +
+            (insurance_employer_spouse or 0) +
+            (insurance_employer_children or 0) +
+            (insurance_employer_family or 0) +
+            (insurance_employer_kaiser or 0)
+        )
+
+        insurance_employee_total = (
+            (insurance_employee_employee or 0) +
+            (insurance_employee_spouse or 0) +
+            (insurance_employee_children or 0) +
+            (insurance_employee_family or 0) +
+            (insurance_employee_kaiser or 0)
+        )
+
+        # Calculate employee initials (e.g., "Mark Garcia" -> "MG")
+        name_parts = employee_name.strip().split()
+        employee_initials = ''.join([part[0].upper() for part in name_parts if part])
+
+        context = {
+            "employee_name": employee_name,
+            "employee_initials": employee_initials,
+            "employee_id": employee_id,
+            "termination_date": termination_date,
+            "payroll_direct_deposits": payroll_direct_deposits,
+            "payroll_tax": payroll_tax,
+            "payroll_401k": payroll_401k,
+            "payroll_hsa": payroll_hsa,
+            "payroll_garnishment": payroll_garnishment,
+            "payroll_total": payroll_total,
+            "insurance_employer_employee": insurance_employer_employee,
+            "insurance_employer_spouse": insurance_employer_spouse,
+            "insurance_employer_children": insurance_employer_children,
+            "insurance_employer_family": insurance_employer_family,
+            "insurance_employer_kaiser": insurance_employer_kaiser,
+            "insurance_employee_employee": insurance_employee_employee,
+            "insurance_employee_spouse": insurance_employee_spouse,
+            "insurance_employee_children": insurance_employee_children,
+            "insurance_employee_family": insurance_employee_family,
+            "insurance_employee_kaiser": insurance_employee_kaiser,
+            "insurance_employer_total": insurance_employer_total,
+            "insurance_employee_total": insurance_employee_total,
+            "insurance_total": insurance_total,
+            "department": department,
+            "from_name": from_name or "HR Department"
+        }
+
+        html_content = self._render_template(
+            "offboarding/funds_transfer.html",
+            context
+        )
+
+        subject = f"Funds Transfer Request - {employee_name} - Final Paycheck"
+
+        await self.send_email(
+            to_emails=[to_email],
+            subject=subject,
+            body_html=html_content
         )
 
 

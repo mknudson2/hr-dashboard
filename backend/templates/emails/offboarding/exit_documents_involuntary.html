@@ -1,0 +1,99 @@
+{% extends "base/base.html" %}
+
+{% block title %}Exit Documents - {{ employee_name }}{% endblock %}
+
+{% block header_title %}NBS HR Notification{% endblock %}
+{% block header_subtitle %}Exit Documentation{% endblock %}
+
+{% block greeting %}
+<p style="font-size: 18px;">Dear {{ employee_first_name }},</p>
+{% endblock %}
+
+{% block content %}
+<p style="font-size: 16px;">
+    Please find attached important documentation regarding your separation from NBS. We want to ensure you have all the necessary information for your transition.
+</p>
+
+<div class="info-box info-box-info">
+    <strong>Employment Details:</strong>
+    <ul style="margin: 10px 0 0 0;">
+        <li><strong>Name:</strong> {{ employee_name }}</li>
+        <li><strong>Separation Date:</strong> {{ termination_date }}</li>
+        <li><strong>Employment Type:</strong> {{ employment_type }}</li>
+    </ul>
+</div>
+
+{% if document_count > 0 %}
+<h3 style="color: #3b82f6; margin-top: 30px;">Attached Documents</h3>
+<p style="font-size: 15px;">
+    The following documents are attached to this email for your records:
+</p>
+<ul style="margin: 15px 0;">
+    <li><strong>Important Information for Terminating Employee</strong> - Contains critical information about your final paycheck, benefits coverage end dates, and any PTO payout.</li>
+    {% if is_full_time %}
+    <li><strong>Equitable Portability Form</strong> - Information about options to continue your life insurance coverage.</li>
+    <li><strong>Equitable Conversion Form</strong> - Details about converting group coverage to individual policies.</li>
+    {% endif %}
+    <li><strong>Non-Solicitation and Confidentiality Document</strong> - Important reminder of your ongoing confidentiality obligations.</li>
+</ul>
+{% else %}
+<div class="info-box info-box-warning">
+    <p><strong>Note:</strong> Exit documents are being prepared and will be sent to you shortly.</p>
+</div>
+{% endif %}
+
+<h3 style="color: #3b82f6; margin-top: 30px;">Important Information</h3>
+<ul style="margin: 15px 0;">
+    <li><strong>Final Paycheck:</strong> Your final pay will be processed according to the schedule noted in the Important Information form. This includes payment for all hours worked through your separation date.</li>
+    <li><strong>PTO Payout:</strong> Any accrued, unused PTO will be included in your final paycheck as applicable under company policy.</li>
+    <li><strong>Benefits Coverage:</strong> Your health benefits will end as specified in the attached documents, typically at the end of the month of your separation date.</li>
+    <li><strong>COBRA:</strong> You will receive separate COBRA notification materials with information about your right to continue health coverage.</li>
+    <li><strong>401(k):</strong> Information about your retirement account options will be provided separately.</li>
+</ul>
+
+{% if custom_message %}
+<div class="info-box">
+    <p><strong>Additional Information:</strong></p>
+    <p>{{ custom_message }}</p>
+</div>
+{% endif %}
+
+<h3 style="color: #3b82f6; margin-top: 30px;">Questions or Concerns</h3>
+<p style="font-size: 15px;">
+    If you have any questions about these documents, your final pay, or benefits continuation options, please contact HR:
+</p>
+
+<div class="info-box info-box-info" style="margin-top: 15px;">
+    <p>
+        <strong>Michael Knudson</strong><br>
+        Email: <a href="mailto:mknudson@nbsbenefits.com" style="color: #3b82f6;">mknudson@nbsbenefits.com</a><br>
+        Phone: (801) 858-0266
+    </p>
+</div>
+
+<p style="font-size: 16px; margin-top: 25px;">
+    We wish you the best in your future endeavors.
+</p>
+{% endblock %}
+
+{% block closing %}
+<div class="divider"></div>
+<p style="margin-top: 30px; margin-bottom: 5px;">
+    Regards,
+</p>
+<table style="margin-top: 20px; border: 0; padding: 0;">
+    <tr>
+        <td style="padding: 0; border: 0;">
+            <p style="margin: 0; color: #FFFFFF; font-size: 16px; font-weight: 600;">Michael Knudson, Ph.D.</p>
+            <p style="margin: 5px 0; color: #9ca3af; font-size: 14px;">Manager, Payroll & Benefits, Human Resources</p>
+            <p style="margin: 15px 0 5px 0; color: #3b82f6; font-size: 14px; font-weight: 600;">Comprehensive Benefit and Retirement Plan Administration</p>
+            <p style="margin: 5px 0; color: #9ca3af; font-size: 13px;">Mountain Time Zone</p>
+            <p style="margin: 5px 0; color: #9ca3af; font-size: 13px;">Phone (801) 858-0266 | Fax (801) 858-0252</p>
+            <p style="margin: 5px 0; color: #9ca3af; font-size: 13px;">
+                <a href="mailto:mknudson@nbsbenefits.com" style="color: #3b82f6; text-decoration: none;">mknudson@nbsbenefits.com</a> |
+                <a href="https://www.nbsbenefits.com" style="color: #3b82f6; text-decoration: none;">www.nbsbenefits.com</a>
+            </p>
+        </td>
+    </tr>
+</table>
+{% endblock %}

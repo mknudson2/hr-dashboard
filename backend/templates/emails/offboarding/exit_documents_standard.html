@@ -1,0 +1,90 @@
+{% extends "base/base.html" %}
+
+{% block title %}Exit Documents - {{ employee_name }}{% endblock %}
+
+{% block header_title %}NBS HR Notification{% endblock %}
+{% block header_subtitle %}Exit Documentation{% endblock %}
+
+{% block greeting %}
+<p style="font-size: 18px;">Dear {{ employee_first_name }},</p>
+{% endblock %}
+
+{% block content %}
+<p style="font-size: 16px;">
+    As you prepare to transition from NBS, we want to provide you with important documentation regarding your departure.
+</p>
+
+<div class="info-box info-box-info">
+    <strong>Employment Details:</strong>
+    <ul style="margin: 10px 0 0 0;">
+        <li><strong>Name:</strong> {{ employee_name }}</li>
+        <li><strong>Termination Date:</strong> {{ termination_date }}</li>
+        <li><strong>Employment Type:</strong> {{ employment_type }}</li>
+    </ul>
+</div>
+
+{% if document_count > 0 %}
+<h3 style="color: #3b82f6; margin-top: 30px;">Attached Documents</h3>
+<p style="font-size: 15px;">
+    Please find the following documents attached to this email:
+</p>
+<ul style="margin: 15px 0;">
+    <li><strong>Important Information for Terminating Employee</strong> - Contains key dates and information regarding your final paycheck, benefits coverage, and PTO payout.</li>
+    {% if is_full_time %}
+    <li><strong>Equitable Portability Form</strong> - Information about continuing your life insurance coverage.</li>
+    <li><strong>Equitable Conversion Form</strong> - Options for converting group coverage to individual policies.</li>
+    {% endif %}
+    <li><strong>Non-Solicitation and Confidentiality Agreement</strong> - Reminder of your ongoing obligations.</li>
+</ul>
+{% else %}
+<div class="info-box info-box-warning">
+    <p><strong>Note:</strong> Exit documents are being prepared and will be sent to you shortly.</p>
+</div>
+{% endif %}
+
+<h3 style="color: #3b82f6; margin-top: 30px;">Important Reminders</h3>
+<ul style="margin: 15px 0;">
+    <li>Please review all attached documents carefully and retain them for your records.</li>
+    <li>Your final paycheck will include any accrued PTO as noted in the Important Information form.</li>
+    <li>Benefits coverage typically ends at the end of the month of your termination date.</li>
+    <li>You will receive separate COBRA notification with information about continuing your health coverage.</li>
+</ul>
+
+{% if custom_message %}
+<div class="info-box">
+    <p><strong>Additional Note:</strong></p>
+    <p>{{ custom_message }}</p>
+</div>
+{% endif %}
+
+<h3 style="color: #3b82f6; margin-top: 30px;">Questions?</h3>
+<p style="font-size: 15px;">
+    If you have any questions about these documents or your departure process, please don't hesitate to reach out to the HR team.
+</p>
+
+<p style="font-size: 16px; margin-top: 25px;">
+    We wish you all the best in your future endeavors.
+</p>
+{% endblock %}
+
+{% block closing %}
+<div class="divider"></div>
+<p style="margin-top: 30px; margin-bottom: 5px;">
+    Best regards,
+</p>
+<table style="margin-top: 20px; border: 0; padding: 0;">
+    <tr>
+        <td style="padding: 0; border: 0;">
+            <p style="margin: 0; color: #FFFFFF; font-size: 16px; font-weight: 600;">Michael Knudson, Ph.D.</p>
+            <p style="margin: 5px 0; color: #9ca3af; font-size: 14px;">Manager, Payroll & Benefits, Human Resources</p>
+            <p style="margin: 15px 0 5px 0; color: #3b82f6; font-size: 14px; font-weight: 600;">Comprehensive Benefit and Retirement Plan Administration</p>
+            <p style="margin: 5px 0; color: #9ca3af; font-size: 13px;">Mountain Time Zone</p>
+            <p style="margin: 5px 0; color: #9ca3af; font-size: 13px;">Phone (801) 858-0266 | Fax (801) 858-0252</p>
+            <p style="margin: 5px 0; color: #9ca3af; font-size: 13px;">
+                <a href="mailto:mknudson@nbsbenefits.com" style="color: #3b82f6; text-decoration: none;">mknudson@nbsbenefits.com</a> |
+                <a href="https://www.nbsbenefits.com" style="color: #3b82f6; text-decoration: none;">www.nbsbenefits.com</a>
+            </p>
+        </td>
+    </tr>
+</table>
+{% endblock %}

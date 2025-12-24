@@ -530,6 +530,15 @@ async def update_payroll_task(
             task.completed = True
             task.completed_at = datetime.now()
             task.completed_by = current_user.username
+
+            # Auto-transition period from "upcoming" to "in_progress" on first task completion
+            period = db.query(models.PayrollPeriod).filter(
+                models.PayrollPeriod.id == task.payroll_period_id
+            ).first()
+            if period and period.status == 'upcoming':
+                period.status = 'in_progress'
+                period.updated_at = datetime.now()
+
         elif not update.completed and task.completed:
             # Should use uncheck endpoint for audit trail
             raise HTTPException(

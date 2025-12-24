@@ -1,0 +1,6 @@
+Project Code,Project Name,Is Capitalizable,Department,Start Date,Budget,Cap Type
+PROJ-2025-010,AI Integration,Y,Engineering,2025-06-01,300000,software_development
+PROJ-2025-011,Security Enhancement,Y,IT,2025-07-01,200000,software_development
+PROJ-2025-012,Cloud Migration,Y,IT,2025-08-01,450000,software_development
+PROJ-2025-110,Helpdesk Support,N,Support,2025-01-01,100000,
+PROJ-2025-111,Compliance Training,N,HR,2025-01-01,50000,
