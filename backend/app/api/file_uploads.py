@@ -13,6 +13,7 @@ from pydantic import BaseModel
 from pathlib import Path
 
 from app.db import database, models
+from app.api.auth import get_current_user
 from app.services.file_upload_service import (
     FileUploadService,
     CSVParser,
@@ -23,7 +24,11 @@ from app.services.file_upload_service import (
 from app.services.data_import_service import DataImportService
 from app.services import paylocity_ingest
 
-router = APIRouter(prefix="/file-uploads", tags=["File Uploads"])
+router = APIRouter(
+    prefix="/file-uploads",
+    tags=["File Uploads"],
+    dependencies=[Depends(get_current_user)]  # Require authentication for all endpoints
+)
 
 
 # ============================================================================

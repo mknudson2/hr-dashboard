@@ -6,12 +6,17 @@ from typing import Optional, List
 from datetime import date, datetime
 from pydantic import BaseModel
 from app.db import models, database
+from app.api.auth import get_current_user
 import pandas as pd
 from io import BytesIO
 import openpyxl
 from openpyxl.styles import Font, Alignment, PatternFill, Border, Side
 
-router = APIRouter(prefix="/pto", tags=["pto"])
+router = APIRouter(
+    prefix="/pto",
+    tags=["pto"],
+    dependencies=[Depends(get_current_user)]  # Require authentication for all endpoints
+)
 
 
 def get_db():

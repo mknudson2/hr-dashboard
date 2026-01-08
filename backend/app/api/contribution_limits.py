@@ -1,10 +1,15 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from app.db import models, database
+from app.api.auth import get_current_user
 from typing import List, Optional
 from datetime import datetime
 
-router = APIRouter(prefix="/contribution-limits", tags=["contribution-limits"])
+router = APIRouter(
+    prefix="/contribution-limits",
+    tags=["contribution-limits"],
+    dependencies=[Depends(get_current_user)]  # Require authentication for all endpoints
+)
 
 
 def get_db():

@@ -1,6 +1,10 @@
 """
 SFTP Configuration API
 Endpoints for managing SFTP connections and polling
+
+RBAC Protection: SFTP configurations contain sensitive credentials and system access.
+Access is restricted to users with SFTP_READ or SFTP_WRITE permissions.
+Roles with access: admin only
 """
 
 from fastapi import APIRouter, Depends, HTTPException, Query
@@ -10,10 +14,17 @@ from datetime import datetime
 from pydantic import BaseModel
 
 from app.db import database, models
+from app.api.auth import get_current_user
 from app.services.sftp_service import SFTPService
 from app.services.scheduler_service import scheduler
+from app.services.rbac_service import require_permission, Permissions
 
-router = APIRouter(prefix="/sftp", tags=["SFTP"])
+router = APIRouter(
+    prefix="/sftp",
+    tags=["SFTP"],
+    # RBAC: Require SFTP_READ permission for all endpoints (system configuration)
+    dependencies=[Depends(require_permission(Permissions.SFTP_READ))]
+)
 
 
 # ============================================================================

@@ -6,8 +6,11 @@ from datetime import datetime, date, timedelta
 import json
 from ..db.database import get_db
 from ..db.models import Event, EventType, Employee
+from ..api.auth import get_current_user
 
-router = APIRouter()
+router = APIRouter(
+    dependencies=[Depends(get_current_user)]  # Require authentication for all endpoints
+)
 
 
 @router.get("/events")

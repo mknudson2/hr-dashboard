@@ -1,16 +1,29 @@
-"""FMLA (Family and Medical Leave Act) API routes for HR Dashboard."""
+"""FMLA (Family and Medical Leave Act) API routes for HR Dashboard.
+
+RBAC Protection: FMLA data contains Protected Health Information (PHI).
+Access is restricted to users with FMLA_READ or FMLA_WRITE permissions.
+Roles with access: admin, hr
+"""
 from datetime import datetime, date, timedelta
 from typing import Optional, List
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Request
 from sqlalchemy.orm import Session
 from sqlalchemy import func
 from pydantic import BaseModel
 from app.db.database import get_db
 from app.db import models
+from app.api.auth import get_current_user
+from app.services.audit_service import audit_service
+from app.services.rbac_service import require_permission, Permissions
 import pytz
 
 
-router = APIRouter(prefix="/fmla", tags=["fmla"])
+router = APIRouter(
+    prefix="/fmla",
+    tags=["fmla"],
+    # RBAC: Require FMLA_READ permission for all endpoints (PHI protection)
+    dependencies=[Depends(require_permission(Permissions.FMLA_READ))]
+)
 
 
 # Pydantic models for request/response
@@ -179,7 +192,12 @@ def get_fmla_dashboard(db: Session = Depends(get_db)):
 
 
 @router.post("/cases")
-def create_fmla_case(case_data: FMLACaseCreate, db: Session = Depends(get_db)):
+def create_fmla_case(
+    request: Request,
+    case_data: FMLACaseCreate,
+    current_user: models.User = Depends(require_permission(Permissions.FMLA_WRITE)),
+    db: Session = Depends(get_db)
+):
     """Create a new FMLA case.
 
     Args:
@@ -230,6 +248,12 @@ def create_fmla_case(case_data: FMLACaseCreate, db: Session = Depends(get_db)):
     db.add(new_case)
     db.commit()
     db.refresh(new_case)
+
+    # Audit log: FMLA case created (PHI - protected health information)
+    audit_service.log_data_create(
+        db, current_user, request, "fmla_case", new_case.id,
+        new_data={"case_number": case_number, "employee_id": case_data.employee_id, "leave_type": case_data.leave_type}
+    )
 
     return {
         "message": "FMLA case created successfully",
@@ -311,7 +335,13 @@ def get_fmla_case(case_id: int, db: Session = Depends(get_db)):
 
 
 @router.patch("/cases/{case_id}")
-def update_fmla_case(case_id: int, updates: FMLACaseUpdate, db: Session = Depends(get_db)):
+def update_fmla_case(
+    request: Request,
+    case_id: int,
+    updates: FMLACaseUpdate,
+    current_user: models.User = Depends(require_permission(Permissions.FMLA_WRITE)),
+    db: Session = Depends(get_db)
+):
     """Update an existing FMLA case.
 
     Args:
@@ -326,6 +356,13 @@ def update_fmla_case(case_id: int, updates: FMLACaseUpdate, db: Session = Depend
 
     if not case:
         raise HTTPException(status_code=404, detail="FMLA case not found")
+
+    # Capture old values for audit log
+    old_values = {
+        "status": case.status,
+        "end_date": case.end_date.isoformat() if case.end_date else None,
+        "certification_date": case.certification_date.isoformat() if case.certification_date else None,
+    }
 
     # Update fields if provided
     if updates.status:
@@ -342,6 +379,17 @@ def update_fmla_case(case_id: int, updates: FMLACaseUpdate, db: Session = Depend
         case.notes = updates.notes
 
     db.commit()
+
+    # Audit log: FMLA case updated (PHI)
+    new_values = {
+        "status": case.status,
+        "end_date": case.end_date.isoformat() if case.end_date else None,
+        "certification_date": case.certification_date.isoformat() if case.certification_date else None,
+    }
+    audit_service.log_data_update(
+        db, current_user, request, "fmla_case", case_id,
+        old_data=old_values, new_data=new_values
+    )
     db.refresh(case)
 
     return {"message": "FMLA case updated successfully", "case_id": case.id}

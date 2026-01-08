@@ -1,3 +1,9 @@
+"""Compensation API routes for HR Dashboard.
+
+RBAC Protection: Compensation data contains sensitive salary and bonus information.
+Access is restricted to users with COMPENSATION_READ_ALL or COMPENSATION_WRITE permissions.
+Roles with access: admin, hr, payroll, manager (team only)
+"""
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from sqlalchemy import func, desc
@@ -5,8 +11,19 @@ from typing import Optional
 from datetime import date, datetime
 from pydantic import BaseModel
 from app.db import models, database
+from app.api.auth import get_current_user
+from app.services.rbac_service import require_any_permission, require_permission, Permissions
 
-router = APIRouter(prefix="/compensation", tags=["compensation"])
+router = APIRouter(
+    prefix="/compensation",
+    tags=["compensation"],
+    # RBAC: Require COMPENSATION_READ permission for all endpoints
+    dependencies=[Depends(require_any_permission(
+        Permissions.COMPENSATION_READ_ALL,
+        Permissions.COMPENSATION_READ_TEAM,
+        Permissions.COMPENSATION_READ_SELF
+    ))]
+)
 
 
 def get_db():

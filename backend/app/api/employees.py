@@ -1,13 +1,19 @@
-from fastapi import APIRouter, Depends, HTTPException, UploadFile, File
+from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Request
 from sqlalchemy.orm import Session
 from pydantic import BaseModel
 from app.db import models, database
+from app.api.auth import get_current_user
+from app.services.audit_service import audit_service
 import csv
 import io
 from typing import List, Dict, Optional
 from datetime import datetime, timedelta
 
-router = APIRouter(prefix="/employees", tags=["employees"])
+router = APIRouter(
+    prefix="/employees",
+    tags=["employees"],
+    dependencies=[Depends(get_current_user)]  # Require authentication for all endpoints
+)
 
 
 def get_db():
@@ -117,17 +123,30 @@ def update_attendance(employee_id: int, attendance_days: float, db: Session = De
 
 
 @router.put("/{employee_id}/contributions")
-def update_contributions(employee_id: str, contribution_data: dict, db: Session = Depends(get_db)):
+def update_contributions(
+    request: Request,
+    employee_id: str,
+    contribution_data: dict,
+    current_user: models.User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
     """Update an employee's benefit contributions."""
-    # Debug logging
-    print(f"Received contribution data: {contribution_data}")
-    if "hra_er_contribution" in contribution_data:
-        print(f"HRA value received: {contribution_data['hra_er_contribution']} (type: {type(contribution_data['hra_er_contribution'])})")
-
     employee = db.query(models.Employee).filter(
         models.Employee.employee_id == employee_id).first()
     if not employee:
         raise HTTPException(status_code=404, detail="Employee not found")
+
+    # Capture old values for audit log
+    old_contributions = {
+        "hsa_ee_contribution": employee.hsa_ee_contribution,
+        "hsa_er_contribution": employee.hsa_er_contribution,
+        "hra_er_contribution": employee.hra_er_contribution,
+        "fsa_contribution": employee.fsa_contribution,
+        "lfsa_contribution": employee.lfsa_contribution,
+        "dependent_care_fsa": employee.dependent_care_fsa,
+        "retirement_ee_contribution_amount": employee.retirement_ee_contribution_amount,
+        "retirement_ee_contribution_pct": employee.retirement_ee_contribution_pct,
+    }
 
     # Update contribution fields (round to 2 decimal places for monetary precision)
     if "medical_tier" in contribution_data:
@@ -152,24 +171,37 @@ def update_contributions(employee_id: str, contribution_data: dict, db: Session 
     db.commit()
     db.refresh(employee)
 
+    # Audit log: contributions updated (financial data)
+    new_contributions = {
+        "hsa_ee_contribution": employee.hsa_ee_contribution,
+        "hsa_er_contribution": employee.hsa_er_contribution,
+        "hra_er_contribution": employee.hra_er_contribution,
+        "fsa_contribution": employee.fsa_contribution,
+        "lfsa_contribution": employee.lfsa_contribution,
+        "dependent_care_fsa": employee.dependent_care_fsa,
+        "retirement_ee_contribution_amount": employee.retirement_ee_contribution_amount,
+        "retirement_ee_contribution_pct": employee.retirement_ee_contribution_pct,
+    }
+    audit_service.log_data_update(
+        db, current_user, request, "employee_contributions", employee_id,
+        old_data=old_contributions, new_data=new_contributions
+    )
+
     return {
         "message": "Contributions updated successfully",
         "employee_id": employee.employee_id,
-        "contributions": {
-            "hsa_ee_contribution": employee.hsa_ee_contribution,
-            "hsa_er_contribution": employee.hsa_er_contribution,
-            "hra_er_contribution": employee.hra_er_contribution,
-            "fsa_contribution": employee.fsa_contribution,
-            "lfsa_contribution": employee.lfsa_contribution,
-            "dependent_care_fsa": employee.dependent_care_fsa,
-            "retirement_ee_contribution_amount": employee.retirement_ee_contribution_amount,
-            "retirement_ee_contribution_pct": employee.retirement_ee_contribution_pct,
-        }
+        "contributions": new_contributions
     }
 
 
 @router.patch("/{employee_id}")
-def update_employee(employee_id: str, update_data: dict, db: Session = Depends(get_db)):
+def update_employee(
+    request: Request,
+    employee_id: str,
+    update_data: dict,
+    current_user: models.User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
     """Update an employee. Automatically creates offboarding tasks if status is set to Terminated."""
     from datetime import datetime, timedelta
 
@@ -177,6 +209,12 @@ def update_employee(employee_id: str, update_data: dict, db: Session = Depends(g
         models.Employee.employee_id == employee_id).first()
     if not employee:
         raise HTTPException(status_code=404, detail="Employee not found")
+
+    # Capture old values for audit log
+    old_values = {
+        "status": employee.status,
+        "termination_date": employee.termination_date.isoformat() if employee.termination_date else None
+    }
 
     # Check if status is being changed to Terminated OR termination_date is being set
     status_changed_to_terminated = (
@@ -385,6 +423,16 @@ def update_employee(employee_id: str, update_data: dict, db: Session = Depends(g
                 # Fall back to not creating tasks if there's an error
                 pass
 
+    # Audit log: employee updated
+    new_values = {
+        "status": employee.status,
+        "termination_date": employee.termination_date.isoformat() if employee.termination_date else None
+    }
+    audit_service.log_data_update(
+        db, current_user, request, "employee", employee_id,
+        old_data=old_values, new_data=new_values
+    )
+
     return {
         "message": "Employee updated successfully",
         "employee_id": employee.employee_id,
@@ -404,8 +452,10 @@ class StatusChangeRequest(BaseModel):
 
 @router.post("/{employee_id}/status-change")
 def change_employee_status_with_reason(
+    http_request: Request,
     employee_id: str,
     request: StatusChangeRequest,
+    current_user: models.User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
     """
@@ -667,6 +717,13 @@ def change_employee_status_with_reason(
 
     db.commit()
     db.refresh(employee)
+
+    # Audit log: status change (critical security event)
+    audit_service.log_data_update(
+        db, current_user, http_request, "employee", employee_id,
+        old_data={"status": old_status, "reason": None},
+        new_data={"status": new_status, "reason": request.reason, "notes": request.notes}
+    )
 
     return {
         "message": f"Employee status changed from {old_status} to {new_status}",

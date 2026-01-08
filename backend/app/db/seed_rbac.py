@@ -1,0 +1,344 @@
+"""
+Seed script for RBAC tables.
+Populates the database with initial permissions and roles.
+
+Usage:
+    python -m app.db.seed_rbac
+
+Or from the backend directory:
+    ./venv/bin/python -m app.db.seed_rbac
+"""
+
+from sqlalchemy.orm import Session
+from app.db.database import SessionLocal, engine
+from app.db import models
+
+
+# ============================================================================
+# PERMISSION DEFINITIONS
+# ============================================================================
+
+PERMISSIONS = [
+    # User Management
+    {"name": "users:read", "display_name": "View Users", "category": "Users", "description": "View user accounts and details"},
+    {"name": "users:create", "display_name": "Create Users", "category": "Users", "description": "Create new user accounts"},
+    {"name": "users:update", "display_name": "Update Users", "category": "Users", "description": "Modify user account details"},
+    {"name": "users:delete", "display_name": "Delete Users", "category": "Users", "description": "Delete user accounts"},
+    {"name": "users:reset_password", "display_name": "Reset Passwords", "category": "Users", "description": "Reset user passwords"},
+
+    # Employee Data
+    {"name": "employees:read:all", "display_name": "View All Employees", "category": "Employees", "description": "View all employee records"},
+    {"name": "employees:read:team", "display_name": "View Team Employees", "category": "Employees", "description": "View employees in your team"},
+    {"name": "employees:read:self", "display_name": "View Own Profile", "category": "Employees", "description": "View your own employee record"},
+    {"name": "employees:write:all", "display_name": "Edit All Employees", "category": "Employees", "description": "Edit any employee record"},
+    {"name": "employees:write:team", "display_name": "Edit Team Employees", "category": "Employees", "description": "Edit employees in your team"},
+
+    # Compensation & Payroll
+    {"name": "compensation:read:all", "display_name": "View All Compensation", "category": "Compensation", "description": "View all salary and bonus information"},
+    {"name": "compensation:read:team", "display_name": "View Team Compensation", "category": "Compensation", "description": "View team salary information"},
+    {"name": "compensation:read:self", "display_name": "View Own Compensation", "category": "Compensation", "description": "View your own salary information"},
+    {"name": "compensation:write", "display_name": "Edit Compensation", "category": "Compensation", "description": "Modify salary and bonus information"},
+    {"name": "payroll:read", "display_name": "View Payroll", "category": "Payroll", "description": "View payroll periods and processing"},
+    {"name": "payroll:write", "display_name": "Process Payroll", "category": "Payroll", "description": "Process and manage payroll"},
+
+    # FMLA (Protected Health Information)
+    {"name": "fmla:read", "display_name": "View FMLA Cases", "category": "FMLA", "description": "View FMLA leave cases (PHI)"},
+    {"name": "fmla:write", "display_name": "Manage FMLA Cases", "category": "FMLA", "description": "Create and update FMLA cases"},
+
+    # Garnishments
+    {"name": "garnishments:read", "display_name": "View Garnishments", "category": "Garnishments", "description": "View garnishment cases"},
+    {"name": "garnishments:write", "display_name": "Manage Garnishments", "category": "Garnishments", "description": "Create and update garnishment cases"},
+
+    # Onboarding/Offboarding
+    {"name": "onboarding:read", "display_name": "View Onboarding", "category": "Onboarding", "description": "View onboarding tasks and status"},
+    {"name": "onboarding:write", "display_name": "Manage Onboarding", "category": "Onboarding", "description": "Create and manage onboarding tasks"},
+    {"name": "offboarding:read", "display_name": "View Offboarding", "category": "Offboarding", "description": "View offboarding tasks and status"},
+    {"name": "offboarding:write", "display_name": "Manage Offboarding", "category": "Offboarding", "description": "Create and manage offboarding tasks"},
+
+    # Performance Reviews
+    {"name": "performance:read:all", "display_name": "View All Performance", "category": "Performance", "description": "View all performance reviews"},
+    {"name": "performance:read:team", "display_name": "View Team Performance", "category": "Performance", "description": "View team performance reviews"},
+    {"name": "performance:read:self", "display_name": "View Own Performance", "category": "Performance", "description": "View your own performance reviews"},
+    {"name": "performance:write:all", "display_name": "Edit All Performance", "category": "Performance", "description": "Edit any performance review"},
+    {"name": "performance:write:team", "display_name": "Edit Team Performance", "category": "Performance", "description": "Edit team performance reviews"},
+
+    # PTO
+    {"name": "pto:read:all", "display_name": "View All PTO", "category": "PTO", "description": "View all PTO balances and requests"},
+    {"name": "pto:read:team", "display_name": "View Team PTO", "category": "PTO", "description": "View team PTO information"},
+    {"name": "pto:read:self", "display_name": "View Own PTO", "category": "PTO", "description": "View your own PTO balance"},
+    {"name": "pto:write:all", "display_name": "Manage All PTO", "category": "PTO", "description": "Manage all PTO requests"},
+    {"name": "pto:write:team", "display_name": "Manage Team PTO", "category": "PTO", "description": "Approve team PTO requests"},
+
+    # Equipment
+    {"name": "equipment:read", "display_name": "View Equipment", "category": "Equipment", "description": "View equipment assignments"},
+    {"name": "equipment:write", "display_name": "Manage Equipment", "category": "Equipment", "description": "Assign and manage equipment"},
+
+    # Analytics & Reports
+    {"name": "analytics:read:all", "display_name": "View All Analytics", "category": "Analytics", "description": "View company-wide analytics"},
+    {"name": "analytics:read:team", "display_name": "View Team Analytics", "category": "Analytics", "description": "View team analytics"},
+    {"name": "reports:export", "display_name": "Export Reports", "category": "Analytics", "description": "Export data and reports"},
+
+    # Settings & Configuration
+    {"name": "settings:read", "display_name": "View Settings", "category": "Settings", "description": "View system settings"},
+    {"name": "settings:write", "display_name": "Manage Settings", "category": "Settings", "description": "Modify system settings"},
+
+    # EEO Data
+    {"name": "eeo:read", "display_name": "View EEO Data", "category": "EEO", "description": "View EEO demographic data"},
+    {"name": "eeo:write", "display_name": "Manage EEO Data", "category": "EEO", "description": "Update EEO classifications"},
+
+    # ACA Compliance
+    {"name": "aca:read", "display_name": "View ACA Data", "category": "ACA", "description": "View ACA compliance data"},
+    {"name": "aca:write", "display_name": "Manage ACA Data", "category": "ACA", "description": "Update ACA information"},
+
+    # Email System
+    {"name": "emails:send", "display_name": "Send Emails", "category": "Emails", "description": "Send system emails"},
+    {"name": "emails:templates", "display_name": "Manage Email Templates", "category": "Emails", "description": "Create and edit email templates"},
+
+    # File Management
+    {"name": "files:upload", "display_name": "Upload Files", "category": "Files", "description": "Upload documents and files"},
+    {"name": "files:delete", "display_name": "Delete Files", "category": "Files", "description": "Delete uploaded files"},
+
+    # SFTP Configuration
+    {"name": "sftp:read", "display_name": "View SFTP Config", "category": "SFTP", "description": "View SFTP configurations"},
+    {"name": "sftp:write", "display_name": "Manage SFTP Config", "category": "SFTP", "description": "Configure SFTP connections"},
+
+    # Audit Logs
+    {"name": "audit:read", "display_name": "View Audit Logs", "category": "Audit", "description": "View security audit logs"},
+
+    # Role Management
+    {"name": "roles:read", "display_name": "View Roles", "category": "Roles", "description": "View roles and permissions"},
+    {"name": "roles:write", "display_name": "Manage Roles", "category": "Roles", "description": "Create and edit roles"},
+    {"name": "roles:assign", "display_name": "Assign Roles", "category": "Roles", "description": "Assign roles to users"},
+]
+
+
+# ============================================================================
+# ROLE DEFINITIONS
+# ============================================================================
+
+ROLES = [
+    {
+        "name": "admin",
+        "display_name": "Administrator",
+        "description": "Full system access with all permissions",
+        "is_system_role": True,
+        "permissions": [p["name"] for p in PERMISSIONS],  # All permissions
+    },
+    {
+        "name": "hr",
+        "display_name": "HR Manager",
+        "description": "Human Resources management access",
+        "is_system_role": True,
+        "permissions": [
+            "employees:read:all", "employees:write:all",
+            "compensation:read:all",
+            "fmla:read", "fmla:write",
+            "onboarding:read", "onboarding:write",
+            "offboarding:read", "offboarding:write",
+            "performance:read:all", "performance:write:all",
+            "pto:read:all", "pto:write:all",
+            "equipment:read", "equipment:write",
+            "analytics:read:all", "reports:export",
+            "settings:read",
+            "eeo:read", "eeo:write",
+            "aca:read", "aca:write",
+            "emails:send", "emails:templates",
+            "files:upload", "files:delete",
+        ],
+    },
+    {
+        "name": "payroll",
+        "display_name": "Payroll Specialist",
+        "description": "Payroll and compensation management access",
+        "is_system_role": True,
+        "permissions": [
+            "employees:read:all",
+            "compensation:read:all", "compensation:write",
+            "payroll:read", "payroll:write",
+            "garnishments:read", "garnishments:write",
+            "aca:read", "aca:write",
+            "analytics:read:all", "reports:export",
+            "settings:read",
+            "files:upload",
+        ],
+    },
+    {
+        "name": "manager",
+        "display_name": "Manager",
+        "description": "Team management access",
+        "is_system_role": True,
+        "permissions": [
+            "employees:read:team", "employees:read:self",
+            "compensation:read:team", "compensation:read:self",
+            "onboarding:read",
+            "offboarding:read",
+            "performance:read:team", "performance:write:team",
+            "pto:read:team", "pto:write:team",
+            "equipment:read",
+            "analytics:read:team",
+            "settings:read",
+            "files:upload",
+        ],
+    },
+    {
+        "name": "employee",
+        "display_name": "Employee",
+        "description": "Basic self-service access",
+        "is_system_role": True,
+        "permissions": [
+            "employees:read:self",
+            "compensation:read:self",
+            "performance:read:self",
+            "pto:read:self",
+            "settings:read",
+        ],
+    },
+]
+
+
+def seed_permissions(db: Session) -> dict:
+    """Create all permissions in the database. Returns a dict of name -> Permission."""
+    print("Seeding permissions...")
+    permission_map = {}
+
+    for perm_data in PERMISSIONS:
+        # Check if permission already exists
+        existing = db.query(models.Permission).filter(
+            models.Permission.name == perm_data["name"]
+        ).first()
+
+        if existing:
+            print(f"  - Permission '{perm_data['name']}' already exists")
+            permission_map[perm_data["name"]] = existing
+        else:
+            permission = models.Permission(
+                name=perm_data["name"],
+                display_name=perm_data["display_name"],
+                description=perm_data.get("description"),
+                category=perm_data["category"],
+                is_active=True
+            )
+            db.add(permission)
+            permission_map[perm_data["name"]] = permission
+            print(f"  + Created permission '{perm_data['name']}'")
+
+    db.commit()
+
+    # Refresh all permissions to get their IDs
+    for name in permission_map:
+        db.refresh(permission_map[name])
+
+    print(f"  Total: {len(permission_map)} permissions")
+    return permission_map
+
+
+def seed_roles(db: Session, permission_map: dict) -> dict:
+    """Create all roles and assign permissions. Returns a dict of name -> Role."""
+    print("\nSeeding roles...")
+    role_map = {}
+
+    for role_data in ROLES:
+        # Check if role already exists
+        existing = db.query(models.Role).filter(
+            models.Role.name == role_data["name"]
+        ).first()
+
+        if existing:
+            print(f"  - Role '{role_data['name']}' already exists, updating permissions...")
+            role = existing
+        else:
+            role = models.Role(
+                name=role_data["name"],
+                display_name=role_data["display_name"],
+                description=role_data.get("description"),
+                is_system_role=role_data.get("is_system_role", False),
+                is_active=True
+            )
+            db.add(role)
+            db.flush()  # Get the role ID
+            print(f"  + Created role '{role_data['name']}'")
+
+        # Assign permissions to role
+        role.permissions = []  # Clear existing permissions
+        for perm_name in role_data["permissions"]:
+            if perm_name in permission_map:
+                role.permissions.append(permission_map[perm_name])
+            else:
+                print(f"    ! Warning: Permission '{perm_name}' not found")
+
+        role_map[role_data["name"]] = role
+        print(f"    Assigned {len(role.permissions)} permissions to '{role_data['name']}'")
+
+    db.commit()
+    print(f"  Total: {len(role_map)} roles")
+    return role_map
+
+
+def assign_admin_role(db: Session, role_map: dict):
+    """Assign admin role to existing admin users."""
+    print("\nAssigning admin role to admin users...")
+
+    admin_role = role_map.get("admin")
+    if not admin_role:
+        print("  ! Admin role not found")
+        return
+
+    # Find users with role='admin' in the legacy column
+    admin_users = db.query(models.User).filter(
+        models.User.role == "admin"
+    ).all()
+
+    for user in admin_users:
+        # Check if user already has admin role assigned
+        existing = db.query(models.UserRole).filter(
+            models.UserRole.user_id == user.id,
+            models.UserRole.role_id == admin_role.id
+        ).first()
+
+        if not existing:
+            user_role = models.UserRole(
+                user_id=user.id,
+                role_id=admin_role.id
+            )
+            db.add(user_role)
+            print(f"  + Assigned admin role to user '{user.username}'")
+        else:
+            print(f"  - User '{user.username}' already has admin role")
+
+    db.commit()
+
+
+def seed_rbac():
+    """Main function to seed all RBAC data."""
+    print("=" * 60)
+    print("RBAC Database Seeding")
+    print("=" * 60)
+
+    # Create tables if they don't exist
+    models.Base.metadata.create_all(bind=engine)
+
+    db = SessionLocal()
+    try:
+        # Seed permissions
+        permission_map = seed_permissions(db)
+
+        # Seed roles
+        role_map = seed_roles(db, permission_map)
+
+        # Assign admin role to existing admin users
+        assign_admin_role(db, role_map)
+
+        print("\n" + "=" * 60)
+        print("RBAC seeding completed successfully!")
+        print("=" * 60)
+
+    except Exception as e:
+        print(f"\n! Error during seeding: {e}")
+        db.rollback()
+        raise
+    finally:
+        db.close()
+
+
+if __name__ == "__main__":
+    seed_rbac()

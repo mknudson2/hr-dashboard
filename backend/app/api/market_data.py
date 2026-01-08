@@ -8,8 +8,13 @@ from datetime import datetime
 
 from app.db.database import get_db
 from app.db import models
+from app.api.auth import get_current_user
 
-router = APIRouter(prefix="/market-data", tags=["Market Data"])
+router = APIRouter(
+    prefix="/market-data",
+    tags=["Market Data"],
+    dependencies=[Depends(get_current_user)]  # Require authentication for all endpoints
+)
 
 
 @router.get("/benchmarks")

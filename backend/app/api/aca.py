@@ -9,10 +9,15 @@ from pydantic import BaseModel
 from typing import List, Optional, Dict
 from datetime import datetime, date, timedelta
 from app.db import models, database
+from app.api.auth import get_current_user
 import csv
 import io
 
-router = APIRouter(prefix="/aca", tags=["aca"])
+router = APIRouter(
+    prefix="/aca",
+    tags=["aca"],
+    dependencies=[Depends(get_current_user)]  # Require authentication for all endpoints
+)
 
 
 def get_db():

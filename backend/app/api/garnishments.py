@@ -1,19 +1,32 @@
-"""Garnishment tracking API routes for HR Dashboard."""
+"""Garnishment tracking API routes for HR Dashboard.
+
+RBAC Protection: Garnishment data contains sensitive financial and legal information.
+Access is restricted to users with GARNISHMENTS_READ or GARNISHMENTS_WRITE permissions.
+Roles with access: admin, payroll
+"""
 from datetime import datetime, date, timedelta
 from typing import Optional, List
-from fastapi import APIRouter, Depends, HTTPException, UploadFile, File
+from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Request
 from fastapi.responses import StreamingResponse
 from sqlalchemy.orm import Session
 from sqlalchemy import func
 from pydantic import BaseModel
 from app.db.database import get_db
 from app.db import models
+from app.api.auth import get_current_user
+from app.services.audit_service import audit_service
+from app.services.rbac_service import require_permission, Permissions
 from app.services.pdf_service import pdf_service
 import os
 import shutil
 
 
-router = APIRouter(prefix="/garnishments", tags=["garnishments"])
+router = APIRouter(
+    prefix="/garnishments",
+    tags=["garnishments"],
+    # RBAC: Require GARNISHMENTS_READ permission for all endpoints (sensitive financial data)
+    dependencies=[Depends(require_permission(Permissions.GARNISHMENTS_READ))]
+)
 
 
 # Pydantic models for request/response
@@ -183,7 +196,12 @@ def get_garnishments_dashboard(db: Session = Depends(get_db)):
 
 
 @router.post("/cases")
-def create_garnishment(garnishment_data: GarnishmentCreate, db: Session = Depends(get_db)):
+def create_garnishment(
+    request: Request,
+    garnishment_data: GarnishmentCreate,
+    current_user: models.User = Depends(require_permission(Permissions.GARNISHMENTS_WRITE)),
+    db: Session = Depends(get_db)
+):
     """Create a new garnishment case.
 
     Args:
@@ -244,6 +262,12 @@ def create_garnishment(garnishment_data: GarnishmentCreate, db: Session = Depend
     db.add(new_garnishment)
     db.commit()
     db.refresh(new_garnishment)
+
+    # Audit log: garnishment created (sensitive financial data)
+    audit_service.log_data_create(
+        db, current_user, request, "garnishment", new_garnishment.id,
+        new_data={"case_number": case_number, "employee_id": garnishment_data.employee_id, "type": garnishment_data.garnishment_type}
+    )
 
     return {
         "message": "Garnishment created successfully",
@@ -356,7 +380,13 @@ def get_garnishment(garnishment_id: int, db: Session = Depends(get_db)):
 
 
 @router.patch("/cases/{garnishment_id}")
-def update_garnishment(garnishment_id: int, updates: GarnishmentUpdate, db: Session = Depends(get_db)):
+def update_garnishment(
+    request: Request,
+    garnishment_id: int,
+    updates: GarnishmentUpdate,
+    current_user: models.User = Depends(require_permission(Permissions.GARNISHMENTS_WRITE)),
+    db: Session = Depends(get_db)
+):
     """Update an existing garnishment.
 
     Args:
@@ -373,6 +403,13 @@ def update_garnishment(garnishment_id: int, updates: GarnishmentUpdate, db: Sess
 
     if not garnishment:
         raise HTTPException(status_code=404, detail="Garnishment not found")
+
+    # Capture old values for audit log
+    old_values = {
+        "status": garnishment.status,
+        "total_amount": garnishment.total_amount,
+        "amount_paid": garnishment.amount_paid,
+    }
 
     # Update fields if provided
     if updates.status:
@@ -398,6 +435,17 @@ def update_garnishment(garnishment_id: int, updates: GarnishmentUpdate, db: Sess
 
     db.commit()
     db.refresh(garnishment)
+
+    # Audit log: garnishment updated (financial data)
+    new_values = {
+        "status": garnishment.status,
+        "total_amount": garnishment.total_amount,
+        "amount_paid": garnishment.amount_paid,
+    }
+    audit_service.log_data_update(
+        db, current_user, request, "garnishment", garnishment_id,
+        old_data=old_values, new_data=new_values
+    )
 
     return {"message": "Garnishment updated successfully", "garnishment_id": garnishment.id}
 

@@ -4,10 +4,15 @@ from sqlalchemy.orm import Session
 from pydantic import BaseModel
 from app.db.database import get_db
 from app.db import models
+from app.api.auth import get_current_user
 from app.services.notification_service import notification_service
 
 
-router = APIRouter(prefix="/notifications", tags=["notifications"])
+router = APIRouter(
+    prefix="/notifications",
+    tags=["notifications"],
+    dependencies=[Depends(get_current_user)]  # Require authentication for all endpoints
+)
 
 
 class NotificationPreferences(BaseModel):

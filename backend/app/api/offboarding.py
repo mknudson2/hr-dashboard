@@ -6,13 +6,18 @@ from datetime import datetime, date, timedelta
 from typing import List, Optional
 from pydantic import BaseModel
 from app.db import models, database
+from app.api.auth import get_current_user
 from app.services.email_service import email_service
 from app.services.offboarding_pdf_service import offboarding_pdf_service
 from app.services.exit_document_service import exit_document_service
 import json
 import os
 
-router = APIRouter(prefix="/offboarding", tags=["offboarding"])
+router = APIRouter(
+    prefix="/offboarding",
+    tags=["offboarding"],
+    dependencies=[Depends(get_current_user)]  # Require authentication for all endpoints
+)
 
 
 # ============================================================================
@@ -1066,7 +1071,7 @@ def send_exit_documents_email(
 
     # Send exit documents email
     try:
-        email_service.send_exit_documents(
+        result = email_service.send_exit_documents(
             employee_name=f"{employee.first_name} {employee.last_name}",
             employee_id=employee.employee_id,
             employee_email=email_request.employee_email,
@@ -1081,12 +1086,21 @@ def send_exit_documents_email(
             cc_emails=email_request.cc_emails
         )
 
+        # Update employee record to track that exit docs were sent
+        employee.exit_docs_sent = True
+        employee.exit_docs_sent_at = datetime.now()
+        employee.exit_docs_sent_to = email_request.employee_email
+        employee.exit_docs_attachment_count = result.get("attachment_count", 0) if result else 0
+        db.commit()
+
         return {
             "success": True,
             "message": f"Exit documents sent to {email_request.employee_email}",
             "employee_id": employee.employee_id,
             "employee_name": f"{employee.first_name} {employee.last_name}",
-            "recipient": email_request.employee_email
+            "recipient": email_request.employee_email,
+            "sent_at": employee.exit_docs_sent_at.isoformat(),
+            "attachment_count": employee.exit_docs_attachment_count
         }
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Failed to send exit documents: {str(e)}")
@@ -1633,6 +1647,40 @@ def download_exit_document(
             "Content-Disposition": f'attachment; filename="{filename}"'
         }
     )
+
+
+@router.delete("/exit-document/{document_id}")
+def delete_exit_document(
+    document_id: int,
+    db: Session = Depends(database.get_db)
+):
+    """
+    Delete a specific exit document by its ID.
+    Removes both the database record and the file from disk.
+    """
+    document = db.query(models.FilledPdfForm).filter(
+        models.FilledPdfForm.id == document_id
+    ).first()
+
+    if not document:
+        raise HTTPException(status_code=404, detail="Document not found")
+
+    # Store file path before deleting record
+    file_path = document.file_path
+
+    # Delete the database record
+    db.delete(document)
+    db.commit()
+
+    # Delete the file from disk if it exists
+    if file_path and os.path.exists(file_path):
+        try:
+            os.remove(file_path)
+        except Exception as e:
+            # Log the error but don't fail - record is already deleted
+            print(f"Warning: Could not delete file {file_path}: {e}")
+
+    return {"success": True, "message": "Document deleted successfully"}
 
 
 @router.post("/exit-documents-email/{employee_id}")

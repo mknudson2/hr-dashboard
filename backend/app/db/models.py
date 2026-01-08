@@ -22,6 +22,12 @@ class Employee(Base):
     termination_date = Column(Date, nullable=True)
     termination_type = Column(String, nullable=True)
 
+    # Exit documents tracking
+    exit_docs_sent = Column(Boolean, default=False, nullable=True)  # Whether exit docs email was sent
+    exit_docs_sent_at = Column(DateTime, nullable=True)  # When exit docs email was sent
+    exit_docs_sent_to = Column(String, nullable=True)  # Email address it was sent to
+    exit_docs_attachment_count = Column(Integer, nullable=True)  # Number of documents attached
+
     # Rehire/Reactivation tracking
     rehire_date = Column(Date, nullable=True)  # Date of rehire if previously terminated
     original_hire_date = Column(Date, nullable=True)  # Original hire date before rehire
@@ -1205,6 +1211,19 @@ class EquipmentAssignment(Base):
     return_notes = Column(String, nullable=True)
     notes = Column(String, nullable=True)
 
+    # Termination Return Tracking
+    return_requested = Column(Boolean, default=False)
+    return_requested_date = Column(Date, nullable=True)
+    return_requested_by = Column(String, nullable=True)  # Name of person who requested return
+    shipping_label_requested = Column(Boolean, default=False)
+    shipping_label_sent = Column(Boolean, default=False)
+    shipping_label_sent_date = Column(Date, nullable=True)
+    shipping_label_tracking = Column(String, nullable=True)  # Tracking number
+    equipment_received = Column(Boolean, default=False)
+    equipment_received_date = Column(Date, nullable=True)
+    received_by = Column(String, nullable=True)  # Name of person who received
+    equipment_condition_checklist = Column(String, nullable=True)  # JSON with checklist items
+
     # Metadata
     created_at = Column(DateTime, server_default=func.now())
     updated_at = Column(DateTime, onupdate=func.now())
@@ -1363,6 +1382,13 @@ class User(Base):
     # Relationships
     employee = relationship("Employee", backref="user")
     sessions = relationship("Session", back_populates="user", cascade="all, delete-orphan")
+    assigned_roles = relationship(
+        "Role",
+        secondary="user_roles",
+        primaryjoin="User.id == UserRole.user_id",
+        secondaryjoin="Role.id == UserRole.role_id",
+        back_populates="users"
+    )
 
 
 class Session(Base):
@@ -2816,3 +2842,209 @@ class EmployeeCapitalizationSummary(Base):
 
     def __repr__(self):
         return f"<EmployeeCapitalizationSummary {self.id}: Employee {self.employee_id}, Period {self.period_id}>"
+
+
+# PIP Related Models
+class PIPNote(Base):
+    __tablename__ = "pip_notes"
+
+    id = Column(Integer, primary_key=True, index=True, autoincrement=True)
+    pip_id = Column(Integer, ForeignKey("performance_improvement_plans.id"), nullable=False, index=True)
+    note_text = Column(Text, nullable=False)
+    note_type = Column(String, default="General")  # "General", "Progress Update", "Check-in Meeting", "Concern", "Improvement", "Action Item"
+    created_by = Column(String, nullable=True)
+    created_at = Column(DateTime, server_default=func.now())
+
+    # Relationship
+    pip = relationship("PerformanceImprovementPlan", backref="pip_notes")
+
+
+class PIPMilestone(Base):
+    __tablename__ = "pip_milestones"
+
+    id = Column(Integer, primary_key=True, index=True, autoincrement=True)
+    pip_id = Column(Integer, ForeignKey("performance_improvement_plans.id"), nullable=False, index=True)
+    milestone_title = Column(String, nullable=False)
+    description = Column(Text, nullable=True)
+    due_date = Column(Date, nullable=False)
+    status = Column(String, default="Pending")  # "Pending", "In Progress", "Completed", "Overdue"
+    completed_date = Column(Date, nullable=True)
+    notes = Column(Text, nullable=True)
+    created_at = Column(DateTime, server_default=func.now())
+    updated_at = Column(DateTime, onupdate=func.now())
+
+    # Relationship
+    pip = relationship("PerformanceImprovementPlan", backref="pip_milestones")
+
+
+class PIPAudit(Base):
+    __tablename__ = "pip_audit_trail"
+
+    id = Column(Integer, primary_key=True, index=True, autoincrement=True)
+    pip_id = Column(Integer, ForeignKey("performance_improvement_plans.id"), nullable=False, index=True)
+    action = Column(String, nullable=False)  # "Created", "Status Changed", "Updated", "Note Added", "Milestone Added", "Document Uploaded"
+    field_changed = Column(String, nullable=True)  # Which field was changed
+    old_value = Column(Text, nullable=True)
+    new_value = Column(Text, nullable=True)
+    changed_by = Column(String, nullable=True)
+    created_at = Column(DateTime, server_default=func.now())
+
+    # Relationship
+    pip = relationship("PerformanceImprovementPlan", backref="pip_audit_entries")
+
+
+class PIPDocument(Base):
+    __tablename__ = "pip_documents"
+
+    id = Column(Integer, primary_key=True, index=True, autoincrement=True)
+    pip_id = Column(Integer, ForeignKey("performance_improvement_plans.id"), nullable=False, index=True)
+    document_name = Column(String, nullable=False)
+    document_type = Column(String, default="Supporting Document")  # "Supporting Document", "Meeting Notes", "Performance Report", "Training Certificate"
+    file_path = Column(String, nullable=False)
+    file_size = Column(Integer, nullable=True)  # Size in bytes
+    uploaded_by = Column(String, nullable=True)
+    uploaded_at = Column(DateTime, server_default=func.now())
+
+    # Relationship
+    pip = relationship("PerformanceImprovementPlan", backref="pip_documents")
+
+
+# ============================================================================
+# SECURITY AUDIT LOG
+# ============================================================================
+
+class SecurityAuditLog(Base):
+    """
+    Comprehensive security audit log for tracking all security-relevant events.
+    Used for compliance, security monitoring, and incident investigation.
+    """
+    __tablename__ = "security_audit_logs"
+
+    id = Column(Integer, primary_key=True, index=True, autoincrement=True)
+
+    # Event identification
+    event_type = Column(String(50), nullable=False, index=True)  # LOGIN_SUCCESS, LOGIN_FAILED, PASSWORD_CHANGE, etc.
+    event_category = Column(String(30), nullable=False, index=True)  # AUTH, USER_MGMT, DATA_ACCESS, DATA_MODIFY, ADMIN
+    severity = Column(String(10), default="INFO")  # INFO, WARNING, CRITICAL
+
+    # Actor information
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=True, index=True)  # User who performed the action
+    username = Column(String(100), nullable=True, index=True)  # Username (for failed logins where user_id might not exist)
+    ip_address = Column(String(45), nullable=True)  # IPv4 or IPv6
+    user_agent = Column(String(500), nullable=True)  # Browser/client info
+
+    # Event details
+    resource_type = Column(String(50), nullable=True)  # employee, user, fmla, garnishment, etc.
+    resource_id = Column(String(50), nullable=True)  # ID of the affected resource
+    action = Column(String(100), nullable=False)  # Specific action taken
+    description = Column(Text, nullable=True)  # Human-readable description
+
+    # Change tracking (for data modifications)
+    old_value = Column(JSON, nullable=True)  # Previous state (for updates)
+    new_value = Column(JSON, nullable=True)  # New state (for creates/updates)
+
+    # Request context
+    request_path = Column(String(500), nullable=True)  # API endpoint
+    request_method = Column(String(10), nullable=True)  # GET, POST, PUT, DELETE
+
+    # Status
+    success = Column(Boolean, default=True)  # Whether the action succeeded
+    error_message = Column(Text, nullable=True)  # Error details if failed
+
+    # Timestamps
+    created_at = Column(DateTime, server_default=func.now(), index=True)
+
+    # Indexes for common queries
+    __table_args__ = (
+        Index('ix_audit_user_time', 'user_id', 'created_at'),
+        Index('ix_audit_event_time', 'event_type', 'created_at'),
+        Index('ix_audit_resource', 'resource_type', 'resource_id'),
+    )
+
+
+# ============================================================================
+# ROLE-BASED ACCESS CONTROL (RBAC)
+# ============================================================================
+
+class Permission(Base):
+    """
+    Defines granular permissions in the system.
+    Permissions follow the format: resource:action or resource:action:scope
+    Examples: users:read, employees:write:team, fmla:read
+    """
+    __tablename__ = "permissions"
+
+    id = Column(Integer, primary_key=True, index=True, autoincrement=True)
+    name = Column(String(100), unique=True, nullable=False, index=True)  # e.g., "fmla:read"
+    display_name = Column(String(200), nullable=False)  # e.g., "Read FMLA Cases"
+    description = Column(Text, nullable=True)
+    category = Column(String(50), nullable=False, index=True)  # e.g., "FMLA", "Users", "Employees"
+    is_active = Column(Boolean, default=True)
+    created_at = Column(DateTime, server_default=func.now())
+    updated_at = Column(DateTime, server_default=func.now(), onupdate=func.now())
+
+    # Relationships
+    roles = relationship("Role", secondary="role_permissions", back_populates="permissions")
+
+
+class Role(Base):
+    """
+    Defines roles that group permissions together.
+    Users can have multiple roles, and roles can have multiple permissions.
+    """
+    __tablename__ = "roles"
+
+    id = Column(Integer, primary_key=True, index=True, autoincrement=True)
+    name = Column(String(50), unique=True, nullable=False, index=True)  # e.g., "admin", "hr", "payroll"
+    display_name = Column(String(100), nullable=False)  # e.g., "Administrator", "HR Manager"
+    description = Column(Text, nullable=True)
+    is_system_role = Column(Boolean, default=False)  # System roles cannot be deleted
+    is_active = Column(Boolean, default=True)
+    created_at = Column(DateTime, server_default=func.now())
+    updated_at = Column(DateTime, server_default=func.now(), onupdate=func.now())
+
+    # Relationships
+    permissions = relationship("Permission", secondary="role_permissions", back_populates="roles")
+    users = relationship(
+        "User",
+        secondary="user_roles",
+        primaryjoin="Role.id == UserRole.role_id",
+        secondaryjoin="User.id == UserRole.user_id",
+        back_populates="assigned_roles"
+    )
+
+
+class RolePermission(Base):
+    """
+    Junction table linking roles to permissions.
+    """
+    __tablename__ = "role_permissions"
+
+    id = Column(Integer, primary_key=True, index=True, autoincrement=True)
+    role_id = Column(Integer, ForeignKey("roles.id", ondelete="CASCADE"), nullable=False, index=True)
+    permission_id = Column(Integer, ForeignKey("permissions.id", ondelete="CASCADE"), nullable=False, index=True)
+    created_at = Column(DateTime, server_default=func.now())
+
+    # Ensure unique role-permission combinations
+    __table_args__ = (
+        Index('ix_role_permission_unique', 'role_id', 'permission_id', unique=True),
+    )
+
+
+class UserRole(Base):
+    """
+    Junction table linking users to roles.
+    Users can have multiple roles.
+    """
+    __tablename__ = "user_roles"
+
+    id = Column(Integer, primary_key=True, index=True, autoincrement=True)
+    user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
+    role_id = Column(Integer, ForeignKey("roles.id", ondelete="CASCADE"), nullable=False, index=True)
+    assigned_by = Column(Integer, ForeignKey("users.id"), nullable=True)  # Who assigned this role
+    assigned_at = Column(DateTime, server_default=func.now())
+
+    # Ensure unique user-role combinations
+    __table_args__ = (
+        Index('ix_user_role_unique', 'user_id', 'role_id', unique=True),
+    )

@@ -10,8 +10,13 @@ from pydantic import BaseModel
 
 from app.db.database import get_db
 from app.db import models
+from app.api.auth import get_current_user
 
-router = APIRouter(prefix="/performance", tags=["Performance Management"])
+router = APIRouter(
+    prefix="/performance",
+    tags=["Performance Management"],
+    dependencies=[Depends(get_current_user)]  # Require authentication for all endpoints
+)
 
 
 # ============================================================================
@@ -629,6 +634,76 @@ def create_performance_goal(goal_data: PerformanceGoalCreate, db: Session = Depe
     }
 
 
+@router.patch("/goals/{goal_id}")
+def update_performance_goal(goal_id: int, db: Session = Depends(get_db), **kwargs):
+    """
+    Update a performance goal
+    """
+    goal = db.query(models.PerformanceGoal).filter(models.PerformanceGoal.id == goal_id).first()
+    if not goal:
+        raise HTTPException(status_code=404, detail="Goal not found")
+
+    return goal
+
+
+@router.put("/goals/{goal_id}")
+def update_goal_full(
+    goal_id: int,
+    goal_data: PerformanceGoalCreate,
+    db: Session = Depends(get_db)
+):
+    """
+    Update a performance goal (full update)
+    """
+    goal = db.query(models.PerformanceGoal).filter(models.PerformanceGoal.id == goal_id).first()
+    if not goal:
+        raise HTTPException(status_code=404, detail="Goal not found")
+
+    # Update fields
+    goal.goal_title = goal_data.goal_title
+    goal.goal_description = goal_data.goal_description
+    goal.goal_type = goal_data.goal_type
+    goal.category = goal_data.category
+    goal.target_date = goal_data.target_date
+    goal.start_date = goal_data.start_date
+    goal.status = goal_data.status
+    goal.priority = goal_data.priority
+    goal.weight = goal_data.weight
+    goal.target_value = goal_data.target_value
+    goal.current_value = goal_data.current_value
+    goal.measurement_criteria = goal_data.measurement_criteria
+    goal.updated_at = datetime.now()
+
+    db.commit()
+    db.refresh(goal)
+
+    return {
+        "id": goal.id,
+        "goal_id": goal.goal_id,
+        "goal_title": goal.goal_title,
+        "status": goal.status,
+        "message": "Goal updated successfully"
+    }
+
+
+@router.delete("/goals/{goal_id}")
+def delete_performance_goal(goal_id: int, db: Session = Depends(get_db)):
+    """
+    Delete a performance goal
+    """
+    goal = db.query(models.PerformanceGoal).filter(models.PerformanceGoal.id == goal_id).first()
+    if not goal:
+        raise HTTPException(status_code=404, detail="Goal not found")
+
+    db.delete(goal)
+    db.commit()
+
+    return {
+        "id": goal_id,
+        "message": "Goal deleted successfully"
+    }
+
+
 # ============================================================================
 # 360-DEGREE FEEDBACK
 # ============================================================================
@@ -903,6 +978,16 @@ def create_pip(pip_data: PIPCreate, db: Session = Depends(get_db)):
     db.commit()
     db.refresh(new_pip)
 
+    # Create audit entry for PIP creation
+    audit_entry = models.PIPAudit(
+        pip_id=new_pip.id,
+        action="Created",
+        new_value=f"PIP created for {pip_data.employee_id}",
+        created_at=datetime.now()
+    )
+    db.add(audit_entry)
+    db.commit()
+
     return {
         "id": new_pip.id,
         "pip_id": new_pip.pip_id,
@@ -910,4 +995,475 @@ def create_pip(pip_data: PIPCreate, db: Session = Depends(get_db)):
         "title": new_pip.title,
         "status": new_pip.status,
         "message": "Performance Improvement Plan created successfully"
+    }
+
+
+# ============================================================================
+# PIP FULL DETAIL (with notes, milestones, audit, documents)
+# ============================================================================
+
+@router.get("/pips/{pip_id}/full")
+def get_pip_full_detail(pip_id: int, db: Session = Depends(get_db)):
+    """
+    Get full PIP details including notes, milestones, audit trail, and documents
+    """
+    pip = db.query(models.PerformanceImprovementPlan).filter(
+        models.PerformanceImprovementPlan.id == pip_id
+    ).first()
+
+    if not pip:
+        raise HTTPException(status_code=404, detail="PIP not found")
+
+    # Get employee name
+    employee = db.query(models.Employee).filter(
+        models.Employee.employee_id == pip.employee_id
+    ).first()
+    employee_name = f"{employee.first_name} {employee.last_name}" if employee else None
+
+    # Get notes
+    notes = db.query(models.PIPNote).filter(
+        models.PIPNote.pip_id == pip_id
+    ).order_by(models.PIPNote.created_at.desc()).all()
+
+    # Get milestones
+    milestones = db.query(models.PIPMilestone).filter(
+        models.PIPMilestone.pip_id == pip_id
+    ).order_by(models.PIPMilestone.due_date).all()
+
+    # Get audit trail
+    audit_trail = db.query(models.PIPAudit).filter(
+        models.PIPAudit.pip_id == pip_id
+    ).order_by(models.PIPAudit.created_at.desc()).all()
+
+    # Get documents
+    documents = db.query(models.PIPDocument).filter(
+        models.PIPDocument.pip_id == pip_id
+    ).order_by(models.PIPDocument.uploaded_at.desc()).all()
+
+    return {
+        "id": pip.id,
+        "pip_id": pip.pip_id,
+        "employee_id": pip.employee_id,
+        "employee_name": employee_name,
+        "manager_id": pip.manager_id,
+        "manager_name": pip.manager_name,
+        "hr_partner": pip.hr_partner,
+        "title": pip.title,
+        "reason": pip.reason,
+        "performance_issues": pip.performance_issues,
+        "start_date": pip.start_date,
+        "end_date": pip.end_date,
+        "review_frequency": pip.review_frequency,
+        "next_review_date": pip.next_review_date,
+        "status": pip.status,
+        "expectations": pip.expectations,
+        "success_criteria": pip.success_criteria,
+        "support_provided": pip.support_provided,
+        "progress_notes": pip.progress_notes,
+        "milestones_met": pip.milestones_met,
+        "areas_of_concern": pip.areas_of_concern,
+        "outcome": pip.outcome,
+        "outcome_date": pip.outcome_date,
+        "outcome_notes": pip.outcome_notes,
+        "consequences_of_failure": pip.consequences_of_failure,
+        "employee_acknowledged": pip.employee_acknowledged,
+        "employee_acknowledgment_date": pip.employee_acknowledgment_date,
+        "created_at": pip.created_at,
+        "updated_at": pip.updated_at,
+        "notes": [{
+            "id": n.id,
+            "note_text": n.note_text,
+            "note_type": n.note_type,
+            "created_by": n.created_by,
+            "created_at": n.created_at
+        } for n in notes],
+        "milestones": [{
+            "id": m.id,
+            "milestone_title": m.milestone_title,
+            "description": m.description,
+            "due_date": m.due_date,
+            "status": m.status,
+            "completed_date": m.completed_date,
+            "notes": m.notes,
+            "created_at": m.created_at
+        } for m in milestones],
+        "audit_trail": [{
+            "id": a.id,
+            "action": a.action,
+            "field_changed": a.field_changed,
+            "old_value": a.old_value,
+            "new_value": a.new_value,
+            "changed_by": a.changed_by,
+            "created_at": a.created_at
+        } for a in audit_trail],
+        "documents": [{
+            "id": d.id,
+            "document_name": d.document_name,
+            "document_type": d.document_type,
+            "file_path": d.file_path,
+            "uploaded_by": d.uploaded_by,
+            "uploaded_at": d.uploaded_at
+        } for d in documents]
+    }
+
+
+class PIPStatusUpdate(BaseModel):
+    status: Optional[str] = None
+
+
+@router.patch("/pips/{pip_id}")
+def update_pip_status(
+    pip_id: int,
+    update_data: PIPStatusUpdate,
+    db: Session = Depends(get_db)
+):
+    """
+    Update PIP status
+    """
+    pip = db.query(models.PerformanceImprovementPlan).filter(
+        models.PerformanceImprovementPlan.id == pip_id
+    ).first()
+
+    if not pip:
+        raise HTTPException(status_code=404, detail="PIP not found")
+
+    # Track old value for audit
+    old_status = pip.status
+
+    # Update status if provided
+    if update_data.status:
+        pip.status = update_data.status
+        pip.updated_at = datetime.now()
+
+        # Create audit entry
+        audit_entry = models.PIPAudit(
+            pip_id=pip_id,
+            action="Status Changed",
+            field_changed="status",
+            old_value=old_status,
+            new_value=update_data.status,
+            created_at=datetime.now()
+        )
+        db.add(audit_entry)
+
+    db.commit()
+    db.refresh(pip)
+
+    return {
+        "id": pip.id,
+        "pip_id": pip.pip_id,
+        "status": pip.status,
+        "message": "PIP updated successfully"
+    }
+
+
+# ============================================================================
+# PIP NOTES
+# ============================================================================
+
+class PIPNoteCreate(BaseModel):
+    note_text: str
+    note_type: str = "General"
+    created_by: Optional[str] = None
+
+
+@router.post("/pips/{pip_id}/notes")
+def add_pip_note(pip_id: int, note_data: PIPNoteCreate, db: Session = Depends(get_db)):
+    """
+    Add a note to a PIP
+    """
+    pip = db.query(models.PerformanceImprovementPlan).filter(
+        models.PerformanceImprovementPlan.id == pip_id
+    ).first()
+
+    if not pip:
+        raise HTTPException(status_code=404, detail="PIP not found")
+
+    # Create note
+    new_note = models.PIPNote(
+        pip_id=pip_id,
+        note_text=note_data.note_text,
+        note_type=note_data.note_type,
+        created_by=note_data.created_by,
+        created_at=datetime.now()
+    )
+    db.add(new_note)
+
+    # Create audit entry
+    audit_entry = models.PIPAudit(
+        pip_id=pip_id,
+        action="Note Added",
+        new_value=f"{note_data.note_type}: {note_data.note_text[:50]}...",
+        created_by=note_data.created_by,
+        created_at=datetime.now()
+    )
+    db.add(audit_entry)
+
+    db.commit()
+    db.refresh(new_note)
+
+    return {
+        "id": new_note.id,
+        "note_text": new_note.note_text,
+        "note_type": new_note.note_type,
+        "created_at": new_note.created_at,
+        "message": "Note added successfully"
+    }
+
+
+@router.get("/pips/{pip_id}/notes")
+def get_pip_notes(pip_id: int, db: Session = Depends(get_db)):
+    """
+    Get all notes for a PIP
+    """
+    notes = db.query(models.PIPNote).filter(
+        models.PIPNote.pip_id == pip_id
+    ).order_by(models.PIPNote.created_at.desc()).all()
+
+    return [{
+        "id": n.id,
+        "note_text": n.note_text,
+        "note_type": n.note_type,
+        "created_by": n.created_by,
+        "created_at": n.created_at
+    } for n in notes]
+
+
+# ============================================================================
+# PIP MILESTONES
+# ============================================================================
+
+class PIPMilestoneCreate(BaseModel):
+    milestone_title: str
+    description: Optional[str] = None
+    due_date: date
+
+
+class PIPMilestoneUpdate(BaseModel):
+    status: Optional[str] = None
+    notes: Optional[str] = None
+
+
+@router.post("/pips/{pip_id}/milestones")
+def add_pip_milestone(pip_id: int, milestone_data: PIPMilestoneCreate, db: Session = Depends(get_db)):
+    """
+    Add a milestone to a PIP
+    """
+    pip = db.query(models.PerformanceImprovementPlan).filter(
+        models.PerformanceImprovementPlan.id == pip_id
+    ).first()
+
+    if not pip:
+        raise HTTPException(status_code=404, detail="PIP not found")
+
+    # Create milestone
+    new_milestone = models.PIPMilestone(
+        pip_id=pip_id,
+        milestone_title=milestone_data.milestone_title,
+        description=milestone_data.description,
+        due_date=milestone_data.due_date,
+        status="Pending",
+        created_at=datetime.now()
+    )
+    db.add(new_milestone)
+
+    # Create audit entry
+    audit_entry = models.PIPAudit(
+        pip_id=pip_id,
+        action="Milestone Added",
+        new_value=f"{milestone_data.milestone_title} (Due: {milestone_data.due_date})",
+        created_at=datetime.now()
+    )
+    db.add(audit_entry)
+
+    db.commit()
+    db.refresh(new_milestone)
+
+    return {
+        "id": new_milestone.id,
+        "milestone_title": new_milestone.milestone_title,
+        "due_date": new_milestone.due_date,
+        "status": new_milestone.status,
+        "message": "Milestone added successfully"
+    }
+
+
+@router.patch("/pips/milestones/{milestone_id}")
+def update_pip_milestone(milestone_id: int, update_data: PIPMilestoneUpdate, db: Session = Depends(get_db)):
+    """
+    Update a PIP milestone
+    """
+    milestone = db.query(models.PIPMilestone).filter(
+        models.PIPMilestone.id == milestone_id
+    ).first()
+
+    if not milestone:
+        raise HTTPException(status_code=404, detail="Milestone not found")
+
+    old_status = milestone.status
+
+    if update_data.status:
+        milestone.status = update_data.status
+        if update_data.status == "Completed":
+            milestone.completed_date = date.today()
+
+        # Create audit entry
+        audit_entry = models.PIPAudit(
+            pip_id=milestone.pip_id,
+            action="Milestone Status Changed",
+            field_changed=milestone.milestone_title,
+            old_value=old_status,
+            new_value=update_data.status,
+            created_at=datetime.now()
+        )
+        db.add(audit_entry)
+
+    if update_data.notes:
+        milestone.notes = update_data.notes
+
+    milestone.updated_at = datetime.now()
+    db.commit()
+    db.refresh(milestone)
+
+    return {
+        "id": milestone.id,
+        "milestone_title": milestone.milestone_title,
+        "status": milestone.status,
+        "message": "Milestone updated successfully"
+    }
+
+
+# ============================================================================
+# PIP DOCUMENTS
+# ============================================================================
+
+from fastapi import UploadFile, File, Form
+from fastapi.responses import FileResponse
+import os
+import shutil
+
+PIP_DOCUMENTS_DIR = os.path.join(os.path.dirname(os.path.dirname(__file__)), "storage", "pip_documents")
+
+
+@router.post("/pips/{pip_id}/documents")
+async def upload_pip_document(
+    pip_id: int,
+    file: UploadFile = File(...),
+    document_type: str = Form("Supporting Document"),
+    db: Session = Depends(get_db)
+):
+    """
+    Upload a document for a PIP
+    """
+    pip = db.query(models.PerformanceImprovementPlan).filter(
+        models.PerformanceImprovementPlan.id == pip_id
+    ).first()
+
+    if not pip:
+        raise HTTPException(status_code=404, detail="PIP not found")
+
+    # Create directory if it doesn't exist
+    os.makedirs(PIP_DOCUMENTS_DIR, exist_ok=True)
+
+    # Generate unique filename
+    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+    safe_filename = f"PIP_{pip_id}_{timestamp}_{file.filename}"
+    file_path = os.path.join(PIP_DOCUMENTS_DIR, safe_filename)
+
+    # Save file
+    with open(file_path, "wb") as buffer:
+        shutil.copyfileobj(file.file, buffer)
+
+    # Get file size
+    file_size = os.path.getsize(file_path)
+
+    # Create document record
+    new_document = models.PIPDocument(
+        pip_id=pip_id,
+        document_name=file.filename,
+        document_type=document_type,
+        file_path=file_path,
+        file_size=file_size,
+        uploaded_at=datetime.now()
+    )
+    db.add(new_document)
+
+    # Create audit entry
+    audit_entry = models.PIPAudit(
+        pip_id=pip_id,
+        action="Document Uploaded",
+        new_value=f"{file.filename} ({document_type})",
+        created_at=datetime.now()
+    )
+    db.add(audit_entry)
+
+    db.commit()
+    db.refresh(new_document)
+
+    return {
+        "id": new_document.id,
+        "document_name": new_document.document_name,
+        "document_type": new_document.document_type,
+        "message": "Document uploaded successfully"
+    }
+
+
+@router.get("/pips/documents/{document_id}/download")
+def download_pip_document(document_id: int, db: Session = Depends(get_db)):
+    """
+    Download a PIP document
+    """
+    document = db.query(models.PIPDocument).filter(
+        models.PIPDocument.id == document_id
+    ).first()
+
+    if not document:
+        raise HTTPException(status_code=404, detail="Document not found")
+
+    if not os.path.exists(document.file_path):
+        raise HTTPException(status_code=404, detail="File not found on server")
+
+    return FileResponse(
+        document.file_path,
+        filename=document.document_name,
+        media_type="application/octet-stream"
+    )
+
+
+@router.delete("/pips/documents/{document_id}")
+def delete_pip_document(document_id: int, db: Session = Depends(get_db)):
+    """
+    Delete a PIP document
+    """
+    document = db.query(models.PIPDocument).filter(
+        models.PIPDocument.id == document_id
+    ).first()
+
+    if not document:
+        raise HTTPException(status_code=404, detail="Document not found")
+
+    pip_id = document.pip_id
+    document_name = document.document_name
+
+    # Delete file if it exists
+    if os.path.exists(document.file_path):
+        os.remove(document.file_path)
+
+    # Delete record
+    db.delete(document)
+
+    # Create audit entry
+    audit_entry = models.PIPAudit(
+        pip_id=pip_id,
+        action="Document Deleted",
+        old_value=document_name,
+        created_at=datetime.now()
+    )
+    db.add(audit_entry)
+
+    db.commit()
+
+    return {
+        "id": document_id,
+        "message": "Document deleted successfully"
     }

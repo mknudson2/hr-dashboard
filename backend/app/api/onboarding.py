@@ -1,12 +1,18 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
-from sqlalchemy import func
+from sqlalchemy import func, text
 from datetime import datetime, date, timedelta
 from typing import List, Optional
 from pydantic import BaseModel
 from app.db import models, database
+from app.api.auth import get_current_user
+from app.api.settings import create_employee_folder
 
-router = APIRouter(prefix="/onboarding", tags=["onboarding"])
+router = APIRouter(
+    prefix="/onboarding",
+    tags=["onboarding"],
+    dependencies=[Depends(get_current_user)]  # Require authentication for all endpoints
+)
 
 
 # ============================================================================
@@ -286,7 +292,7 @@ def bulk_create_tasks_from_template(
 
     # Generate new employee ID (find highest numeric ID and increment)
     max_id_result = db.execute(
-        "SELECT MAX(CAST(employee_id AS INTEGER)) FROM employees WHERE employee_id GLOB '[0-9]*'"
+        text("SELECT MAX(CAST(employee_id AS INTEGER)) FROM employees WHERE employee_id GLOB '[0-9]*'")
     ).fetchone()
     next_id = (max_id_result[0] or 1000) + 1
     employee_id = str(next_id)
@@ -383,9 +389,19 @@ def bulk_create_tasks_from_template(
 
     db.commit()
 
+    # Create employee folder if enabled in settings
+    folder_result = create_employee_folder(
+        first_name=employee_data.first_name,
+        last_name=employee_data.last_name,
+        state=employee_data.location
+    )
+
     return {
         "message": f"Created {len(created_tasks)} onboarding tasks for {employee.first_name} {employee.last_name}",
         "employee_id": employee_id,
         "tasks_created": len(created_tasks),
-        "task_names": created_tasks
+        "task_names": created_tasks,
+        "folder_created": folder_result.get("created", False),
+        "folder_path": folder_result.get("folder_path"),
+        "folder_subfolders": folder_result.get("subfolders", [])
     }

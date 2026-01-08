@@ -1,6 +1,10 @@
 """
 Payroll API endpoints
 Handles payroll periods, tasks, and processing workflow
+
+RBAC Protection: Payroll data contains sensitive financial information.
+Access is restricted to users with PAYROLL_READ or PAYROLL_WRITE permissions.
+Roles with access: admin, payroll
 """
 
 from fastapi import APIRouter, Depends, HTTPException, status
@@ -14,9 +18,15 @@ from pydantic import BaseModel, Field
 from ..db import models
 from ..db.database import get_db
 from .auth import get_current_user
+from ..services.rbac_service import require_permission, Permissions
 # from ..services.email_service import send_email  # TODO: Implement email sending
 
-router = APIRouter(prefix="/payroll", tags=["payroll"])
+router = APIRouter(
+    prefix="/payroll",
+    tags=["payroll"],
+    # RBAC: Require PAYROLL_READ permission for all endpoints (sensitive financial data)
+    dependencies=[Depends(require_permission(Permissions.PAYROLL_READ))]
+)
 
 
 # Pydantic Models

@@ -1,6 +1,10 @@
 """
 EEO (Equal Employment Opportunity) Reporting API
 Handles EEO-1 reporting and compliance tracking
+
+RBAC Protection: EEO data contains sensitive demographic information (race, gender, etc.).
+Access is restricted to users with EEO_READ or EEO_WRITE permissions.
+Roles with access: admin, hr
 """
 from fastapi import APIRouter, Depends, HTTPException, UploadFile, File
 from sqlalchemy.orm import Session
@@ -9,9 +13,16 @@ from typing import List, Optional, Dict
 import csv
 import io
 from app.db import models, database
+from app.api.auth import get_current_user
 from app.services.eeo_classification_service import EEOClassificationService
+from app.services.rbac_service import require_permission, Permissions
 
-router = APIRouter(prefix="/eeo", tags=["eeo"])
+router = APIRouter(
+    prefix="/eeo",
+    tags=["eeo"],
+    # RBAC: Require EEO_READ permission for all endpoints (sensitive demographic data)
+    dependencies=[Depends(require_permission(Permissions.EEO_READ))]
+)
 
 
 def get_db():

@@ -27,8 +27,13 @@ from ..db.models import (
     EmployeeLaborRate, LaborDataImport, CapitalizationPeriod,
     EmployeeCapitalizationSummary, CapitalizationAuditLog, User
 )
+from ..api.auth import get_current_user
 
-router = APIRouter(prefix="/admin", tags=["Capitalized Labor Admin"])
+router = APIRouter(
+    prefix="/admin",
+    tags=["Capitalized Labor Admin"],
+    dependencies=[Depends(get_current_user)]  # Require authentication for all endpoints
+)
 
 
 # ==================== PYDANTIC SCHEMAS ====================

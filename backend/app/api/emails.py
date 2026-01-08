@@ -5,8 +5,13 @@ from typing import List, Optional
 from sqlalchemy.orm import Session
 from app.services.email_service import email_service
 from app.db import database
+from app.api.auth import get_current_user
 
-router = APIRouter(prefix="/emails", tags=["emails"])
+router = APIRouter(
+    prefix="/emails",
+    tags=["emails"],
+    dependencies=[Depends(get_current_user)]  # Require authentication for all endpoints
+)
 
 
 # =============================================================================

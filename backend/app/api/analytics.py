@@ -5,6 +5,7 @@ from fastapi.responses import StreamingResponse
 from sqlalchemy.orm import Session
 from app.db.database import get_db
 from app.db import models
+from app.api.auth import get_current_user
 from app.services.analytics_service import (
     get_pto_utilization_by_group,
     get_average_tenure_by_group,
@@ -22,7 +23,11 @@ from app.services.analytics_service import (
 from app.services.export_service import export_employees_excel, export_employees_pdf
 from app.services.celebrations_pdf_service import CelebrationsPDFService
 
-router = APIRouter(prefix="/analytics", tags=["analytics"])
+router = APIRouter(
+    prefix="/analytics",
+    tags=["analytics"],
+    dependencies=[Depends(get_current_user)]  # Require authentication for all endpoints
+)
 
 
 @router.get("/")
@@ -232,6 +237,10 @@ def get_all_employees(db: Session = Depends(get_db)):
             "supervisor": getattr(emp, 'supervisor', None),
             "hire_date": emp.hire_date.isoformat() if emp.hire_date else None,
             "termination_date": emp.termination_date.isoformat() if emp.termination_date else None,
+            "exit_docs_sent": getattr(emp, 'exit_docs_sent', False) or False,
+            "exit_docs_sent_at": emp.exit_docs_sent_at.isoformat() if getattr(emp, 'exit_docs_sent_at', None) else None,
+            "exit_docs_sent_to": getattr(emp, 'exit_docs_sent_to', None),
+            "exit_docs_attachment_count": getattr(emp, 'exit_docs_attachment_count', None),
             "status": emp.status,
             "type": emp.type,
             "location": emp.location,
@@ -304,6 +313,10 @@ def get_employee_details(employee_id: str, db: Session = Depends(get_db)):
         "hire_date": employee.hire_date.isoformat() if employee.hire_date else None,
         "termination_date": employee.termination_date.isoformat() if employee.termination_date else None,
         "termination_type": employee.termination_type,
+        "exit_docs_sent": getattr(employee, 'exit_docs_sent', False) or False,
+        "exit_docs_sent_at": employee.exit_docs_sent_at.isoformat() if getattr(employee, 'exit_docs_sent_at', None) else None,
+        "exit_docs_sent_to": getattr(employee, 'exit_docs_sent_to', None),
+        "exit_docs_attachment_count": getattr(employee, 'exit_docs_attachment_count', None),
         "tenure_years": tenure_years,
         "wage": employee.wage,
         "wage_type": employee.wage_type,

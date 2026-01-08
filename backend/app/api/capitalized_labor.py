@@ -12,8 +12,11 @@ from ..db.models import (
     PayrollBatch, PayrollBatchLineItem, CapitalizationCalculation,
     CapitalizationAuditLog, Employee, User
 )
+from ..api.auth import get_current_user
 
-router = APIRouter()
+router = APIRouter(
+    dependencies=[Depends(get_current_user)]  # Require authentication for all endpoints
+)
 
 
 # ==================== PYDANTIC SCHEMAS ====================

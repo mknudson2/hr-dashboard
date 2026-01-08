@@ -5,8 +5,13 @@ from datetime import datetime, date
 from typing import List, Optional
 from pydantic import BaseModel
 from app.db import models, database
+from app.api.auth import get_current_user
 
-router = APIRouter(prefix="/equipment", tags=["equipment"])
+router = APIRouter(
+    prefix="/equipment",
+    tags=["equipment"],
+    dependencies=[Depends(get_current_user)]  # Require authentication for all endpoints
+)
 
 
 # ============================================================================
@@ -35,9 +40,14 @@ class EquipmentUpdate(BaseModel):
     category: Optional[str] = None
     manufacturer: Optional[str] = None
     model: Optional[str] = None
+    serial_number: Optional[str] = None
+    asset_tag: Optional[str] = None
     status: Optional[str] = None
     condition: Optional[str] = None
     location: Optional[str] = None
+    purchase_date: Optional[date] = None
+    purchase_price: Optional[float] = None
+    warranty_expiration: Optional[date] = None
     notes: Optional[str] = None
 
 
@@ -55,6 +65,20 @@ class EquipmentAssignmentReturn(BaseModel):
     returned_date: date
     condition_at_return: str
     return_notes: Optional[str] = None
+
+
+class ReturnTrackingUpdate(BaseModel):
+    return_requested: Optional[bool] = None
+    return_requested_date: Optional[date] = None
+    return_requested_by: Optional[str] = None
+    shipping_label_requested: Optional[bool] = None
+    shipping_label_sent: Optional[bool] = None
+    shipping_label_sent_date: Optional[date] = None
+    shipping_label_tracking: Optional[str] = None
+    equipment_received: Optional[bool] = None
+    equipment_received_date: Optional[date] = None
+    received_by: Optional[str] = None
+    equipment_condition_checklist: Optional[str] = None  # JSON string
 
 
 # ============================================================================
@@ -239,12 +263,22 @@ def update_equipment(
         equipment.manufacturer = equipment_update.manufacturer
     if equipment_update.model is not None:
         equipment.model = equipment_update.model
+    if equipment_update.serial_number is not None:
+        equipment.serial_number = equipment_update.serial_number
+    if equipment_update.asset_tag is not None:
+        equipment.asset_tag = equipment_update.asset_tag
     if equipment_update.status is not None:
         equipment.status = equipment_update.status
     if equipment_update.condition is not None:
         equipment.condition = equipment_update.condition
     if equipment_update.location is not None:
         equipment.location = equipment_update.location
+    if equipment_update.purchase_date is not None:
+        equipment.purchase_date = equipment_update.purchase_date
+    if equipment_update.purchase_price is not None:
+        equipment.purchase_price = equipment_update.purchase_price
+    if equipment_update.warranty_expiration is not None:
+        equipment.warranty_expiration = equipment_update.warranty_expiration
     if equipment_update.notes is not None:
         equipment.notes = equipment_update.notes
 
@@ -257,6 +291,41 @@ def update_equipment(
         "id": equipment.id,
         "equipment_id": equipment.equipment_id,
         "message": "Equipment updated successfully"
+    }
+
+
+@router.delete("/{equipment_id}")
+def delete_equipment(equipment_id: int, db: Session = Depends(database.get_db)):
+    """Delete a piece of equipment"""
+    equipment = db.query(models.Equipment).filter(models.Equipment.id == equipment_id).first()
+
+    if not equipment:
+        raise HTTPException(status_code=404, detail="Equipment not found")
+
+    # Check if equipment has active assignments
+    active_assignment = db.query(models.EquipmentAssignment).filter(
+        models.EquipmentAssignment.equipment_id == equipment_id,
+        models.EquipmentAssignment.status == "Active"
+    ).first()
+
+    if active_assignment:
+        raise HTTPException(
+            status_code=400,
+            detail="Cannot delete equipment with active assignments. Return the equipment first."
+        )
+
+    # Delete all assignment history for this equipment
+    db.query(models.EquipmentAssignment).filter(
+        models.EquipmentAssignment.equipment_id == equipment_id
+    ).delete()
+
+    # Delete the equipment
+    db.delete(equipment)
+    db.commit()
+
+    return {
+        "id": equipment_id,
+        "message": "Equipment deleted successfully"
     }
 
 
@@ -399,4 +468,194 @@ def return_equipment(
         "assignment_id": assignment.assignment_id,
         "status": assignment.status,
         "message": "Equipment returned successfully"
+    }
+
+
+@router.post("/assignments/{assignment_id}/unassign")
+def unassign_equipment(
+    assignment_id: int,
+    db: Session = Depends(database.get_db)
+):
+    """Unassign equipment without full return process (for reassignment)"""
+    assignment = db.query(models.EquipmentAssignment).filter(
+        models.EquipmentAssignment.id == assignment_id
+    ).first()
+
+    if not assignment:
+        raise HTTPException(status_code=404, detail="Assignment not found")
+
+    if assignment.status != "Active":
+        raise HTTPException(status_code=400, detail="Assignment is not active")
+
+    # Update assignment
+    assignment.returned_date = datetime.now().date()
+    assignment.status = "Returned"
+    assignment.return_notes = "Unassigned for reassignment"
+    assignment.updated_at = datetime.now()
+
+    # Update equipment status to Available
+    equipment = db.query(models.Equipment).filter(
+        models.Equipment.id == assignment.equipment_id
+    ).first()
+
+    if equipment:
+        equipment.status = "Available"
+        equipment.updated_at = datetime.now()
+
+    db.commit()
+
+    return {
+        "id": assignment.id,
+        "assignment_id": assignment.assignment_id,
+        "status": "Returned",
+        "message": "Equipment unassigned successfully"
+    }
+
+
+@router.get("/assignments/{assignment_id}")
+def get_assignment_detail(assignment_id: int, db: Session = Depends(database.get_db)):
+    """Get detailed information about a specific equipment assignment"""
+    assignment = db.query(models.EquipmentAssignment).filter(
+        models.EquipmentAssignment.id == assignment_id
+    ).first()
+
+    if not assignment:
+        raise HTTPException(status_code=404, detail="Assignment not found")
+
+    # Get employee info
+    employee = db.query(models.Employee).filter(
+        models.Employee.employee_id == assignment.employee_id
+    ).first()
+
+    # Get equipment info
+    equipment = db.query(models.Equipment).filter(
+        models.Equipment.id == assignment.equipment_id
+    ).first()
+
+    # Check if employee is terminated
+    is_terminated = employee.status == "Terminated" if employee else False
+
+    return {
+        "assignment": assignment,
+        "employee": employee,
+        "equipment": equipment,
+        "is_terminated": is_terminated
+    }
+
+
+@router.patch("/assignments/{assignment_id}/return-tracking")
+def update_return_tracking(
+    assignment_id: int,
+    tracking_data: ReturnTrackingUpdate,
+    db: Session = Depends(database.get_db)
+):
+    """Update return tracking information for an equipment assignment"""
+    assignment = db.query(models.EquipmentAssignment).filter(
+        models.EquipmentAssignment.id == assignment_id
+    ).first()
+
+    if not assignment:
+        raise HTTPException(status_code=404, detail="Assignment not found")
+
+    # Update tracking fields
+    if tracking_data.return_requested is not None:
+        assignment.return_requested = tracking_data.return_requested
+    if tracking_data.return_requested_date is not None:
+        assignment.return_requested_date = tracking_data.return_requested_date
+    if tracking_data.return_requested_by is not None:
+        assignment.return_requested_by = tracking_data.return_requested_by
+    if tracking_data.shipping_label_requested is not None:
+        assignment.shipping_label_requested = tracking_data.shipping_label_requested
+    if tracking_data.shipping_label_sent is not None:
+        assignment.shipping_label_sent = tracking_data.shipping_label_sent
+    if tracking_data.shipping_label_sent_date is not None:
+        assignment.shipping_label_sent_date = tracking_data.shipping_label_sent_date
+    if tracking_data.shipping_label_tracking is not None:
+        assignment.shipping_label_tracking = tracking_data.shipping_label_tracking
+    if tracking_data.equipment_received is not None:
+        assignment.equipment_received = tracking_data.equipment_received
+    if tracking_data.equipment_received_date is not None:
+        assignment.equipment_received_date = tracking_data.equipment_received_date
+    if tracking_data.received_by is not None:
+        assignment.received_by = tracking_data.received_by
+    if tracking_data.equipment_condition_checklist is not None:
+        assignment.equipment_condition_checklist = tracking_data.equipment_condition_checklist
+
+    assignment.updated_at = datetime.now()
+    db.commit()
+    db.refresh(assignment)
+
+    return {
+        "id": assignment.id,
+        "assignment_id": assignment.assignment_id,
+        "message": "Return tracking updated successfully"
+    }
+
+
+@router.get("/employee/{employee_id}/assignments")
+def get_employee_equipment(employee_id: str, db: Session = Depends(database.get_db)):
+    """Get all equipment assignments for a specific employee"""
+    # Verify employee exists
+    employee = db.query(models.Employee).filter(
+        models.Employee.employee_id == employee_id
+    ).first()
+
+    if not employee:
+        raise HTTPException(status_code=404, detail="Employee not found")
+
+    # Get all assignments
+    assignments = db.query(models.EquipmentAssignment).filter(
+        models.EquipmentAssignment.employee_id == employee_id
+    ).order_by(models.EquipmentAssignment.assigned_date.desc()).all()
+
+    result = []
+    for assignment in assignments:
+        equipment = db.query(models.Equipment).filter(
+            models.Equipment.id == assignment.equipment_id
+        ).first()
+
+        result.append({
+            "assignment": assignment,
+            "equipment": equipment
+        })
+
+    return {
+        "employee": employee,
+        "assignments": result,
+        "total": len(result),
+        "is_terminated": employee.status == "Terminated"
+    }
+
+
+@router.get("/terminated-employees")
+def get_terminated_employee_equipment(db: Session = Depends(database.get_db)):
+    """Get equipment assigned to terminated employees that needs to be returned"""
+    # Find terminated employees with active equipment assignments
+    terminated_employees = db.query(models.Employee).filter(
+        models.Employee.status == "Terminated"
+    ).all()
+
+    result = []
+    for employee in terminated_employees:
+        # Get active assignments for this employee
+        active_assignments = db.query(models.EquipmentAssignment).filter(
+            models.EquipmentAssignment.employee_id == employee.employee_id,
+            models.EquipmentAssignment.status == "Active"
+        ).all()
+
+        if active_assignments:
+            for assignment in active_assignments:
+                equipment = db.query(models.Equipment).filter(
+                    models.Equipment.id == assignment.equipment_id
+                ).first()
+
+                result.append({
+                    "employee": employee,
+                    "assignment": assignment,
+                    "equipment": equipment
+                })
+
+    return {
+        "pending_returns": result,
+        "total": len(result)
     }

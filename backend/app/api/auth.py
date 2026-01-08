@@ -11,13 +11,30 @@ import qrcode
 import io
 import base64
 import json
+import os
+from dotenv import load_dotenv
+from slowapi import Limiter
+from slowapi.util import get_remote_address
 from app.db import models, database
+from app.services.audit_service import audit_service
+
+# Load environment variables early to ensure JWT_SECRET_KEY is available
+load_dotenv()
+
+# Rate limiter for auth endpoints - stricter limits to prevent brute force
+limiter = Limiter(key_func=get_remote_address)
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 security = HTTPBearer()
 
-# JWT Configuration
-SECRET_KEY = "your-secret-key-change-in-production-2024"  # Change this!
+# JWT Configuration - reads from environment variable
+SECRET_KEY = os.getenv("JWT_SECRET_KEY")
+if not SECRET_KEY:
+    raise RuntimeError(
+        "JWT_SECRET_KEY environment variable is not set. "
+        "Please set it in your .env file. "
+        "Generate with: python -c \"import secrets; print(secrets.token_hex(32))\""
+    )
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_HOURS = 24
 
@@ -103,33 +120,25 @@ def get_current_user(
     """Get the current authenticated user from JWT token."""
     token = credentials.credentials
 
-    print(f"🔍 DEBUG: Token received: {token[:50]}...")
-
     try:
         payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
-        print(f"✅ DEBUG: Token decoded successfully. Payload: {payload}")
         username: str = payload.get("sub")
         if username is None:
-            print("❌ DEBUG: No 'sub' in payload")
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
                 detail="Could not validate credentials"
             )
-        print(f"👤 DEBUG: Username from token: {username}")
     except jwt.ExpiredSignatureError:
-        print("⏰ DEBUG: Token expired")
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Token has expired"
         )
-    except jwt.exceptions.DecodeError as e:
-        print(f"🔥 DEBUG: DecodeError: {str(e)}")
+    except jwt.exceptions.DecodeError:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Could not validate credentials"
         )
-    except Exception as e:
-        print(f"💥 DEBUG: Unexpected error: {type(e).__name__}: {str(e)}")
+    except Exception:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Could not validate credentials"
@@ -173,9 +182,10 @@ def require_role(required_role: str):
 # ============================================================================
 
 @router.post("/login", response_model=LoginResponse)
+@limiter.limit("5/minute")  # Strict limit: 5 login attempts per minute per IP
 def login(
+    request: Request,  # Required for rate limiter - must be first parameter
     login_data: LoginRequest,
-    request: Request,
     db: Session = Depends(get_db)
 ):
     """Authenticate user and return JWT token."""
@@ -186,12 +196,16 @@ def login(
     ).first()
 
     if not user or not verify_password(login_data.password, user.password_hash):
+        # Audit log: failed login
+        audit_service.log_login_failed(db, login_data.username, request, "Invalid credentials")
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Incorrect username or password"
         )
 
     if not user.is_active:
+        # Audit log: failed login - inactive account
+        audit_service.log_login_failed(db, login_data.username, request, "Account inactive")
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="User account is inactive"
@@ -220,6 +234,8 @@ def login(
         if not totp.verify(login_data.totp_code, valid_window=1):
             # Check if it's a backup code
             if not verify_backup_code(user, login_data.totp_code, db):
+                # Audit log: failed 2FA
+                audit_service.log_2fa_verify_failed(db, user, request)
                 raise HTTPException(
                     status_code=status.HTTP_401_UNAUTHORIZED,
                     detail="Invalid 2FA code"
@@ -244,6 +260,9 @@ def login(
     user.last_login = datetime.utcnow()
     db.commit()
 
+    # Audit log: successful login
+    audit_service.log_login_success(db, user, request)
+
     # Check if user needs to set up 2FA (not enabled yet)
     requires_2fa_setup = not user.totp_enabled
 
@@ -266,6 +285,7 @@ def login(
 
 @router.post("/logout")
 def logout(
+    request: Request,
     current_user: models.User = Depends(get_current_user),
     credentials: HTTPAuthorizationCredentials = Depends(security),
     db: Session = Depends(get_db)
@@ -282,6 +302,9 @@ def logout(
     if session:
         db.delete(session)
         db.commit()
+
+    # Audit log: logout
+    audit_service.log_logout(db, current_user, request)
 
     return {"message": "Successfully logged out"}
 
@@ -355,7 +378,9 @@ def verify_backup_code(user: models.User, code: str, db: Session) -> bool:
 # ============================================================================
 
 @router.post("/2fa/setup", response_model=TwoFASetupResponse)
+@limiter.limit("3/minute")  # Limit 2FA setup attempts
 def setup_2fa(
+    request: Request,  # Required for rate limiter
     current_user: models.User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
@@ -403,7 +428,9 @@ def setup_2fa(
 
 
 @router.post("/2fa/verify")
+@limiter.limit("5/minute")  # Limit 2FA verification attempts
 def verify_2fa_setup(
+    request: Request,  # Required for rate limiter
     verify_data: TwoFAVerifyRequest,
     current_user: models.User = Depends(get_current_user),
     db: Session = Depends(get_db)
@@ -428,11 +455,16 @@ def verify_2fa_setup(
     current_user.totp_enabled = True
     db.commit()
 
+    # Audit log: 2FA enabled
+    audit_service.log_2fa_enabled(db, current_user, request)
+
     return {"message": "2FA enabled successfully"}
 
 
 @router.post("/2fa/disable")
+@limiter.limit("3/minute")  # Limit 2FA disable attempts (requires password)
 def disable_2fa(
+    request: Request,  # Required for rate limiter
     current_password: str,
     current_user: models.User = Depends(get_current_user),
     db: Session = Depends(get_db)
@@ -452,6 +484,9 @@ def disable_2fa(
     current_user.backup_codes = None
     db.commit()
 
+    # Audit log: 2FA disabled
+    audit_service.log_2fa_disabled(db, current_user, request)
+
     return {"message": "2FA disabled successfully"}
 
 
@@ -465,7 +500,9 @@ def get_2fa_status(current_user: models.User = Depends(get_current_user)):
 
 
 @router.post("/2fa/regenerate-backup-codes")
+@limiter.limit("3/minute")  # Limit backup code regeneration (requires password)
 def regenerate_backup_codes(
+    request: Request,  # Required for rate limiter
     current_password: str,
     current_user: models.User = Depends(get_current_user),
     db: Session = Depends(get_db)
@@ -497,7 +534,9 @@ def regenerate_backup_codes(
 
 
 @router.post("/change-password")
+@limiter.limit("3/minute")  # Limit password change attempts
 def change_password(
+    request: Request,  # Required for rate limiter
     password_data: ChangePasswordRequest,
     current_user: models.User = Depends(get_current_user),
     db: Session = Depends(get_db)
@@ -536,6 +575,9 @@ def change_password(
     current_user.updated_at = datetime.utcnow()
     db.commit()
 
+    # Audit log: password change
+    audit_service.log_password_change(db, current_user, request)
+
     return {"message": "Password changed successfully"}
 
 
@@ -552,7 +594,9 @@ def require_role(role: str):
 
 
 @router.post("/admin/reset-2fa/{user_id}")
+@limiter.limit("10/minute")  # Admin operations - moderate limit
 def admin_reset_2fa(
+    request: Request,  # Required for rate limiter
     user_id: int,
     current_user: models.User = Depends(require_role("admin")),
     db: Session = Depends(get_db)
@@ -574,5 +618,8 @@ def admin_reset_2fa(
     target_user.backup_codes = None
     target_user.updated_at = datetime.utcnow()
     db.commit()
+
+    # Audit log: admin reset 2FA
+    audit_service.log_2fa_admin_reset(db, current_user, target_user, request)
 
     return {"message": f"2FA has been reset for {target_user.full_name}"}
