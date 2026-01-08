@@ -15,6 +15,7 @@ from app.db import models, database
 from app.api.auth import get_current_user
 from app.services.audit_service import audit_service
 from app.services.rbac_service import require_permission, Permissions
+from app.services.password_service import password_service
 
 router = APIRouter(
     prefix="/users",
@@ -203,6 +204,18 @@ def create_user(
             detail=f"Invalid role. Must be one of: {', '.join(valid_roles)}"
         )
 
+    # Validate password strength (NIST 800-63B compliance)
+    is_valid, error = password_service.validate_password(
+        user_data.password,
+        username=user_data.username,
+        email=user_data.email
+    )
+    if not is_valid:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=error
+        )
+
     # Hash password
     password_hash = hash_password(user_data.password)
 
@@ -360,10 +373,36 @@ def reset_user_password(
             detail="User not found"
         )
 
+    # Validate password strength (NIST 800-63B compliance)
+    is_valid, error = password_service.validate_password(
+        password_data.new_password,
+        username=user.username,
+        email=user.email
+    )
+    if not is_valid:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=error
+        )
+
+    # Check password history (prevent reuse)
+    is_valid, error = password_service.check_password_history(
+        db, user.id, password_data.new_password
+    )
+    if not is_valid:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=error
+        )
+
+    # Add old password to history before updating
+    password_service.add_to_password_history(db, user.id, user.password_hash)
+
     # Hash new password
     new_password_hash = hash_password(password_data.new_password)
 
     user.password_hash = new_password_hash
+    user.password_must_change = True  # Force user to change password on next login
     user.updated_at = datetime.utcnow()
     db.commit()
 

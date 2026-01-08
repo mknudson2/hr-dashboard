@@ -1,18 +1,31 @@
 """
 Test FMLA API Endpoints
 Tests the complete API flow for FMLA notice generation
+
+SECURITY NOTE: Never hardcode credentials in source code.
+Set environment variables before running:
+  export TEST_USERNAME=admin
+  export TEST_PASSWORD=your_password
 """
 
+import os
 import requests
 import json
 from datetime import date, timedelta
 
 # API base URL
-BASE_URL = "http://localhost:8000"
+BASE_URL = os.getenv("TEST_API_URL", "http://localhost:8000")
 
-# Test credentials (you may need to adjust these)
-USERNAME = "admin"
-PASSWORD = "admin123"  # Replace with actual password
+# Test credentials from environment variables (NEVER hardcode)
+USERNAME = os.getenv("TEST_USERNAME")
+PASSWORD = os.getenv("TEST_PASSWORD")
+
+if not USERNAME or not PASSWORD:
+    print("ERROR: Test credentials not set.")
+    print("Please set environment variables:")
+    print("  export TEST_USERNAME=your_username")
+    print("  export TEST_PASSWORD=your_password")
+    exit(1)
 
 
 def test_fmla_api():

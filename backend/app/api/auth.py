@@ -19,6 +19,8 @@ from slowapi.util import get_remote_address
 from app.db import models, database
 from app.services.audit_service import audit_service
 from app.services.token_blacklist_service import token_blacklist_service
+from app.services.password_service import password_service
+from app.services.csrf_service import csrf_service
 
 # Load environment variables early to ensure JWT_SECRET_KEY is available
 load_dotenv()
@@ -177,6 +179,28 @@ def get_current_user(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Token has been revoked"
         )
+
+    # Check session idle timeout
+    session = db.query(models.Session).filter(models.Session.token == token).first()
+    if session:
+        idle_timeout_minutes = int(os.getenv("SESSION_IDLE_TIMEOUT_MINUTES", "30"))
+        if session.last_activity:
+            idle_duration = datetime.utcnow() - session.last_activity
+            if idle_duration.total_seconds() > (idle_timeout_minutes * 60):
+                # Session has been idle too long - invalidate it
+                db.delete(session)
+                db.commit()
+                token_blacklist_service.blacklist_token(
+                    db, token, session.expires_at, session.user_id, "idle_timeout"
+                )
+                raise HTTPException(
+                    status_code=status.HTTP_401_UNAUTHORIZED,
+                    detail="Session expired due to inactivity"
+                )
+
+        # Update last activity timestamp (sliding window)
+        session.last_activity = datetime.utcnow()
+        db.commit()
 
     user = db.query(models.User).filter(models.User.username == username).first()
     if user is None:
@@ -363,6 +387,9 @@ def login(
         path="/"
     )
 
+    # Set CSRF token cookie (for double-submit cookie pattern)
+    csrf_service.set_csrf_token(response)
+
     return response
 
 
@@ -413,6 +440,9 @@ def logout(
     response = JSONResponse(content={"message": "Successfully logged out"})
     response.delete_cookie(key="access_token", path="/")
 
+    # Clear CSRF token cookie
+    csrf_service.clear_csrf_token(response)
+
     return response
 
 
@@ -441,6 +471,28 @@ def verify_token(current_user: models.User = Depends(get_current_user)):
             "role": current_user.role
         }
     }
+
+
+@router.get("/csrf-token")
+def get_csrf_token(current_user: models.User = Depends(get_current_user)):
+    """
+    Get a new CSRF token.
+
+    This endpoint refreshes the CSRF token cookie and returns the token value.
+    The frontend should call this when the CSRF token expires or on page load.
+
+    The token is set both in:
+    - A cookie (csrf_token) - for double-submit validation
+    - The response body - for the frontend to include in X-CSRF-Token header
+    """
+    response = JSONResponse(content={"message": "CSRF token refreshed"})
+    csrf_token = csrf_service.set_csrf_token(response)
+
+    # Also include token in response body for frontend to access
+    return JSONResponse(
+        content={"csrf_token": csrf_token},
+        headers=dict(response.headers)
+    )
 
 
 # ============================================================================
@@ -657,17 +709,32 @@ def change_password(
             detail="Current password is incorrect"
         )
 
-    # Validate new password
-    if len(password_data.new_password) < 8:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="New password must be at least 8 characters"
-        )
-
     if password_data.new_password == password_data.current_password:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="New password must be different from current password"
+        )
+
+    # Validate password strength using comprehensive policy (NIST 800-63B)
+    is_valid, error = password_service.validate_password(
+        password_data.new_password,
+        username=current_user.username,
+        email=current_user.email
+    )
+    if not is_valid:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=error
+        )
+
+    # Check password history (prevent reuse of recent passwords)
+    is_valid, error = password_service.check_password_history(
+        db, current_user.id, password_data.new_password
+    )
+    if not is_valid:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=error
         )
 
     # Hash new password
@@ -675,6 +742,9 @@ def change_password(
         password_data.new_password.encode('utf-8'),
         bcrypt.gensalt()
     ).decode('utf-8')
+
+    # Add old password to history before updating
+    password_service.add_to_password_history(db, current_user.id, current_user.password_hash)
 
     # Update password and clear password_must_change flag
     current_user.password_hash = new_password_hash
@@ -686,6 +756,12 @@ def change_password(
     audit_service.log_password_change(db, current_user, request)
 
     return {"message": "Password changed successfully"}
+
+
+@router.get("/password-requirements")
+def get_password_requirements():
+    """Get password requirements for display to users."""
+    return password_service.get_password_requirements()
 
 
 def require_role(role: str):

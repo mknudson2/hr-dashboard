@@ -1404,6 +1404,7 @@ class Session(Base):
     token = Column(String, unique=True, nullable=False, index=True)
     expires_at = Column(DateTime, nullable=False)
     created_at = Column(DateTime, server_default=func.now())
+    last_activity = Column(DateTime, server_default=func.now())  # For idle timeout tracking
     ip_address = Column(String, nullable=True)
     user_agent = Column(String, nullable=True)
 
@@ -1421,6 +1422,19 @@ class TokenBlacklist(Base):
     expires_at = Column(DateTime, nullable=False)  # When token would have expired
     user_id = Column(Integer, ForeignKey("users.id"), nullable=True)
     reason = Column(String(100), default="logout")  # logout, password_change, admin_revoke
+
+
+class PasswordHistory(Base):
+    """Password history for preventing password reuse (security compliance)."""
+    __tablename__ = "password_history"
+
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
+    password_hash = Column(String(255), nullable=False)
+    created_at = Column(DateTime, server_default=func.now())
+
+    # Relationship
+    user = relationship("User", backref="password_history")
 
 
 # ============================================================================

@@ -11,6 +11,7 @@ from app.db import models, database, crud
 from app.api import analytics, employees, notifications, fmla, garnishments, turnover, events, compensation, market_data, performance, onboarding, offboarding, equipment, contribution_limits, pto, auth, users, aca, eeo, settings, emails, file_uploads, sftp, payroll, capitalized_labor, capitalized_labor_admin, roles
 from app.services.scheduler import start_scheduler, stop_scheduler
 from app.services.scheduler_service import scheduler as sftp_scheduler
+from app.services.csrf_service import csrf_service, should_validate_csrf
 from contextlib import asynccontextmanager
 from dotenv import load_dotenv
 import os
@@ -132,6 +133,31 @@ class SecurityHeadersMiddleware(BaseHTTPMiddleware):
         return response
 
 # ============================================================================
+# CSRF PROTECTION MIDDLEWARE
+# ============================================================================
+class CSRFProtectionMiddleware(BaseHTTPMiddleware):
+    """
+    Middleware to validate CSRF tokens on state-changing requests.
+
+    Implements double-submit cookie pattern:
+    - A csrf_token cookie is set on login
+    - Frontend must include the same token in X-CSRF-Token header
+    - Server validates both match on POST/PUT/PATCH/DELETE requests
+    """
+
+    async def dispatch(self, request: Request, call_next):
+        if should_validate_csrf(request):
+            is_valid, error = csrf_service.validate_request(request)
+            if not is_valid:
+                return JSONResponse(
+                    status_code=403,
+                    content={"detail": f"CSRF validation failed: {error}"}
+                )
+
+        return await call_next(request)
+
+
+# ============================================================================
 # RATE LIMITING CONFIGURATION
 # ============================================================================
 # Rate limiter using client IP address as the key
@@ -189,11 +215,17 @@ app.add_middleware(
     # Restrict to specific HTTP methods instead of "*"
     allow_methods=["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
     # Restrict to specific headers instead of "*"
-    allow_headers=["Authorization", "Content-Type", "X-Requested-With", "Accept"],
+    # Include X-CSRF-Token for CSRF protection
+    allow_headers=["Authorization", "Content-Type", "X-Requested-With", "Accept", "X-CSRF-Token"],
 )
 
 # Add security headers middleware (after CORS to ensure CORS headers are set first)
 app.add_middleware(SecurityHeadersMiddleware)
+
+# Add CSRF protection middleware (validates tokens on state-changing requests)
+# Note: This is optional in development but recommended for production
+if os.getenv("CSRF_PROTECTION_ENABLED", "true").lower() == "true":
+    app.add_middleware(CSRFProtectionMiddleware)
 
 # Add request size limit middleware (prevents DoS via large payloads)
 app.add_middleware(RequestSizeLimitMiddleware)
