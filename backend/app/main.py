@@ -22,6 +22,43 @@ load_dotenv()
 # ============================================================================
 # SECURITY HEADERS MIDDLEWARE
 # ============================================================================
+class RequestSizeLimitMiddleware(BaseHTTPMiddleware):
+    """Middleware to limit request body size to prevent DoS attacks."""
+
+    # Default: 10MB for most requests, 50MB for file uploads
+    DEFAULT_MAX_SIZE = 10 * 1024 * 1024  # 10MB
+    FILE_UPLOAD_MAX_SIZE = 50 * 1024 * 1024  # 50MB
+
+    # Paths that allow larger uploads
+    FILE_UPLOAD_PATHS = frozenset({
+        "/file-uploads/",
+        "/employees/import",
+        "/sftp/",
+    })
+
+    async def dispatch(self, request: Request, call_next):
+        content_length = request.headers.get("content-length")
+
+        if content_length:
+            size = int(content_length)
+
+            # Determine max size based on path
+            path = request.url.path
+            is_file_upload = any(path.startswith(p) for p in self.FILE_UPLOAD_PATHS)
+            max_size = self.FILE_UPLOAD_MAX_SIZE if is_file_upload else self.DEFAULT_MAX_SIZE
+
+            if size > max_size:
+                max_mb = max_size / (1024 * 1024)
+                return JSONResponse(
+                    status_code=413,
+                    content={
+                        "detail": f"Request body too large. Maximum size is {max_mb:.0f}MB."
+                    }
+                )
+
+        return await call_next(request)
+
+
 class SecurityHeadersMiddleware(BaseHTTPMiddleware):
     """Middleware to add security headers to all responses."""
 
@@ -47,18 +84,38 @@ class SecurityHeadersMiddleware(BaseHTTPMiddleware):
         )
 
         # Content Security Policy - restrict resource loading
-        # Adjust these values based on your frontend needs
-        response.headers["Content-Security-Policy"] = (
-            "default-src 'self'; "
-            "script-src 'self' 'unsafe-inline' 'unsafe-eval'; "
-            "style-src 'self' 'unsafe-inline'; "
-            "img-src 'self' data: blob:; "
-            "font-src 'self' data:; "
-            "connect-src 'self' http://localhost:* ws://localhost:*; "
-            "frame-ancestors 'none'; "
-            "base-uri 'self'; "
-            "form-action 'self'"
-        )
+        # Production: Strict CSP without unsafe-inline/unsafe-eval
+        # Development: Relaxed CSP to support HMR and dev tools
+        is_production = os.getenv("ENVIRONMENT", "development").lower() == "production"
+
+        if is_production:
+            # Production CSP: No unsafe-inline or unsafe-eval
+            # Scripts must be loaded from 'self' (bundled JS files)
+            # Styles allow 'unsafe-inline' for CSS-in-JS frameworks (Tailwind, styled-components)
+            response.headers["Content-Security-Policy"] = (
+                "default-src 'self'; "
+                "script-src 'self'; "
+                "style-src 'self' 'unsafe-inline'; "
+                "img-src 'self' data: blob:; "
+                "font-src 'self' data:; "
+                "connect-src 'self'; "
+                "frame-ancestors 'none'; "
+                "base-uri 'self'; "
+                "form-action 'self'"
+            )
+        else:
+            # Development CSP: Allow inline scripts for HMR and eval for source maps
+            response.headers["Content-Security-Policy"] = (
+                "default-src 'self'; "
+                "script-src 'self' 'unsafe-inline' 'unsafe-eval'; "
+                "style-src 'self' 'unsafe-inline'; "
+                "img-src 'self' data: blob:; "
+                "font-src 'self' data:; "
+                "connect-src 'self' http://localhost:* ws://localhost:*; "
+                "frame-ancestors 'none'; "
+                "base-uri 'self'; "
+                "form-action 'self'"
+            )
 
         # HTTP Strict Transport Security (HSTS)
         # Only enable in production when using HTTPS
@@ -112,18 +169,34 @@ app.state.limiter = limiter
 app.add_exception_handler(RateLimitExceeded, custom_rate_limit_exceeded_handler)
 app.add_middleware(SlowAPIMiddleware)
 
-# Allow frontend (Vite) requests
+# CORS Configuration
+# Production: Use environment variable for allowed origins
+# Development: Allow localhost:5173 (Vite dev server)
+is_production = os.getenv("ENVIRONMENT", "development").lower() == "production"
+
+if is_production:
+    # Production: Strict CORS with specific origins from environment
+    cors_origins = os.getenv("CORS_ORIGINS", "").split(",")
+    cors_origins = [origin.strip() for origin in cors_origins if origin.strip()]
+else:
+    # Development: Allow localhost dev servers
+    cors_origins = ["http://localhost:5173", "http://127.0.0.1:5173"]
+
 app.add_middleware(
     CORSMiddleware,
-    # Adjust if frontend runs elsewhere
-    allow_origins=["http://localhost:5173"],
+    allow_origins=cors_origins,
     allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
+    # Restrict to specific HTTP methods instead of "*"
+    allow_methods=["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
+    # Restrict to specific headers instead of "*"
+    allow_headers=["Authorization", "Content-Type", "X-Requested-With", "Accept"],
 )
 
 # Add security headers middleware (after CORS to ensure CORS headers are set first)
 app.add_middleware(SecurityHeadersMiddleware)
+
+# Add request size limit middleware (prevents DoS via large payloads)
+app.add_middleware(RequestSizeLimitMiddleware)
 
 # Create DB tables on startup
 models.Base.metadata.create_all(bind=database.engine)

@@ -1,5 +1,6 @@
-from fastapi import APIRouter, Depends, HTTPException, status, Request
+from fastapi import APIRouter, Depends, HTTPException, status, Request, Cookie
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
+from fastapi.responses import JSONResponse
 from sqlalchemy.orm import Session
 from pydantic import BaseModel
 from datetime import datetime, timedelta
@@ -17,6 +18,7 @@ from slowapi import Limiter
 from slowapi.util import get_remote_address
 from app.db import models, database
 from app.services.audit_service import audit_service
+from app.services.token_blacklist_service import token_blacklist_service
 
 # Load environment variables early to ensure JWT_SECRET_KEY is available
 load_dotenv()
@@ -25,7 +27,7 @@ load_dotenv()
 limiter = Limiter(key_func=get_remote_address)
 
 router = APIRouter(prefix="/auth", tags=["auth"])
-security = HTTPBearer()
+security = HTTPBearer(auto_error=False)  # Don't auto-error, we'll check cookie too
 
 # JWT Configuration - reads from environment variable
 SECRET_KEY = os.getenv("JWT_SECRET_KEY")
@@ -37,6 +39,10 @@ if not SECRET_KEY:
     )
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_HOURS = 24
+
+# Account lockout configuration
+MAX_FAILED_LOGIN_ATTEMPTS = 5  # Lock account after 5 failed attempts
+LOCKOUT_DURATION_MINUTES = 15  # Lock account for 15 minutes
 
 
 def get_db():
@@ -91,6 +97,14 @@ class TwoFAVerifyRequest(BaseModel):
     code: str
 
 
+class DisableTwoFARequest(BaseModel):
+    current_password: str
+
+
+class RegenerateBackupCodesRequest(BaseModel):
+    current_password: str
+
+
 # ============================================================================
 # HELPER FUNCTIONS
 # ============================================================================
@@ -114,11 +128,24 @@ def create_access_token(data: dict, expires_delta: Optional[timedelta] = None):
 
 
 def get_current_user(
-    credentials: HTTPAuthorizationCredentials = Depends(security),
+    request: Request,
+    access_token: Optional[str] = Cookie(None),
+    credentials: Optional[HTTPAuthorizationCredentials] = Depends(security),
     db: Session = Depends(get_db)
 ) -> models.User:
-    """Get the current authenticated user from JWT token."""
-    token = credentials.credentials
+    """Get the current authenticated user from JWT token (cookie or header)."""
+    # Try cookie first, then Authorization header for backwards compatibility
+    token = None
+    if access_token:
+        token = access_token
+    elif credentials:
+        token = credentials.credentials
+
+    if not token:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Not authenticated"
+        )
 
     try:
         payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
@@ -142,6 +169,13 @@ def get_current_user(
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Could not validate credentials"
+        )
+
+    # Check if token has been blacklisted (revoked on logout)
+    if token_blacklist_service.is_blacklisted(db, token):
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Token has been revoked"
         )
 
     user = db.query(models.User).filter(models.User.username == username).first()
@@ -195,7 +229,36 @@ def login(
         models.User.username == login_data.username
     ).first()
 
+    # Check if account is locked (even before verifying password)
+    if user and user.locked_until:
+        if datetime.utcnow() < user.locked_until:
+            remaining_minutes = int((user.locked_until - datetime.utcnow()).total_seconds() / 60) + 1
+            audit_service.log_login_failed(db, login_data.username, request, "Account locked")
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail=f"Account is locked due to too many failed login attempts. Try again in {remaining_minutes} minute(s)."
+            )
+        else:
+            # Lockout has expired, reset the lockout fields
+            user.locked_until = None
+            user.failed_login_attempts = 0
+            db.commit()
+
     if not user or not verify_password(login_data.password, user.password_hash):
+        # Increment failed login attempts if user exists
+        if user:
+            user.failed_login_attempts = (user.failed_login_attempts or 0) + 1
+            if user.failed_login_attempts >= MAX_FAILED_LOGIN_ATTEMPTS:
+                # Lock the account
+                user.locked_until = datetime.utcnow() + timedelta(minutes=LOCKOUT_DURATION_MINUTES)
+                db.commit()
+                audit_service.log_login_failed(db, login_data.username, request, f"Account locked after {MAX_FAILED_LOGIN_ATTEMPTS} failed attempts")
+                raise HTTPException(
+                    status_code=status.HTTP_403_FORBIDDEN,
+                    detail=f"Account has been locked due to {MAX_FAILED_LOGIN_ATTEMPTS} failed login attempts. Try again in {LOCKOUT_DURATION_MINUTES} minutes."
+                )
+            db.commit()
+
         # Audit log: failed login
         audit_service.log_login_failed(db, login_data.username, request, "Invalid credentials")
         raise HTTPException(
@@ -256,6 +319,10 @@ def login(
     )
     db.add(session)
 
+    # Reset failed login attempts on successful login
+    user.failed_login_attempts = 0
+    user.locked_until = None
+
     # Update last login
     user.last_login = datetime.utcnow()
     db.commit()
@@ -266,7 +333,8 @@ def login(
     # Check if user needs to set up 2FA (not enabled yet)
     requires_2fa_setup = not user.totp_enabled
 
-    return {
+    # Create response with token data
+    response = JSONResponse(content={
         "access_token": access_token,
         "token_type": "bearer",
         "user": {
@@ -280,33 +348,72 @@ def login(
         "requires_2fa": False,
         "password_must_change": user.password_must_change if hasattr(user, 'password_must_change') else False,
         "requires_2fa_setup": requires_2fa_setup
-    }
+    })
+
+    # Set httpOnly cookie for XSS protection
+    # secure=True in production (HTTPS), False in development
+    is_production = os.getenv("ENVIRONMENT", "development").lower() == "production"
+    response.set_cookie(
+        key="access_token",
+        value=access_token,
+        httponly=True,
+        secure=is_production,
+        samesite="lax" if not is_production else "strict",
+        max_age=86400,  # 24 hours
+        path="/"
+    )
+
+    return response
 
 
 @router.post("/logout")
 def logout(
     request: Request,
     current_user: models.User = Depends(get_current_user),
-    credentials: HTTPAuthorizationCredentials = Depends(security),
+    access_token: Optional[str] = Cookie(None),
+    credentials: Optional[HTTPAuthorizationCredentials] = Depends(security),
     db: Session = Depends(get_db)
 ):
     """Logout user and invalidate token."""
 
-    token = credentials.credentials
+    # Get token from cookie or header
+    token = None
+    if access_token:
+        token = access_token
+    elif credentials:
+        token = credentials.credentials
 
-    # Delete session
-    session = db.query(models.Session).filter(
-        models.Session.token == token
-    ).first()
+    if token:
+        # Decode token to get expiration time for blacklist
+        try:
+            payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+            expires_at = datetime.fromtimestamp(payload.get("exp"))
+        except Exception:
+            # If we can't decode, use current time (token will be cleaned up anyway)
+            expires_at = datetime.utcnow()
 
-    if session:
-        db.delete(session)
-        db.commit()
+        # Add token to blacklist to prevent reuse
+        token_blacklist_service.blacklist_token(
+            db, token, expires_at, current_user.id, "logout"
+        )
+
+        # Delete session
+        session = db.query(models.Session).filter(
+            models.Session.token == token
+        ).first()
+
+        if session:
+            db.delete(session)
+            db.commit()
 
     # Audit log: logout
     audit_service.log_logout(db, current_user, request)
 
-    return {"message": "Successfully logged out"}
+    # Create response and clear the httpOnly cookie
+    response = JSONResponse(content={"message": "Successfully logged out"})
+    response.delete_cookie(key="access_token", path="/")
+
+    return response
 
 
 @router.get("/me", response_model=UserResponse)
@@ -465,14 +572,14 @@ def verify_2fa_setup(
 @limiter.limit("3/minute")  # Limit 2FA disable attempts (requires password)
 def disable_2fa(
     request: Request,  # Required for rate limiter
-    current_password: str,
+    request_data: DisableTwoFARequest,
     current_user: models.User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
     """Disable 2FA for the current user."""
 
     # Verify password
-    if not verify_password(current_password, current_user.password_hash):
+    if not verify_password(request_data.current_password, current_user.password_hash):
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Incorrect password"
@@ -503,14 +610,14 @@ def get_2fa_status(current_user: models.User = Depends(get_current_user)):
 @limiter.limit("3/minute")  # Limit backup code regeneration (requires password)
 def regenerate_backup_codes(
     request: Request,  # Required for rate limiter
-    current_password: str,
+    request_data: RegenerateBackupCodesRequest,
     current_user: models.User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
     """Regenerate backup codes."""
 
     # Verify password
-    if not verify_password(current_password, current_user.password_hash):
+    if not verify_password(request_data.current_password, current_user.password_hash):
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Incorrect password"

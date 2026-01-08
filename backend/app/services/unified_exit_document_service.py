@@ -30,7 +30,7 @@ class UnifiedExitDocumentService:
         self.templates = {
             "important_info": os.path.join(self.template_dir, "Important Information for Terminating Employees - Fillable.pdf"),
             "conversion": os.path.join(self.template_dir, "Equitable Conversion Form - Template.pdf"),
-            # "portability": os.path.join(self.template_dir, "Equitable Portability Form - Template.pdf"),  # TODO: Add when available
+            "portability": os.path.join(self.template_dir, "Equitable Portability Form - Template.pdf"),
         }
 
     def get_unified_form_structure(self) -> Dict[str, Any]:
@@ -109,6 +109,7 @@ class UnifiedExitDocumentService:
                     "fields": [
                         {"id": "insurance_effective_date", "label": "Insurance Effective Date", "type": "date", "documents": ["conversion", "portability"]},
                         {"id": "date_insurance_terminated", "label": "Date Insurance Terminated", "type": "date", "documents": ["conversion", "portability"]},
+                        {"id": "date_optional_terminated", "label": "Date Optional Life Coverage Terminated", "type": "date", "documents": ["conversion"]},
                         {"id": "benefits_status", "label": "Benefits Status", "type": "select", "options": ["Terminated", "Reduced"], "default": "Terminated", "documents": ["conversion", "portability"]},
                     ]
                 },
@@ -136,13 +137,17 @@ class UnifiedExitDocumentService:
                         {"id": "spouse_basic_life_amount", "label": "Spouse Basic Life Amount", "type": "currency", "documents": ["conversion", "portability"]},
                         {"id": "has_child_basic_life", "label": "Child Basic Life", "type": "boolean", "default": False, "documents": ["conversion", "portability"]},
                         {"id": "child_basic_life_amount", "label": "Child Basic Life Amount", "type": "currency", "documents": ["conversion", "portability"]},
-                        # Voluntary Life
+                        # Voluntary/Opt'l Life (for Conversion form)
                         {"id": "has_employee_voluntary_life", "label": "Employee Voluntary Life", "type": "boolean", "default": False, "documents": ["conversion", "portability"]},
                         {"id": "employee_voluntary_life_amount", "label": "Employee Voluntary Life Amount", "type": "currency", "documents": ["conversion", "portability"]},
                         {"id": "has_spouse_voluntary_life", "label": "Spouse Voluntary Life", "type": "boolean", "default": False, "documents": ["conversion", "portability"]},
                         {"id": "spouse_voluntary_life_amount", "label": "Spouse Voluntary Life Amount", "type": "currency", "documents": ["conversion", "portability"]},
                         {"id": "has_child_voluntary_life", "label": "Child Voluntary Life", "type": "boolean", "default": False, "documents": ["conversion", "portability"]},
                         {"id": "child_voluntary_life_amount", "label": "Child Voluntary Life Amount", "type": "currency", "documents": ["conversion", "portability"]},
+                        # Supplemental Coverage (for Portability form)
+                        {"id": "supplemental_employee_amount", "label": "Supplemental Employee Amount", "type": "currency", "documents": ["portability"]},
+                        {"id": "supplemental_spouse_amount", "label": "Supplemental Spouse Amount", "type": "currency", "documents": ["portability"]},
+                        {"id": "supplemental_child_amount", "label": "Supplemental Child Amount", "type": "currency", "documents": ["portability"]},
                     ]
                 }
             ],
@@ -154,13 +159,13 @@ class UnifiedExitDocumentService:
                 },
                 "conversion": {
                     "name": "Equitable Life Insurance Conversion Form",
-                    "required_fields": ["employee_name", "date_of_birth", "personal_email", "personal_phone", "termination_date", "annual_salary"],
-                    "optional_fields": ["date_last_salary_increase", "insurance_effective_date", "date_insurance_terminated", "employee_basic_life_amount"]
+                    "required_fields": ["employee_name", "date_of_birth", "personal_email", "personal_phone", "ssn_full", "annual_salary", "termination_date", "insurance_effective_date", "date_last_salary_increase", "date_insurance_terminated"],
+                    "optional_fields": ["employee_voluntary_life_amount", "spouse_voluntary_life_amount", "child_voluntary_life_amount", "date_optional_terminated"]
                 },
                 "portability": {
                     "name": "Equitable Life Insurance Portability Form",
-                    "required_fields": ["employee_name", "date_of_birth", "personal_email", "personal_phone", "address_street", "address_city", "address_state", "address_zip", "termination_date", "annual_salary"],
-                    "optional_fields": ["insurance_effective_date", "employee_basic_life_amount"]
+                    "required_fields": ["employee_name", "termination_date"],
+                    "optional_fields": ["supplemental_employee_amount", "supplemental_spouse_amount", "supplemental_child_amount"]
                 }
             }
         }
@@ -225,6 +230,37 @@ class UnifiedExitDocumentService:
         buffer.seek(0)
         return buffer
 
+    def _format_date(self, date_str: str) -> str:
+        """
+        Ensure date is in MM/DD/YYYY format.
+        Handles various input formats.
+        """
+        if not date_str:
+            return ""
+
+        # If already formatted with slashes, return as-is
+        if '/' in date_str and len(date_str) == 10:
+            return date_str
+
+        # If YYYY-MM-DD format (from date inputs)
+        if '-' in date_str and len(date_str) == 10:
+            try:
+                parts = date_str.split('-')
+                if len(parts) == 3:
+                    return f"{parts[1]}/{parts[2]}/{parts[0]}"
+            except:
+                pass
+
+        # If compact format MMDDYYYY or YYYYMMDD
+        if len(date_str) == 8 and date_str.isdigit():
+            # Try MMDDYYYY
+            if int(date_str[:2]) <= 12:
+                return f"{date_str[:2]}/{date_str[2:4]}/{date_str[4:]}"
+            # Try YYYYMMDD
+            return f"{date_str[4:6]}/{date_str[6:]}/{date_str[:4]}"
+
+        return date_str
+
     def generate_conversion_form(
         self,
         form_data: Dict[str, Any],
@@ -232,8 +268,21 @@ class UnifiedExitDocumentService:
     ) -> io.BytesIO:
         """
         Generate Conversion Form by overlaying text on the template PDF.
-        Since the PDF doesn't have fillable fields, we use reportlab to create
-        text overlays at specific coordinates.
+        Uses the new Equitable Conversion Form template (E15730).
+
+        Template layout (Page 2 - index 1):
+        - Section 1: Employer Information (pre-filled)
+        - Section 2: Employee Information (fields to fill)
+        - Section 3: Coverage information (checkboxes pre-checked, amounts to fill)
+        - Section 4: Signature (name/phone pre-filled, needs date)
+
+        Fields to fill:
+        - Name of employee, Date of birth
+        - Email Address, Phone Number
+        - SSN, Basic annual salary, Date last worked, Insurance effective
+        - Date of last salary increase, Date of reduction/termination
+        - Employee/Spouse/Child Opt'l Terminated amounts (optional)
+        - Signature Date
         """
         # Read the template
         template_reader = PdfReader(self.templates["conversion"])
@@ -247,151 +296,90 @@ class UnifiedExitDocumentService:
         packet = io.BytesIO()
         c = canvas.Canvas(packet, pagesize=(page_width, page_height))
 
-        # Set font
-        c.setFont("Helvetica", 10)
+        # Set font for form fields
+        c.setFont("Helvetica", 9)
 
-        # Employee Information fields - coordinates based on PDF layout
-        # Section 2: Employee Information
+        # Employee Information - Section 2
+        # Coordinates adjusted: moved down ~33 points from initial estimates
         employee_name = form_data.get('employee_name', f"{employee.first_name} {employee.last_name}")
-        dob = form_data.get('date_of_birth', '')
-        emp_class = form_data.get('employee_class', 'Regular')
+        dob = self._format_date(form_data.get('date_of_birth', ''))
 
-        # Name of employee - approximately at line 2 of section 2
-        c.drawString(72, page_height - 265, employee_name)
-
-        # Date of birth - right side of name field
+        # Row 1: Name of employee | Date of birth | Class (Class is pre-filled as "Regular")
+        c.drawString(38, page_height - 295, employee_name)
         if dob:
-            c.drawString(400, page_height - 265, dob)
+            c.drawString(385, page_height - 295, dob)
 
-        # Class
-        c.drawString(520, page_height - 265, emp_class)
-
-        # Email address
+        # Row 2: Email Address | Phone Number
         email = form_data.get('personal_email', '') or employee.personal_email or ""
-        c.drawString(72, page_height - 290, email)
-
-        # Phone number
         phone = form_data.get('personal_phone', '') or employee.personal_phone or ""
-        c.drawString(350, page_height - 290, phone)
+        c.drawString(38, page_height - 323, email)
+        c.drawString(340, page_height - 323, phone)
 
-        # SSN - use full SSN if available, otherwise show masked version
+        # Row 3: SSN | Basic annual salary | Date last worked | Date of disability | Insurance effective
         ssn_full = form_data.get('ssn_full', '')
         ssn_last_four = form_data.get('ssn_last_four', '')
+
         if ssn_full:
-            # Clean the SSN (remove dashes if present, then format)
             ssn_digits = ssn_full.replace('-', '')
             if len(ssn_digits) == 9:
                 formatted_ssn = f"{ssn_digits[:3]}-{ssn_digits[3:5]}-{ssn_digits[5:]}"
-                c.drawString(72, page_height - 315, formatted_ssn)
+                c.drawString(38, page_height - 351, formatted_ssn)
         elif ssn_last_four:
-            c.drawString(72, page_height - 315, f"XXX-XX-{ssn_last_four}")
+            c.drawString(38, page_height - 351, f"XXX-XX-{ssn_last_four}")
 
-        # Annual salary
+        # Basic annual salary
         salary = form_data.get('annual_salary', '')
         if salary:
-            c.drawString(165, page_height - 315, f"${salary:,.2f}" if isinstance(salary, (int, float)) else salary)
+            salary_str = f"${salary:,.2f}" if isinstance(salary, (int, float)) else str(salary)
+            c.drawString(145, page_height - 351, salary_str)
 
         # Date last worked (termination date)
-        term_date = form_data.get('termination_date', '')
+        term_date = self._format_date(form_data.get('termination_date', ''))
         if term_date:
-            c.drawString(280, page_height - 315, term_date)
+            c.drawString(250, page_height - 351, term_date)
 
         # Insurance effective date
-        ins_effective = form_data.get('insurance_effective_date', '')
+        ins_effective = self._format_date(form_data.get('insurance_effective_date', ''))
         if ins_effective:
-            c.drawString(475, page_height - 315, ins_effective)
+            c.drawString(480, page_height - 351, ins_effective)
 
-        # Date of last salary increase
-        last_raise = form_data.get('date_last_salary_increase', '')
+        # Row 4: Date of last salary increase | Date of reduction/termination | Date Optional terminated
+        last_raise = self._format_date(form_data.get('date_last_salary_increase', ''))
         if last_raise:
-            c.drawString(72, page_height - 340, last_raise)
+            c.drawString(38, page_height - 379, last_raise)
 
-        # Date insurance terminated
-        ins_term = form_data.get('date_insurance_terminated', '') or term_date
+        # Date of reduction/termination of group life insurance
+        ins_term = self._format_date(form_data.get('date_insurance_terminated', '')) or term_date
         if ins_term:
-            c.drawString(265, page_height - 340, ins_term)
+            c.drawString(225, page_height - 379, ins_term)
 
-        # Checkboxes for status questions - draw "X" if checked
-        c.setFont("Helvetica-Bold", 10)
+        # Date Optional life coverage terminated (if different)
+        opt_term = self._format_date(form_data.get('date_optional_terminated', ''))
+        if opt_term:
+            c.drawString(445, page_height - 379, opt_term)
 
-        # Benefits status (Terminated checkbox)
-        benefits_status = form_data.get('benefits_status', 'Terminated')
-        if benefits_status == 'Terminated':
-            c.drawString(518, page_height - 371, "X")  # Terminated checkbox
-        else:
-            c.drawString(467, page_height - 371, "X")  # Reduced checkbox
+        # Section 3: Coverage amounts - Optional/Voluntary Life terminated amounts
+        # These go in the "Terminated amount" columns for Opt'l/Voluntary Life
+        coverage_y_base = page_height - 523
 
-        # Stopped due to injury/sickness
-        if form_data.get('stopped_due_to_injury', False):
-            c.drawString(467, page_height - 386, "X")  # Yes
-        else:
-            c.drawString(493, page_height - 386, "X")  # No
+        # Employee Opt'l / Voluntary Life terminated amount
+        emp_opt_amount = form_data.get('employee_voluntary_life_amount', 0)
+        if emp_opt_amount:
+            c.drawString(408, coverage_y_base, f"${emp_opt_amount:,.2f}" if isinstance(emp_opt_amount, (int, float)) else str(emp_opt_amount))
 
-        # Stopped due to retirement
-        if form_data.get('stopped_due_to_retirement', False):
-            c.drawString(467, page_height - 401, "X")  # Yes
-        else:
-            c.drawString(493, page_height - 401, "X")  # No
+        # Spouse Opt'l / Voluntary Life terminated amount
+        spouse_opt_amount = form_data.get('spouse_voluntary_life_amount', 0)
+        if spouse_opt_amount:
+            c.drawString(408, coverage_y_base - 18, f"${spouse_opt_amount:,.2f}" if isinstance(spouse_opt_amount, (int, float)) else str(spouse_opt_amount))
 
-        # Waiver of Premium filed
-        if form_data.get('waiver_of_premium_filed', False):
-            c.drawString(467, page_height - 416, "X")  # Yes
-        else:
-            c.drawString(493, page_height - 416, "X")  # No
+        # Child Opt'l / Voluntary Life terminated amount
+        child_opt_amount = form_data.get('child_voluntary_life_amount', 0)
+        if child_opt_amount:
+            c.drawString(408, coverage_y_base - 36, f"${child_opt_amount:,.2f}" if isinstance(child_opt_amount, (int, float)) else str(child_opt_amount))
 
-        # Premiums paid by employer
-        if form_data.get('premiums_paid_by_employer', False):
-            c.drawString(467, page_height - 446, "X")  # Yes
-        else:
-            c.drawString(493, page_height - 446, "X")  # No
-
-        # Section 3: Coverage amounts
-        c.setFont("Helvetica", 10)
-
-        # Employee Basic Life
-        if form_data.get('has_employee_basic_life', True):
-            c.drawString(74, page_height - 527, "X")
-            amount = form_data.get('employee_basic_life_amount', 50000)
-            c.drawString(178, page_height - 527, f"${amount:,.2f}" if isinstance(amount, (int, float)) else str(amount))
-
-        # Spouse Basic Life
-        if form_data.get('has_spouse_basic_life', False):
-            c.drawString(74, page_height - 547, "X")
-            amount = form_data.get('spouse_basic_life_amount', 0)
-            if amount:
-                c.drawString(178, page_height - 547, f"${amount:,.2f}" if isinstance(amount, (int, float)) else str(amount))
-
-        # Child Basic Life
-        if form_data.get('has_child_basic_life', False):
-            c.drawString(74, page_height - 567, "X")
-            amount = form_data.get('child_basic_life_amount', 0)
-            if amount:
-                c.drawString(178, page_height - 567, f"${amount:,.2f}" if isinstance(amount, (int, float)) else str(amount))
-
-        # Employee Voluntary Life
-        if form_data.get('has_employee_voluntary_life', False):
-            c.drawString(336, page_height - 527, "X")
-            amount = form_data.get('employee_voluntary_life_amount', 0)
-            if amount:
-                c.drawString(440, page_height - 527, f"${amount:,.2f}" if isinstance(amount, (int, float)) else str(amount))
-
-        # Spouse Voluntary Life
-        if form_data.get('has_spouse_voluntary_life', False):
-            c.drawString(336, page_height - 547, "X")
-            amount = form_data.get('spouse_voluntary_life_amount', 0)
-            if amount:
-                c.drawString(440, page_height - 547, f"${amount:,.2f}" if isinstance(amount, (int, float)) else str(amount))
-
-        # Child Voluntary Life
-        if form_data.get('has_child_voluntary_life', False):
-            c.drawString(336, page_height - 567, "X")
-            amount = form_data.get('child_voluntary_life_amount', 0)
-            if amount:
-                c.drawString(440, page_height - 567, f"${amount:,.2f}" if isinstance(amount, (int, float)) else str(amount))
-
-        # Section 4: Signature area - auto-fill with current date
+        # Section 4: Signature - Date field (name and phone are pre-filled)
         today = datetime.now().strftime("%m/%d/%Y")
-        c.drawString(500, page_height - 620, today)
+        c.drawString(500, page_height - 660, today)
 
         c.save()
 
@@ -411,6 +399,104 @@ class UnifiedExitDocumentService:
         # Merge overlay with page 2 (the form)
         template_page.merge_page(overlay_page)
         writer.add_page(template_page)
+
+        # Write to buffer
+        output_buffer = io.BytesIO()
+        writer.write(output_buffer)
+        output_buffer.seek(0)
+
+        return output_buffer
+
+    def generate_portability_form(
+        self,
+        form_data: Dict[str, Any],
+        employee: Any
+    ) -> io.BytesIO:
+        """
+        Generate Portability Form by overlaying text on the template PDF.
+        Uses the Equitable Portability Form template (E15763).
+
+        Template layout (Page 1 - index 0):
+        - Employer Use Section (some fields pre-filled, some to fill)
+        - Employee Information section (not filled by employer)
+
+        Fields to fill:
+        - Name of Employee
+        - Supplemental/Voluntary Coverage amounts (Employee, Spouse, Child) - optional
+        - Employment Termination Date
+        - Date Notice Provided
+        - Date next to Employer Signature
+
+        Pre-filled fields:
+        - Employer name: National Benefit Services, LLC
+        - Policy #: 017428
+        - Class: Regular
+        - Basic coverage: $50,000
+        - Reason: Termination of Employment (checked)
+        - Employer signature (signed)
+        """
+        # Read the template
+        template_reader = PdfReader(self.templates["portability"])
+
+        # Get page dimensions from first page
+        page_width = float(template_reader.pages[0].mediabox.width)
+        page_height = float(template_reader.pages[0].mediabox.height)
+
+        # Create overlay for page 1
+        packet = io.BytesIO()
+        c = canvas.Canvas(packet, pagesize=(page_width, page_height))
+
+        # Set font for form fields
+        c.setFont("Helvetica", 10)
+
+        # Employee name in employer section
+        employee_name = form_data.get('employee_name', f"{employee.first_name} {employee.last_name}")
+        c.drawString(135, page_height - 156, employee_name)
+
+        # Supplemental/Voluntary Coverage amounts (optional)
+        # These appear on the "Supplemental/Voluntary Coverage Amount Eligible to Port" line
+        supp_emp_amount = form_data.get('supplemental_employee_amount', 0)
+        supp_spouse_amount = form_data.get('supplemental_spouse_amount', 0)
+        supp_child_amount = form_data.get('supplemental_child_amount', 0)
+
+        if supp_emp_amount:
+            c.drawString(365, page_height - 192, f"${supp_emp_amount:,.2f}" if isinstance(supp_emp_amount, (int, float)) else str(supp_emp_amount))
+        if supp_spouse_amount:
+            c.drawString(458, page_height - 192, f"${supp_spouse_amount:,.2f}" if isinstance(supp_spouse_amount, (int, float)) else str(supp_spouse_amount))
+        if supp_child_amount:
+            c.drawString(528, page_height - 192, f"${supp_child_amount:,.2f}" if isinstance(supp_child_amount, (int, float)) else str(supp_child_amount))
+
+        # Employment Termination Date - use current date
+        today = datetime.now().strftime("%m/%d/%Y")
+        term_date = self._format_date(form_data.get('termination_date', '')) or today
+        c.drawString(430, page_height - 210, term_date)
+
+        # Date Notice Provided - current date
+        c.drawString(175, page_height - 260, today)
+
+        # Date next to Employer Signature
+        c.drawString(480, page_height - 282, today)
+
+        c.save()
+
+        # Move to beginning of buffer
+        packet.seek(0)
+
+        # Read the overlay
+        overlay_reader = PdfReader(packet)
+        overlay_page = overlay_reader.pages[0]
+
+        # Create writer and merge pages
+        writer = PdfWriter()
+
+        # Merge overlay with page 1 (employer section)
+        page1 = template_reader.pages[0]
+        page1.merge_page(overlay_page)
+        writer.add_page(page1)
+
+        # Add remaining pages unchanged
+        for i in range(1, len(template_reader.pages)):
+            writer.add_page(template_reader.pages[i])
 
         # Write to buffer
         output_buffer = io.BytesIO()
@@ -441,22 +527,24 @@ class UnifiedExitDocumentService:
         os.makedirs(self.output_dir, exist_ok=True)
 
         # Generate based on form type
+        employee_full_name = f"{employee.first_name} {employee.last_name}"
+
         if form_type == "important_info":
             buffer = self.generate_important_info_form(form_data, employee)
-            prefix = "Exit_Info"
+            base_filename = f"Exit_Info_{employee.first_name}_{employee.last_name}"
         elif form_type == "conversion":
             buffer = self.generate_conversion_form(form_data, employee)
-            prefix = "Conversion_Form"
+            base_filename = f"Equitable Conversion Form - {employee_full_name}"
         elif form_type == "portability":
-            # TODO: Implement portability form
-            raise NotImplementedError("Portability form generation not yet implemented")
+            buffer = self.generate_portability_form(form_data, employee)
+            base_filename = f"Equitable Portability Form - {employee_full_name}"
         else:
             raise ValueError(f"Unknown form type: {form_type}")
 
-        # Generate filename
+        # Generate filename with timestamp for uniqueness
         if not output_filename:
             timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-            output_filename = f"{prefix}_{employee.first_name}_{employee.last_name}_{timestamp}.pdf"
+            output_filename = f"{base_filename}_{timestamp}.pdf"
 
         output_path = os.path.join(self.output_dir, output_filename)
 
@@ -484,7 +572,7 @@ class UnifiedExitDocumentService:
             Dictionary mapping form_type to output file path
         """
         if documents_to_generate is None:
-            documents_to_generate = ["important_info", "conversion"]  # Default documents
+            documents_to_generate = ["important_info", "conversion", "portability"]  # Default documents
 
         results = {}
         for form_type in documents_to_generate:

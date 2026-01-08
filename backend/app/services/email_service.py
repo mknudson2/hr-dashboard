@@ -917,6 +917,178 @@ class EmailService:
             body_html=html_content
         )
 
+    def send_exit_documents(
+        self,
+        employee_name: str,
+        employee_id: str,
+        employee_email: str,
+        termination_date: str,
+        position: str = "N/A",
+        department: str = "N/A",
+        hire_date: str = "N/A",
+        final_pay_date: Optional[str] = None,
+        pto_balance_hours: float = 0,
+        pto_payout_amount: float = 0,
+        has_benefits: bool = True,
+        cc_emails: Optional[List[str]] = None,
+        template_type: str = "standard"
+    ):
+        """
+        Send exit documents email to terminating employee with automatic PDF attachments.
+
+        Args:
+            employee_name: Full name of employee
+            employee_id: Employee ID
+            employee_email: Employee's email address
+            termination_date: Date of termination
+            position: Employee's position
+            department: Employee's department
+            hire_date: Employee's hire date
+            final_pay_date: Date of final paycheck
+            pto_balance_hours: PTO balance in hours
+            pto_payout_amount: PTO payout amount in dollars
+            has_benefits: Whether employee has benefits (affects which documents are included)
+            cc_emails: Optional list of CC recipients
+            template_type: Template to use (standard, voluntary, involuntary)
+        """
+        import asyncio
+        import glob
+
+        # Select template based on type
+        template_map = {
+            "standard": "offboarding/exit_documents_standard.html",
+            "voluntary": "offboarding/exit_documents_voluntary.html",
+            "involuntary": "offboarding/exit_documents_involuntary.html"
+        }
+        template_name = template_map.get(template_type.lower(), "offboarding/exit_documents_standard.html")
+
+        # Extract first name from full name for greeting
+        employee_first_name = employee_name.split()[0] if employee_name else "Employee"
+
+        # Find exit documents for this employee
+        attachments = self._find_exit_documents(employee_name)
+        document_count = len(attachments)
+
+        context = {
+            "employee_name": employee_name,
+            "employee_first_name": employee_first_name,
+            "employee_id": employee_id,
+            "termination_date": termination_date,
+            "position": position,
+            "department": department,
+            "hire_date": hire_date,
+            "employment_type": "Full-Time" if has_benefits else "Part-Time",
+            "is_full_time": has_benefits,
+            "document_count": document_count,
+            "final_pay_date": final_pay_date,
+            "pto_balance": pto_balance_hours,
+            "pto_payout_amount": pto_payout_amount
+        }
+
+        html_content = self._render_template(template_name, context)
+
+        subject = f"Exit Documents - {employee_name}"
+
+        # Log attachment info
+        attachment_count = len(attachments)
+        if attachments:
+            print(f"📎 Attaching {attachment_count} document(s) for {employee_name}:")
+            for att in attachments:
+                print(f"   - {os.path.basename(att)}")
+        else:
+            print(f"⚠️ No exit documents found for {employee_name}")
+
+        # Run async send in sync context
+        async def _send():
+            await self.send_email(
+                to_emails=[employee_email],
+                cc_emails=cc_emails,
+                subject=subject,
+                body_html=html_content,
+                attachments=attachments if attachments else None
+            )
+
+        # Handle running in sync context
+        try:
+            loop = asyncio.get_running_loop()
+            # If we're already in an async context, create a task
+            asyncio.create_task(_send())
+        except RuntimeError:
+            # No running loop, run directly
+            asyncio.run(_send())
+
+        # Return result with attachment info
+        return {
+            "success": True,
+            "attachment_count": attachment_count,
+            "attachments": [os.path.basename(a) for a in attachments]
+        }
+
+    def _find_exit_documents(self, employee_name: str) -> List[str]:
+        """
+        Find all exit documents for an employee in the storage folder.
+
+        Args:
+            employee_name: Full name of the employee (e.g., "Mark Garcia")
+
+        Returns:
+            List of file paths to exit documents
+        """
+        import glob
+
+        attachments = []
+
+        # Storage folder for filled forms
+        storage_path = Path(__file__).parent.parent / "storage" / "filled_forms"
+
+        if not storage_path.exists():
+            print(f"⚠️ Storage path does not exist: {storage_path}")
+            return attachments
+
+        # Parse employee name - handle "FirstName LastName" format
+        name_parts = employee_name.strip().split()
+        if len(name_parts) >= 2:
+            first_name = name_parts[0]
+            last_name = name_parts[-1]
+        else:
+            first_name = employee_name
+            last_name = ""
+
+        # Document patterns to search for
+        # Files are typically named: DocumentType_FirstName_LastName_timestamp.pdf
+        search_patterns = [
+            f"Exit_Info_{first_name}_{last_name}_*.pdf",
+            f"Conversion_Form_{first_name}_{last_name}_*.pdf",
+            f"Portability_Form_{first_name}_{last_name}_*.pdf",
+            f"COBRA_Notice_{first_name}_{last_name}_*.pdf",
+            f"*_{first_name}_{last_name}_*.pdf",  # Catch-all pattern
+        ]
+
+        found_files = set()  # Use set to avoid duplicates
+
+        for pattern in search_patterns:
+            search_path = str(storage_path / pattern)
+            matches = glob.glob(search_path)
+            for match in matches:
+                if os.path.isfile(match):
+                    found_files.add(match)
+
+        # Sort by modification time (newest first) and convert to list
+        attachments = sorted(found_files, key=lambda x: os.path.getmtime(x), reverse=True)
+
+        # If multiple versions exist, only keep the most recent of each type
+        final_attachments = {}
+        for file_path in attachments:
+            filename = os.path.basename(file_path)
+            # Extract document type (everything before the employee name)
+            parts = filename.split(f"_{first_name}_{last_name}_")
+            if parts:
+                doc_type = parts[0]
+                if doc_type not in final_attachments:
+                    final_attachments[doc_type] = file_path
+
+        return list(final_attachments.values())
+
 
 # Singleton instance
 email_service = EmailService()

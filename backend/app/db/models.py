@@ -2,6 +2,7 @@ from sqlalchemy import Column, Integer, String, Date, Float, Boolean, ForeignKey
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
 from .database import Base
+from .encrypted_types import EncryptedString
 
 
 # app/db/models.py
@@ -1379,6 +1380,10 @@ class User(Base):
     # Password management
     password_must_change = Column(Boolean, default=True)  # Force password change on first login
 
+    # Account lockout fields (security)
+    failed_login_attempts = Column(Integer, default=0)  # Count of consecutive failed login attempts
+    locked_until = Column(DateTime, nullable=True)  # Account locked until this timestamp
+
     # Relationships
     employee = relationship("Employee", backref="user")
     sessions = relationship("Session", back_populates="user", cascade="all, delete-orphan")
@@ -1404,6 +1409,18 @@ class Session(Base):
 
     # Relationships
     user = relationship("User", back_populates="sessions")
+
+
+class TokenBlacklist(Base):
+    """Blacklisted JWT tokens (revoked on logout)."""
+    __tablename__ = "token_blacklist"
+
+    id = Column(Integer, primary_key=True, index=True)
+    token = Column(String(500), unique=True, index=True, nullable=False)
+    blacklisted_at = Column(DateTime, server_default=func.now())
+    expires_at = Column(DateTime, nullable=False)  # When token would have expired
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=True)
+    reason = Column(String(100), default="logout")  # logout, password_change, admin_revoke
 
 
 # ============================================================================
@@ -1596,7 +1613,7 @@ class ACAForm1095C(Base):
     tax_year = Column(Integer, nullable=False, index=True)
 
     # Employee information (as of year-end)
-    employee_ssn = Column(String, nullable=True)  # Encrypted or masked
+    employee_ssn = Column(EncryptedString(255), nullable=True)  # Encrypted at rest
     employee_name = Column(String, nullable=False)
     employee_address = Column(String, nullable=True)
     employee_city = Column(String, nullable=True)

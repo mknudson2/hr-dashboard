@@ -95,6 +95,59 @@ class AuditSeverity:
 class AuditService:
     """Service for logging security audit events."""
 
+    # Sensitive field names that should be redacted in audit logs
+    SENSITIVE_FIELDS = frozenset({
+        # Financial data
+        'ssn', 'social_security_number', 'employee_ssn', 'tin', 'tax_id',
+        'wage', 'salary', 'hourly_rate', 'annual_salary', 'base_salary',
+        'compensation', 'bonus', 'bonus_amount', 'equity_value',
+        'bank_account', 'bank_account_number', 'routing_number', 'account_number',
+        'credit_card', 'card_number', 'cvv', 'pin',
+        # Auth data
+        'password', 'password_hash', 'current_password', 'new_password',
+        'secret', 'totp_secret', 'backup_codes', 'api_key', 'token',
+        # Personal identifiers
+        'drivers_license', 'passport_number', 'national_id',
+        # Medical data (PHI)
+        'diagnosis', 'medical_condition', 'medical_notes', 'health_info',
+        'fmla_reason', 'disability_info',
+    })
+
+    def _sanitize_value(self, value: Any, field_name: str = "") -> Any:
+        """Recursively sanitize sensitive data for audit logging."""
+        if value is None:
+            return None
+
+        field_lower = field_name.lower() if field_name else ""
+
+        # Check if this field should be redacted
+        if field_lower in self.SENSITIVE_FIELDS:
+            if isinstance(value, str) and len(value) > 4:
+                # Show last 4 characters for identification purposes
+                return f"***REDACTED***{value[-4:]}"
+            return "***REDACTED***"
+
+        # Recursively handle dictionaries
+        if isinstance(value, dict):
+            return {k: self._sanitize_value(v, k) for k, v in value.items()}
+
+        # Recursively handle lists
+        if isinstance(value, list):
+            return [self._sanitize_value(item, field_name) for item in value]
+
+        return value
+
+    def _sanitize_for_audit(self, data: Optional[Dict]) -> Optional[Dict]:
+        """Sanitize a dictionary of data for audit logging.
+
+        Removes or masks sensitive fields like SSN, wages, bank accounts, etc.
+        to comply with data protection requirements while maintaining audit utility.
+        """
+        if data is None:
+            return None
+
+        return self._sanitize_value(data)
+
     def _get_client_ip(self, request: Optional[Request]) -> Optional[str]:
         """Extract client IP from request, handling proxies."""
         if not request:
@@ -140,7 +193,15 @@ class AuditService:
         error_message: Optional[str] = None,
         severity: str = AuditSeverity.INFO
     ) -> models.SecurityAuditLog:
-        """Create and save an audit log entry."""
+        """Create and save an audit log entry.
+
+        Note: old_value and new_value are automatically sanitized to redact
+        sensitive fields (SSN, wages, passwords, etc.) before storage.
+        """
+        # Sanitize old_value and new_value to redact sensitive fields
+        sanitized_old = self._sanitize_for_audit(old_value)
+        sanitized_new = self._sanitize_for_audit(new_value)
+
         log_entry = models.SecurityAuditLog(
             event_type=event_type,
             event_category=event_category,
@@ -153,8 +214,8 @@ class AuditService:
             resource_id=str(resource_id) if resource_id else None,
             action=action,
             description=description,
-            old_value=old_value,
-            new_value=new_value,
+            old_value=sanitized_old,
+            new_value=sanitized_new,
             request_path=str(request.url.path) if request else None,
             request_method=request.method if request else None,
             success=success,

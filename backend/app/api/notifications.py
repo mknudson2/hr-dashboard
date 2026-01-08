@@ -1,6 +1,7 @@
 """Notification API routes for HR Dashboard."""
 from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
+from sqlalchemy.exc import IntegrityError
 from pydantic import BaseModel
 from app.db.database import get_db
 from app.db import models
@@ -76,12 +77,33 @@ def save_notification_preferences(
             weekly_report=request.preferences.weekly_report,
         )
         db.add(new_prefs)
-        db.commit()
-        db.refresh(new_prefs)
-        return {
-            "message": "Preferences created successfully",
-            "preferences": new_prefs
-        }
+        try:
+            db.commit()
+            db.refresh(new_prefs)
+            return {
+                "message": "Preferences created successfully",
+                "preferences": new_prefs
+            }
+        except IntegrityError:
+            # Race condition - another request created the record, so update instead
+            db.rollback()
+            existing = db.query(models.NotificationPreference).filter(
+                models.NotificationPreference.email == request.email
+            ).first()
+            if existing:
+                existing.email_alerts = request.preferences.email_alerts
+                existing.new_hires = request.preferences.new_hires
+                existing.terminations = request.preferences.terminations
+                existing.wage_changes = request.preferences.wage_changes
+                existing.pto_requests = request.preferences.pto_requests
+                existing.weekly_report = request.preferences.weekly_report
+                db.commit()
+                db.refresh(existing)
+                return {
+                    "message": "Preferences updated successfully",
+                    "preferences": existing
+                }
+            raise
 
 
 @router.get("/preferences/{email}")

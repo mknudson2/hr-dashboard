@@ -233,19 +233,29 @@ def browse_directories(path: str = None):
         else:
             path = os.path.expanduser("~")
 
+    # SECURITY: Normalize path FIRST to prevent path traversal attacks
+    # os.path.realpath resolves symlinks and normalizes the path (removes ../ etc)
+    try:
+        path = os.path.realpath(os.path.normpath(path))
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=f"Invalid path: {str(e)}")
+
     # Security check - don't allow browsing certain system directories
+    # MUST happen AFTER normalization to prevent bypass via ../
     forbidden_paths = ['/etc', '/var', '/usr', '/bin', '/sbin', '/lib', '/boot', '/proc', '/sys', '/dev']
+    home_dir = os.path.expanduser("~")
     for forbidden in forbidden_paths:
-        if path.startswith(forbidden) and path != os.path.expanduser("~"):
+        if path.startswith(forbidden) and not path.startswith(home_dir):
             raise HTTPException(status_code=403, detail="Access to this directory is restricted")
 
-    # Normalize and validate path
+    # Validate path exists and is a directory
     try:
-        path = os.path.normpath(path)
         if not os.path.exists(path):
             raise HTTPException(status_code=404, detail="Path does not exist")
         if not os.path.isdir(path):
             raise HTTPException(status_code=400, detail="Path is not a directory")
+    except HTTPException:
+        raise
     except Exception as e:
         raise HTTPException(status_code=400, detail=f"Invalid path: {str(e)}")
 
