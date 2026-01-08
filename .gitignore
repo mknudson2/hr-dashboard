@@ -53,6 +53,9 @@ hr_dashboard.db
 # Logs
 logs/
 *.log
+*_logs.txt
+backend_logs.txt
+frontend_logs.txt
 
 # Build caches
 .vite
@@ -71,6 +74,7 @@ htmlcov/
 *.tmp
 *.temp
 *.bak
+.tables
 
 # Editor directories and files
 .vscode/*
