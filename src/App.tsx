@@ -28,6 +28,7 @@ import TimeTrackingPage from "./pages/TimeTrackingPage";
 import TimesheetApprovalPage from "./pages/TimesheetApprovalPage";
 import CapitalizationAnalyticsPage from "./pages/CapitalizationAnalyticsPage";
 import CapitalizedLaborPage from "./pages/CapitalizedLaborPage";
+import RoleManagementPage from "./pages/RoleManagementPage";
 import LoginPage from "./pages/LoginPage";
 import ProtectedRoute from "./components/ProtectedRoute";
 import { AuthProvider } from "./contexts/AuthContext";
@@ -65,6 +66,7 @@ export default function App() {
         <Route path="/aca" element={<ACAPage />} />
         <Route path="/eeo" element={<EEOPage />} />
         <Route path="/users" element={<UserManagementPage />} />
+        <Route path="/roles" element={<RoleManagementPage />} />
         <Route path="/emails" element={<EmailManagementPage />} />
         <Route path="/file-uploads" element={<FileUploadPage />} />
         <Route path="/capitalized-labor" element={<CapitalizedLaborPage />} />

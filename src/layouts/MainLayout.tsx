@@ -34,6 +34,7 @@ const links: NavigationLink[] = [
     { to: "/emails", text: "Email Management", icon: Mail },
     { to: "/file-uploads", text: "File Uploads", icon: Upload },
     { to: "/users", text: "User Management", icon: Users, adminOnly: true },
+    { to: "/roles", text: "Role Management", icon: Shield, adminOnly: true },
     { to: "/settings", text: "Settings", icon: Settings },
 ];
 
@@ -157,7 +158,7 @@ export default function MainLayout() {
 
                     <DarkModeToggle />
                     <div className="text-xs text-gray-400 dark:text-gray-500 text-center">
-                        © {new Date().getFullYear()} NBS HR Dashboard
+                        © Bifröstin - HR Hub
                     </div>
                 </div>
             </aside>
