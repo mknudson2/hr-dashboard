@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { Mail, Send, Eye, Settings, CheckCircle, XCircle, Loader, Search, X } from 'lucide-react';
 
-const BASE_URL = 'http://localhost:8000';
+const BASE_URL = '';
 
 interface EmailTemplate {
   category: string;
@@ -70,7 +70,7 @@ export default function EmailManagementPage() {
 
   const fetchTemplates = async () => {
     try {
-      const response = await fetch(`${BASE_URL}/emails/templates`);
+      const response = await fetch(`${BASE_URL}/emails/templates`, { credentials: 'include' });
       const data = await response.json();
       setTemplates(data);
       if (data.onboarding && data.onboarding.length > 0) {
@@ -83,7 +83,7 @@ export default function EmailManagementPage() {
 
   const fetchEmailConfig = async () => {
     try {
-      const response = await fetch(`${BASE_URL}/emails/config`);
+      const response = await fetch(`${BASE_URL}/emails/config`, { credentials: 'include' });
       const data = await response.json();
       setEmailConfig(data);
     } catch (error) {
@@ -93,9 +93,9 @@ export default function EmailManagementPage() {
 
   const fetchEmployees = async () => {
     try {
-      const response = await fetch(`${BASE_URL}/employees/`);
+      const response = await fetch(`${BASE_URL}/employees/`, { credentials: 'include' });
       const data = await response.json();
-      setEmployees(data);
+      setEmployees(Array.isArray(data) ? data : []);
     } catch (error) {
       console.error('Error fetching employees:', error);
     }
@@ -253,6 +253,7 @@ export default function EmailManagementPage() {
       const response = await fetch(`${BASE_URL}${endpoint}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
         body: JSON.stringify(payload)
       });
 

@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X } from 'lucide-react';
 
-const BASE_URL = 'http://localhost:8000';
+const BASE_URL = '';
 
 // Modal wrapper component
 interface ModalProps {
@@ -23,7 +23,7 @@ function Modal({ isOpen, onClose, title, children }: ModalProps) {
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             onClick={onClose}
-            className="fixed inset-0 bg-black bg-opacity-50 z-40"
+            className="fixed inset-0 bg-black/50 z-40"
           />
 
           {/* Modal */}
@@ -448,16 +448,34 @@ export function PerformanceReviewModal({ isOpen, onClose, onSuccess, employees, 
 }
 
 // Goal Modal
+interface Goal {
+  id: number;
+  goal_id: string;
+  employee_id: string;
+  goal_type: string;
+  goal_title: string;
+  goal_description?: string;
+  target_date: string;
+  start_date?: string;
+  status: string;
+  progress_percentage: number;
+  priority?: string;
+  weight?: number;
+}
+
 interface GoalModalProps {
   isOpen: boolean;
   onClose: () => void;
   onSuccess: () => void;
   employees: Array<{ employee_id: string; first_name: string; last_name: string }>;
+  editGoal?: Goal | null;
 }
 
-export function GoalModal({ isOpen, onClose, onSuccess, employees }: GoalModalProps) {
+export function GoalModal({ isOpen, onClose, onSuccess, employees, editGoal }: GoalModalProps) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+
+  const isEditing = !!editGoal;
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -473,17 +491,22 @@ export function GoalModal({ isOpen, onClose, onSuccess, employees }: GoalModalPr
       start_date: formData.get('start_date'),
       target_date: formData.get('target_date'),
       priority: formData.get('priority'),
-      status: 'Not Started',
+      status: formData.get('status') || 'Not Started',
+      progress_percentage: parseInt(formData.get('progress_percentage') as string) || 0,
     };
 
     try {
-      const response = await fetch(`${BASE_URL}/performance/goals`, {
-        method: 'POST',
+      const url = isEditing
+        ? `${BASE_URL}/performance/goals/${editGoal.id}`
+        : `${BASE_URL}/performance/goals`;
+
+      const response = await fetch(url, {
+        method: isEditing ? 'PUT' : 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(data),
       });
 
-      if (!response.ok) throw new Error('Failed to create goal');
+      if (!response.ok) throw new Error(isEditing ? 'Failed to update goal' : 'Failed to create goal');
 
       onSuccess();
       onClose();
@@ -495,7 +518,7 @@ export function GoalModal({ isOpen, onClose, onSuccess, employees }: GoalModalPr
   };
 
   return (
-    <Modal isOpen={isOpen} onClose={onClose} title="Create New Goal">
+    <Modal isOpen={isOpen} onClose={onClose} title={isEditing ? "Edit Goal" : "Create New Goal"}>
       <form onSubmit={handleSubmit} className="space-y-4">
         {error && (
           <div className="bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 p-3 rounded-lg text-sm">
@@ -510,6 +533,7 @@ export function GoalModal({ isOpen, onClose, onSuccess, employees }: GoalModalPr
           <select
             name="employee_id"
             required
+            defaultValue={editGoal?.employee_id || ''}
             className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
           >
             <option value="">Select Employee</option>
@@ -529,6 +553,7 @@ export function GoalModal({ isOpen, onClose, onSuccess, employees }: GoalModalPr
             type="text"
             name="goal_title"
             required
+            defaultValue={editGoal?.goal_title || ''}
             placeholder="e.g., Improve customer satisfaction scores"
             className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
           />
@@ -541,6 +566,7 @@ export function GoalModal({ isOpen, onClose, onSuccess, employees }: GoalModalPr
           <textarea
             name="goal_description"
             rows={3}
+            defaultValue={editGoal?.goal_description || ''}
             placeholder="Describe the goal..."
             className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
           />
@@ -554,6 +580,7 @@ export function GoalModal({ isOpen, onClose, onSuccess, employees }: GoalModalPr
             <select
               name="goal_type"
               required
+              defaultValue={editGoal?.goal_type || 'SMART'}
               className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
             >
               <option value="SMART">SMART Goal</option>
@@ -570,7 +597,7 @@ export function GoalModal({ isOpen, onClose, onSuccess, employees }: GoalModalPr
             <select
               name="priority"
               required
-              defaultValue="Medium"
+              defaultValue={editGoal?.priority || 'Medium'}
               className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
             >
               <option value="Low">Low</option>
@@ -579,6 +606,42 @@ export function GoalModal({ isOpen, onClose, onSuccess, employees }: GoalModalPr
             </select>
           </div>
         </div>
+
+        {isEditing && (
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                Status
+              </label>
+              <select
+                name="status"
+                defaultValue={editGoal?.status || 'Not Started'}
+                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+              >
+                <option value="Not Started">Not Started</option>
+                <option value="In Progress">In Progress</option>
+                <option value="On Track">On Track</option>
+                <option value="At Risk">At Risk</option>
+                <option value="Off Track">Off Track</option>
+                <option value="Completed">Completed</option>
+              </select>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                Progress %
+              </label>
+              <input
+                type="number"
+                name="progress_percentage"
+                min="0"
+                max="100"
+                defaultValue={editGoal?.progress_percentage || 0}
+                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+              />
+            </div>
+          </div>
+        )}
 
         <div className="grid grid-cols-2 gap-4">
           <div>
@@ -589,6 +652,7 @@ export function GoalModal({ isOpen, onClose, onSuccess, employees }: GoalModalPr
               type="date"
               name="start_date"
               required
+              defaultValue={editGoal?.start_date?.split('T')[0] || ''}
               className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
             />
           </div>
@@ -601,6 +665,7 @@ export function GoalModal({ isOpen, onClose, onSuccess, employees }: GoalModalPr
               type="date"
               name="target_date"
               required
+              defaultValue={editGoal?.target_date?.split('T')[0] || ''}
               className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
             />
           </div>
@@ -612,7 +677,7 @@ export function GoalModal({ isOpen, onClose, onSuccess, employees }: GoalModalPr
             disabled={loading}
             className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50"
           >
-            {loading ? 'Creating...' : 'Create Goal'}
+            {loading ? (isEditing ? 'Saving...' : 'Creating...') : (isEditing ? 'Save Changes' : 'Create Goal')}
           </button>
           <button
             type="button"

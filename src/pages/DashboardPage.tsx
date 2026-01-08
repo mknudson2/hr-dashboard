@@ -167,11 +167,11 @@ export default function DashboardPage() {
     },
     {
       title: "YTD Terminations",
-      value: data.ytd_terminations.total,
+      value: data.ytd_terminations?.total ?? 0,
       icon: <Activity className="w-6 h-6 text-red-600 dark:text-red-400" />,
       subtitle:
-        data.ytd_terminations.voluntary !== undefined &&
-          data.ytd_terminations.involuntary !== undefined
+        data.ytd_terminations?.voluntary !== undefined &&
+          data.ytd_terminations?.involuntary !== undefined
           ? `${data.ytd_terminations.voluntary} voluntary, ${data.ytd_terminations.involuntary} involuntary`
           : undefined,
     },
@@ -184,7 +184,7 @@ export default function DashboardPage() {
     },
     {
       title: "International Employees",
-      value: data.international_breakdown.total,
+      value: data.international_breakdown?.total ?? 0,
       icon: (
         <Users className="w-6 h-6 text-purple-600 dark:text-purple-400" />
       ),
@@ -221,8 +221,8 @@ export default function DashboardPage() {
           : "-",
       icon: <TrendingUp className="w-6 h-6 text-red-600 dark:text-red-400" />,
       subtitle:
-        data.ytd_terminations.involuntary !== undefined
-          ? `${data.ytd_terminations.involuntary} of ${data.ytd_terminations.total} terms`
+        data.ytd_terminations?.involuntary !== undefined
+          ? `${data.ytd_terminations.involuntary} of ${data.ytd_terminations?.total ?? 0} terms`
           : undefined,
       badge:
         (data as any).regrettable_turnover_pct !== undefined
@@ -391,8 +391,8 @@ export default function DashboardPage() {
 
           <div className="h-96">
             <AvgTenureBarChart
-              labels={Object.keys(avgTenure[`by_${tenureView}`])}
-              values={Object.values(avgTenure[`by_${tenureView}`])}
+              labels={Object.keys(avgTenure[`by_${tenureView}`] || {})}
+              values={Object.values(avgTenure[`by_${tenureView}`] || {})}
               title={`Avg Tenure by ${tenureView.replace("_", " ")}`}
             />
           </div>

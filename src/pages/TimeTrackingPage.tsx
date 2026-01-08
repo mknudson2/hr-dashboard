@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Clock, Calendar, Plus, Save, Send, AlertCircle, CheckCircle, XCircle } from 'lucide-react';
 import axios from 'axios';
 
-const API_URL = 'http://127.0.0.1:8000';
+const API_URL = '';
 
 interface Project {
   id: number;

@@ -62,7 +62,7 @@ export default function FMLAPage() {
 
   const fetchDashboardStats = async () => {
     try {
-      const response = await fetch("http://127.0.0.1:8000/fmla/dashboard");
+      const response = await fetch("/fmla/dashboard", { credentials: 'include' });
       const data = await response.json();
       setStats(data);
     } catch (error) {
@@ -72,9 +72,9 @@ export default function FMLAPage() {
 
   const fetchCases = async () => {
     try {
-      const response = await fetch("http://127.0.0.1:8000/fmla/");
+      const response = await fetch("/fmla/", { credentials: 'include' });
       const data = await response.json();
-      setCases(data);
+      setCases(Array.isArray(data) ? data : []);
     } catch (error) {
       console.error("Error fetching FMLA cases:", error);
     } finally {

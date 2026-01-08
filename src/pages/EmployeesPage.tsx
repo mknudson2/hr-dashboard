@@ -4,6 +4,7 @@ import { Filter, X, LayoutGrid, Table, Download } from "lucide-react";
 import EmployeeBenefitsDrawer from "@/components/EmployeeBenefitsDrawer";
 import StatusChangeModal from "@/components/StatusChangeModal";
 
+
 // Status change data type
 type StatusChangeData = {
     newStatus: string;
@@ -80,7 +81,7 @@ export default function EmployeesPage() {
         async function fetchEmployees() {
             try {
                 // Fetch all employees from the backend
-                const res = await fetch("http://127.0.0.1:8000/analytics/employees");
+                const res = await fetch("/analytics/employees", { credentials: 'include' });
                 const data = await res.json();
 
                 // Extract employees array from response
@@ -149,9 +150,10 @@ export default function EmployeesPage() {
     const performDirectStatusUpdate = async (employeeId: string, newStatus: string) => {
         setUpdatingStatus(employeeId);
         try {
-            const response = await fetch(`http://127.0.0.1:8000/employees/${employeeId}`, {
+            const response = await fetch(`/employees/${employeeId}`, {
                 method: 'PATCH',
                 headers: { 'Content-Type': 'application/json' },
+                credentials: 'include',
                 body: JSON.stringify({ status: newStatus })
             });
 
@@ -176,10 +178,11 @@ export default function EmployeesPage() {
 
         try {
             const response = await fetch(
-                `http://127.0.0.1:8000/employees/${statusChangeEmployee.employee_id}/status-change`,
+                `/employees/${statusChangeEmployee.employee_id}/status-change`,
                 {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
+                    credentials: 'include',
                     body: JSON.stringify({
                         new_status: data.newStatus,
                         reason: data.reason,
@@ -356,7 +359,7 @@ export default function EmployeesPage() {
             const employeeIds = filtered.map(emp => emp.employee_id).join(",");
 
             // Build URL with query parameters
-            const url = `http://127.0.0.1:8000/analytics/employees/export/${format}?view_mode=${viewMode}&employee_ids=${employeeIds}`;
+            const url = `/analytics/employees/export/${format}?view_mode=${viewMode}&employee_ids=${employeeIds}`;
 
             // Trigger download
             const link = document.createElement("a");

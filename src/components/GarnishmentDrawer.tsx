@@ -98,7 +98,7 @@ export default function GarnishmentDrawer({ garnishmentId, onClose, onUpdate }: 
 
     setLoading(true);
     try {
-      const response = await fetch(`http://127.0.0.1:8000/garnishments/cases/${garnishmentId}`);
+      const response = await fetch(`/garnishments/cases/${garnishmentId}`);
       const data = await response.json();
       setGarnishmentDetail(data);
     } catch (error) {
@@ -113,7 +113,7 @@ export default function GarnishmentDrawer({ garnishmentId, onClose, onUpdate }: 
 
     setAddingNote(true);
     try {
-      const response = await fetch(`http://127.0.0.1:8000/garnishments/cases/${garnishmentId}/notes`, {
+      const response = await fetch(`/garnishments/cases/${garnishmentId}/notes`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -140,7 +140,7 @@ export default function GarnishmentDrawer({ garnishmentId, onClose, onUpdate }: 
 
     setUpdatingStatus(true);
     try {
-      const response = await fetch(`http://127.0.0.1:8000/garnishments/cases/${garnishmentId}`, {
+      const response = await fetch(`/garnishments/cases/${garnishmentId}`, {
         method: "PATCH",
         headers: {
           "Content-Type": "application/json",
@@ -188,7 +188,7 @@ export default function GarnishmentDrawer({ garnishmentId, onClose, onUpdate }: 
         formData.append("notes", uploadData.notes);
       }
 
-      const response = await fetch(`http://127.0.0.1:8000/garnishments/cases/${garnishmentId}/documents`, {
+      const response = await fetch(`/garnishments/cases/${garnishmentId}/documents`, {
         method: "POST",
         body: formData,
       });

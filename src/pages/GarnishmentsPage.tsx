@@ -55,7 +55,7 @@ export default function GarnishmentsPage() {
 
   const fetchDashboardStats = async () => {
     try {
-      const response = await fetch("http://127.0.0.1:8000/garnishments/dashboard");
+      const response = await fetch("/garnishments/dashboard", { credentials: 'include' });
       const data = await response.json();
       setStats(data);
     } catch (error) {
@@ -65,9 +65,9 @@ export default function GarnishmentsPage() {
 
   const fetchGarnishments = async () => {
     try {
-      const response = await fetch("http://127.0.0.1:8000/garnishments/");
+      const response = await fetch("/garnishments/", { credentials: 'include' });
       const data = await response.json();
-      setGarnishments(data);
+      setGarnishments(Array.isArray(data) ? data : []);
     } catch (error) {
       console.error("Error fetching garnishments:", error);
     } finally {

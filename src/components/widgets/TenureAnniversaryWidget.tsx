@@ -32,9 +32,13 @@ export default function TenureAnniversaryWidget() {
     useEffect(() => {
         async function fetchAnniversaries() {
             try {
-                const res = await fetch("http://127.0.0.1:8000/analytics/tenure-anniversaries");
-                const json = await res.json();
-                setData(json);
+                const res = await fetch("/analytics/tenure-anniversaries", {
+                    credentials: 'include',
+                });
+                if (res.ok) {
+                    const json = await res.json();
+                    setData(json);
+                }
             } catch (error) {
                 console.error("Error fetching tenure anniversaries:", error);
             } finally {
@@ -47,13 +51,19 @@ export default function TenureAnniversaryWidget() {
     const handleExportPDF = async () => {
         try {
             setExporting(true);
-            const url = "http://127.0.0.1:8000/analytics/tenure-anniversaries/export/pdf";
+            const res = await fetch("/analytics/tenure-anniversaries/export/pdf", {
+                credentials: 'include',
+            });
+            if (!res.ok) throw new Error(`HTTP ${res.status}`);
+            const blob = await res.blob();
+            const url = window.URL.createObjectURL(blob);
             const link = document.createElement("a");
             link.href = url;
             link.download = `anniversaries_${new Date().getFullYear()}_${String(new Date().getMonth() + 1).padStart(2, '0')}.pdf`;
             document.body.appendChild(link);
             link.click();
             document.body.removeChild(link);
+            window.URL.revokeObjectURL(url);
         } catch (error) {
             console.error("Error exporting anniversaries PDF:", error);
         } finally {
@@ -69,7 +79,7 @@ export default function TenureAnniversaryWidget() {
         );
     }
 
-    if (!data) {
+    if (!data || !data.anniversaries) {
         return null;
     }
 

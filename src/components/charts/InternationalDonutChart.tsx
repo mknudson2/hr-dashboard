@@ -21,6 +21,15 @@ export default function InternationalDonutChart({
   const { resolvedTheme } = useTheme();
   const isDark = resolvedTheme === "dark";
 
+  // Guard against undefined data
+  if (!data) {
+    return (
+      <div className="h-full w-full flex items-center justify-center text-gray-400">
+        No data available
+      </div>
+    );
+  }
+
   const chartData = {
     labels: ["Congruent", "Ameripol", "Bloom"],
     datasets: [

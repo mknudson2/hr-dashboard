@@ -5,7 +5,7 @@ import {
   CheckSquare, AlertCircle
 } from 'lucide-react';
 
-const BASE_URL = 'http://localhost:8000';
+const BASE_URL = '';
 
 interface TaskDetailDrawerProps {
   isOpen: boolean;

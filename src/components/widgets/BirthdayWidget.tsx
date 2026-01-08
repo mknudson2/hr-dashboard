@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { Cake, Calendar, FileText } from "lucide-react";
 import { motion } from "framer-motion";
+import { API_URL } from "@/config/api";
 
 interface Birthday {
     employee_id: string;
@@ -30,9 +31,13 @@ export default function BirthdayWidget() {
     useEffect(() => {
         async function fetchBirthdays() {
             try {
-                const res = await fetch("http://127.0.0.1:8000/analytics/birthdays");
-                const json = await res.json();
-                setData(json);
+                const res = await fetch(`${API_URL}/analytics/birthdays`, {
+                    credentials: 'include',
+                });
+                if (res.ok) {
+                    const json = await res.json();
+                    setData(json);
+                }
             } catch (error) {
                 console.error("Error fetching birthdays:", error);
             } finally {
@@ -45,13 +50,19 @@ export default function BirthdayWidget() {
     const handleExportPDF = async () => {
         try {
             setExporting(true);
-            const url = "http://127.0.0.1:8000/analytics/birthdays/export/pdf";
+            const res = await fetch(`${API_URL}/analytics/birthdays/export/pdf`, {
+                credentials: 'include',
+            });
+            if (!res.ok) throw new Error(`HTTP ${res.status}`);
+            const blob = await res.blob();
+            const url = window.URL.createObjectURL(blob);
             const link = document.createElement("a");
             link.href = url;
             link.download = `birthdays_${new Date().getFullYear()}_${String(new Date().getMonth() + 1).padStart(2, '0')}.pdf`;
             document.body.appendChild(link);
             link.click();
             document.body.removeChild(link);
+            window.URL.revokeObjectURL(url);
         } catch (error) {
             console.error("Error exporting birthdays PDF:", error);
         } finally {
@@ -67,7 +78,7 @@ export default function BirthdayWidget() {
         );
     }
 
-    if (!data) {
+    if (!data || !data.birthdays) {
         return null;
     }
 

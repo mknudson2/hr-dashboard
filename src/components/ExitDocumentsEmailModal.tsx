@@ -2,7 +2,7 @@ import { X, Send, FileText, Plus, Trash2, DollarSign, Calendar } from "lucide-re
 import { motion, AnimatePresence } from "framer-motion";
 import { useState } from "react";
 
-const BASE_URL = 'http://localhost:8000';
+const BASE_URL = '';
 
 interface Employee {
   employee_id: string;
@@ -17,12 +17,14 @@ interface ExitDocumentsEmailModalProps {
   isOpen: boolean;
   onClose: () => void;
   employee: Employee | null;
+  onSuccess?: () => void;
 }
 
 export default function ExitDocumentsEmailModal({
   isOpen,
   onClose,
-  employee
+  employee,
+  onSuccess
 }: ExitDocumentsEmailModalProps) {
   const [employeeEmail, setEmployeeEmail] = useState("");
   const [finalPayDate, setFinalPayDate] = useState("");
@@ -88,6 +90,8 @@ export default function ExitDocumentsEmailModal({
       setSuccess(true);
       setTimeout(() => {
         onClose();
+        // Notify parent to refresh data
+        onSuccess?.();
         // Reset form
         setEmployeeEmail("");
         setFinalPayDate("");

@@ -26,7 +26,9 @@ export default function DepartmentChart() {
     useEffect(() => {
         async function fetchDepartments() {
             try {
-                const res = await fetch(`http://127.0.0.1:8000/analytics/departments?group_by=${filter}`);
+                const res = await fetch(`/analytics/departments?group_by=${filter}`, {
+                    credentials: 'include',
+                });
                 const json = await res.json();
                 setDeptData(json);
             } catch (error) {

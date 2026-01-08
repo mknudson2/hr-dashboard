@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, UserPlus, UserMinus, AlertCircle } from 'lucide-react';
 
-const BASE_URL = 'http://localhost:8000';
+const BASE_URL = '';
 
 interface Employee {
   employee_id: string;
@@ -56,9 +56,16 @@ export function OnboardingModal({ isOpen, onClose, employees, onSuccess }: Onboa
     intlZip: ''
   });
 
-  // Get unique departments and positions from existing employees
+  // Get unique departments from existing employees
   const uniqueDepartments = Array.from(new Set(employees.map(e => e.department).filter(Boolean)));
-  const uniquePositions = Array.from(new Set(employees.map(e => e.position).filter(Boolean)));
+
+  // Filter positions based on selected department
+  const uniquePositions = Array.from(new Set(
+    employees
+      .filter(e => !formData.department || e.department === formData.department)
+      .map(e => e.position)
+      .filter(Boolean)
+  ));
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -85,15 +92,31 @@ export function OnboardingModal({ isOpen, onClose, employees, onSuccess }: Onboa
 
     setLoading(true);
     try {
+      // Build request body, properly handling optional fields
+      const requestBody: Record<string, unknown> = {
+        first_name: formData.first_name,
+        last_name: formData.last_name,
+        department: formData.department,
+        hire_date: formData.hire_date,
+        wage_type: formData.wage_type,
+        location: locationString || undefined,
+        position: formData.position || undefined,
+        wage: formData.wage ? parseFloat(formData.wage) : undefined
+      };
+
+      // Remove undefined values
+      Object.keys(requestBody).forEach(key => {
+        if (requestBody[key] === undefined) {
+          delete requestBody[key];
+        }
+      });
+
       const response = await fetch(
         `${BASE_URL}/onboarding/tasks/bulk-create?template_id=1`,
         {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            ...formData,
-            location: locationString
-          })
+          body: JSON.stringify(requestBody)
         }
       );
 
@@ -241,9 +264,12 @@ export function OnboardingModal({ isOpen, onClose, employees, onSuccess }: Onboa
                     onChange={(e) => {
                       if (e.target.value === '__ADD_NEW__') {
                         setShowNewDepartment(true);
-                        setFormData({...formData, department: ''});
+                        setFormData({...formData, department: '', position: ''});
                       } else {
-                        setFormData({...formData, department: e.target.value});
+                        // Reset position when department changes
+                        setFormData({...formData, department: e.target.value, position: ''});
+                        setShowNewPosition(false);
+                        setNewPositionValue('');
                       }
                     }}
                     disabled={loading}

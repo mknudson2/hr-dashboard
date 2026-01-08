@@ -3,7 +3,7 @@ import { motion } from 'framer-motion';
 import { Calendar, DollarSign, Download, Upload, Users, TrendingUp, Filter, FileSpreadsheet, X } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 
-const API_URL = 'http://localhost:8000';
+const API_URL = '';
 
 interface OvertimeSummary {
   cost_center: string;
@@ -56,13 +56,13 @@ const OvertimePage = () => {
       if (endDate) params.append('end_date', endDate);
 
       // Fetch summary
-      const summaryResponse = await fetch(`${API_URL}/pto/summary?${params}`);
+      const summaryResponse = await fetch(`${API_URL}/pto/summary?${params}`, { credentials: 'include' });
       const summaryData = await summaryResponse.json();
       setSummary(summaryData.summary_by_cost_center || []);
       setOverallStats(summaryData.overall || { total_hours: 0, total_cost: 0, cost_center_count: 0 });
 
       // Fetch records
-      const recordsResponse = await fetch(`${API_URL}/pto/records?${params}`);
+      const recordsResponse = await fetch(`${API_URL}/pto/records?${params}`, { credentials: 'include' });
       const recordsData = await recordsResponse.json();
       setRecords(recordsData.records || []);
     } catch (error) {
@@ -78,7 +78,7 @@ const OvertimePage = () => {
       if (startDate) params.append('start_date', startDate);
       if (endDate) params.append('end_date', endDate);
 
-      const response = await fetch(`${API_URL}/pto/export?${params}`);
+      const response = await fetch(`${API_URL}/pto/export?${params}`, { credentials: 'include' });
 
       if (!response.ok) {
         throw new Error('Export failed');
@@ -126,6 +126,7 @@ const OvertimePage = () => {
 
       const response = await fetch(`${API_URL}/pto/upload`, {
         method: 'POST',
+        credentials: 'include',
         body: formData,
       });
 

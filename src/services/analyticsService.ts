@@ -1,7 +1,9 @@
-const API_BASE = "http://127.0.0.1:8000";
+const API_BASE = "";
 
 export async function getAnalytics() {
-  const res = await fetch(`${API_BASE}/analytics`);
+  const res = await fetch(`${API_BASE}/analytics`, {
+    credentials: 'include',
+  });
   return res.json();
 }
 
@@ -14,14 +16,17 @@ export type AvgTenureResponse = {
 };
 
 export async function fetchAverageTenure(): Promise<AvgTenureResponse> {
-  const res = await fetch(`${API_BASE}/analytics/average-tenure`);
+  const res = await fetch(`${API_BASE}/analytics/average-tenure`, {
+    credentials: 'include',
+  });
   return res.json();
 }
 
 export async function downloadAverageTenureExcel() {
   try {
     const res = await fetch(
-      `${API_BASE}/analytics/average-tenure/export/excel`
+      `${API_BASE}/analytics/average-tenure/export/excel`,
+      { credentials: 'include' }
     );
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
     const blob = await res.blob();
@@ -42,7 +47,9 @@ export async function downloadAverageTenureExcel() {
 
 export async function downloadAverageTenurePDF() {
   try {
-    const res = await fetch(`${API_BASE}/analytics/average-tenure/export/pdf`);
+    const res = await fetch(`${API_BASE}/analytics/average-tenure/export/pdf`, {
+      credentials: 'include',
+    });
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
     const blob = await res.blob();
     const url = window.URL.createObjectURL(blob);
@@ -68,6 +75,8 @@ export type PtoUtilResponse = {
 };
 
 export async function fetchPtoUtilization(): Promise<PtoUtilResponse> {
-  const res = await fetch(`${API_BASE}/analytics/pto-utilization`);
+  const res = await fetch(`${API_BASE}/analytics/pto-utilization`, {
+    credentials: 'include',
+  });
   return res.json();
 }

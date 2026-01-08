@@ -2,7 +2,7 @@ import { X, Send, Mail, Plus, Trash2 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useState } from "react";
 
-const BASE_URL = 'http://localhost:8000';
+const BASE_URL = '';
 
 interface Employee {
   employee_id: string;

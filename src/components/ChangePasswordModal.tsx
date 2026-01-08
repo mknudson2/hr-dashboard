@@ -1,8 +1,7 @@
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { X, Eye, EyeOff, Lock, AlertCircle, CheckCircle } from 'lucide-react';
-
-const API_URL = 'http://localhost:8000';
+import { API_URL } from '@/config/api';
 
 interface ChangePasswordModalProps {
   isOpen: boolean;
@@ -69,12 +68,11 @@ const ChangePasswordModal = ({ isOpen, onClose, isRequired = false, onSuccess, t
     setError('');
 
     try {
-      const token = localStorage.getItem('auth_token');
       const response = await fetch(`${API_URL}/auth/change-password`, {
         method: 'POST',
+        credentials: 'include',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`,
         },
         body: JSON.stringify({
           current_password: currentPassword,

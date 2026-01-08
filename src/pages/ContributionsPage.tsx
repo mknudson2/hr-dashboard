@@ -105,7 +105,7 @@ const ContributionsPage = () => {
     try {
       setLoading(true);
       // Fetch from analytics endpoint which has contribution fields
-      const response = await fetch('http://localhost:8000/analytics/employees');
+      const response = await fetch('/analytics/employees', { credentials: 'include' });
       const data = await response.json();
       setEmployees(data.employees || []);
     } catch (error) {
@@ -117,7 +117,7 @@ const ContributionsPage = () => {
 
   const fetchContributionLimits = async () => {
     try {
-      const response = await fetch('http://localhost:8000/contribution-limits/current');
+      const response = await fetch('/contribution-limits/current', { credentials: 'include' });
       const data = await response.json();
       setContributionLimits(data);
       console.log('Fetched contribution limits:', data);
@@ -135,9 +135,10 @@ const ContributionsPage = () => {
         console.log('HRA value being sent:', updates.hra_er_contribution, 'Type:', typeof updates.hra_er_contribution);
       }
 
-      const response = await fetch(`http://localhost:8000/employees/${employeeId}/contributions`, {
+      const response = await fetch(`/employees/${employeeId}/contributions`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
         body: JSON.stringify(updates),
       });
 

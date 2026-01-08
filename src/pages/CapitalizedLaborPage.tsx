@@ -1,5 +1,10 @@
 import { useState, useEffect } from "react";
-import axios from "axios";
+import axiosBase from "axios";
+
+// Create axios instance with credentials
+const axios = axiosBase.create({
+  withCredentials: true
+});
 import { motion, AnimatePresence } from "framer-motion";
 import {
   Clock,
@@ -34,8 +39,8 @@ import {
   History
 } from "lucide-react";
 
-const API_URL = "http://localhost:8000/capitalized-labor";
-const ADMIN_API_URL = "http://localhost:8000/capitalized-labor/admin";
+const API_URL = "";
+const ADMIN_API_URL = "/capitalized-labor/admin";
 
 // ==================== INTERFACES ====================
 
@@ -460,21 +465,34 @@ function TimeTrackingTab() {
   const fetchProjects = async () => {
     try {
       const response = await axios.get(`${API_URL}/projects?status=active`);
-      setProjects(response.data);
+      setProjects(response.data.projects || []);
     } catch (error) {
       console.error("Error fetching projects:", error);
+      setProjects([]);
     }
   };
 
   const fetchCurrentTimesheet = async () => {
     try {
-      const response = await axios.get(`${API_URL}/timesheets/current?employee_id=${currentEmployeeId}`);
-      setCurrentTimesheet(response.data);
-      if (response.data?.time_entries) {
-        setTimeEntries(response.data.time_entries);
+      // Get the most recent timesheet for this employee
+      const response = await axios.get(`${API_URL}/timesheets?employee_id=${currentEmployeeId}`);
+      const timesheets = response.data.timesheets || [];
+      if (timesheets.length > 0) {
+        // Get the first (most recent) timesheet
+        const latestTimesheetId = timesheets[0].id;
+        const detailResponse = await axios.get(`${API_URL}/timesheets/${latestTimesheetId}`);
+        setCurrentTimesheet(detailResponse.data);
+        if (detailResponse.data?.time_entries) {
+          setTimeEntries(detailResponse.data.time_entries);
+        }
+      } else {
+        setCurrentTimesheet(null);
+        setTimeEntries([]);
       }
     } catch (error) {
       console.error("Error fetching timesheet:", error);
+      setCurrentTimesheet(null);
+      setTimeEntries([]);
     }
   };
 
@@ -715,12 +733,14 @@ function TimesheetApprovalTab() {
 
   const fetchTimesheets = async () => {
     try {
+      // Use the available /timesheets endpoint with status filter
       const response = await axios.get(
-        `${API_URL}/timesheets/pending-approval?manager_id=${currentManagerId}&status=${filterStatus}`
+        `${API_URL}/timesheets?status=${filterStatus}`
       );
-      setTimesheets(response.data);
+      setTimesheets(response.data.timesheets || []);
     } catch (error) {
       console.error("Error fetching timesheets:", error);
+      setTimesheets([]);
     }
   };
 
@@ -912,7 +932,7 @@ function TimesheetApprovalTab() {
 
       {/* Reject Modal */}
       {showRejectModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
           <div className="bg-white dark:bg-gray-800 p-6 rounded-2xl shadow-xl max-w-md w-full mx-4">
             <div className="flex justify-between items-center mb-4">
               <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Reject Timesheet</h3>
@@ -3207,7 +3227,7 @@ function ReportsExportTab() {
 
       {/* Audit Log Modal */}
       {showAuditLog && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 overflow-y-auto">
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 overflow-y-auto">
           <div className="bg-white dark:bg-gray-800 p-6 rounded-2xl shadow-xl max-w-4xl w-full mx-4 my-8 max-h-[90vh] overflow-y-auto">
             <div className="flex justify-between items-center mb-4">
               <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Audit Log</h3>

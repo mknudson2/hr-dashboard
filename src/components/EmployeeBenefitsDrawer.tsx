@@ -87,7 +87,7 @@ export default function EmployeeBenefitsDrawer({ employeeId, onClose }: Employee
         async function fetchEmployeeDetails() {
             try {
                 setLoading(true);
-                const res = await fetch(`http://127.0.0.1:8000/analytics/employees/${employeeId}`);
+                const res = await fetch(`/analytics/employees/${employeeId}`);
                 const data = await res.json();
                 setEmployee(data);
             } catch (error) {

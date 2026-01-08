@@ -11,7 +11,7 @@ import {
   BarChart
 } from "lucide-react";
 
-const API_URL = "http://localhost:8000/capitalized-labor";
+const API_URL = "/capitalized-labor";
 
 interface CapitalizationSummary {
   total_hours: number;

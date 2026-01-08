@@ -90,7 +90,7 @@ export default function ReportsPage() {
     if (customReportFilters.wageType) params.append("wage_type", customReportFilters.wageType);
 
     // For now, export all matching employees (backend will handle filtering)
-    const url = `http://127.0.0.1:8000/analytics/employees/export/${format}?${params.toString()}`;
+    const url = `/analytics/employees/export/${format}?${params.toString()}`;
 
     const link = document.createElement("a");
     link.href = url;
@@ -199,7 +199,7 @@ export default function ReportsPage() {
       return;
     }
 
-    const url = `http://127.0.0.1:8000${endpoint}`;
+    const url = `${endpoint}`;
     const link = document.createElement("a");
     link.href = url;
     link.download = `${reportId}_report.${format === "excel" ? "xlsx" : "pdf"}`;
@@ -370,7 +370,7 @@ export default function ReportsPage() {
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               onClick={() => setShowCustomReportModal(false)}
-              className="fixed inset-0 bg-black bg-opacity-50 z-40"
+              className="fixed inset-0 bg-black/50 z-40"
             />
 
             {/* Modal */}

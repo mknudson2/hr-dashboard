@@ -1,7 +1,7 @@
 // src/services/employeeService.ts
 import axios from "axios";
 
-const API_BASE = "http://127.0.0.1:8000";
+const API_BASE = "";
 
 export const getEmployeeById = async (id: number) => {
   const response = await axios.get(`${API_BASE}/employees/${id}`);
@@ -14,11 +14,11 @@ export const getAnalytics = async () => {
 };
 
 export async function listEmployees() {
-  const res = await fetch("http://localhost:8000/employees");
+  const res = await fetch("/employees");
   return res.json();
 }
 
 export async function getEmployees() {
-  const res = await fetch("http://localhost:8000/employees");
+  const res = await fetch("/employees");
   return res.json();
 }

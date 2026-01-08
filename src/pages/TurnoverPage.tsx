@@ -73,9 +73,9 @@ export default function TurnoverPage() {
         setLoading(true);
         try {
             const [statsRes, terminationsRes, changesRes] = await Promise.all([
-                fetch("http://127.0.0.1:8000/turnover/dashboard"),
-                fetch("http://127.0.0.1:8000/turnover/terminations"),
-                fetch("http://127.0.0.1:8000/turnover/internal-changes"),
+                fetch("/turnover/dashboard", { credentials: 'include' }),
+                fetch("/turnover/terminations", { credentials: 'include' }),
+                fetch("/turnover/internal-changes", { credentials: 'include' }),
             ]);
 
             if (statsRes.ok) setStats(await statsRes.json());

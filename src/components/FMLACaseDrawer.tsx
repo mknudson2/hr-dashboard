@@ -66,7 +66,7 @@ export default function FMLACaseDrawer({ caseId, onClose, onUpdate }: FMLACaseDr
 
     setLoading(true);
     try {
-      const response = await fetch(`http://127.0.0.1:8000/fmla/cases/${caseId}`);
+      const response = await fetch(`/fmla/cases/${caseId}`);
       const data = await response.json();
       setCaseDetail(data);
     } catch (error) {
@@ -81,7 +81,7 @@ export default function FMLACaseDrawer({ caseId, onClose, onUpdate }: FMLACaseDr
 
     setAddingNote(true);
     try {
-      const response = await fetch(`http://127.0.0.1:8000/fmla/cases/${caseId}/notes`, {
+      const response = await fetch(`/fmla/cases/${caseId}/notes`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -109,7 +109,7 @@ export default function FMLACaseDrawer({ caseId, onClose, onUpdate }: FMLACaseDr
 
     setUpdatingStatus(true);
     try {
-      const response = await fetch(`http://127.0.0.1:8000/fmla/cases/${caseId}`, {
+      const response = await fetch(`/fmla/cases/${caseId}`, {
         method: "PATCH",
         headers: {
           "Content-Type": "application/json",

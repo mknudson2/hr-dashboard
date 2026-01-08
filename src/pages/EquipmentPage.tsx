@@ -4,8 +4,11 @@ import {
   Laptop, Monitor, Smartphone, Package, CheckCircle, Clock,
   AlertTriangle, Plus, Search, Filter, User, Calendar
 } from 'lucide-react';
+import AddEquipmentModal from '../components/AddEquipmentModal';
+import EquipmentDetailDrawer from '../components/EquipmentDetailDrawer';
 
-const BASE_URL = 'http://localhost:8000';
+const BASE_URL = '';
+
 
 interface Equipment {
   id: number;
@@ -54,6 +57,10 @@ export default function EquipmentPage() {
   const [statusFilter, setStatusFilter] = useState('');
   const [typeFilter, setTypeFilter] = useState('');
 
+  // Modal/Drawer state
+  const [showAddModal, setShowAddModal] = useState(false);
+  const [selectedEquipmentId, setSelectedEquipmentId] = useState<number | null>(null);
+
   useEffect(() => {
     loadData();
   }, []);
@@ -62,8 +69,8 @@ export default function EquipmentPage() {
     setLoading(true);
     try {
       const [equipmentRes, statsRes] = await Promise.all([
-        fetch(`${BASE_URL}/equipment/`),
-        fetch(`${BASE_URL}/equipment/dashboard`)
+        fetch(`${BASE_URL}/equipment/`, { credentials: 'include' }),
+        fetch(`${BASE_URL}/equipment/dashboard`, { credentials: 'include' })
       ]);
 
       if (equipmentRes.ok) {
@@ -163,7 +170,7 @@ export default function EquipmentPage() {
           </p>
         </div>
         <button
-          onClick={() => alert('Add Equipment modal would open here')}
+          onClick={() => setShowAddModal(true)}
           className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
         >
           <Plus className="w-5 h-5" />
@@ -385,7 +392,7 @@ export default function EquipmentPage() {
                   <tr
                     key={item.id}
                     className="hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors cursor-pointer"
-                    onClick={() => alert(`View details for ${item.equipment_id}`)}
+                    onClick={() => setSelectedEquipmentId(item.id)}
                   >
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="flex items-center gap-3">
@@ -436,6 +443,20 @@ export default function EquipmentPage() {
           </table>
         </div>
       </div>
+
+      {/* Add Equipment Modal */}
+      <AddEquipmentModal
+        isOpen={showAddModal}
+        onClose={() => setShowAddModal(false)}
+        onSuccess={loadData}
+      />
+
+      {/* Equipment Detail Drawer */}
+      <EquipmentDetailDrawer
+        equipmentId={selectedEquipmentId}
+        onClose={() => setSelectedEquipmentId(null)}
+        onUpdate={loadData}
+      />
     </div>
   );
 }

@@ -57,7 +57,9 @@ const LocationDistribution = () => {
   const fetchLocationData = async () => {
     try {
       setLoading(true);
-      const response = await fetch('http://localhost:8000/analytics/location-distribution');
+      const response = await fetch('/analytics/location-distribution', {
+        credentials: 'include',
+      });
       const data = await response.json();
       setLocationData(data);
     } catch (error) {
@@ -80,7 +82,9 @@ const LocationDistribution = () => {
       }
 
       // Download PDF from backend
-      const response = await fetch('http://localhost:8000/analytics/location-distribution/pdf');
+      const response = await fetch('/analytics/location-distribution/pdf', {
+        credentials: 'include',
+      });
 
       if (!response.ok) {
         throw new Error(`Failed to generate PDF: ${response.statusText}`);

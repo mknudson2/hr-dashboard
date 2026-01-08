@@ -47,7 +47,7 @@ export default function TerminationDrawer({ terminationId, onClose }: Terminatio
     const fetchTerminationDetail = async () => {
         setLoading(true);
         try {
-            const response = await fetch(`http://127.0.0.1:8000/turnover/terminations/${terminationId}`);
+            const response = await fetch(`/turnover/terminations/${terminationId}`);
             if (response.ok) {
                 const data = await response.json();
                 setTerminationDetail(data);
@@ -64,7 +64,7 @@ export default function TerminationDrawer({ terminationId, onClose }: Terminatio
         if (!terminationDetail) return;
 
         try {
-            const response = await fetch(`http://127.0.0.1:8000/turnover/terminations/${terminationId}`, {
+            const response = await fetch(`/turnover/terminations/${terminationId}`, {
                 method: "PATCH",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ notes: editedNotes }),
@@ -83,7 +83,7 @@ export default function TerminationDrawer({ terminationId, onClose }: Terminatio
         if (!confirm("Are you sure you want to delete this termination record?")) return;
 
         try {
-            const response = await fetch(`http://127.0.0.1:8000/turnover/terminations/${terminationId}`, {
+            const response = await fetch(`/turnover/terminations/${terminationId}`, {
                 method: "DELETE",
             });
 

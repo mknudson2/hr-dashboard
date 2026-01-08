@@ -1,8 +1,7 @@
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, Shield, Copy, Check, AlertCircle, Download } from 'lucide-react';
-
-const API_URL = 'http://localhost:8000';
+import { API_URL } from '@/config/api';
 
 interface TwoFactorSetupModalProps {
   isOpen: boolean;
@@ -30,12 +29,9 @@ export default function TwoFactorSetupModal({ isOpen, onClose, onSuccess }: TwoF
     setError('');
 
     try {
-      const token = localStorage.getItem('auth_token');
       const response = await fetch(`${API_URL}/auth/2fa/setup`, {
         method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-        },
+        credentials: 'include',
       });
 
       if (!response.ok) {
@@ -63,11 +59,10 @@ export default function TwoFactorSetupModal({ isOpen, onClose, onSuccess }: TwoF
     setError('');
 
     try {
-      const token = localStorage.getItem('auth_token');
       const response = await fetch(`${API_URL}/auth/2fa/verify`, {
         method: 'POST',
+        credentials: 'include',
         headers: {
-          'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({ code: verificationCode }),

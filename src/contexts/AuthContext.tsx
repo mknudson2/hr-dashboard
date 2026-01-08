@@ -1,6 +1,5 @@
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
-
-const API_URL = 'http://localhost:8000';
+import { API_URL } from '@/config/api';
 
 interface User {
   id: number;
@@ -13,7 +12,6 @@ interface User {
 
 interface AuthContextType {
   user: User | null;
-  token: string | null;
   loading: boolean;
   login: (username: string, password: string) => Promise<void>;
   logout: () => Promise<void>;
@@ -36,36 +34,37 @@ interface AuthProviderProps {
 
 export const AuthProvider = ({ children }: AuthProviderProps) => {
   const [user, setUser] = useState<User | null>(null);
-  const [token, setToken] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
 
-  // Load token and user from localStorage on mount
+  // Verify authentication on mount using httpOnly cookie
+  // Token is stored in httpOnly cookie (not accessible via JS for XSS protection)
   useEffect(() => {
     const loadAuth = async () => {
       try {
-        const storedToken = localStorage.getItem('auth_token');
+        // Check if we have cached user info
         const storedUser = localStorage.getItem('auth_user');
 
-        if (storedToken && storedUser) {
-          // Verify token is still valid
-          const response = await fetch(`${API_URL}/auth/verify`, {
-            headers: {
-              'Authorization': `Bearer ${storedToken}`,
-            },
-          });
+        // Only verify with server if we have cached user info
+        // This prevents unnecessary 401 console messages when not logged in
+        if (!storedUser) {
+          setLoading(false);
+          return;
+        }
 
-          if (response.ok) {
-            setToken(storedToken);
-            setUser(JSON.parse(storedUser));
-          } else {
-            // Token invalid, clear storage
-            localStorage.removeItem('auth_token');
-            localStorage.removeItem('auth_user');
-          }
+        // Verify with server if cookie is still valid (cookie sent automatically)
+        const response = await fetch(`${API_URL}/auth/verify`, {
+          credentials: 'include',  // Send httpOnly cookie with request
+        });
+
+        if (response.ok) {
+          // Cookie is valid, restore user from cache
+          setUser(JSON.parse(storedUser));
+        } else {
+          // Cookie invalid or expired, clear cached user
+          localStorage.removeItem('auth_user');
         }
       } catch (error) {
-        console.error('Error loading auth:', error);
-        localStorage.removeItem('auth_token');
+        // Network error - clear cached user to be safe
         localStorage.removeItem('auth_user');
       } finally {
         setLoading(false);
@@ -79,6 +78,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
     try {
       const response = await fetch(`${API_URL}/auth/login`, {
         method: 'POST',
+        credentials: 'include',  // Receive httpOnly cookie from server
         headers: {
           'Content-Type': 'application/json',
         },
@@ -92,11 +92,8 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
 
       const data = await response.json();
 
-      // Store token and user
-      localStorage.setItem('auth_token', data.access_token);
+      // Store user info for UI display (token is in httpOnly cookie, not accessible via JS)
       localStorage.setItem('auth_user', JSON.stringify(data.user));
-
-      setToken(data.access_token);
       setUser(data.user);
     } catch (error) {
       console.error('Login error:', error);
@@ -106,32 +103,26 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
 
   const logout = async () => {
     try {
-      if (token) {
-        await fetch(`${API_URL}/auth/logout`, {
-          method: 'POST',
-          headers: {
-            'Authorization': `Bearer ${token}`,
-          },
-        });
-      }
+      // Server will clear the httpOnly cookie and blacklist the token
+      await fetch(`${API_URL}/auth/logout`, {
+        method: 'POST',
+        credentials: 'include',  // Send httpOnly cookie with request
+      });
     } catch (error) {
       console.error('Logout error:', error);
     } finally {
-      // Clear local state and storage regardless of API call result
-      localStorage.removeItem('auth_token');
+      // Clear local state and cached user info
       localStorage.removeItem('auth_user');
-      setToken(null);
       setUser(null);
     }
   };
 
   const value = {
     user,
-    token,
     loading,
     login,
     logout,
-    isAuthenticated: !!user && !!token,
+    isAuthenticated: !!user,
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

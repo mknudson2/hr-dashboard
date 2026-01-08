@@ -69,7 +69,7 @@ export default function EmployeeDetailPage() {
 
         // Fetch employee details
         const empRes = await fetch(
-          `http://127.0.0.1:8000/analytics/employees/${employeeId}`
+          `/analytics/employees/${employeeId}`
         );
         const empData = await empRes.json();
 
@@ -82,7 +82,7 @@ export default function EmployeeDetailPage() {
 
         // Fetch wage history
         const wageRes = await fetch(
-          `http://127.0.0.1:8000/analytics/employees/${employeeId}/wage-history`
+          `/analytics/employees/${employeeId}/wage-history`
         );
         const wageData = await wageRes.json();
 

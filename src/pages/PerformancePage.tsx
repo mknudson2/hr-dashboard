@@ -1,7 +1,9 @@
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { Target, Award, MessageSquare, AlertTriangle, BarChart3, Plus, Calendar, TrendingUp, Users } from 'lucide-react';
+import { Target, Award, MessageSquare, AlertTriangle, BarChart3, Plus, Calendar, TrendingUp, Users, Edit3, Trash2, Loader2 } from 'lucide-react';
 import { ReviewCycleModal, PerformanceReviewModal, GoalModal, FeedbackModal, PIPModal } from '@/components/PerformanceModals';
+import PIPDetailDrawer from '@/components/PIPDetailDrawer';
+
 
 type TabType = 'dashboard' | 'reviews' | 'goals' | 'feedback' | 'pips';
 
@@ -126,6 +128,14 @@ export default function PerformancePage() {
   const [showFeedbackModal, setShowFeedbackModal] = useState(false);
   const [showPIPModal, setShowPIPModal] = useState(false);
 
+  // PIP drawer state
+  const [selectedPIPId, setSelectedPIPId] = useState<number | null>(null);
+
+  // Goal edit/delete states
+  const [editingGoal, setEditingGoal] = useState<Goal | null>(null);
+  const [deletingGoalId, setDeletingGoalId] = useState<number | null>(null);
+  const [deleteLoading, setDeleteLoading] = useState(false);
+
   // Employees for dropdowns
   const [employees, setEmployees] = useState<Array<{ employee_id: string; first_name: string; last_name: string }>>([]);
 
@@ -137,7 +147,7 @@ export default function PerformancePage() {
     // Load employees for dropdowns
     const loadEmployees = async () => {
       try {
-        const response = await fetch('http://localhost:8000/analytics/employees');
+        const response = await fetch('/analytics/employees', { credentials: 'include' });
         if (response.ok) {
           const data = await response.json();
           setEmployees(data.employees || []);
@@ -152,42 +162,42 @@ export default function PerformancePage() {
   const loadData = async () => {
     try {
       setLoading(true);
-      const BASE_URL = 'http://localhost:8000';
+      const BASE_URL = '';
 
       if (activeTab === 'dashboard') {
-        const response = await fetch(`${BASE_URL}/performance/dashboard`);
+        const response = await fetch(`${BASE_URL}/performance/dashboard`, { credentials: 'include' });
         if (response.ok) {
           const data = await response.json();
           setDashboardMetrics(data);
         }
       } else if (activeTab === 'reviews') {
         // Load review cycles
-        const cyclesResponse = await fetch(`${BASE_URL}/performance/cycles`);
+        const cyclesResponse = await fetch(`${BASE_URL}/performance/cycles`, { credentials: 'include' });
         if (cyclesResponse.ok) {
           const cyclesData = await cyclesResponse.json();
           setReviewCycles(cyclesData.cycles || []);
         }
 
         // Load reviews
-        const reviewsResponse = await fetch(`${BASE_URL}/performance/reviews`);
+        const reviewsResponse = await fetch(`${BASE_URL}/performance/reviews`, { credentials: 'include' });
         if (reviewsResponse.ok) {
           const reviewsData = await reviewsResponse.json();
           setReviews(reviewsData || []);
         }
       } else if (activeTab === 'goals') {
-        const response = await fetch(`${BASE_URL}/performance/goals`);
+        const response = await fetch(`${BASE_URL}/performance/goals`, { credentials: 'include' });
         if (response.ok) {
           const data = await response.json();
           setGoals(data || []);
         }
       } else if (activeTab === 'feedback') {
-        const response = await fetch(`${BASE_URL}/performance/feedback`);
+        const response = await fetch(`${BASE_URL}/performance/feedback`, { credentials: 'include' });
         if (response.ok) {
           const data = await response.json();
           setFeedbackList(data || []);
         }
       } else if (activeTab === 'pips') {
-        const response = await fetch(`${BASE_URL}/performance/pips`);
+        const response = await fetch(`${BASE_URL}/performance/pips`, { credentials: 'include' });
         if (response.ok) {
           const data = await response.json();
           setPips(data || []);
@@ -236,6 +246,33 @@ export default function PerformancePage() {
       month: 'short',
       day: 'numeric'
     });
+  };
+
+  const handleDeleteGoal = async (goalId: number) => {
+    setDeleteLoading(true);
+    try {
+      const response = await fetch(`/performance/goals/${goalId}`, {
+        method: 'DELETE',
+        credentials: 'include'
+      });
+      if (response.ok) {
+        loadData();
+        setDeletingGoalId(null);
+      } else {
+        const error = await response.json();
+        alert(error.detail || 'Failed to delete goal');
+      }
+    } catch (error) {
+      console.error('Error deleting goal:', error);
+      alert('Failed to delete goal');
+    } finally {
+      setDeleteLoading(false);
+    }
+  };
+
+  const handleEditGoal = (goal: Goal) => {
+    setEditingGoal(goal);
+    setShowGoalModal(true);
   };
 
   if (loading && !dashboardMetrics) {
@@ -565,9 +602,27 @@ export default function PerformancePage() {
                       key={goal.id}
                       initial={{ opacity: 0, y: 20 }}
                       animate={{ opacity: 1, y: 0 }}
-                      className="bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-xl p-6"
+                      className="bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-xl p-6 relative group"
                     >
-                      <div className="flex items-start justify-between mb-3">
+                      {/* Edit/Delete buttons */}
+                      <div className="absolute top-4 right-4 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <button
+                          onClick={() => handleEditGoal(goal)}
+                          className="p-1.5 hover:bg-gray-100 dark:hover:bg-gray-600 rounded-lg transition-colors"
+                          title="Edit goal"
+                        >
+                          <Edit3 className="w-4 h-4 text-gray-500 dark:text-gray-400" />
+                        </button>
+                        <button
+                          onClick={() => setDeletingGoalId(goal.id)}
+                          className="p-1.5 hover:bg-red-100 dark:hover:bg-red-900/30 rounded-lg transition-colors"
+                          title="Delete goal"
+                        >
+                          <Trash2 className="w-4 h-4 text-red-500 dark:text-red-400" />
+                        </button>
+                      </div>
+
+                      <div className="flex items-start justify-between mb-3 pr-16">
                         <div className="flex items-center gap-3">
                           <div className={`p-2 rounded-lg ${
                             goal.goal_type === 'OKR' ? 'bg-purple-100 dark:bg-purple-900' :
@@ -748,7 +803,8 @@ export default function PerformancePage() {
                       key={pip.id}
                       initial={{ opacity: 0, y: 20 }}
                       animate={{ opacity: 1, y: 0 }}
-                      className="bg-white dark:bg-gray-700 border-l-4 border-orange-500 shadow-sm rounded-r-xl p-6"
+                      onClick={() => setSelectedPIPId(pip.id)}
+                      className="bg-white dark:bg-gray-700 border-l-4 border-orange-500 shadow-sm rounded-r-xl p-6 cursor-pointer hover:shadow-md transition-shadow"
                     >
                       <div className="flex items-start justify-between mb-4">
                         <div>
@@ -820,12 +876,17 @@ export default function PerformancePage() {
 
       <GoalModal
         isOpen={showGoalModal}
-        onClose={() => setShowGoalModal(false)}
+        onClose={() => {
+          setShowGoalModal(false);
+          setEditingGoal(null);
+        }}
         onSuccess={() => {
           setShowGoalModal(false);
+          setEditingGoal(null);
           loadData();
         }}
         employees={employees}
+        editGoal={editingGoal}
       />
 
       <FeedbackModal
@@ -847,6 +908,52 @@ export default function PerformancePage() {
         }}
         employees={employees}
       />
+
+      {/* PIP Detail Drawer */}
+      <PIPDetailDrawer
+        pipId={selectedPIPId}
+        onClose={() => setSelectedPIPId(null)}
+        onUpdate={loadData}
+      />
+
+      {/* Delete Goal Confirmation Modal */}
+      {deletingGoalId && (
+        <>
+          <div
+            className="fixed inset-0 bg-black/50 z-40"
+            onClick={() => setDeletingGoalId(null)}
+          />
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+            <div className="bg-white dark:bg-gray-800 rounded-xl shadow-2xl max-w-md w-full p-6">
+              <div className="flex items-center gap-3 mb-4">
+                <div className="p-2 bg-red-100 dark:bg-red-900/30 rounded-lg">
+                  <Trash2 className="w-6 h-6 text-red-600 dark:text-red-400" />
+                </div>
+                <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Delete Goal</h3>
+              </div>
+              <p className="text-gray-600 dark:text-gray-400 mb-6">
+                Are you sure you want to delete this goal? This action cannot be undone.
+              </p>
+              <div className="flex gap-3">
+                <button
+                  onClick={() => setDeletingGoalId(null)}
+                  className="flex-1 px-4 py-2 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={() => handleDeleteGoal(deletingGoalId)}
+                  disabled={deleteLoading}
+                  className="flex-1 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition disabled:opacity-50 flex items-center justify-center gap-2"
+                >
+                  {deleteLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Trash2 className="w-4 h-4" />}
+                  Delete
+                </button>
+              </div>
+            </div>
+          </div>
+        </>
+      )}
     </div>
   );
 }

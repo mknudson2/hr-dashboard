@@ -70,7 +70,7 @@ export default function NewTerminationModal({ onClose }: NewTerminationModalProp
 
     const fetchEmployees = async () => {
         try {
-            const response = await fetch("http://127.0.0.1:8000/employees");
+            const response = await fetch("/employees");
             if (response.ok) {
                 const data = await response.json();
                 setEmployees(data.filter((e: Employee) => e.type !== "Terminated"));
@@ -111,7 +111,7 @@ export default function NewTerminationModal({ onClose }: NewTerminationModalProp
         }
 
         try {
-            const response = await fetch("http://127.0.0.1:8000/turnover/terminations", {
+            const response = await fetch("/turnover/terminations", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify(formData),
@@ -138,9 +138,9 @@ export default function NewTerminationModal({ onClose }: NewTerminationModalProp
         <>
             <motion.div
                 initial={{ opacity: 0 }}
-                animate={{ opacity: 0.5 }}
+                animate={{ opacity: 1 }}
                 exit={{ opacity: 0 }}
-                className="fixed inset-0 bg-black z-40"
+                className="fixed inset-0 bg-black/50 z-40"
                 onClick={onClose}
             />
 

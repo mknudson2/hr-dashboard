@@ -40,7 +40,9 @@ export default function DepartmentChart() {
     useEffect(() => {
         (async () => {
             try {
-                const res = await fetch("http://127.0.0.1:8000/analytics/pto-utilization");
+                const res = await fetch("/analytics/pto-utilization", {
+                    credentials: 'include',
+                });
                 const json = await res.json();
                 setData(json);
             } catch (err) {

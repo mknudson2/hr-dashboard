@@ -5,7 +5,7 @@ import {
   ToggleLeft, ToggleRight, Key, MoreVertical, X, CheckCircle, XCircle, Clock, Eye, EyeOff, RefreshCcw
 } from 'lucide-react';
 
-const API_URL = 'http://localhost:8000';
+const API_URL = '';
 
 interface User {
   id: number;
@@ -76,7 +76,6 @@ const UserManagementPage = () => {
 
   const fetchUsers = async () => {
     try {
-      const token = localStorage.getItem('auth_token');
       const params = new URLSearchParams({
         page: page.toString(),
         page_size: '20',
@@ -87,9 +86,7 @@ const UserManagementPage = () => {
       if (statusFilter) params.append('is_active', statusFilter);
 
       const response = await fetch(`${API_URL}/users?${params}`, {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-        },
+        credentials: 'include',
       });
 
       if (!response.ok) throw new Error('Failed to fetch users');
@@ -107,11 +104,8 @@ const UserManagementPage = () => {
 
   const fetchStats = async () => {
     try {
-      const token = localStorage.getItem('auth_token');
       const response = await fetch(`${API_URL}/users/stats/summary`, {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-        },
+        credentials: 'include',
       });
 
       if (response.ok) {
@@ -125,12 +119,9 @@ const UserManagementPage = () => {
 
   const handleToggleActive = async (user: User) => {
     try {
-      const token = localStorage.getItem('auth_token');
       const response = await fetch(`${API_URL}/users/${user.id}/toggle-active`, {
         method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-        },
+        credentials: 'include',
       });
 
       if (!response.ok) {
@@ -149,12 +140,9 @@ const UserManagementPage = () => {
     if (!selectedUser) return;
 
     try {
-      const token = localStorage.getItem('auth_token');
       const response = await fetch(`${API_URL}/users/${selectedUser.id}`, {
         method: 'DELETE',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-        },
+        credentials: 'include',
       });
 
       if (!response.ok) {
@@ -175,12 +163,9 @@ const UserManagementPage = () => {
     if (!selectedUser) return;
 
     try {
-      const token = localStorage.getItem('auth_token');
       const response = await fetch(`${API_URL}/auth/admin/reset-2fa/${selectedUser.id}`, {
         method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-        },
+        credentials: 'include',
       });
 
       if (!response.ok) {
@@ -234,8 +219,6 @@ const UserManagementPage = () => {
     setSubmitting(true);
 
     try {
-      const token = localStorage.getItem('auth_token');
-
       const payload: any = {
         username: formData.username,
         email: formData.email,
@@ -259,8 +242,8 @@ const UserManagementPage = () => {
         method,
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`,
         },
+        credentials: 'include',
         body: JSON.stringify(payload),
       });
 

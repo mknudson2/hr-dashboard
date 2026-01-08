@@ -7,7 +7,8 @@ import {
 import { OnboardingModal } from '@/components/OnboardingOffboardingModals';
 import { TaskDetailDrawer } from '@/components/TaskDetailDrawer';
 
-const BASE_URL = 'http://localhost:8000';
+const BASE_URL = '';
+
 
 interface OnboardingTask {
   id: number;
@@ -65,9 +66,9 @@ export default function OnboardingPage() {
     setLoading(true);
     try {
       const [tasksRes, statsRes, employeesRes] = await Promise.all([
-        fetch(`${BASE_URL}/onboarding/tasks`),
-        fetch(`${BASE_URL}/onboarding/dashboard`),
-        fetch(`${BASE_URL}/analytics/employees`)
+        fetch(`${BASE_URL}/onboarding/tasks`, { credentials: 'include' }),
+        fetch(`${BASE_URL}/onboarding/dashboard`, { credentials: 'include' }),
+        fetch(`${BASE_URL}/analytics/employees`, { credentials: 'include' })
       ]);
 
       if (tasksRes.ok) {
@@ -96,6 +97,7 @@ export default function OnboardingPage() {
       const response = await fetch(`${BASE_URL}/onboarding/tasks/${taskId}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
         body: JSON.stringify({
           status: newStatus,
           completed_date: newStatus === 'Completed' ? new Date().toISOString().split('T')[0] : null

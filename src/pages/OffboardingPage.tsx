@@ -3,7 +3,7 @@ import { useSearchParams } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import {
   UserMinus, CheckCircle, Clock, AlertTriangle, Plus, MessageSquare,
-  FileText, Calendar, User, Briefcase, ChevronDown, ChevronUp, ChevronRight, Mail, Download, X
+  FileText, Calendar, User, Briefcase, ChevronDown, ChevronUp, ChevronRight, Mail, Download, X, MailCheck
 } from 'lucide-react';
 import { OffboardingModal } from '@/components/OnboardingOffboardingModals';
 import { TaskDetailDrawer } from '@/components/TaskDetailDrawer';
@@ -12,7 +12,7 @@ import ExitDocumentsEmailModal from '@/components/ExitDocumentsEmailModal';
 import SubtasksDrawer from '@/components/SubtasksDrawer';
 import OffboardingTaskDrawer from '@/components/OffboardingTaskDrawer';
 
-const BASE_URL = 'http://localhost:8000';
+const BASE_URL = '';
 
 interface OffboardingTask {
   id: number;
@@ -53,6 +53,10 @@ interface Employee {
   last_name: string;
   termination_date: string;
   department: string;
+  exit_docs_sent?: boolean;
+  exit_docs_sent_at?: string;
+  exit_docs_sent_to?: string;
+  exit_docs_attachment_count?: number;
 }
 
 export default function OffboardingPage() {
@@ -107,6 +111,7 @@ export default function OffboardingPage() {
         try {
           const response = await fetch(`${BASE_URL}/offboarding/tasks/ensure/${employeeParam}`, {
             method: 'POST',
+            credentials: 'include',
           });
 
           if (response.ok) {
@@ -130,9 +135,9 @@ export default function OffboardingPage() {
     setLoading(true);
     try {
       const [tasksRes, statsRes, employeesRes] = await Promise.all([
-        fetch(`${BASE_URL}/offboarding/tasks`),
-        fetch(`${BASE_URL}/offboarding/dashboard`),
-        fetch(`${BASE_URL}/analytics/employees`)
+        fetch(`${BASE_URL}/offboarding/tasks`, { credentials: 'include' }),
+        fetch(`${BASE_URL}/offboarding/dashboard`, { credentials: 'include' }),
+        fetch(`${BASE_URL}/analytics/employees`, { credentials: 'include' })
       ]);
 
       if (tasksRes.ok) {
@@ -176,6 +181,7 @@ export default function OffboardingPage() {
       const response = await fetch(`${BASE_URL}/offboarding/tasks/${taskId}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
         body: JSON.stringify(updateData)
       });
 
@@ -185,7 +191,7 @@ export default function OffboardingPage() {
 
         // If SubtasksDrawer is open, refresh the selectedParentTask with updated subtasks
         if (selectedParentTask) {
-          const tasksRes = await fetch(`${BASE_URL}/offboarding/tasks`);
+          const tasksRes = await fetch(`${BASE_URL}/offboarding/tasks`, { credentials: 'include' });
           if (tasksRes.ok) {
             const data = await tasksRes.json();
             const updatedParentTask = data.tasks?.find((t: OffboardingTask) => t.id === selectedParentTask.id);
@@ -205,6 +211,7 @@ export default function OffboardingPage() {
       const response = await fetch(`${BASE_URL}/offboarding/tasks/${taskId}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
         body: JSON.stringify(updates)
       });
 
@@ -213,7 +220,7 @@ export default function OffboardingPage() {
         await loadData();
 
         // Fetch the updated task directly from the API to ensure we have the latest data
-        const taskResponse = await fetch(`${BASE_URL}/offboarding/tasks?employee_id=${selectedTaskForDrawer?.employee_id || ''}`);
+        const taskResponse = await fetch(`${BASE_URL}/offboarding/tasks?employee_id=${selectedTaskForDrawer?.employee_id || ''}`, { credentials: 'include' });
         if (taskResponse.ok) {
           const data = await taskResponse.json();
           // Search for the task in top-level tasks or within subtasks
@@ -305,6 +312,7 @@ export default function OffboardingPage() {
         fetch(`${BASE_URL}/offboarding/tasks/${subtask.id}`, {
           method: 'PATCH',
           headers: { 'Content-Type': 'application/json' },
+          credentials: 'include',
           body: JSON.stringify({
             status: 'Completed',
             completed_date: new Date().toISOString().split('T')[0]
@@ -317,6 +325,7 @@ export default function OffboardingPage() {
         fetch(`${BASE_URL}/offboarding/tasks/${selectedParentTask.id}`, {
           method: 'PATCH',
           headers: { 'Content-Type': 'application/json' },
+          credentials: 'include',
           body: JSON.stringify({
             status: 'Completed',
             completed_date: new Date().toISOString().split('T')[0]
@@ -356,7 +365,8 @@ export default function OffboardingPage() {
       // Send all NBS termination emails using the new endpoint
       const response = await fetch(`${BASE_URL}/emails/offboarding/nbs-term-all-by-employee/${employeeId}`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' }
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include'
       });
 
       if (!response.ok) {
@@ -371,6 +381,7 @@ export default function OffboardingPage() {
         fetch(`${BASE_URL}/offboarding/tasks/${subtask.id}`, {
           method: 'PATCH',
           headers: { 'Content-Type': 'application/json' },
+          credentials: 'include',
           body: JSON.stringify({
             status: 'Completed',
             completed_date: new Date().toISOString()
@@ -383,6 +394,7 @@ export default function OffboardingPage() {
         fetch(`${BASE_URL}/offboarding/tasks/${selectedParentTask.id}`, {
           method: 'PATCH',
           headers: { 'Content-Type': 'application/json' },
+          credentials: 'include',
           body: JSON.stringify({
             status: 'Completed',
             completed_date: new Date().toISOString()
@@ -422,6 +434,7 @@ export default function OffboardingPage() {
       await fetch(`${BASE_URL}/offboarding/tasks/${taskId}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
         body: JSON.stringify({ notes: note })
       });
       await loadData();
@@ -438,6 +451,7 @@ export default function OffboardingPage() {
 
       await fetch(`${BASE_URL}/offboarding/tasks/${taskId}/upload`, {
         method: 'POST',
+        credentials: 'include',
         body: formData
       });
 
@@ -456,7 +470,7 @@ export default function OffboardingPage() {
 
   const handleDownloadPackage = async (employeeId: string, employeeName: string) => {
     try {
-      const response = await fetch(`${BASE_URL}/offboarding/export-package/${employeeId}`);
+      const response = await fetch(`${BASE_URL}/offboarding/export-package/${employeeId}`, { credentials: 'include' });
 
       if (!response.ok) {
         throw new Error('Failed to generate PDF');
@@ -795,11 +809,23 @@ export default function OffboardingPage() {
                                 setSelectedEmployeeForEmail(employee);
                                 setShowExitDocumentsModal(true);
                               }}
-                              className="flex items-center gap-2 px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm transition-colors"
-                              title="Send Exit Documents Package"
+                              className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm transition-colors ${
+                                employee.exit_docs_sent
+                                  ? 'bg-green-600 hover:bg-green-700 text-white'
+                                  : 'bg-blue-600 hover:bg-blue-700 text-white'
+                              }`}
+                              title={
+                                employee.exit_docs_sent && employee.exit_docs_sent_at
+                                  ? `Exit docs sent on ${new Date(employee.exit_docs_sent_at).toLocaleDateString()} to ${employee.exit_docs_sent_to || 'employee'}`
+                                  : 'Send Exit Documents Package'
+                              }
                             >
-                              <FileText className="w-4 h-4" />
-                              Exit Documents
+                              {employee.exit_docs_sent ? (
+                                <MailCheck className="w-4 h-4" />
+                              ) : (
+                                <FileText className="w-4 h-4" />
+                              )}
+                              {employee.exit_docs_sent ? 'Docs Sent' : 'Exit Documents'}
                             </button>
                             <button
                               onClick={(e) => {
@@ -961,6 +987,10 @@ export default function OffboardingPage() {
           setSelectedEmployeeForEmail(null);
         }}
         employee={selectedEmployeeForEmail}
+        onSuccess={() => {
+          // Refresh employee data to show updated sent status
+          loadData();
+        }}
       />
 
       {/* Subtasks Drawer */}

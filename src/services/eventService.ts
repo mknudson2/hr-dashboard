@@ -1,4 +1,6 @@
-const API_BASE_URL = 'http://localhost:8000';
+const API_BASE_URL = '';
+
+// Authentication is handled via httpOnly cookies (credentials: 'include')
 
 export const getEvents = async (params?: {
   start_date?: string;
@@ -16,13 +18,13 @@ export const getEvents = async (params?: {
   }
 
   const url = `${API_BASE_URL}/events${queryParams.toString() ? `?${queryParams.toString()}` : ''}`;
-  const response = await fetch(url);
+  const response = await fetch(url, { credentials: 'include' });
   if (!response.ok) throw new Error('Failed to fetch events');
   return response.json();
 };
 
 export const getEvent = async (eventId: number) => {
-  const response = await fetch(`${API_BASE_URL}/events/${eventId}`);
+  const response = await fetch(`${API_BASE_URL}/events/${eventId}`, { credentials: 'include' });
   if (!response.ok) throw new Error('Failed to fetch event');
   return response.json();
 };
@@ -30,6 +32,7 @@ export const getEvent = async (eventId: number) => {
 export const createEvent = async (eventData: any) => {
   const response = await fetch(`${API_BASE_URL}/events`, {
     method: 'POST',
+    credentials: 'include',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(eventData),
   });
@@ -40,6 +43,7 @@ export const createEvent = async (eventData: any) => {
 export const updateEvent = async (eventId: number, eventData: any) => {
   const response = await fetch(`${API_BASE_URL}/events/${eventId}`, {
     method: 'PUT',
+    credentials: 'include',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(eventData),
   });
@@ -50,25 +54,26 @@ export const updateEvent = async (eventId: number, eventData: any) => {
 export const deleteEvent = async (eventId: number) => {
   const response = await fetch(`${API_BASE_URL}/events/${eventId}`, {
     method: 'DELETE',
+    credentials: 'include',
   });
   if (!response.ok) throw new Error('Failed to delete event');
   return response.json();
 };
 
 export const getUpcomingEvents = async (days: number = 30) => {
-  const response = await fetch(`${API_BASE_URL}/events/upcoming/summary?days=${days}`);
+  const response = await fetch(`${API_BASE_URL}/events/upcoming/summary?days=${days}`, { credentials: 'include' });
   if (!response.ok) throw new Error('Failed to fetch upcoming events');
   return response.json();
 };
 
 export const getEventTypes = async () => {
-  const response = await fetch(`${API_BASE_URL}/event-types`);
+  const response = await fetch(`${API_BASE_URL}/event-types`, { credentials: 'include' });
   if (!response.ok) throw new Error('Failed to fetch event types');
   return response.json();
 };
 
 export const getEventsByType = async (eventType: string) => {
-  const response = await fetch(`${API_BASE_URL}/events/by-type/${eventType}`);
+  const response = await fetch(`${API_BASE_URL}/events/by-type/${eventType}`, { credentials: 'include' });
   if (!response.ok) throw new Error('Failed to fetch events by type');
   return response.json();
 };

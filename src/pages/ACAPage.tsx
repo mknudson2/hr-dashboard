@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { motion } from 'framer-motion';
 import { Shield, Users, Clock, FileText, AlertCircle, CheckCircle, TrendingUp, Calendar, Upload, Download, Plus, X, Edit } from 'lucide-react';
 
-const API_URL = 'http://localhost:8000';
+const API_URL = '';
 
 type TabType = 'dashboard' | 'monthly-hours' | 'coverage' | 'forms' | 'alerts';
 
@@ -104,35 +104,33 @@ export default function ACAPage() {
   const loadData = async () => {
     try {
       setLoading(true);
-      const token = localStorage.getItem('auth_token');
-
       if (activeTab === 'dashboard') {
         const response = await fetch(`${API_URL}/aca/dashboard?year=${selectedYear}`, {
-          headers: { 'Authorization': `Bearer ${token}` }
+          credentials: 'include'
         });
         const data = await response.json();
         setDashboardData(data);
       } else if (activeTab === 'monthly-hours') {
         const response = await fetch(`${API_URL}/aca/monthly-hours?year=${selectedYear}&month=${selectedMonth}`, {
-          headers: { 'Authorization': `Bearer ${token}` }
+          credentials: 'include'
         });
         const data = await response.json();
         setMonthlyHours(data);
       } else if (activeTab === 'coverage') {
         const response = await fetch(`${API_URL}/aca/coverage-offers?year=${selectedYear}`, {
-          headers: { 'Authorization': `Bearer ${token}` }
+          credentials: 'include'
         });
         const data = await response.json();
         setCoverageOffers(data);
       } else if (activeTab === 'forms') {
         const response = await fetch(`${API_URL}/aca/forms/1095c?tax_year=${selectedYear}`, {
-          headers: { 'Authorization': `Bearer ${token}` }
+          credentials: 'include'
         });
         const data = await response.json();
         setForms1095c(data);
       } else if (activeTab === 'alerts') {
         const response = await fetch(`${API_URL}/aca/alerts?status=Active`, {
-          headers: { 'Authorization': `Bearer ${token}` }
+          credentials: 'include'
         });
         const data = await response.json();
         setAlerts(data);
@@ -155,6 +153,7 @@ export default function ACAPage() {
     try {
       const response = await fetch(`${API_URL}/aca/monthly-hours/import?year=${selectedYear}&month=${selectedMonth}`, {
         method: 'POST',
+        credentials: 'include',
         body: formData
       });
 
@@ -196,7 +195,8 @@ EMP002,120,120,Active`;
   const handleResolveAlert = async (alertId: number) => {
     try {
       await fetch(`${API_URL}/aca/alerts/${alertId}?status=Resolved`, {
-        method: 'PATCH'
+        method: 'PATCH',
+        credentials: 'include'
       });
       await loadData();
     } catch (error) {

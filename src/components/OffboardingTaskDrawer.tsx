@@ -73,7 +73,7 @@ interface OffboardingTaskDrawerProps {
   onUpdate: (taskId: number, updates: any) => void;
 }
 
-const BASE_URL = 'http://localhost:8000';
+const BASE_URL = '';
 
 export default function OffboardingTaskDrawer({
   isOpen,

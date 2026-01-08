@@ -1,6 +1,5 @@
 import { FileText, Download, Send, CheckCircle2, Clock, AlertCircle } from "lucide-react";
 import { useState, useEffect } from "react";
-import { useAuth } from "../contexts/AuthContext";
 
 interface FMLADocument {
   type: 'notification' | 'medical_employee' | 'medical_family' | 'designation';
@@ -19,7 +18,7 @@ interface FMLADocumentsProps {
 }
 
 export default function FMLADocuments({ caseId, employeeId, leaveReason, onDocumentUpdate }: FMLADocumentsProps) {
-  const { token } = useAuth();
+  // Authentication is handled via httpOnly cookies (credentials: 'include')
 
   // Map case reason to API leave_reason format
   const mapLeaveReason = (reason: string): string => {
@@ -67,11 +66,6 @@ export default function FMLADocuments({ caseId, employeeId, leaveReason, onDocum
 
   // Generate notification document (WH-381)
   const handleGenerateNotification = async () => {
-    if (!token) {
-      alert('Authentication required. Please log in again.');
-      return;
-    }
-
     setDocuments(prev => ({
       ...prev,
       notification: { ...prev.notification, status: 'generating' }
@@ -79,10 +73,8 @@ export default function FMLADocuments({ caseId, employeeId, leaveReason, onDocum
 
     try {
       // First, get the employee database ID from the employee_id string
-      const employeeResponse = await fetch(`http://127.0.0.1:8000/employees/`, {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-        },
+      const employeeResponse = await fetch(`/employees/`, {
+        credentials: 'include',
       });
 
       if (!employeeResponse.ok) {
@@ -111,11 +103,11 @@ export default function FMLADocuments({ caseId, employeeId, leaveReason, onDocum
 
       console.log('Sending request payload:', requestPayload);
 
-      const response = await fetch('http://127.0.0.1:8000/fmla/create-notice', {
+      const response = await fetch('/fmla/create-notice', {
         method: 'POST',
+        credentials: 'include',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`,
         },
         body: JSON.stringify(requestPayload),
       });
@@ -157,20 +149,13 @@ export default function FMLADocuments({ caseId, employeeId, leaveReason, onDocum
 
   // Download document
   const handleDownload = async (docType: 'notification' | 'medical' | 'designation') => {
-    if (!token) {
-      alert('Authentication required. Please log in again.');
-      return;
-    }
-
     const doc = documents[docType === 'medical' ? 'medical' : docType];
 
     if (!doc.id) return;
 
     try {
-      const response = await fetch(`http://127.0.0.1:8000/fmla/notices/${doc.id}/download`, {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-        },
+      const response = await fetch(`/fmla/notices/${doc.id}/download`, {
+        credentials: 'include',
       });
 
       if (response.ok) {
@@ -192,20 +177,13 @@ export default function FMLADocuments({ caseId, employeeId, leaveReason, onDocum
 
   // View document in new tab
   const handleView = async (docType: 'notification' | 'medical' | 'designation') => {
-    if (!token) {
-      alert('Authentication required. Please log in again.');
-      return;
-    }
-
     const doc = documents[docType === 'medical' ? 'medical' : docType];
 
     if (!doc.id) return;
 
     try {
-      const response = await fetch(`http://127.0.0.1:8000/fmla/notices/${doc.id}/download`, {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-        },
+      const response = await fetch(`/fmla/notices/${doc.id}/download`, {
+        credentials: 'include',
       });
 
       if (response.ok) {
@@ -223,11 +201,6 @@ export default function FMLADocuments({ caseId, employeeId, leaveReason, onDocum
 
   // Send documents via email
   const handleSendEmail = async () => {
-    if (!token) {
-      alert('Authentication required. Please log in again.');
-      return;
-    }
-
     const notificationDoc = documents.notification;
 
     if (!notificationDoc.id) {
@@ -238,11 +211,11 @@ export default function FMLADocuments({ caseId, employeeId, leaveReason, onDocum
     setSendingEmail(true);
 
     try {
-      const response = await fetch(`http://127.0.0.1:8000/fmla/notices/${notificationDoc.id}/send-email`, {
+      const response = await fetch(`/fmla/notices/${notificationDoc.id}/send-email`, {
         method: 'POST',
+        credentials: 'include',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`,
         },
       });
 

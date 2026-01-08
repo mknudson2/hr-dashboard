@@ -44,7 +44,7 @@ export default function NewFMLACaseModal({ isOpen, onClose, onSuccess }: NewFMLA
 
   const fetchEmployees = async () => {
     try {
-      const response = await fetch("http://127.0.0.1:8000/analytics/employees");
+      const response = await fetch("/analytics/employees");
       const data = await response.json();
       setEmployees(data.employees || []);
     } catch (error) {
@@ -76,7 +76,7 @@ export default function NewFMLACaseModal({ isOpen, onClose, onSuccess }: NewFMLA
     setSubmitting(true);
 
     try {
-      const response = await fetch("http://127.0.0.1:8000/fmla/cases", {
+      const response = await fetch("/fmla/cases", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -135,7 +135,7 @@ export default function NewFMLACaseModal({ isOpen, onClose, onSuccess }: NewFMLA
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
-          className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4"
+          className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4"
           onClick={onClose}
         >
           <motion.div

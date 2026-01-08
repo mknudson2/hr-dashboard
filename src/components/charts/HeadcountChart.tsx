@@ -42,7 +42,11 @@ export default function HeadcountChart({ data }: { data: HeadcountTrend }) {
 
         const interval = setInterval(() => {
             const ctx = chart.ctx;
-            const dataset = chart.config.data.datasets[0];
+            const dataset = chart.config?.data?.datasets?.[0];
+
+            // Guard against null ctx or missing dataset
+            if (!ctx || !dataset) return;
+
             const color = isDark
                 ? `rgba(96,165,250,${glowIntensity})`
                 : `rgba(37,99,235,${glowIntensity})`;

@@ -7,7 +7,7 @@ import {
 } from 'lucide-react';
 import PermissionSelector from '@/components/PermissionSelector';
 
-const API_URL = 'http://localhost:8000';
+const API_URL = '';
 
 // Types
 interface Permission {
@@ -130,9 +130,8 @@ const RoleManagementPage = () => {
 
   const fetchRoles = async () => {
     try {
-      const token = localStorage.getItem('auth_token');
       const response = await fetch(`${API_URL}/admin/roles/?include_inactive=true`, {
-        headers: { 'Authorization': `Bearer ${token}` }
+        credentials: 'include'
       });
       if (!response.ok) throw new Error('Failed to fetch roles');
       const data: RoleListResponse = await response.json();
@@ -147,9 +146,8 @@ const RoleManagementPage = () => {
 
   const fetchPermissions = async () => {
     try {
-      const token = localStorage.getItem('auth_token');
       const response = await fetch(`${API_URL}/admin/roles/permissions`, {
-        headers: { 'Authorization': `Bearer ${token}` }
+        credentials: 'include'
       });
       if (!response.ok) throw new Error('Failed to fetch permissions');
       const data: Permission[] = await response.json();
@@ -161,9 +159,8 @@ const RoleManagementPage = () => {
 
   const fetchCategories = async () => {
     try {
-      const token = localStorage.getItem('auth_token');
       const response = await fetch(`${API_URL}/admin/roles/permissions/categories`, {
-        headers: { 'Authorization': `Bearer ${token}` }
+        credentials: 'include'
       });
       if (!response.ok) throw new Error('Failed to fetch categories');
       const data: string[] = await response.json();
@@ -176,9 +173,8 @@ const RoleManagementPage = () => {
   const fetchRoleUsers = async (roleId: number) => {
     setLoadingUsers(true);
     try {
-      const token = localStorage.getItem('auth_token');
       const response = await fetch(`${API_URL}/admin/roles/${roleId}/users`, {
-        headers: { 'Authorization': `Bearer ${token}` }
+        credentials: 'include'
       });
       if (!response.ok) throw new Error('Failed to fetch role users');
       const data: UserWithRole[] = await response.json();
@@ -251,16 +247,12 @@ const RoleManagementPage = () => {
 
     setSubmitting(true);
     try {
-      const token = localStorage.getItem('auth_token');
-
       if (editingRole) {
         // Update existing role
         const response = await fetch(`${API_URL}/admin/roles/${editingRole.id}`, {
           method: 'PUT',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${token}`,
-          },
+          headers: { 'Content-Type': 'application/json' },
+          credentials: 'include',
           body: JSON.stringify({
             display_name: formData.display_name,
             description: formData.description || null,
@@ -277,10 +269,8 @@ const RoleManagementPage = () => {
         // Create new role
         const response = await fetch(`${API_URL}/admin/roles/`, {
           method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${token}`,
-          },
+          headers: { 'Content-Type': 'application/json' },
+          credentials: 'include',
           body: JSON.stringify({
             name: formData.name,
             display_name: formData.display_name,
@@ -311,13 +301,10 @@ const RoleManagementPage = () => {
     }
 
     try {
-      const token = localStorage.getItem('auth_token');
       const response = await fetch(`${API_URL}/admin/roles/${role.id}`, {
         method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`,
-        },
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
         body: JSON.stringify({
           is_active: !role.is_active,
         }),
@@ -338,10 +325,9 @@ const RoleManagementPage = () => {
     if (!selectedRole) return;
 
     try {
-      const token = localStorage.getItem('auth_token');
       const response = await fetch(`${API_URL}/admin/roles/${selectedRole.id}`, {
         method: 'DELETE',
-        headers: { 'Authorization': `Bearer ${token}` },
+        credentials: 'include',
       });
 
       if (!response.ok) {

@@ -6,8 +6,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import TwoFactorVerifyModal from '@/components/TwoFactorVerifyModal';
 import TwoFactorSetupModal from '@/components/TwoFactorSetupModal';
 import ChangePasswordModal from '@/components/ChangePasswordModal';
-
-const API_URL = 'http://localhost:8000';
+import { API_URL } from '@/config/api';
 
 const LoginPage = () => {
   const [username, setUsername] = useState('');
@@ -31,6 +30,7 @@ const LoginPage = () => {
       // First attempt - check if 2FA is required
       const response = await fetch(`${API_URL}/auth/login`, {
         method: 'POST',
+        credentials: 'include',  // Required for httpOnly cookies
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ username, password }),
       });
@@ -48,8 +48,7 @@ const LoginPage = () => {
         return;
       }
 
-      // Store credentials
-      localStorage.setItem('auth_token', data.access_token);
+      // Store user info (token is in httpOnly cookie, not accessible via JS)
       localStorage.setItem('auth_user', JSON.stringify(data.user));
 
       // Check if password change is required
@@ -69,8 +68,8 @@ const LoginPage = () => {
       }
 
       // No 2FA, password change, or setup required - complete login
-      navigate('/dashboard');
-      window.location.reload(); // Reload to update auth context
+      // Use full page navigation to ensure cookie is properly picked up
+      window.location.href = '/dashboard';
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Login failed. Please try again.');
       setLoading(false);
@@ -81,6 +80,7 @@ const LoginPage = () => {
     // Login with 2FA code
     const response = await fetch(`${API_URL}/auth/login`, {
       method: 'POST',
+      credentials: 'include',  // Required for httpOnly cookies
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ username, password, totp_code: code }),
     });
@@ -91,8 +91,7 @@ const LoginPage = () => {
       throw new Error(data.detail || 'Invalid code');
     }
 
-    // Store credentials
-    localStorage.setItem('auth_token', data.access_token);
+    // Store user info (token is in httpOnly cookie, not accessible via JS)
     localStorage.setItem('auth_user', JSON.stringify(data.user));
     setShow2FAModal(false);
 
@@ -110,9 +109,8 @@ const LoginPage = () => {
       return;
     }
 
-    // Complete login
-    navigate('/dashboard');
-    window.location.reload(); // Reload to update auth context
+    // Complete login - use full page navigation to ensure cookie is properly picked up
+    window.location.href = '/dashboard';
   };
 
   const handle2FACancel = () => {
@@ -124,21 +122,15 @@ const LoginPage = () => {
   const handlePasswordChangeSuccess = () => {
     setShowPasswordChangeModal(false);
 
-    // After password change, check if user still needs 2FA setup
-    const authUser = localStorage.getItem('auth_user');
-    if (authUser) {
-      const user = JSON.parse(authUser);
-      // You'd need to check the 2FA status here - for now just proceed to dashboard
-      // In a real scenario, you might want to re-fetch user status
-      navigate('/dashboard');
-      window.location.reload();
-    }
+    // After password change, navigate to dashboard
+    // Use full page navigation to ensure auth state is properly initialized
+    window.location.href = '/dashboard';
   };
 
   const handle2FASetupSuccess = () => {
     setShow2FASetupModal(false);
-    navigate('/dashboard');
-    window.location.reload(); // Reload to update auth context
+    // Use full page navigation to ensure auth state is properly initialized
+    window.location.href = '/dashboard';
   };
 
   return (
@@ -259,7 +251,7 @@ const LoginPage = () => {
 
         {/* Footer */}
         <p className="text-center text-sm text-gray-500 dark:text-gray-400 mt-6">
-          © {new Date().getFullYear()} NBS HR Dashboard. All rights reserved.
+          © Bifröstin - HR Hub
         </p>
       </motion.div>
 

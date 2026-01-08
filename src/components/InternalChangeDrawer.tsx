@@ -55,7 +55,7 @@ export default function InternalChangeDrawer({ changeId, onClose }: InternalChan
     const fetchChangeDetail = async () => {
         setLoading(true);
         try {
-            const response = await fetch(`http://127.0.0.1:8000/turnover/internal-changes/${changeId}`);
+            const response = await fetch(`/turnover/internal-changes/${changeId}`);
             if (response.ok) {
                 const data = await response.json();
                 setChangeDetail(data);
@@ -72,7 +72,7 @@ export default function InternalChangeDrawer({ changeId, onClose }: InternalChan
         if (!changeDetail) return;
 
         try {
-            const response = await fetch(`http://127.0.0.1:8000/turnover/internal-changes/${changeId}`, {
+            const response = await fetch(`/turnover/internal-changes/${changeId}`, {
                 method: "PATCH",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ notes: editedNotes }),
@@ -91,7 +91,7 @@ export default function InternalChangeDrawer({ changeId, onClose }: InternalChan
         if (!confirm("Are you sure you want to delete this internal change record?")) return;
 
         try {
-            const response = await fetch(`http://127.0.0.1:8000/turnover/internal-changes/${changeId}`, {
+            const response = await fetch(`/turnover/internal-changes/${changeId}`, {
                 method: "DELETE",
             });
 

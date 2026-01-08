@@ -2,7 +2,7 @@ import { X, Upload, FileText, CheckCircle, AlertTriangle, AlertCircle as AlertCi
 import { motion, AnimatePresence } from 'framer-motion';
 import { useState } from 'react';
 
-const BASE_URL = 'http://localhost:8000';
+const BASE_URL = '';
 
 interface ReconciliationModalProps {
   isOpen: boolean;

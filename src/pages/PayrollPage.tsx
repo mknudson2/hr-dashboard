@@ -5,7 +5,7 @@ import {
 } from 'lucide-react';
 import PayrollDrawer from '@/components/PayrollDrawer';
 
-const BASE_URL = 'http://localhost:8000';
+const BASE_URL = '';
 
 interface PayrollPeriod {
   id: number;
@@ -65,19 +65,6 @@ export default function PayrollPage() {
   const [selectedPeriod, setSelectedPeriod] = useState<PayrollPeriod | null>(null);
   const [showDrawer, setShowDrawer] = useState(false);
 
-  const getAuthHeaders = () => {
-    const token = localStorage.getItem('auth_token');
-    console.log('🔐 DEBUG: Getting auth token from localStorage:', token ? `${token.substring(0, 50)}...` : 'NULL!');
-    if (!token) {
-      console.error('❌ ERROR: No auth token found in localStorage!');
-      throw new Error('No authentication token found');
-    }
-    return {
-      'Authorization': `Bearer ${token}`,
-      'Content-Type': 'application/json'
-    };
-  };
-
   useEffect(() => {
     loadData();
   }, [selectedYear, statusFilter]);
@@ -88,9 +75,9 @@ export default function PayrollPage() {
       console.log('🔄 Loading payroll data for year:', selectedYear, 'status:', statusFilter);
 
       const [metricsRes, periodsRes] = await Promise.all([
-        fetch(`${BASE_URL}/payroll/dashboard`, { headers: getAuthHeaders() }),
+        fetch(`${BASE_URL}/payroll/dashboard`, { credentials: 'include' }),
         fetch(`${BASE_URL}/payroll/periods?year=${selectedYear}&status=${statusFilter}`, {
-          headers: getAuthHeaders()
+          credentials: 'include'
         })
       ]);
 

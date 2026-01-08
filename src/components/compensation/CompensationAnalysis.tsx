@@ -47,7 +47,7 @@ export default function CompensationAnalysis({ employees }: CompensationAnalysis
   useEffect(() => {
     const fetchMarketData = async () => {
       try {
-        const response = await fetch('http://localhost:8000/market-data/benchmarks');
+        const response = await fetch('/market-data/benchmarks');
         if (response.ok) {
           const data = await response.json();
           setMarketBenchmarks(data);

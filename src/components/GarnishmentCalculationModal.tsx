@@ -110,7 +110,7 @@ export default function GarnishmentCalculationModal({
     setSubmitting(true);
 
     try {
-      const response = await fetch("http://127.0.0.1:8000/garnishments/payments", {
+      const response = await fetch("/garnishments/payments", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -193,7 +193,7 @@ export default function GarnishmentCalculationModal({
     setError("");
 
     try {
-      const response = await fetch("http://127.0.0.1:8000/garnishments/export-calculation-pdf", {
+      const response = await fetch("/garnishments/export-calculation-pdf", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -245,7 +245,7 @@ export default function GarnishmentCalculationModal({
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
-          className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4"
+          className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4"
           onClick={onClose}
         >
           <motion.div

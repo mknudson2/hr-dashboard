@@ -17,12 +17,17 @@ import {
   FileText,
   Lock,
   Layout,
+  FolderPlus,
+  Folder,
+  Plus,
+  X,
 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import TwoFactorSetupModal from "@/components/TwoFactorSetupModal";
 import ChangePasswordModal from "@/components/ChangePasswordModal";
+import FolderPickerModal from "@/components/FolderPickerModal";
 
-const API_URL = 'http://localhost:8000';
+const API_URL = '';
 
 export default function SettingsPage() {
     const { resolvedTheme, setTheme } = useTheme();
@@ -78,6 +83,18 @@ export default function SettingsPage() {
         settings: true,
     });
 
+    // Employee folder settings
+    const [folderSettings, setFolderSettings] = useState({
+        base_path: "",
+        subfolders: [] as string[],
+        enabled: false,
+    });
+    const [newSubfolder, setNewSubfolder] = useState("");
+    const [folderSettingsLoading, setFolderSettingsLoading] = useState(false);
+    const [folderSettingsError, setFolderSettingsError] = useState<string | null>(null);
+    const [folderSettingsSaved, setFolderSettingsSaved] = useState(false);
+    const [showFolderPicker, setShowFolderPicker] = useState(false);
+
     // Load settings from localStorage on mount
     useEffect(() => {
         const savedProfile = localStorage.getItem("hr_dashboard_profile");
@@ -104,11 +121,8 @@ export default function SettingsPage() {
         // Check 2FA status
         const check2FAStatus = async () => {
             try {
-                const token = localStorage.getItem('auth_token');
                 const response = await fetch(`${API_URL}/auth/2fa/status`, {
-                    headers: {
-                        'Authorization': `Bearer ${token}`,
-                    },
+                    credentials: 'include',
                 });
 
                 if (response.ok) {
@@ -121,6 +135,25 @@ export default function SettingsPage() {
         };
 
         check2FAStatus();
+
+        // Load folder settings from backend
+        const loadFolderSettings = async () => {
+            try {
+                const response = await fetch(`${API_URL}/settings/employee-folders`, { credentials: 'include' });
+                if (response.ok) {
+                    const data = await response.json();
+                    setFolderSettings({
+                        base_path: data.base_path || "",
+                        subfolders: data.subfolders || [],
+                        enabled: data.enabled || false,
+                    });
+                }
+            } catch (error) {
+                console.error('Failed to load folder settings:', error);
+            }
+        };
+
+        loadFolderSettings();
     }, []);
 
     // Save notifications to localStorage whenever they change
@@ -148,11 +181,12 @@ export default function SettingsPage() {
     // Save notification preferences to backend
     const saveNotificationPreferences = async (prefs: typeof notifications) => {
         try {
-            await fetch("http://127.0.0.1:8000/notifications/preferences", {
+            await fetch("/notifications/preferences", {
                 method: "POST",
                 headers: {
                     "Content-Type": "application/json",
                 },
+                credentials: 'include',
                 body: JSON.stringify({
                     email: profile.email,
                     preferences: prefs,
@@ -194,6 +228,75 @@ export default function SettingsPage() {
         }
     };
 
+    // Employee Folder Settings Functions
+    const saveFolderSettings = async () => {
+        setFolderSettingsLoading(true);
+        setFolderSettingsError(null);
+        setFolderSettingsSaved(false);
+
+        try {
+            const response = await fetch(`${API_URL}/settings/employee-folders`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                credentials: 'include',
+                body: JSON.stringify(folderSettings),
+            });
+
+            if (!response.ok) {
+                const error = await response.json();
+                throw new Error(error.detail || 'Failed to save folder settings');
+            }
+
+            setFolderSettingsSaved(true);
+            setTimeout(() => setFolderSettingsSaved(false), 3000);
+        } catch (error) {
+            setFolderSettingsError(error instanceof Error ? error.message : 'An error occurred');
+        } finally {
+            setFolderSettingsLoading(false);
+        }
+    };
+
+    const addSubfolder = async () => {
+        if (!newSubfolder.trim()) return;
+
+        try {
+            const response = await fetch(`${API_URL}/settings/employee-folders/add-subfolder?subfolder_name=${encodeURIComponent(newSubfolder.trim())}`, {
+                method: 'POST',
+                credentials: 'include',
+            });
+
+            if (!response.ok) {
+                const error = await response.json();
+                throw new Error(error.detail || 'Failed to add subfolder');
+            }
+
+            const data = await response.json();
+            setFolderSettings({ ...folderSettings, subfolders: data.subfolders });
+            setNewSubfolder("");
+        } catch (error) {
+            setFolderSettingsError(error instanceof Error ? error.message : 'Failed to add subfolder');
+        }
+    };
+
+    const removeSubfolder = async (subfolder: string) => {
+        try {
+            const response = await fetch(`${API_URL}/settings/employee-folders/remove-subfolder/${encodeURIComponent(subfolder)}`, {
+                method: 'DELETE',
+                credentials: 'include',
+            });
+
+            if (!response.ok) {
+                const error = await response.json();
+                throw new Error(error.detail || 'Failed to remove subfolder');
+            }
+
+            const data = await response.json();
+            setFolderSettings({ ...folderSettings, subfolders: data.subfolders });
+        } catch (error) {
+            setFolderSettingsError(error instanceof Error ? error.message : 'Failed to remove subfolder');
+        }
+    };
+
     // 2FA Functions
     const handleEnable2FA = () => {
         setShow2FASetup(true);
@@ -205,13 +308,12 @@ export default function SettingsPage() {
 
         setLoading2FA(true);
         try {
-            const token = localStorage.getItem('auth_token');
             const response = await fetch(`${API_URL}/auth/2fa/disable`, {
                 method: 'POST',
                 headers: {
-                    'Authorization': `Bearer ${token}`,
                     'Content-Type': 'application/json',
                 },
+                credentials: 'include',
                 body: JSON.stringify({ current_password: password }),
             });
 
@@ -548,6 +650,161 @@ export default function SettingsPage() {
                 </div>
             </section>
 
+            {/* Employee Folder Settings Section */}
+            <section className="rounded-2xl border dark:border-gray-700 bg-white dark:bg-gray-800 shadow-sm p-6 transition hover:shadow-lg">
+                <div className="flex items-center gap-3 mb-6">
+                    <FolderPlus className="w-5 h-5 text-orange-600 dark:text-orange-400" />
+                    <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
+                        Employee Folder Creation
+                    </h3>
+                </div>
+
+                <p className="text-sm text-gray-600 dark:text-gray-400 mb-6">
+                    Automatically create employee folders when new employees are onboarded. Folders will be named "LastName, FirstName - StateAbbreviation".
+                </p>
+
+                <div className="space-y-6">
+                    {/* Enable/Disable Toggle */}
+                    <div className="flex items-center justify-between">
+                        <div>
+                            <span className="text-gray-900 dark:text-gray-100 font-medium">Enable Folder Creation</span>
+                            <p className="text-sm text-gray-600 dark:text-gray-400">Automatically create folders for new hires</p>
+                        </div>
+                        <label className="relative inline-flex items-center cursor-pointer">
+                            <input
+                                type="checkbox"
+                                checked={folderSettings.enabled}
+                                onChange={(e) => setFolderSettings({ ...folderSettings, enabled: e.target.checked })}
+                                className="sr-only peer"
+                            />
+                            <div className="w-11 h-6 bg-gray-300 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-orange-300 dark:peer-focus:ring-orange-800 rounded-full peer dark:bg-gray-600 peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-orange-600"></div>
+                        </label>
+                    </div>
+
+                    {/* Base Path */}
+                    <div className="py-3 border-t border-gray-200 dark:border-gray-700">
+                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                            Base Folder Path
+                        </label>
+                        <div className="flex gap-2">
+                            <input
+                                type="text"
+                                value={folderSettings.base_path}
+                                onChange={(e) => setFolderSettings({ ...folderSettings, base_path: e.target.value })}
+                                placeholder="/path/to/employee/folders"
+                                className="flex-1 rounded-lg border dark:border-gray-700 px-3 py-2 bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-orange-500 outline-none"
+                            />
+                            <button
+                                onClick={() => setShowFolderPicker(true)}
+                                className="flex items-center gap-2 px-4 py-2 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-300 rounded-lg transition-colors border border-gray-300 dark:border-gray-600"
+                            >
+                                <Folder className="w-4 h-4" />
+                                Browse
+                            </button>
+                        </div>
+                        <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                            Enter the path manually or click Browse to select a folder
+                        </p>
+                    </div>
+
+                    {/* Subfolders Management */}
+                    <div className="py-3 border-t border-gray-200 dark:border-gray-700">
+                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">
+                            Default Subfolders
+                        </label>
+
+                        {/* Current Subfolders */}
+                        <div className="flex flex-wrap gap-2 mb-4">
+                            {folderSettings.subfolders.length === 0 ? (
+                                <p className="text-sm text-gray-500 dark:text-gray-400 italic">No subfolders configured</p>
+                            ) : (
+                                folderSettings.subfolders.map((subfolder) => (
+                                    <div
+                                        key={subfolder}
+                                        className="flex items-center gap-2 px-3 py-1.5 bg-orange-100 dark:bg-orange-900/30 text-orange-700 dark:text-orange-300 rounded-lg"
+                                    >
+                                        <Folder className="w-4 h-4" />
+                                        <span className="text-sm font-medium">{subfolder}</span>
+                                        <button
+                                            onClick={() => removeSubfolder(subfolder)}
+                                            className="p-0.5 hover:bg-orange-200 dark:hover:bg-orange-800 rounded transition-colors"
+                                        >
+                                            <X className="w-4 h-4" />
+                                        </button>
+                                    </div>
+                                ))
+                            )}
+                        </div>
+
+                        {/* Add New Subfolder */}
+                        <div className="flex gap-2">
+                            <input
+                                type="text"
+                                value={newSubfolder}
+                                onChange={(e) => setNewSubfolder(e.target.value)}
+                                onKeyDown={(e) => e.key === 'Enter' && addSubfolder()}
+                                placeholder="Enter subfolder name..."
+                                className="flex-1 rounded-lg border dark:border-gray-700 px-3 py-2 bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-orange-500 outline-none"
+                            />
+                            <button
+                                onClick={addSubfolder}
+                                disabled={!newSubfolder.trim()}
+                                className="flex items-center gap-2 px-4 py-2 bg-orange-600 hover:bg-orange-700 text-white rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                            >
+                                <Plus className="w-4 h-4" />
+                                Add
+                            </button>
+                        </div>
+                    </div>
+
+                    {/* Preview */}
+                    {folderSettings.enabled && folderSettings.base_path && (
+                        <div className="py-3 border-t border-gray-200 dark:border-gray-700">
+                            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                                Folder Structure Preview
+                            </label>
+                            <div className="bg-gray-100 dark:bg-gray-900 rounded-lg p-4 font-mono text-sm">
+                                <div className="text-gray-700 dark:text-gray-300">
+                                    {folderSettings.base_path}/
+                                </div>
+                                <div className="ml-4 text-orange-600 dark:text-orange-400">
+                                    └── Smith, John - TX/
+                                </div>
+                                {folderSettings.subfolders.map((subfolder, index) => (
+                                    <div key={subfolder} className="ml-8 text-gray-600 dark:text-gray-400">
+                                        {index === folderSettings.subfolders.length - 1 ? '└── ' : '├── '}{subfolder}/
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                    )}
+
+                    {/* Error Message */}
+                    {folderSettingsError && (
+                        <div className="p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg">
+                            <p className="text-sm text-red-600 dark:text-red-400">{folderSettingsError}</p>
+                        </div>
+                    )}
+
+                    {/* Success Message */}
+                    {folderSettingsSaved && (
+                        <div className="p-3 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg">
+                            <p className="text-sm text-green-600 dark:text-green-400">Settings saved successfully!</p>
+                        </div>
+                    )}
+
+                    {/* Save Button */}
+                    <button
+                        onClick={saveFolderSettings}
+                        disabled={folderSettingsLoading}
+                        className="flex items-center gap-2 px-4 py-2 bg-orange-600 hover:bg-orange-700 text-white rounded-lg transition-colors disabled:opacity-50"
+                    >
+                        <Save className="w-4 h-4" />
+                        {folderSettingsLoading ? 'Saving...' : 'Save Folder Settings'}
+                    </button>
+                </div>
+            </section>
+
             {/* About Section */}
             <section className="rounded-2xl border dark:border-gray-700 bg-white dark:bg-gray-800 shadow-sm p-6 transition hover:shadow-lg">
                 <div className="flex items-center gap-3 mb-4">
@@ -718,6 +975,14 @@ export default function SettingsPage() {
                 onClose={() => setShowPasswordChange(false)}
                 isRequired={false}
                 onSuccess={() => setShowPasswordChange(false)}
+            />
+
+            {/* Folder Picker Modal */}
+            <FolderPickerModal
+                isOpen={showFolderPicker}
+                onClose={() => setShowFolderPicker(false)}
+                onSelect={(path) => setFolderSettings({ ...folderSettings, base_path: path })}
+                currentPath={folderSettings.base_path}
             />
         </div>
     );

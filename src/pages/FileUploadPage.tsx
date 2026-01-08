@@ -17,7 +17,7 @@ import {
   Settings
 } from 'lucide-react';
 
-const BASE_URL = 'http://localhost:8000';
+const BASE_URL = '';
 
 interface FileUpload {
   id: number;
@@ -97,9 +97,9 @@ export default function FileUploadPage() {
       if (typeFilter) params.append('file_type', typeFilter);
       if (params.toString()) url += `?${params.toString()}`;
 
-      const response = await fetch(url);
+      const response = await fetch(url, { credentials: 'include' });
       const data = await response.json();
-      setUploads(data);
+      setUploads(Array.isArray(data) ? data : []);
     } catch (error) {
       console.error('Error fetching uploads:', error);
     } finally {
@@ -109,7 +109,7 @@ export default function FileUploadPage() {
 
   const fetchStats = async () => {
     try {
-      const response = await fetch(`${BASE_URL}/file-uploads/stats/summary`);
+      const response = await fetch(`${BASE_URL}/file-uploads/stats/summary`, { credentials: 'include' });
       const data = await response.json();
       setStats(data);
     } catch (error) {
@@ -129,6 +129,7 @@ export default function FileUploadPage() {
 
         const response = await fetch(`${BASE_URL}/file-uploads/upload?uploaded_by=system`, {
           method: 'POST',
+          credentials: 'include',
           body: formData,
         });
 
@@ -182,6 +183,7 @@ export default function FileUploadPage() {
     try {
       const response = await fetch(`${BASE_URL}/file-uploads/${fileId}/preview`, {
         method: 'POST',
+        credentials: 'include',
       });
       const data = await response.json();
       setPreviewData(data);
@@ -194,7 +196,7 @@ export default function FileUploadPage() {
   const handleViewLogs = async (fileId: number) => {
     setLogsModal({ open: true, fileId });
     try {
-      const response = await fetch(`${BASE_URL}/file-uploads/${fileId}/logs`);
+      const response = await fetch(`${BASE_URL}/file-uploads/${fileId}/logs`, { credentials: 'include' });
       const data = await response.json();
       setLogs(data);
     } catch (error) {
@@ -209,6 +211,7 @@ export default function FileUploadPage() {
     try {
       const response = await fetch(`${BASE_URL}/file-uploads/${fileId}`, {
         method: 'DELETE',
+        credentials: 'include',
       });
 
       if (response.ok) {
@@ -223,7 +226,7 @@ export default function FileUploadPage() {
   const loadColumnMappings = async () => {
     setIsLoadingMappings(true);
     try {
-      const response = await fetch(`${BASE_URL}/file-uploads/column-mappings/default-employee`);
+      const response = await fetch(`${BASE_URL}/file-uploads/column-mappings/default-employee`, { credentials: 'include' });
       if (response.ok) {
         const data = await response.json();
         setColumnMappings(data.mappings);
@@ -247,6 +250,7 @@ export default function FileUploadPage() {
     try {
       const response = await fetch(`${BASE_URL}/file-uploads/${fileId}/process`, {
         method: 'POST',
+        credentials: 'include',
       });
 
       const data = await response.json();

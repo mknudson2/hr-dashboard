@@ -52,7 +52,7 @@ export default function NewGarnishmentModal({ isOpen, onClose, onSuccess }: NewG
 
   const fetchEmployees = async () => {
     try {
-      const response = await fetch("http://127.0.0.1:8000/analytics/employees");
+      const response = await fetch("/analytics/employees");
       const data = await response.json();
       setEmployees(data);
     } catch (error) {
@@ -88,7 +88,7 @@ export default function NewGarnishmentModal({ isOpen, onClose, onSuccess }: NewG
     setSubmitting(true);
 
     try {
-      const response = await fetch("http://127.0.0.1:8000/garnishments/cases", {
+      const response = await fetch("/garnishments/cases", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -163,7 +163,7 @@ export default function NewGarnishmentModal({ isOpen, onClose, onSuccess }: NewG
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
-          className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4"
+          className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4"
           onClick={onClose}
         >
           <motion.div

@@ -1,7 +1,7 @@
 import { useEffect, useState, useRef } from "react";
 import { BarChart3, Users, AlertCircle, FileText, CheckCircle, Edit, Wand2, X, Download, UserCog, Upload } from "lucide-react";
 
-const API_URL = "http://localhost:8000";
+const API_URL = "";
 
 interface DashboardData {
   total_employees: number;
@@ -98,24 +98,23 @@ export default function EEOPage() {
 
   const loadData = async () => {
     setLoading(true);
-    const token = localStorage.getItem('auth_token');
 
     try {
       if (activeTab === 'dashboard') {
         const response = await fetch(`${API_URL}/eeo/dashboard`, {
-          headers: { 'Authorization': `Bearer ${token}` }
+          credentials: 'include'
         });
         const data = await response.json();
         setDashboardData(data);
       } else if (activeTab === 'incomplete') {
         const response = await fetch(`${API_URL}/eeo/employees/incomplete`, {
-          headers: { 'Authorization': `Bearer ${token}` }
+          credentials: 'include'
         });
         const data = await response.json();
         setIncompleteData(data);
       } else if (activeTab === 'employees') {
         const response = await fetch(`${API_URL}/eeo/employees`, {
-          headers: { 'Authorization': `Bearer ${token}` }
+          credentials: 'include'
         });
         const data = await response.json();
         setAllEmployees(data.employees);
@@ -129,7 +128,9 @@ export default function EEOPage() {
 
   const loadCategories = async () => {
     try {
-      const response = await fetch(`${API_URL}/eeo/categories`);
+      const response = await fetch(`${API_URL}/eeo/categories`, {
+        credentials: 'include'
+      });
       const data = await response.json();
       setCategories(data);
     } catch (error) {
@@ -145,7 +146,8 @@ export default function EEOPage() {
     setAutoClassifying(true);
     try {
       const response = await fetch(`${API_URL}/eeo/classify/auto-assign?dry_run=false&overwrite_existing=false`, {
-        method: 'POST'
+        method: 'POST',
+        credentials: 'include'
       });
       const data = await response.json();
 
@@ -164,7 +166,8 @@ export default function EEOPage() {
   const handleUpdateEmployee = async (employeeId: string, jobCategory: string) => {
     try {
       const response = await fetch(`${API_URL}/eeo/employees/${employeeId}/eeo?eeo_job_category=${encodeURIComponent(jobCategory)}`, {
-        method: 'PUT'
+        method: 'PUT',
+        credentials: 'include'
       });
 
       if (!response.ok) {
@@ -184,7 +187,9 @@ export default function EEOPage() {
   const handleGenerateReport = async () => {
     setGeneratingReport(true);
     try {
-      const response = await fetch(`${API_URL}/eeo/report?year=${reportYear}&include_terminated=${includeTerminated}`);
+      const response = await fetch(`${API_URL}/eeo/report?year=${reportYear}&include_terminated=${includeTerminated}`, {
+        credentials: 'include'
+      });
       const data = await response.json();
       setReportData(data);
     } catch (error) {
@@ -212,7 +217,8 @@ export default function EEOPage() {
       if (disabilityStatus) params.append('eeo_disability_status', disabilityStatus);
 
       const response = await fetch(`${API_URL}/eeo/employees/${employeeId}/eeo?${params.toString()}`, {
-        method: 'PUT'
+        method: 'PUT',
+        credentials: 'include'
       });
 
       if (!response.ok) {
@@ -277,6 +283,7 @@ export default function EEOPage() {
     try {
       const response = await fetch(`${API_URL}/eeo/employees/import`, {
         method: 'POST',
+        credentials: 'include',
         body: formData
       });
 

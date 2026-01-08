@@ -1,8 +1,30 @@
 import { useState, useEffect } from 'react';
-import { X, CheckCircle, Mail, Upload, FileText, Clock, AlertCircle, Loader2, Download, Edit3, Send, FolderOpen } from 'lucide-react';
+import { X, CheckCircle, Mail, Upload, FileText, Clock, AlertCircle, Loader2, Download, Edit3, Send, FolderOpen, Trash2 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
-const BASE_URL = 'http://localhost:8000';
+const BASE_URL = '';
+
+// Format phone number as (XXX) XXX-XXXX
+const formatPhoneNumber = (value: string): string => {
+  // Remove all non-digits
+  const digits = value.replace(/\D/g, '').slice(0, 10);
+
+  if (digits.length === 0) return '';
+  if (digits.length <= 3) return `(${digits}`;
+  if (digits.length <= 6) return `(${digits.slice(0, 3)}) ${digits.slice(3)}`;
+  return `(${digits.slice(0, 3)}) ${digits.slice(3, 6)}-${digits.slice(6)}`;
+};
+
+// Format date as MM/DD/YYYY
+const formatDateInput = (value: string): string => {
+  // Remove all non-digits
+  const digits = value.replace(/\D/g, '').slice(0, 8);
+
+  if (digits.length === 0) return '';
+  if (digits.length <= 2) return digits;
+  if (digits.length <= 4) return `${digits.slice(0, 2)}/${digits.slice(2)}`;
+  return `${digits.slice(0, 2)}/${digits.slice(2, 4)}/${digits.slice(4)}`;
+};
 
 interface ExitDocument {
   id: number;
@@ -245,6 +267,7 @@ export default function SubtasksDrawer({
   const [emailTemplateType, setEmailTemplateType] = useState<'standard' | 'voluntary' | 'involuntary'>('standard');
   const [emailCustomMessage, setEmailCustomMessage] = useState('');
   const [isSendingEmail, setIsSendingEmail] = useState(false);
+  const [deletingDocumentId, setDeletingDocumentId] = useState<number | null>(null);
   const [isSavingDocument, setIsSavingDocument] = useState(false);
 
   // Determine if this is a "Prepare Exit Documents" task
@@ -360,6 +383,31 @@ export default function SubtasksDrawer({
     } catch (error) {
       console.error('Error downloading document:', error);
       alert('Failed to download document. Please try again.');
+    }
+  };
+
+  const handleDeleteDocument = async (documentId: number) => {
+    if (!confirm('Are you sure you want to delete this document? This action cannot be undone.')) {
+      return;
+    }
+
+    setDeletingDocumentId(documentId);
+    try {
+      const response = await fetch(`${BASE_URL}/offboarding/exit-document/${documentId}`, {
+        method: 'DELETE'
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to delete document');
+      }
+
+      // Refresh the documents list
+      await loadExitDocuments();
+    } catch (error) {
+      console.error('Error deleting document:', error);
+      alert('Failed to delete document. Please try again.');
+    } finally {
+      setDeletingDocumentId(null);
     }
   };
 
@@ -1115,7 +1163,7 @@ export default function SubtasksDrawer({
                             )}
                           </div>
                         </div>
-                        <div className="flex items-center gap-2 ml-2">
+                        <div className="flex items-center gap-1 ml-2">
                           {doc.file_exists ? (
                             <button
                               onClick={() => handleDownloadSavedDocument(doc.id)}
@@ -1129,6 +1177,18 @@ export default function SubtasksDrawer({
                               Missing
                             </span>
                           )}
+                          <button
+                            onClick={() => handleDeleteDocument(doc.id)}
+                            disabled={deletingDocumentId === doc.id}
+                            className="p-1.5 text-red-500 hover:bg-red-100 dark:hover:bg-red-900/30 rounded transition-colors disabled:opacity-50"
+                            title="Delete document"
+                          >
+                            {deletingDocumentId === doc.id ? (
+                              <Loader2 className="w-4 h-4 animate-spin" />
+                            ) : (
+                              <Trash2 className="w-4 h-4" />
+                            )}
+                          </button>
                         </div>
                       </div>
                     ))}
@@ -1285,8 +1345,9 @@ export default function SubtasksDrawer({
                     <input
                       type="text"
                       value={exitDocFormData.date_of_birth}
-                      onChange={(e) => setExitDocFormData({...exitDocFormData, date_of_birth: e.target.value})}
+                      onChange={(e) => setExitDocFormData({...exitDocFormData, date_of_birth: formatDateInput(e.target.value)})}
                       placeholder="MM/DD/YYYY"
+                      maxLength={10}
                       className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-sm"
                     />
                   </div>
@@ -1300,17 +1361,17 @@ export default function SubtasksDrawer({
                       )}
                     </label>
                     {exitDocFormData.ssn_is_complete ? (
-                      <div className="flex items-center gap-2">
+                      <div className="flex items-center gap-1">
                         <input
                           type="text"
                           value={`***-**-${exitDocFormData.ssn_last_four}`}
                           disabled
-                          className="flex-1 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-white text-sm"
+                          className="min-w-0 flex-1 px-2 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-white text-sm"
                         />
                         <button
                           type="button"
                           onClick={() => setExitDocFormData({...exitDocFormData, ssn_full: '', ssn_last_four: '', ssn_is_complete: false})}
-                          className="px-2 py-2 text-xs text-blue-600 hover:text-blue-700 dark:text-blue-400"
+                          className="shrink-0 px-2 py-2 text-xs text-blue-600 hover:text-blue-700 dark:text-blue-400"
                         >
                           Edit
                         </button>
@@ -1379,8 +1440,9 @@ export default function SubtasksDrawer({
                     <input
                       type="tel"
                       value={exitDocFormData.personal_phone}
-                      onChange={(e) => setExitDocFormData({...exitDocFormData, personal_phone: e.target.value})}
+                      onChange={(e) => setExitDocFormData({...exitDocFormData, personal_phone: formatPhoneNumber(e.target.value)})}
                       placeholder="(555) 123-4567"
+                      maxLength={14}
                       className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-sm"
                     />
                   </div>
@@ -1432,11 +1494,11 @@ export default function SubtasksDrawer({
                   </div>
                   <div>
                     <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">Last Pay Date</label>
-                    <input type="text" value={exitDocFormData.last_pay_date} onChange={(e) => setExitDocFormData({...exitDocFormData, last_pay_date: e.target.value})} placeholder="MM/DD/YYYY" className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-sm" />
+                    <input type="text" value={exitDocFormData.last_pay_date} onChange={(e) => setExitDocFormData({...exitDocFormData, last_pay_date: formatDateInput(e.target.value)})} placeholder="MM/DD/YYYY" maxLength={10} className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-sm" />
                   </div>
                   <div>
                     <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">Last Coverage Date</label>
-                    <input type="text" value={exitDocFormData.last_coverage_date} onChange={(e) => setExitDocFormData({...exitDocFormData, last_coverage_date: e.target.value})} placeholder="MM/DD/YYYY" className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-sm" />
+                    <input type="text" value={exitDocFormData.last_coverage_date} onChange={(e) => setExitDocFormData({...exitDocFormData, last_coverage_date: formatDateInput(e.target.value)})} placeholder="MM/DD/YYYY" maxLength={10} className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-sm" />
                   </div>
                 </div>
                 <div className="grid grid-cols-2 gap-4 mt-3">
@@ -1475,8 +1537,9 @@ export default function SubtasksDrawer({
                       <input
                         type="text"
                         value={exitDocFormData.date_last_salary_increase}
-                        onChange={(e) => setExitDocFormData({...exitDocFormData, date_last_salary_increase: e.target.value})}
+                        onChange={(e) => setExitDocFormData({...exitDocFormData, date_last_salary_increase: formatDateInput(e.target.value)})}
                         placeholder="MM/DD/YYYY"
+                        maxLength={10}
                         className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-sm"
                       />
                     </div>
@@ -1485,8 +1548,9 @@ export default function SubtasksDrawer({
                       <input
                         type="text"
                         value={exitDocFormData.insurance_effective_date}
-                        onChange={(e) => setExitDocFormData({...exitDocFormData, insurance_effective_date: e.target.value})}
+                        onChange={(e) => setExitDocFormData({...exitDocFormData, insurance_effective_date: formatDateInput(e.target.value)})}
                         placeholder="MM/DD/YYYY"
+                        maxLength={10}
                         className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-sm"
                       />
                     </div>
@@ -1495,8 +1559,9 @@ export default function SubtasksDrawer({
                       <input
                         type="text"
                         value={exitDocFormData.date_insurance_terminated}
-                        onChange={(e) => setExitDocFormData({...exitDocFormData, date_insurance_terminated: e.target.value})}
+                        onChange={(e) => setExitDocFormData({...exitDocFormData, date_insurance_terminated: formatDateInput(e.target.value)})}
                         placeholder="MM/DD/YYYY"
+                        maxLength={10}
                         className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-sm"
                       />
                     </div>

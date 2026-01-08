@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { X, Plus, Check, Edit2, Trash2, Calendar, Target, FileText } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 
-const BASE_URL = 'http://localhost:8000';
+const BASE_URL = '';
 
 interface BonusCondition {
   id: number;

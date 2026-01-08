@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { X, Calendar, DollarSign, FileText, CheckCircle, ChevronDown, ChevronRight, Mail, Settings, MessageSquare, Pencil, Trash2 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
-const BASE_URL = 'http://localhost:8000';
+const BASE_URL = '';
 
 interface NoteHistoryEntry {
   timestamp: string;
@@ -75,12 +75,16 @@ export default function PayrollDrawer({ open, onClose, period: initialPeriod }: 
   const [editingNoteText, setEditingNoteText] = useState('');
   const [markingComplete, setMarkingComplete] = useState(false);
 
-  const getAuthHeaders = () => {
-    const token = localStorage.getItem('auth_token');
-    return {
-      'Authorization': `Bearer ${token}`,
-      'Content-Type': 'application/json'
+  const getRequestOptions = (method: string = 'GET', body?: any) => {
+    const options: RequestInit = {
+      method,
+      credentials: 'include',
     };
+    if (body) {
+      options.headers = { 'Content-Type': 'application/json' };
+      options.body = JSON.stringify(body);
+    }
+    return options;
   };
 
   useEffect(() => {
@@ -98,11 +102,7 @@ export default function PayrollDrawer({ open, onClose, period: initialPeriod }: 
 
       if (fundingTask && fundingTask.toggle_value !== initialPeriod.employer_funding) {
         try {
-          await fetch(`${BASE_URL}/payroll/tasks/${fundingTask.id}`, {
-            method: 'PATCH',
-            headers: getAuthHeaders(),
-            body: JSON.stringify({ toggle_value: initialPeriod.employer_funding })
-          });
+          await fetch(`${BASE_URL}/payroll/tasks/${fundingTask.id}`, getRequestOptions('PATCH', { toggle_value: initialPeriod.employer_funding }));
         } catch (error) {
           console.error('Error syncing funding toggle:', error);
         }
@@ -131,7 +131,7 @@ export default function PayrollDrawer({ open, onClose, period: initialPeriod }: 
   const refreshPeriod = async () => {
     try {
       const response = await fetch(`${BASE_URL}/payroll/periods/${period.id}`, {
-        headers: getAuthHeaders()
+        credentials: 'include'
       });
 
       if (response.ok) {
@@ -151,11 +151,7 @@ export default function PayrollDrawer({ open, onClose, period: initialPeriod }: 
 
     try {
       // Update the period's employer_funding
-      const response = await fetch(`${BASE_URL}/payroll/periods/${period.id}`, {
-        method: 'PATCH',
-        headers: getAuthHeaders(),
-        body: JSON.stringify({ employer_funding: newValue })
-      });
+      const response = await fetch(`${BASE_URL}/payroll/periods/${period.id}`, getRequestOptions('PATCH', { employer_funding: newValue }));
 
       if (response.ok) {
         // Also update the "Funding Insurance?" toggle to match
@@ -163,11 +159,7 @@ export default function PayrollDrawer({ open, onClose, period: initialPeriod }: 
         const fundingTask = allTasks.find(t => t.has_toggle && t.title === 'Funding Insurance?');
 
         if (fundingTask) {
-          await fetch(`${BASE_URL}/payroll/tasks/${fundingTask.id}`, {
-            method: 'PATCH',
-            headers: getAuthHeaders(),
-            body: JSON.stringify({ toggle_value: newValue })
-          });
+          await fetch(`${BASE_URL}/payroll/tasks/${fundingTask.id}`, getRequestOptions('PATCH', { toggle_value: newValue }));
         }
 
         await refreshPeriod();
@@ -191,11 +183,7 @@ export default function PayrollDrawer({ open, onClose, period: initialPeriod }: 
     setPeriodNotesSaved(false);
 
     try {
-      const response = await fetch(`${BASE_URL}/payroll/periods/${period.id}`, {
-        method: 'PATCH',
-        headers: getAuthHeaders(),
-        body: JSON.stringify({ notes: periodNotes })
-      });
+      const response = await fetch(`${BASE_URL}/payroll/periods/${period.id}`, getRequestOptions('PATCH', { notes: periodNotes }));
 
       console.log('📡 Response:', response.status, response.ok);
 
@@ -229,11 +217,7 @@ export default function PayrollDrawer({ open, onClose, period: initialPeriod }: 
 
   const handleEditNote = async (noteIndex: number, newValue: string) => {
     try {
-      const response = await fetch(`${BASE_URL}/payroll/periods/${period.id}/notes/${noteIndex}`, {
-        method: 'PATCH',
-        headers: getAuthHeaders(),
-        body: JSON.stringify({ new_value: newValue })
-      });
+      const response = await fetch(`${BASE_URL}/payroll/periods/${period.id}/notes/${noteIndex}`, getRequestOptions('PATCH', { new_value: newValue }));
 
       if (response.ok) {
         await refreshPeriod();
@@ -253,7 +237,7 @@ export default function PayrollDrawer({ open, onClose, period: initialPeriod }: 
     try {
       const response = await fetch(`${BASE_URL}/payroll/periods/${period.id}/notes/${noteIndex}`, {
         method: 'DELETE',
-        headers: getAuthHeaders()
+        credentials: 'include'
       });
 
       if (response.ok) {
@@ -266,11 +250,7 @@ export default function PayrollDrawer({ open, onClose, period: initialPeriod }: 
 
   const handleTaskCheck = async (task: PayrollTask, checked: boolean) => {
     try {
-      const response = await fetch(`${BASE_URL}/payroll/tasks/${task.id}`, {
-        method: 'PATCH',
-        headers: getAuthHeaders(),
-        body: JSON.stringify({ completed: checked })
-      });
+      const response = await fetch(`${BASE_URL}/payroll/tasks/${task.id}`, getRequestOptions('PATCH', { completed: checked }));
 
       if (response.ok) {
         await refreshPeriod();
@@ -282,11 +262,7 @@ export default function PayrollDrawer({ open, onClose, period: initialPeriod }: 
 
   const handleToggleChange = async (task: PayrollTask, value: boolean) => {
     try {
-      const response = await fetch(`${BASE_URL}/payroll/tasks/${task.id}`, {
-        method: 'PATCH',
-        headers: getAuthHeaders(),
-        body: JSON.stringify({ toggle_value: value })
-      });
+      const response = await fetch(`${BASE_URL}/payroll/tasks/${task.id}`, getRequestOptions('PATCH', { toggle_value: value }));
 
       if (response.ok) {
         await refreshPeriod();
@@ -301,11 +277,7 @@ export default function PayrollDrawer({ open, onClose, period: initialPeriod }: 
     setNoteSaved(false);
 
     try {
-      const response = await fetch(`${BASE_URL}/payroll/tasks/${taskId}`, {
-        method: 'PATCH',
-        headers: getAuthHeaders(),
-        body: JSON.stringify({ notes: taskNoteText })
-      });
+      const response = await fetch(`${BASE_URL}/payroll/tasks/${taskId}`, getRequestOptions('PATCH', { notes: taskNoteText }));
 
       if (response.ok) {
         await refreshPeriod();
@@ -327,7 +299,7 @@ export default function PayrollDrawer({ open, onClose, period: initialPeriod }: 
     try {
       const response = await fetch(`${BASE_URL}/payroll/periods/${period.id}/send-email/${emailTemplate}`, {
         method: 'POST',
-        headers: getAuthHeaders()
+        credentials: 'include'
       });
 
       if (response.ok) {
@@ -356,11 +328,7 @@ export default function PayrollDrawer({ open, onClose, period: initialPeriod }: 
     setMarkingComplete(true);
 
     try {
-      const response = await fetch(`${BASE_URL}/payroll/periods/${period.id}`, {
-        method: 'PATCH',
-        headers: getAuthHeaders(),
-        body: JSON.stringify({ status: 'completed' })
-      });
+      const response = await fetch(`${BASE_URL}/payroll/periods/${period.id}`, getRequestOptions('PATCH', { status: 'completed' }));
 
       if (response.ok) {
         await refreshPeriod();
