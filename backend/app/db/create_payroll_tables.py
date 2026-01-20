@@ -309,6 +309,7 @@ def create_default_tasks():
     order += 1
 
     # Task 11: Reconcile and Upload Contributions
+    task_11_id = order
     tasks.append({
         'title': 'Reconcile and Upload Contributions',
         'description': 'Reconcile benefit contributions and upload to providers',
@@ -318,17 +319,37 @@ def create_default_tasks():
     })
     order += 1
 
-    # Task 12: Send Contribution files
+    # Subtasks for Task 11
+    subtask_11_items = [
+        ('DCAP', 'Reconcile DCAP contribution amounts and upload to provider.'),
+        ('FSA', 'Reconcile FSA contribution amounts and upload to provider.'),
+        ('LFSA', 'Reconcile LFSA contribution amounts and upload to provider.'),
+        ('HSA', 'Reconcile HSA contribution amounts and upload to provider.'),
+        ('HRA*', 'Reconcile HRA contribution amounts and upload to provider. Only applicable for the first payroll of each month.'),
+    ]
+
+    for title, instructions in subtask_11_items:
+        tasks.append({
+            'title': title,
+            'task_type': 'sub',
+            'order_index': order,
+            'parent_ref': task_11_id,
+            'instructions': instructions
+        })
+        order += 1
+
+    # Task 12: Send Contribution Files
     tasks.append({
-        'title': 'Send Contribution files',
-        'description': 'Send contribution files to benefit providers',
+        'title': 'Send Contribution Files',
+        'description': 'Send contribution files to internal contribution processor',
         'task_type': 'main',
         'order_index': order,
-        'instructions': 'Send the contribution files to all relevant benefit providers (401k, HSA, etc.).'
+        'instructions': 'Send the contribution files to internal contribution processor for confirmation and approval.'
     })
     order += 1
 
     # Task 13: Prepare and Send Garnishment Calculations
+    task_13_id = order
     tasks.append({
         'title': 'Prepare and Send Garnishment Calculations',
         'description': 'Calculate and send garnishment amounts',
@@ -336,6 +357,27 @@ def create_default_tasks():
         'order_index': order,
         'instructions': 'Calculate all garnishment amounts and send to appropriate parties.'
     })
+    order += 1
+
+    # Subtasks for Task 13
+    subtask_13_items = [
+        ('Create garnishment folders in the payroll file', 'Create necessary folder structure for garnishment documents in the payroll file.'),
+        ('Complete Garnishment form with paycheck data', 'Fill out the garnishment calculation form using the employee paycheck data.'),
+        ('Print to PDF', 'Print the completed garnishment form to PDF format.'),
+        ('Send secure copy to Garnishment Agency', 'Send a secure copy of the garnishment documents to the appropriate Garnishment Agency.'),
+        ("Send secure copy to Employee's personal email", "Send a secure copy of the garnishment documents to the employee's personal email address."),
+        ('Save documents to general garnishment folder', 'Save all garnishment documents to the general garnishment folder for record keeping.'),
+    ]
+
+    for title, instructions in subtask_13_items:
+        tasks.append({
+            'title': title,
+            'task_type': 'sub',
+            'order_index': order,
+            'parent_ref': task_13_id,
+            'instructions': instructions
+        })
+        order += 1
 
     return tasks
 
