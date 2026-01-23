@@ -3079,3 +3079,162 @@ class UserRole(Base):
     __table_args__ = (
         Index('ix_user_role_unique', 'user_id', 'role_id', unique=True),
     )
+
+
+# =============================================================================
+# CUSTOM EMAIL TEMPLATES
+# =============================================================================
+
+class CustomEmailTemplate(Base):
+    """
+    Custom email templates with placeholder support.
+    Supports both predefined placeholders (from Employee data) and
+    fillable placeholders (custom fields defined by the user).
+    """
+    __tablename__ = "custom_email_templates"
+
+    id = Column(Integer, primary_key=True, index=True, autoincrement=True)
+    template_id = Column(String, unique=True, index=True)  # Auto-generated "CET-001"
+
+    # Template details
+    name = Column(String, nullable=False)
+    description = Column(String, nullable=True)
+    subject_line = Column(String, nullable=False)  # Can contain placeholders
+    category = Column(String, nullable=True, index=True)  # "Onboarding", "Offboarding", "General", etc.
+
+    # Template content
+    html_content = Column(Text, nullable=False)
+    plain_text_content = Column(Text, nullable=True)
+
+    # Placeholder definitions (JSON)
+    # predefined_placeholders: ["employee.first_name", "employee.department"]
+    predefined_placeholders = Column(JSON, nullable=True)
+    # fillable_placeholders: [{key, label, type, required, default_value, description, options}]
+    fillable_placeholders = Column(JSON, nullable=True)
+
+    # Status
+    is_active = Column(Boolean, default=True)
+    is_default = Column(Boolean, default=False)  # Default template for a category
+
+    # Metadata
+    created_by = Column(String, nullable=True)
+    last_modified_by = Column(String, nullable=True)
+    created_at = Column(DateTime, server_default=func.now())
+    updated_at = Column(DateTime, onupdate=func.now())
+
+
+# =============================================================================
+# FMLA SELF-SERVICE PORTAL
+# =============================================================================
+
+class FMLATimeSubmission(Base):
+    """
+    Employee-submitted time entries pending supervisor approval.
+    Part of the FMLA Self-Service Portal for employees to submit
+    their FMLA time usage for supervisor review and approval.
+    """
+    __tablename__ = "fmla_time_submissions"
+
+    id = Column(Integer, primary_key=True, index=True)
+    case_id = Column(Integer, ForeignKey("fmla_cases.id"), nullable=False, index=True)
+    employee_id = Column(String, ForeignKey("employees.employee_id"), nullable=False, index=True)
+
+    # Submission details
+    leave_date = Column(Date, nullable=False)
+    hours_requested = Column(Float, nullable=False)
+    entry_type = Column(String)  # "Full Day", "Partial Day", "Intermittent"
+    employee_notes = Column(Text, nullable=True)
+
+    # Approval workflow
+    status = Column(String, default="pending", index=True)  # pending, approved, rejected, revised
+    submitted_at = Column(DateTime, server_default=func.now())
+    reviewed_by = Column(Integer, ForeignKey("users.id"), nullable=True)
+    reviewed_at = Column(DateTime, nullable=True)
+    reviewer_notes = Column(Text, nullable=True)
+
+    # If supervisor modifies hours
+    approved_hours = Column(Float, nullable=True)
+
+    # Relationships
+    fmla_case = relationship("FMLACase", backref="time_submissions")
+    employee = relationship("Employee", backref="fmla_time_submissions")
+    reviewer = relationship("User", backref="reviewed_fmla_submissions", foreign_keys=[reviewed_by])
+
+    # Indexes for common queries
+    __table_args__ = (
+        Index('ix_fmla_time_submissions_status_employee', 'status', 'employee_id'),
+        Index('ix_fmla_time_submissions_case_status', 'case_id', 'status'),
+    )
+
+
+class FMLACaseRequest(Base):
+    """
+    Employee-initiated FMLA leave requests.
+    Allows employees to submit new FMLA leave requests through the
+    self-service portal, which are then reviewed by HR.
+    """
+    __tablename__ = "fmla_case_requests"
+
+    id = Column(Integer, primary_key=True, index=True)
+    employee_id = Column(String, ForeignKey("employees.employee_id"), nullable=False, index=True)
+
+    # Request details
+    leave_type = Column(String, nullable=False)  # "Employee Medical", "Family Care", "Military Family", "Bonding"
+    reason = Column(Text, nullable=True)
+    requested_start_date = Column(Date, nullable=False)
+    requested_end_date = Column(Date, nullable=True)
+    intermittent = Column(Boolean, default=False)
+    reduced_schedule = Column(Boolean, default=False)
+    estimated_hours_per_week = Column(Float, nullable=True)
+
+    # Workflow
+    status = Column(String, default="submitted", index=True)  # submitted, under_review, approved, denied
+    submitted_at = Column(DateTime, server_default=func.now())
+    hr_notes = Column(Text, nullable=True)
+    linked_case_id = Column(Integer, ForeignKey("fmla_cases.id"), nullable=True)
+
+    # Relationships
+    employee = relationship("Employee", backref="fmla_case_requests")
+    linked_case = relationship("FMLACase", backref="source_request")
+
+    # Indexes
+    __table_args__ = (
+        Index('ix_fmla_case_requests_status_employee', 'status', 'employee_id'),
+    )
+
+
+class FMLASupervisorAuditLog(Base):
+    """
+    Audit trail for all supervisor actions in the FMLA portal.
+    Required for compliance - tracks all approvals, rejections,
+    modifications with before/after values and mandatory reasons.
+    """
+    __tablename__ = "fmla_supervisor_audit_log"
+
+    id = Column(Integer, primary_key=True, index=True)
+    supervisor_id = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
+    employee_id = Column(String, ForeignKey("employees.employee_id"), nullable=False, index=True)
+
+    # Action details
+    action_type = Column(String, nullable=False, index=True)  # approved, rejected, modified, viewed
+    target_type = Column(String, nullable=False)  # time_submission, case_request
+    target_id = Column(Integer, nullable=False)
+
+    # Change tracking
+    previous_value = Column(JSON, nullable=True)
+    new_value = Column(JSON, nullable=True)
+    reason_for_change = Column(Text, nullable=False)  # Required for all modifications
+
+    created_at = Column(DateTime, server_default=func.now())
+    ip_address = Column(String, nullable=True)
+
+    # Relationships
+    supervisor = relationship("User", backref="fmla_audit_actions", foreign_keys=[supervisor_id])
+    employee = relationship("Employee", backref="fmla_audit_log")
+
+    # Indexes for reporting
+    __table_args__ = (
+        Index('ix_fmla_audit_supervisor_date', 'supervisor_id', 'created_at'),
+        Index('ix_fmla_audit_employee_date', 'employee_id', 'created_at'),
+        Index('ix_fmla_audit_action_type', 'action_type', 'created_at'),
+    )

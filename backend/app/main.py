@@ -8,7 +8,7 @@ from slowapi.util import get_remote_address
 from slowapi.errors import RateLimitExceeded
 from slowapi.middleware import SlowAPIMiddleware
 from app.db import models, database, crud
-from app.api import analytics, employees, notifications, fmla, garnishments, turnover, events, compensation, market_data, performance, onboarding, offboarding, equipment, contribution_limits, pto, auth, users, aca, eeo, settings, emails, file_uploads, sftp, payroll, capitalized_labor, capitalized_labor_admin, roles
+from app.api import analytics, employees, notifications, fmla, garnishments, turnover, events, compensation, market_data, performance, onboarding, offboarding, equipment, contribution_limits, pto, auth, users, aca, eeo, settings, emails, email_templates, file_uploads, sftp, payroll, capitalized_labor, capitalized_labor_admin, roles, fmla_portal
 from app.services.scheduler import start_scheduler, stop_scheduler
 from app.services.scheduler_service import scheduler as sftp_scheduler
 from app.services.csrf_service import csrf_service, should_validate_csrf
@@ -205,8 +205,8 @@ if is_production:
     cors_origins = os.getenv("CORS_ORIGINS", "").split(",")
     cors_origins = [origin.strip() for origin in cors_origins if origin.strip()]
 else:
-    # Development: Allow localhost dev servers
-    cors_origins = ["http://localhost:5173", "http://127.0.0.1:5173"]
+    # Development: Allow localhost dev servers (HR Hub on 5173, Employee Portal on 5174)
+    cors_origins = ["http://localhost:5173", "http://127.0.0.1:5173", "http://localhost:5174", "http://127.0.0.1:5174"]
 
 app.add_middleware(
     CORSMiddleware,
@@ -273,9 +273,11 @@ app.include_router(aca.router)
 app.include_router(eeo.router)
 app.include_router(settings.router)
 app.include_router(emails.router)
+app.include_router(email_templates.router)
 app.include_router(file_uploads.router)
 app.include_router(sftp.router)
 app.include_router(payroll.router)
 app.include_router(capitalized_labor.router)
 app.include_router(capitalized_labor_admin.router, prefix="/capitalized-labor")
 app.include_router(roles.router)
+app.include_router(fmla_portal.router)

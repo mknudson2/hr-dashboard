@@ -66,6 +66,11 @@ class Permissions(str, Enum):
     FMLA_READ = "fmla:read"
     FMLA_WRITE = "fmla:write"
 
+    # FMLA Self-Service Portal
+    FMLA_PORTAL_EMPLOYEE = "fmla_portal:employee"        # Self-service access (view own cases, submit time)
+    FMLA_PORTAL_SUPERVISOR = "fmla_portal:supervisor"   # Team management access (approve/reject/modify)
+    FMLA_PORTAL_REPORT = "fmla_portal:report"           # Export team FMLA reports
+
     # Garnishments
     GARNISHMENTS_READ = "garnishments:read"
     GARNISHMENTS_WRITE = "garnishments:write"
