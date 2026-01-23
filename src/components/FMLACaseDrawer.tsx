@@ -66,7 +66,7 @@ export default function FMLACaseDrawer({ caseId, onClose, onUpdate }: FMLACaseDr
 
     setLoading(true);
     try {
-      const response = await fetch(`/fmla/cases/${caseId}`);
+      const response = await fetch(`/fmla/cases/${caseId}`, { credentials: 'include' });
       const data = await response.json();
       setCaseDetail(data);
     } catch (error) {
@@ -86,6 +86,7 @@ export default function FMLACaseDrawer({ caseId, onClose, onUpdate }: FMLACaseDr
         headers: {
           "Content-Type": "application/json",
         },
+        credentials: 'include',
         body: JSON.stringify({
           case_id: caseId,
           note_text: newNote,
@@ -114,6 +115,7 @@ export default function FMLACaseDrawer({ caseId, onClose, onUpdate }: FMLACaseDr
         headers: {
           "Content-Type": "application/json",
         },
+        credentials: 'include',
         body: JSON.stringify({
           status: newStatus,
         }),

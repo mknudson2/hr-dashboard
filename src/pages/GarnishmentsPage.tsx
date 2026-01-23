@@ -362,7 +362,7 @@ export default function GarnishmentsPage() {
               Garnishment Type Breakdown
             </h3>
             <div className="space-y-3">
-              {Object.entries(stats.type_breakdown).map(([type, count]) => (
+              {Object.entries(stats.type_breakdown || {}).map(([type, count]) => (
                 <div key={type} className="flex items-center justify-between">
                   <span className="text-sm text-gray-600 dark:text-gray-400">{type}</span>
                   <span className="text-sm font-medium text-gray-900 dark:text-white">{count}</span>
@@ -377,7 +377,7 @@ export default function GarnishmentsPage() {
               Status Breakdown
             </h3>
             <div className="space-y-3">
-              {Object.entries(stats.status_breakdown).map(([status, count]) => (
+              {Object.entries(stats.status_breakdown || {}).map(([status, count]) => (
                 <div key={status} className="flex items-center justify-between">
                   <span className="text-sm text-gray-600 dark:text-gray-400">{status}</span>
                   <span className="text-sm font-medium text-gray-900 dark:text-white">{count}</span>
