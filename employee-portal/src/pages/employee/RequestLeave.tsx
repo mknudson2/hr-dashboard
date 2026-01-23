@@ -33,14 +33,14 @@ export default function RequestLeave() {
     return (
       <div className="space-y-6">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Request FMLA Leave</h1>
-          <p className="text-gray-600 mt-1">Submit a new FMLA leave request for HR review</p>
+          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Request FMLA Leave</h1>
+          <p className="text-gray-600 dark:text-gray-400 mt-1">Submit a new FMLA leave request for HR review</p>
         </div>
         <div className="flex items-center justify-center h-48">
           <div className="text-center max-w-md">
             <Users className="mx-auto text-blue-500 mb-4" size={48} />
-            <h2 className="text-lg font-semibold text-gray-900 mb-2">No Employee Record Linked</h2>
-            <p className="text-gray-600 mb-4">
+            <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">No Employee Record Linked</h2>
+            <p className="text-gray-600 dark:text-gray-400 mb-4">
               Your account is not linked to an employee record, so you cannot submit leave requests.
             </p>
             {isSupervisor && (
@@ -90,11 +90,11 @@ export default function RequestLeave() {
         className="flex items-center justify-center h-64"
       >
         <div className="text-center max-w-md">
-          <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
-            <CheckCircle className="text-green-600" size={32} />
+          <div className="w-16 h-16 bg-green-100 dark:bg-green-900/30 rounded-full flex items-center justify-center mx-auto mb-4">
+            <CheckCircle className="text-green-600 dark:text-green-400" size={32} />
           </div>
-          <h2 className="text-xl font-semibold text-gray-900">Leave Request Submitted!</h2>
-          <p className="text-gray-600 mt-2">
+          <h2 className="text-xl font-semibold text-gray-900 dark:text-white">Leave Request Submitted!</h2>
+          <p className="text-gray-600 dark:text-gray-400 mt-2">
             Your FMLA leave request has been submitted to HR for review. You will be notified once a decision has been made.
           </p>
           <button
@@ -112,13 +112,13 @@ export default function RequestLeave() {
     <div className="space-y-6">
       {/* Header */}
       <div>
-        <h1 className="text-2xl font-bold text-gray-900">Request FMLA Leave</h1>
-        <p className="text-gray-600 mt-1">Submit a new FMLA leave request for HR review</p>
+        <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Request FMLA Leave</h1>
+        <p className="text-gray-600 dark:text-gray-400 mt-1">Submit a new FMLA leave request for HR review</p>
       </div>
 
       {/* Info Banner */}
-      <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-        <p className="text-sm text-blue-800">
+      <div className="bg-blue-50 dark:bg-blue-900/30 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
+        <p className="text-sm text-blue-800 dark:text-blue-300">
           <strong>Note:</strong> This form initiates a new FMLA leave request. HR will review your request and may contact you for additional documentation. Approval typically takes 5-7 business days.
         </p>
       </div>
@@ -127,12 +127,12 @@ export default function RequestLeave() {
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
-        className="bg-white rounded-xl shadow-sm border border-gray-200 p-6"
+        className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-6"
       >
         <form onSubmit={handleSubmit} className="space-y-6">
           {/* Error message */}
           {error && (
-            <div className="flex items-center gap-2 p-3 bg-red-50 border border-red-200 rounded-lg text-red-700 text-sm">
+            <div className="flex items-center gap-2 p-3 bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-800 rounded-lg text-red-700 dark:text-red-400 text-sm">
               <AlertCircle size={18} />
               <span>{error}</span>
             </div>
@@ -140,7 +140,7 @@ export default function RequestLeave() {
 
           {/* Leave Type */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-3">
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">
               Leave Type <span className="text-red-500">*</span>
             </label>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
@@ -149,8 +149,8 @@ export default function RequestLeave() {
                   key={type.value}
                   className={`relative flex cursor-pointer rounded-lg border p-4 focus:outline-none ${
                     leaveType === type.value
-                      ? 'border-blue-600 bg-blue-50 ring-2 ring-blue-600'
-                      : 'border-gray-300 hover:border-gray-400'
+                      ? 'border-blue-600 bg-blue-50 dark:bg-blue-900/30 ring-2 ring-blue-600'
+                      : 'border-gray-300 dark:border-gray-600 hover:border-gray-400 dark:hover:border-gray-500'
                   }`}
                 >
                   <input
@@ -163,8 +163,8 @@ export default function RequestLeave() {
                     required
                   />
                   <div className="flex flex-col">
-                    <span className="block text-sm font-medium text-gray-900">{type.label}</span>
-                    <span className="mt-1 text-xs text-gray-500">{type.description}</span>
+                    <span className="block text-sm font-medium text-gray-900 dark:text-white">{type.label}</span>
+                    <span className="mt-1 text-xs text-gray-500 dark:text-gray-400">{type.description}</span>
                   </div>
                 </label>
               ))}
@@ -174,7 +174,7 @@ export default function RequestLeave() {
           {/* Dates */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div>
-              <label htmlFor="startDate" className="block text-sm font-medium text-gray-700 mb-2">
+              <label htmlFor="startDate" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                 Requested Start Date <span className="text-red-500">*</span>
               </label>
               <input
@@ -182,13 +182,13 @@ export default function RequestLeave() {
                 type="date"
                 value={startDate}
                 onChange={(e) => setStartDate(e.target.value)}
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
                 required
               />
             </div>
 
             <div>
-              <label htmlFor="endDate" className="block text-sm font-medium text-gray-700 mb-2">
+              <label htmlFor="endDate" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                 Requested End Date
               </label>
               <input
@@ -197,26 +197,26 @@ export default function RequestLeave() {
                 value={endDate}
                 onChange={(e) => setEndDate(e.target.value)}
                 min={startDate}
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
               />
-              <p className="text-xs text-gray-500 mt-1">Leave blank if unknown or ongoing</p>
+              <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">Leave blank if unknown or ongoing</p>
             </div>
           </div>
 
           {/* Leave Schedule Options */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-3">Leave Schedule</label>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">Leave Schedule</label>
             <div className="space-y-3">
               <label className="flex items-start gap-3 cursor-pointer">
                 <input
                   type="checkbox"
                   checked={intermittent}
                   onChange={(e) => setIntermittent(e.target.checked)}
-                  className="mt-1 h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                  className="mt-1 h-4 w-4 rounded border-gray-300 dark:border-gray-600 text-blue-600 focus:ring-blue-500 bg-white dark:bg-gray-700"
                 />
                 <div>
-                  <span className="text-sm font-medium text-gray-900">Intermittent Leave</span>
-                  <p className="text-xs text-gray-500">
+                  <span className="text-sm font-medium text-gray-900 dark:text-white">Intermittent Leave</span>
+                  <p className="text-xs text-gray-500 dark:text-gray-400">
                     Leave taken in separate blocks of time (e.g., medical appointments, flare-ups)
                   </p>
                 </div>
@@ -227,11 +227,11 @@ export default function RequestLeave() {
                   type="checkbox"
                   checked={reducedSchedule}
                   onChange={(e) => setReducedSchedule(e.target.checked)}
-                  className="mt-1 h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                  className="mt-1 h-4 w-4 rounded border-gray-300 dark:border-gray-600 text-blue-600 focus:ring-blue-500 bg-white dark:bg-gray-700"
                 />
                 <div>
-                  <span className="text-sm font-medium text-gray-900">Reduced Schedule</span>
-                  <p className="text-xs text-gray-500">
+                  <span className="text-sm font-medium text-gray-900 dark:text-white">Reduced Schedule</span>
+                  <p className="text-xs text-gray-500 dark:text-gray-400">
                     Working fewer hours per day or days per week
                   </p>
                 </div>
@@ -242,7 +242,7 @@ export default function RequestLeave() {
           {/* Estimated Hours (if intermittent/reduced) */}
           {(intermittent || reducedSchedule) && (
             <div>
-              <label htmlFor="estimatedHours" className="block text-sm font-medium text-gray-700 mb-2">
+              <label htmlFor="estimatedHours" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                 Estimated Hours Per Week
               </label>
               <input
@@ -254,9 +254,9 @@ export default function RequestLeave() {
                 value={estimatedHours}
                 onChange={(e) => setEstimatedHours(e.target.value)}
                 placeholder="e.g., 8"
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
               />
-              <p className="text-xs text-gray-500 mt-1">
+              <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
                 Approximate hours of leave needed per week
               </p>
             </div>
@@ -264,7 +264,7 @@ export default function RequestLeave() {
 
           {/* Reason */}
           <div>
-            <label htmlFor="reason" className="block text-sm font-medium text-gray-700 mb-2">
+            <label htmlFor="reason" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
               Reason / Additional Information
             </label>
             <textarea
@@ -273,16 +273,16 @@ export default function RequestLeave() {
               onChange={(e) => setReason(e.target.value)}
               rows={4}
               placeholder="Please provide any additional details about your leave request. Do not include specific medical diagnoses - HR will contact you if certification is required."
-              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
+              className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500"
             />
           </div>
 
           {/* Submit Button */}
-          <div className="flex justify-end gap-3 pt-4 border-t border-gray-200">
+          <div className="flex justify-end gap-3 pt-4 border-t border-gray-200 dark:border-gray-700">
             <button
               type="button"
               onClick={() => navigate(-1)}
-              className="px-6 py-3 text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-lg font-medium transition-colors"
+              className="px-6 py-3 text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 rounded-lg font-medium transition-colors"
             >
               Cancel
             </button>

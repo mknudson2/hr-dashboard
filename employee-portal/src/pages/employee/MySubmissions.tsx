@@ -72,12 +72,12 @@ export default function MySubmissions() {
 
   const getStatusBadge = (status: string) => {
     const styles: Record<string, string> = {
-      pending: 'bg-yellow-100 text-yellow-800',
-      approved: 'bg-green-100 text-green-800',
-      rejected: 'bg-red-100 text-red-800',
-      revised: 'bg-blue-100 text-blue-800',
+      pending: 'bg-yellow-100 dark:bg-yellow-900/30 text-yellow-800 dark:text-yellow-400',
+      approved: 'bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-400',
+      rejected: 'bg-red-100 dark:bg-red-900/30 text-red-800 dark:text-red-400',
+      revised: 'bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-400',
     };
-    return styles[status] || 'bg-gray-100 text-gray-800';
+    return styles[status] || 'bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-300';
   };
 
   const filteredSubmissions = data?.submissions.filter(sub =>
@@ -97,7 +97,7 @@ export default function MySubmissions() {
       <div className="flex items-center justify-center h-64">
         <div className="text-center">
           <AlertCircle className="mx-auto text-red-500 mb-2" size={48} />
-          <p className="text-gray-600">{error}</p>
+          <p className="text-gray-600 dark:text-gray-400">{error}</p>
         </div>
       </div>
     );
@@ -107,14 +107,14 @@ export default function MySubmissions() {
     return (
       <div className="space-y-6">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">My Submissions</h1>
-          <p className="text-gray-600 mt-1">Track the status of your time submissions</p>
+          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">My Submissions</h1>
+          <p className="text-gray-600 dark:text-gray-400 mt-1">Track the status of your time submissions</p>
         </div>
         <div className="flex items-center justify-center h-48">
           <div className="text-center max-w-md">
             <Users className="mx-auto text-blue-500 mb-4" size={48} />
-            <h2 className="text-lg font-semibold text-gray-900 mb-2">No Employee Record Linked</h2>
-            <p className="text-gray-600 mb-4">
+            <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">No Employee Record Linked</h2>
+            <p className="text-gray-600 dark:text-gray-400 mb-4">
               Your account is not linked to an employee record, so you don't have any submissions to view.
             </p>
             {isSupervisor && (
@@ -137,8 +137,8 @@ export default function MySubmissions() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">My Submissions</h1>
-          <p className="text-gray-600 mt-1">Track the status of your time submissions</p>
+          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">My Submissions</h1>
+          <p className="text-gray-600 dark:text-gray-400 mt-1">Track the status of your time submissions</p>
         </div>
         <Link
           to="/submit-time"
@@ -152,22 +152,22 @@ export default function MySubmissions() {
       {/* Stats */}
       {data && (
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          <div className="bg-white rounded-lg border border-gray-200 p-4">
-            <p className="text-sm text-gray-500">Total Submissions</p>
-            <p className="text-2xl font-bold text-gray-900">{data.total}</p>
+          <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-4">
+            <p className="text-sm text-gray-500 dark:text-gray-400">Total Submissions</p>
+            <p className="text-2xl font-bold text-gray-900 dark:text-white">{data.total}</p>
           </div>
-          <div className="bg-white rounded-lg border border-gray-200 p-4">
-            <p className="text-sm text-gray-500">Pending</p>
+          <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-4">
+            <p className="text-sm text-gray-500 dark:text-gray-400">Pending</p>
             <p className="text-2xl font-bold text-yellow-600">{data.pending_count}</p>
           </div>
-          <div className="bg-white rounded-lg border border-gray-200 p-4">
-            <p className="text-sm text-gray-500">Approved</p>
+          <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-4">
+            <p className="text-sm text-gray-500 dark:text-gray-400">Approved</p>
             <p className="text-2xl font-bold text-green-600">
               {data.submissions.filter(s => s.status === 'approved').length}
             </p>
           </div>
-          <div className="bg-white rounded-lg border border-gray-200 p-4">
-            <p className="text-sm text-gray-500">Rejected</p>
+          <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-4">
+            <p className="text-sm text-gray-500 dark:text-gray-400">Rejected</p>
             <p className="text-2xl font-bold text-red-600">
               {data.submissions.filter(s => s.status === 'rejected').length}
             </p>
@@ -184,7 +184,7 @@ export default function MySubmissions() {
             className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
               statusFilter === status
                 ? 'bg-blue-600 text-white'
-                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'
             }`}
           >
             {status.charAt(0).toUpperCase() + status.slice(1)}
@@ -194,10 +194,10 @@ export default function MySubmissions() {
 
       {/* Submissions List */}
       {filteredSubmissions.length === 0 ? (
-        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-12 text-center">
+        <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-12 text-center">
           <Clock className="mx-auto text-gray-400 mb-4" size={48} />
-          <h3 className="text-lg font-medium text-gray-900">No Submissions</h3>
-          <p className="text-gray-500 mt-1">
+          <h3 className="text-lg font-medium text-gray-900 dark:text-white">No Submissions</h3>
+          <p className="text-gray-500 dark:text-gray-400 mt-1">
             {statusFilter === 'all'
               ? "You haven't submitted any time entries yet."
               : `No ${statusFilter} submissions found.`}
@@ -211,57 +211,57 @@ export default function MySubmissions() {
           </Link>
         </div>
       ) : (
-        <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+        <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden">
           <div className="overflow-x-auto">
             <table className="w-full">
-              <thead className="bg-gray-50 border-b border-gray-200">
+              <thead className="bg-gray-50 dark:bg-gray-900 border-b border-gray-200 dark:border-gray-700">
                 <tr>
-                  <th className="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
+                  <th className="px-6 py-3 text-left text-xs font-semibold text-gray-600 dark:text-gray-400 uppercase tracking-wider">
                     Date
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
+                  <th className="px-6 py-3 text-left text-xs font-semibold text-gray-600 dark:text-gray-400 uppercase tracking-wider">
                     Hours
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
+                  <th className="px-6 py-3 text-left text-xs font-semibold text-gray-600 dark:text-gray-400 uppercase tracking-wider">
                     Type
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
+                  <th className="px-6 py-3 text-left text-xs font-semibold text-gray-600 dark:text-gray-400 uppercase tracking-wider">
                     Status
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
+                  <th className="px-6 py-3 text-left text-xs font-semibold text-gray-600 dark:text-gray-400 uppercase tracking-wider">
                     Submitted
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
+                  <th className="px-6 py-3 text-left text-xs font-semibold text-gray-600 dark:text-gray-400 uppercase tracking-wider">
                     Notes
                   </th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-gray-200">
+              <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
                 {filteredSubmissions.map((sub, index) => (
                   <motion.tr
                     key={sub.id}
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}
                     transition={{ delay: index * 0.02 }}
-                    className="hover:bg-gray-50"
+                    className="hover:bg-gray-50 dark:hover:bg-gray-700"
                   >
                     <td className="px-6 py-4 whitespace-nowrap">
-                      <span className="text-gray-900 font-medium">
+                      <span className="text-gray-900 dark:text-white font-medium">
                         {new Date(sub.leave_date).toLocaleDateString()}
                       </span>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="text-gray-900">
+                      <div className="text-gray-900 dark:text-white">
                         {sub.hours_requested}
                         {sub.approved_hours !== null && sub.approved_hours !== sub.hours_requested && (
-                          <span className="text-sm text-gray-500 ml-1">
+                          <span className="text-sm text-gray-500 dark:text-gray-400 ml-1">
                             → {sub.approved_hours}
                           </span>
                         )}
                       </div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
-                      <span className="text-gray-600">{sub.entry_type || '-'}</span>
+                      <span className="text-gray-600 dark:text-gray-400">{sub.entry_type || '-'}</span>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="flex items-center gap-2">
@@ -271,20 +271,20 @@ export default function MySubmissions() {
                         </span>
                       </div>
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
                       {new Date(sub.submitted_at).toLocaleDateString()}
                     </td>
                     <td className="px-6 py-4">
                       {sub.reviewer_notes ? (
-                        <span className="text-sm text-gray-600 max-w-xs truncate block" title={sub.reviewer_notes}>
+                        <span className="text-sm text-gray-600 dark:text-gray-400 max-w-xs truncate block" title={sub.reviewer_notes}>
                           {sub.reviewer_notes}
                         </span>
                       ) : sub.employee_notes ? (
-                        <span className="text-sm text-gray-400 italic max-w-xs truncate block" title={sub.employee_notes}>
+                        <span className="text-sm text-gray-400 dark:text-gray-500 italic max-w-xs truncate block" title={sub.employee_notes}>
                           {sub.employee_notes}
                         </span>
                       ) : (
-                        <span className="text-gray-400">-</span>
+                        <span className="text-gray-400 dark:text-gray-500">-</span>
                       )}
                     </td>
                   </motion.tr>

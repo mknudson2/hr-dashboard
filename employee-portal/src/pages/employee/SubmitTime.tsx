@@ -111,12 +111,12 @@ export default function SubmitTime() {
         className="flex items-center justify-center h-64"
       >
         <div className="text-center">
-          <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
-            <CheckCircle className="text-green-600" size={32} />
+          <div className="w-16 h-16 bg-green-100 dark:bg-green-900/30 rounded-full flex items-center justify-center mx-auto mb-4">
+            <CheckCircle className="text-green-600 dark:text-green-400" size={32} />
           </div>
-          <h2 className="text-xl font-semibold text-gray-900">Time Entry Submitted!</h2>
-          <p className="text-gray-600 mt-2">Your submission is pending supervisor approval.</p>
-          <p className="text-sm text-gray-500 mt-4">Redirecting to My Submissions...</p>
+          <h2 className="text-xl font-semibold text-gray-900 dark:text-white">Time Entry Submitted!</h2>
+          <p className="text-gray-600 dark:text-gray-400 mt-2">Your submission is pending supervisor approval.</p>
+          <p className="text-sm text-gray-500 dark:text-gray-400 mt-4">Redirecting to My Submissions...</p>
         </div>
       </motion.div>
     );
@@ -126,14 +126,14 @@ export default function SubmitTime() {
     return (
       <div className="space-y-6">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Submit Time Entry</h1>
-          <p className="text-gray-600 mt-1">Log your FMLA time for supervisor approval</p>
+          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Submit Time Entry</h1>
+          <p className="text-gray-600 dark:text-gray-400 mt-1">Log your FMLA time for supervisor approval</p>
         </div>
         <div className="flex items-center justify-center h-48">
           <div className="text-center max-w-md">
             <Users className="mx-auto text-blue-500 mb-4" size={48} />
-            <h2 className="text-lg font-semibold text-gray-900 mb-2">No Employee Record Linked</h2>
-            <p className="text-gray-600 mb-4">
+            <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">No Employee Record Linked</h2>
+            <p className="text-gray-600 dark:text-gray-400 mb-4">
               Your account is not linked to an employee record, so you cannot submit time entries.
             </p>
             {isSupervisor && (
@@ -155,14 +155,14 @@ export default function SubmitTime() {
     return (
       <div className="space-y-6">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Submit Time Entry</h1>
-          <p className="text-gray-600 mt-1">Log your FMLA time for supervisor approval</p>
+          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Submit Time Entry</h1>
+          <p className="text-gray-600 dark:text-gray-400 mt-1">Log your FMLA time for supervisor approval</p>
         </div>
 
-        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-12 text-center">
+        <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-12 text-center">
           <FileText className="mx-auto text-gray-400 mb-4" size={48} />
-          <h3 className="text-lg font-medium text-gray-900">No Active Cases</h3>
-          <p className="text-gray-500 mt-1">
+          <h3 className="text-lg font-medium text-gray-900 dark:text-white">No Active Cases</h3>
+          <p className="text-gray-500 dark:text-gray-400 mt-1">
             You need an active FMLA case to submit time entries.
           </p>
         </div>
@@ -174,20 +174,20 @@ export default function SubmitTime() {
     <div className="space-y-6">
       {/* Header */}
       <div>
-        <h1 className="text-2xl font-bold text-gray-900">Submit Time Entry</h1>
-        <p className="text-gray-600 mt-1">Log your FMLA time for supervisor approval</p>
+        <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Submit Time Entry</h1>
+        <p className="text-gray-600 dark:text-gray-400 mt-1">Log your FMLA time for supervisor approval</p>
       </div>
 
       {/* Form */}
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
-        className="bg-white rounded-xl shadow-sm border border-gray-200 p-6"
+        className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-6"
       >
         <form onSubmit={handleSubmit} className="space-y-6">
           {/* Error message */}
           {error && (
-            <div className="flex items-center gap-2 p-3 bg-red-50 border border-red-200 rounded-lg text-red-700 text-sm">
+            <div className="flex items-center gap-2 p-3 bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-800 rounded-lg text-red-700 dark:text-red-400 text-sm">
               <AlertCircle size={18} />
               <span>{error}</span>
             </div>
@@ -195,14 +195,14 @@ export default function SubmitTime() {
 
           {/* Case Selection */}
           <div>
-            <label htmlFor="case" className="block text-sm font-medium text-gray-700 mb-2">
+            <label htmlFor="case" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
               FMLA Case <span className="text-red-500">*</span>
             </label>
             <select
               id="case"
               value={selectedCaseId}
               onChange={(e) => setSelectedCaseId(e.target.value ? parseInt(e.target.value) : '')}
-              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
               required
             >
               <option value="">Select a case</option>
@@ -216,12 +216,12 @@ export default function SubmitTime() {
 
           {/* Selected case info */}
           {selectedCase && (
-            <div className="p-4 bg-blue-50 rounded-lg">
-              <div className="flex items-center gap-2 text-blue-700">
+            <div className="p-4 bg-blue-50 dark:bg-blue-900/30 rounded-lg">
+              <div className="flex items-center gap-2 text-blue-700 dark:text-blue-400">
                 <FileText size={18} />
                 <span className="font-medium">{selectedCase.case_number}</span>
               </div>
-              <p className="text-sm text-blue-600 mt-1">
+              <p className="text-sm text-blue-600 dark:text-blue-400 mt-1">
                 {selectedCase.leave_type} • {selectedCase.hours_remaining.toFixed(1)} hours remaining
               </p>
             </div>
@@ -230,7 +230,7 @@ export default function SubmitTime() {
           {/* Date and Hours */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div>
-              <label htmlFor="date" className="block text-sm font-medium text-gray-700 mb-2">
+              <label htmlFor="date" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                 Leave Date <span className="text-red-500">*</span>
               </label>
               <input
@@ -238,13 +238,13 @@ export default function SubmitTime() {
                 type="date"
                 value={leaveDate}
                 onChange={(e) => setLeaveDate(e.target.value)}
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
                 required
               />
             </div>
 
             <div>
-              <label htmlFor="hours" className="block text-sm font-medium text-gray-700 mb-2">
+              <label htmlFor="hours" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                 Hours Requested <span className="text-red-500">*</span>
               </label>
               <input
@@ -256,7 +256,7 @@ export default function SubmitTime() {
                 value={hoursRequested}
                 onChange={(e) => setHoursRequested(e.target.value)}
                 placeholder="8"
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
                 required
               />
             </div>
@@ -264,14 +264,14 @@ export default function SubmitTime() {
 
           {/* Entry Type */}
           <div>
-            <label htmlFor="entryType" className="block text-sm font-medium text-gray-700 mb-2">
+            <label htmlFor="entryType" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
               Entry Type <span className="text-red-500">*</span>
             </label>
             <select
               id="entryType"
               value={entryType}
               onChange={(e) => setEntryType(e.target.value)}
-              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
               required
             >
               <option value="Full Day">Full Day</option>
@@ -282,7 +282,7 @@ export default function SubmitTime() {
 
           {/* Notes */}
           <div>
-            <label htmlFor="notes" className="block text-sm font-medium text-gray-700 mb-2">
+            <label htmlFor="notes" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
               Notes (Optional)
             </label>
             <textarea
@@ -291,7 +291,7 @@ export default function SubmitTime() {
               onChange={(e) => setNotes(e.target.value)}
               rows={3}
               placeholder="Add any additional notes for your supervisor..."
-              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
+              className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500"
             />
           </div>
 
@@ -300,7 +300,7 @@ export default function SubmitTime() {
             <button
               type="button"
               onClick={() => navigate(-1)}
-              className="px-6 py-3 text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-lg font-medium transition-colors"
+              className="px-6 py-3 text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 rounded-lg font-medium transition-colors"
             >
               Cancel
             </button>

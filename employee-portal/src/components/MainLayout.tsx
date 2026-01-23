@@ -15,6 +15,7 @@ import {
 } from 'lucide-react';
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import DarkModeToggle from './DarkModeToggle';
 
 export default function MainLayout() {
   const { user, logout, isSupervisor, isEmployee } = useAuth();
@@ -50,8 +51,8 @@ export default function MainLayout() {
       className={({ isActive }) =>
         `flex items-center gap-3 px-4 py-2.5 rounded-lg transition-colors ${
           isActive
-            ? 'bg-blue-50 text-blue-700 font-medium'
-            : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900'
+            ? 'bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 font-medium'
+            : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 hover:text-gray-900 dark:hover:text-white'
         }`
       }
     >
@@ -61,18 +62,18 @@ export default function MainLayout() {
   );
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
       {/* Mobile header */}
-      <div className="lg:hidden bg-white border-b border-gray-200 px-4 py-3 flex items-center justify-between">
+      <div className="lg:hidden bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 px-4 py-3 flex items-center justify-between">
         <div className="flex items-center gap-3">
           <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center">
             <FileText className="text-white" size={18} />
           </div>
-          <span className="font-semibold text-gray-900">FMLA Portal</span>
+          <span className="font-semibold text-gray-900 dark:text-white">FMLA Portal</span>
         </div>
         <button
           onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-          className="p-2 text-gray-600 hover:text-gray-900"
+          className="p-2 text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white"
         >
           {mobileMenuOpen ? <X size={24} /> : <Menu size={24} />}
         </button>
@@ -80,15 +81,15 @@ export default function MainLayout() {
 
       <div className="flex">
         {/* Sidebar - Desktop */}
-        <aside className="hidden lg:flex lg:flex-col lg:w-64 lg:fixed lg:inset-y-0 bg-white border-r border-gray-200">
+        <aside className="hidden lg:flex lg:flex-col lg:w-64 lg:fixed lg:inset-y-0 bg-white dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700">
           {/* Logo */}
-          <div className="flex items-center gap-3 px-6 py-5 border-b border-gray-200">
+          <div className="flex items-center gap-3 px-6 py-5 border-b border-gray-200 dark:border-gray-700">
             <div className="w-10 h-10 bg-blue-600 rounded-lg flex items-center justify-center">
               <FileText className="text-white" size={22} />
             </div>
             <div>
-              <h1 className="font-semibold text-gray-900">FMLA Portal</h1>
-              <p className="text-xs text-gray-500">Self-Service</p>
+              <h1 className="font-semibold text-gray-900 dark:text-white">FMLA Portal</h1>
+              <p className="text-xs text-gray-500 dark:text-gray-400">Self-Service</p>
             </div>
           </div>
 
@@ -96,7 +97,7 @@ export default function MainLayout() {
           <nav className="flex-1 px-4 py-4 space-y-1 overflow-y-auto">
             {/* Employee section */}
             <div className="mb-6">
-              <p className="px-4 text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">
+              <p className="px-4 text-xs font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wider mb-2">
                 Employee
               </p>
               {employeeLinks.map((link) => (
@@ -107,7 +108,7 @@ export default function MainLayout() {
             {/* Supervisor section */}
             {isSupervisor && (
               <div>
-                <p className="px-4 text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">
+                <p className="px-4 text-xs font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wider mb-2">
                   Supervisor
                 </p>
                 {supervisorLinks.map((link) => (
@@ -117,22 +118,28 @@ export default function MainLayout() {
             )}
           </nav>
 
-          {/* User info */}
-          <div className="px-4 py-4 border-t border-gray-200">
+          {/* User info & Dark mode toggle */}
+          <div className="px-4 py-4 border-t border-gray-200 dark:border-gray-700">
             <div className="flex items-center gap-3 mb-3">
-              <div className="w-10 h-10 bg-gray-200 rounded-full flex items-center justify-center">
-                <span className="text-gray-600 font-medium">
+              <div className="w-10 h-10 bg-gray-200 dark:bg-gray-700 rounded-full flex items-center justify-center">
+                <span className="text-gray-600 dark:text-gray-300 font-medium">
                   {user?.full_name?.charAt(0) || 'U'}
                 </span>
               </div>
               <div className="flex-1 min-w-0">
-                <p className="text-sm font-medium text-gray-900 truncate">{user?.full_name}</p>
-                <p className="text-xs text-gray-500 truncate">{user?.email}</p>
+                <p className="text-sm font-medium text-gray-900 dark:text-white truncate">{user?.full_name}</p>
+                <p className="text-xs text-gray-500 dark:text-gray-400 truncate">{user?.email}</p>
               </div>
             </div>
+
+            {/* Dark mode toggle */}
+            <div className="mb-3">
+              <DarkModeToggle />
+            </div>
+
             <button
               onClick={handleLogout}
-              className="flex items-center gap-2 w-full px-4 py-2 text-sm text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors"
+              className="flex items-center gap-2 w-full px-4 py-2 text-sm text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
             >
               <LogOut size={18} />
               <span>Sign out</span>
@@ -156,18 +163,18 @@ export default function MainLayout() {
                 animate={{ x: 0 }}
                 exit={{ x: -280 }}
                 transition={{ type: 'tween', duration: 0.2 }}
-                className="lg:hidden fixed inset-y-0 left-0 w-72 bg-white z-50 flex flex-col"
+                className="lg:hidden fixed inset-y-0 left-0 w-72 bg-white dark:bg-gray-800 z-50 flex flex-col"
               >
-                <div className="flex items-center justify-between px-4 py-4 border-b border-gray-200">
+                <div className="flex items-center justify-between px-4 py-4 border-b border-gray-200 dark:border-gray-700">
                   <div className="flex items-center gap-3">
                     <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center">
                       <FileText className="text-white" size={18} />
                     </div>
-                    <span className="font-semibold text-gray-900">FMLA Portal</span>
+                    <span className="font-semibold text-gray-900 dark:text-white">FMLA Portal</span>
                   </div>
                   <button
                     onClick={() => setMobileMenuOpen(false)}
-                    className="p-2 text-gray-600"
+                    className="p-2 text-gray-600 dark:text-gray-400"
                   >
                     <X size={20} />
                   </button>
@@ -175,7 +182,7 @@ export default function MainLayout() {
 
                 <nav className="flex-1 px-4 py-4 space-y-1 overflow-y-auto">
                   <div className="mb-6">
-                    <p className="px-4 text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">
+                    <p className="px-4 text-xs font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wider mb-2">
                       Employee
                     </p>
                     {employeeLinks.map((link) => (
@@ -185,7 +192,7 @@ export default function MainLayout() {
 
                   {isSupervisor && (
                     <div>
-                      <p className="px-4 text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">
+                      <p className="px-4 text-xs font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wider mb-2">
                         Supervisor
                       </p>
                       {supervisorLinks.map((link) => (
@@ -195,21 +202,27 @@ export default function MainLayout() {
                   )}
                 </nav>
 
-                <div className="px-4 py-4 border-t border-gray-200">
+                <div className="px-4 py-4 border-t border-gray-200 dark:border-gray-700">
                   <div className="flex items-center gap-3 mb-3">
-                    <div className="w-10 h-10 bg-gray-200 rounded-full flex items-center justify-center">
-                      <span className="text-gray-600 font-medium">
+                    <div className="w-10 h-10 bg-gray-200 dark:bg-gray-700 rounded-full flex items-center justify-center">
+                      <span className="text-gray-600 dark:text-gray-300 font-medium">
                         {user?.full_name?.charAt(0) || 'U'}
                       </span>
                     </div>
                     <div className="flex-1 min-w-0">
-                      <p className="text-sm font-medium text-gray-900 truncate">{user?.full_name}</p>
-                      <p className="text-xs text-gray-500 truncate">{user?.email}</p>
+                      <p className="text-sm font-medium text-gray-900 dark:text-white truncate">{user?.full_name}</p>
+                      <p className="text-xs text-gray-500 dark:text-gray-400 truncate">{user?.email}</p>
                     </div>
                   </div>
+
+                  {/* Dark mode toggle */}
+                  <div className="mb-3">
+                    <DarkModeToggle />
+                  </div>
+
                   <button
                     onClick={handleLogout}
-                    className="flex items-center gap-2 w-full px-4 py-2 text-sm text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors"
+                    className="flex items-center gap-2 w-full px-4 py-2 text-sm text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
                   >
                     <LogOut size={18} />
                     <span>Sign out</span>

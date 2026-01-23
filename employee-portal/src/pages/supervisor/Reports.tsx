@@ -60,30 +60,30 @@ export default function Reports() {
     <div className="space-y-6">
       {/* Header */}
       <div>
-        <h1 className="text-2xl font-bold text-gray-900">FMLA Reports</h1>
-        <p className="text-gray-600 mt-1">Export team FMLA time reports</p>
+        <h1 className="text-2xl font-bold text-gray-900 dark:text-white">FMLA Reports</h1>
+        <p className="text-gray-600 dark:text-gray-400 mt-1">Export team FMLA time reports</p>
       </div>
 
       {/* Export Card */}
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
-        className="bg-white rounded-xl shadow-sm border border-gray-200 p-6"
+        className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-6"
       >
         <div className="flex items-start gap-4 mb-6">
-          <div className="p-3 bg-blue-50 rounded-lg">
-            <FileBarChart className="text-blue-600" size={24} />
+          <div className="p-3 bg-blue-50 dark:bg-blue-900/30 rounded-lg">
+            <FileBarChart className="text-blue-600 dark:text-blue-400" size={24} />
           </div>
           <div>
-            <h2 className="text-lg font-semibold text-gray-900">Team Time Report</h2>
-            <p className="text-gray-600 mt-1">
+            <h2 className="text-lg font-semibold text-gray-900 dark:text-white">Team Time Report</h2>
+            <p className="text-gray-600 dark:text-gray-400 mt-1">
               Export all time submissions from your direct reports for the selected date range.
             </p>
           </div>
         </div>
 
         {error && (
-          <div className="flex items-center gap-2 p-3 bg-red-50 border border-red-200 rounded-lg text-red-700 text-sm mb-6">
+          <div className="flex items-center gap-2 p-3 bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-800 rounded-lg text-red-700 dark:text-red-400 text-sm mb-6">
             <AlertCircle size={18} />
             <span>{error}</span>
           </div>
@@ -92,7 +92,7 @@ export default function Reports() {
         {/* Date Range Selection */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
           <div>
-            <label htmlFor="dateFrom" className="block text-sm font-medium text-gray-700 mb-2">
+            <label htmlFor="dateFrom" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
               <Calendar className="inline-block mr-2" size={16} />
               From Date
             </label>
@@ -101,11 +101,11 @@ export default function Reports() {
               type="date"
               value={dateFrom}
               onChange={(e) => setDateFrom(e.target.value)}
-              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
             />
           </div>
           <div>
-            <label htmlFor="dateTo" className="block text-sm font-medium text-gray-700 mb-2">
+            <label htmlFor="dateTo" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
               <Calendar className="inline-block mr-2" size={16} />
               To Date
             </label>
@@ -115,7 +115,7 @@ export default function Reports() {
               value={dateTo}
               onChange={(e) => setDateTo(e.target.value)}
               min={dateFrom}
-              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
             />
           </div>
         </div>
@@ -131,7 +131,7 @@ export default function Reports() {
               setDateFrom(weekAgo.toISOString().split('T')[0]);
               setDateTo(today.toISOString().split('T')[0]);
             }}
-            className="px-3 py-1.5 text-sm bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors"
+            className="px-3 py-1.5 text-sm bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
           >
             Last 7 Days
           </button>
@@ -144,7 +144,7 @@ export default function Reports() {
               setDateFrom(monthAgo.toISOString().split('T')[0]);
               setDateTo(today.toISOString().split('T')[0]);
             }}
-            className="px-3 py-1.5 text-sm bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors"
+            className="px-3 py-1.5 text-sm bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
           >
             Last 30 Days
           </button>
@@ -157,7 +157,7 @@ export default function Reports() {
               setDateFrom(threeMonthsAgo.toISOString().split('T')[0]);
               setDateTo(today.toISOString().split('T')[0]);
             }}
-            className="px-3 py-1.5 text-sm bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors"
+            className="px-3 py-1.5 text-sm bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
           >
             Last 3 Months
           </button>
@@ -168,7 +168,7 @@ export default function Reports() {
               setDateFrom(`${today.getFullYear()}-01-01`);
               setDateTo(today.toISOString().split('T')[0]);
             }}
-            className="px-3 py-1.5 text-sm bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors"
+            className="px-3 py-1.5 text-sm bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
           >
             Year to Date
           </button>
@@ -206,7 +206,7 @@ export default function Reports() {
           <button
             onClick={() => handleExport('pdf')}
             disabled={true}
-            className="flex-1 flex items-center justify-center gap-2 px-6 py-3 bg-gray-100 text-gray-400 rounded-lg font-medium cursor-not-allowed"
+            className="flex-1 flex items-center justify-center gap-2 px-6 py-3 bg-gray-100 dark:bg-gray-700 text-gray-400 dark:text-gray-500 rounded-lg font-medium cursor-not-allowed"
             title="PDF export coming soon"
           >
             <Download size={20} />
@@ -216,10 +216,10 @@ export default function Reports() {
       </motion.div>
 
       {/* Report Info */}
-      <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-        <h3 className="font-medium text-blue-900 mb-2">Report Contents</h3>
-        <p className="text-sm text-blue-800">The exported report includes:</p>
-        <ul className="mt-2 space-y-1 text-sm text-blue-700">
+      <div className="bg-blue-50 dark:bg-blue-900/30 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
+        <h3 className="font-medium text-blue-900 dark:text-blue-300 mb-2">Report Contents</h3>
+        <p className="text-sm text-blue-800 dark:text-blue-400">The exported report includes:</p>
+        <ul className="mt-2 space-y-1 text-sm text-blue-700 dark:text-blue-400">
           <li>• Employee name and ID</li>
           <li>• Department</li>
           <li>• Case number</li>
