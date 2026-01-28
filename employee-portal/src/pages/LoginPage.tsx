@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
-import { FileText, Eye, EyeOff, AlertCircle } from 'lucide-react';
+import { Users, Eye, EyeOff, AlertCircle } from 'lucide-react';
 import { motion } from 'framer-motion';
 
 export default function LoginPage() {
@@ -39,11 +39,11 @@ export default function LoginPage() {
       >
         {/* Logo and title */}
         <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center w-16 h-16 bg-blue-600 rounded-2xl mb-4 shadow-lg">
-            <FileText className="text-white" size={32} />
+          <div className="inline-flex items-center justify-center w-16 h-16 bg-gradient-to-br from-blue-600 to-indigo-600 rounded-2xl mb-4 shadow-lg">
+            <Users className="text-white" size={32} />
           </div>
-          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">FMLA Self-Service Portal</h1>
-          <p className="text-gray-600 dark:text-gray-400 mt-2">Sign in to manage your FMLA time</p>
+          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Employee HR Hub</h1>
+          <p className="text-gray-600 dark:text-gray-400 mt-2">Your self-service portal for HR needs</p>
         </div>
 
         {/* Login card */}

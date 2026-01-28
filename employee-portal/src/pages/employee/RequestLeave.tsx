@@ -127,7 +127,7 @@ export default function RequestLeave() {
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
-        className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-6"
+        className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-300 dark:border-gray-700 p-6"
       >
         <form onSubmit={handleSubmit} className="space-y-6">
           {/* Error message */}
@@ -278,7 +278,7 @@ export default function RequestLeave() {
           </div>
 
           {/* Submit Button */}
-          <div className="flex justify-end gap-3 pt-4 border-t border-gray-200 dark:border-gray-700">
+          <div className="flex justify-end gap-3 pt-4 border-t border-gray-300 dark:border-gray-700">
             <button
               type="button"
               onClick={() => navigate(-1)}
