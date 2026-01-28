@@ -37,6 +37,7 @@ This document provides a comprehensive overview of the security architecture, da
 8. [Infrastructure Security](#8-infrastructure-security)
 9. [Compliance Alignment](#9-compliance-alignment)
 10. [Security Testing & Validation](#10-security-testing--validation)
+11. [Document & File Security](#11-document--file-security)
 
 ---
 
@@ -585,6 +586,109 @@ Recommended areas for third-party penetration testing:
 
 ---
 
+## 11. Document & File Security
+
+The system implements comprehensive security controls for file uploads and document storage to protect against malicious files, unauthorized access, and data leakage.
+
+### 11.1 Storage Security
+
+**Secure File Storage:**
+| Control | Implementation |
+|---------|----------------|
+| Storage Location | Files stored outside web root (not directly accessible via URL) |
+| File Naming | UUID-based filenames (prevents enumeration and path guessing) |
+| Quarantine | Suspicious files moved to isolated quarantine directory |
+| Soft Delete | Files retained on deletion for audit purposes |
+
+**Directory Structure:**
+```
+/uploads/
+├── files/           (Active uploaded files)
+├── quarantine/      (Suspicious/flagged files)
+└── deleted/         (Soft-deleted files for audit retention)
+```
+
+### 11.2 File Validation
+
+**Upload Validation Pipeline:**
+
+1. **File Size Limits**
+   - Maximum file size: 50MB
+   - Prevents denial-of-service via large file uploads
+
+2. **Extension Validation**
+   - Whitelist of allowed file extensions
+   - Blocks executable and potentially dangerous file types
+
+3. **MIME Type Verification**
+   - Content-type header validation
+   - Binary content inspection using python-magic library
+   - Detects extension spoofing (e.g., .exe renamed to .pdf)
+
+4. **Filename Sanitization**
+   - Removes path traversal attempts (../, ..\)
+   - Strips special characters
+   - Prevents directory escape attacks
+
+**Allowed File Types:**
+
+| Category | Extensions | Use Case |
+|----------|------------|----------|
+| Documents | .pdf, .doc, .docx | FMLA documentation, medical certifications |
+| Images | .jpg, .jpeg, .png, .gif | Supporting documentation |
+| Data | .csv, .xlsx | Import/export data |
+
+### 11.3 Access Control
+
+**Authentication & Authorization:**
+- All file endpoints require authentication (JWT token)
+- Permission-based access control:
+  - `files:upload` - Upload new files
+  - `files:delete` - Remove files
+  - `fmla:read` - Access FMLA-related documents
+
+**Ownership Verification:**
+- Files associated with specific records (employee, FMLA case)
+- Access verified against user's data access permissions
+- Supervisors can only access files for direct reports
+
+### 11.4 Audit Trail
+
+All file operations are logged in the audit system:
+
+| Operation | Logged Information |
+|-----------|-------------------|
+| Upload | User, filename, file type, associated record, timestamp |
+| Download | User, file ID, timestamp, IP address |
+| Delete | User, file ID, deletion reason, timestamp |
+| Access Denied | User, attempted file, reason for denial |
+
+### 11.5 Malware Protection
+
+**Current Implementation:**
+- File type validation (blocks executables)
+- Extension/MIME type mismatch detection
+- Quarantine directory for suspicious files
+
+**Planned Enhancement:**
+- ClamAV integration for real-time virus scanning
+- Automatic quarantine of infected files
+- Admin notification on malware detection
+
+### 11.6 Data Protection
+
+**File Content Security:**
+- Files transmitted over HTTPS only
+- No direct URL access (files served through authenticated API)
+- Cache-Control headers prevent browser caching of sensitive documents
+
+**Compliance Considerations:**
+- FMLA documents may contain PHI (Protected Health Information)
+- Access restricted to authorized personnel only
+- Retention policies align with document type requirements
+
+---
+
 ## Appendix A: Security Architecture Diagram
 
 ```
@@ -635,6 +739,8 @@ Recommended areas for third-party penetration testing:
 | CSRF Service | `/backend/app/services/csrf_service.py` |
 | Password Service | `/backend/app/services/password_service.py` |
 | Token Blacklist | `/backend/app/services/token_blacklist_service.py` |
+| File Upload Service | `/backend/app/services/file_upload_service.py` |
+| File Upload API | `/backend/app/api/file_uploads.py` |
 | Security Middleware | `/backend/app/main.py` |
 | FMLA Portal API | `/backend/app/api/fmla_portal.py` |
 | Database Models | `/backend/app/db/models.py` |

@@ -1,0 +1,49 @@
+# =============================================================================
+# HR Dashboard - Systemd Service File
+# =============================================================================
+# This keeps the FastAPI backend running and auto-restarts on failure
+#
+# Installation:
+#   sudo cp hr-dashboard.service /etc/systemd/system/
+#   sudo systemctl daemon-reload
+#   sudo systemctl enable hr-dashboard
+#   sudo systemctl start hr-dashboard
+#
+# Useful commands:
+#   sudo systemctl status hr-dashboard    # Check status
+#   sudo systemctl restart hr-dashboard   # Restart service
+#   sudo journalctl -u hr-dashboard -f    # View logs
+
+[Unit]
+Description=HR Dashboard FastAPI Backend
+After=network.target
+
+[Service]
+Type=simple
+User=www-data
+Group=www-data
+WorkingDirectory=/var/www/hr-dashboard/backend
+Environment="PATH=/var/www/hr-dashboard/backend/venv/bin"
+EnvironmentFile=/var/www/hr-dashboard/backend/.env.production
+ExecStart=/var/www/hr-dashboard/backend/venv/bin/gunicorn app.main:app \
+    --workers 2 \
+    --worker-class uvicorn.workers.UvicornWorker \
+    --bind 127.0.0.1:8000 \
+    --access-logfile /var/log/hr-dashboard/access.log \
+    --error-logfile /var/log/hr-dashboard/error.log \
+    --capture-output
+
+# Restart on failure
+Restart=always
+RestartSec=5
+
+# Security hardening
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/var/www/hr-dashboard/backend/data
+ReadWritePaths=/var/log/hr-dashboard
+
+[Install]
+WantedBy=multi-user.target
