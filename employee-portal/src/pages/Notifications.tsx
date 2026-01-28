@@ -1,7 +1,18 @@
 import { useState, useEffect, useCallback } from 'react';
 import { Bell, Check, Trash2, Clock, AlertCircle, Info, CheckCircle, Filter, MailOpen, Mail, Loader2 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useNavigate } from 'react-router-dom';
 import { apiGet, apiPost } from '@/utils/api';
+
+// Valid employee portal route prefixes for action_url links
+const PORTAL_ROUTE_PREFIXES = [
+  '/dashboard', '/notifications', '/directory', '/announcements', '/schedule',
+  '/my-hr/', '/requests/', '/resources/', '/team', '/admin/',
+];
+
+function isPortalRoute(url: string): boolean {
+  return PORTAL_ROUTE_PREFIXES.some(prefix => url.startsWith(prefix));
+}
 
 type NotificationType = 'info' | 'success' | 'warning' | 'action';
 type NotificationCategory = 'all' | 'unread' | 'action_required';
@@ -91,6 +102,7 @@ export default function Notifications() {
   const [notifications, setNotifications] = useState<BackendNotification[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
   const [total, setTotal] = useState(0);
+  const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [filter, setFilter] = useState<NotificationCategory>('all');
@@ -345,13 +357,13 @@ export default function Notifications() {
 
                       {/* Actions */}
                       <div className="flex items-center gap-2 mt-3">
-                        {notification.action_url && (
-                          <a
-                            href={notification.action_url}
+                        {notification.action_url && isPortalRoute(notification.action_url) && (
+                          <button
+                            onClick={() => navigate(notification.action_url!)}
                             className="text-sm font-medium text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300"
                           >
                             {notification.action_label || 'View'}
-                          </a>
+                          </button>
                         )}
                         {!notification.is_read && (
                           <button
