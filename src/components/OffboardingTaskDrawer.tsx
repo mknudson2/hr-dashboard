@@ -302,7 +302,7 @@ export default function OffboardingTaskDrawer({
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          to_email: garnishment.agency_email || 'michaelknudsonphd@gmail.com',
+          to_email: garnishment.agency_email || import.meta.env.VITE_DEFAULT_EMAIL,
           employee_name: `${employee.first_name} ${employee.last_name}`,
           employee_id: employee.employee_id,
           termination_date: employee.termination_date,
@@ -314,7 +314,7 @@ export default function OffboardingTaskDrawer({
           amount_remaining: garnishment.amount_remaining,
           department: employee.department,
           from_name: 'Michael Knudson, Ph.D.',
-          from_email: 'michaelknudsonphd@gmail.com'
+          from_email: import.meta.env.VITE_DEFAULT_EMAIL
         }),
       });
 
@@ -408,7 +408,7 @@ export default function OffboardingTaskDrawer({
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          to_email: 'michaelknudsonphd@gmail.com', // Shelli's email
+          to_email: import.meta.env.VITE_DEFAULT_EMAIL, // Shelli's email
           employee_name: `${employee.first_name} ${employee.last_name}`,
           employee_id: employee.employee_id,
           termination_date: employee.termination_date,
@@ -1101,7 +1101,7 @@ export default function OffboardingTaskDrawer({
                           <div>
                             <p className="text-xs text-gray-500 dark:text-gray-400">Agency Email</p>
                             <p className="font-medium text-gray-900 dark:text-white text-sm">
-                              {garnishment.agency_email || 'Not on file (will send to michaelknudsonphd@gmail.com)'}
+                              {garnishment.agency_email || 'Not on file (will send to default email)'}
                             </p>
                           </div>
                           {garnishment.case_reference && (

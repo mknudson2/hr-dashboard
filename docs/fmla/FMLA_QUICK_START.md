@@ -184,7 +184,7 @@ Edit `app/services/fmla_form_service.py`:
 FMLA_COMPANY_CONFIG = {
     'company_name': 'National Benefit Services',
     'hr_contact_name': 'Michael Knudson',
-    'hr_contact_email': 'mknudson@nbsbenefits.com',
+    'hr_contact_email': 'mknudson@example.com',
     # ... other settings
 }
 ```

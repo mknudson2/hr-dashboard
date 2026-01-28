@@ -409,7 +409,7 @@ export default function OffboardingPage() {
       // Show success message
       const successMessage = result.errors && result.errors.length > 0
         ? `${result.message} - Some emails failed to send. Check console for details.`
-        : `Successfully sent all 10 NBS termination emails to michaelknudsonphd@gmail.com!`;
+        : `Successfully sent all 10 NBS termination emails!`;
 
       setEmailSuccess({ show: true, message: successMessage });
 

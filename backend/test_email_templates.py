@@ -24,7 +24,7 @@ async def test_template_rendering():
             start_date="2025-01-15",
             department="Engineering",
             manager_name="Jane Smith",
-            manager_email="jane.smith@nbsbenefits.com"
+            manager_email="jane.smith@example.com"
         )
         print("   SUCCESS: Welcome email template rendered\n")
     except Exception as e:
@@ -52,7 +52,7 @@ async def test_template_rendering():
     try:
         await email_service.send_nbs_term_email(
             email_type="401k",
-            to_emails=["kath@nbsbenefits.com"],
+            to_emails=["kath@example.com"],
             employee_name="John Doe",
             employee_id="EMP12345",
             termination_date="2025-01-31",
@@ -69,7 +69,7 @@ async def test_template_rendering():
     try:
         await email_service.send_nbs_term_email(
             email_type="accounting",
-            to_emails=["shellim@nbsbenefits.com"],
+            to_emails=["shellim@example.com"],
             employee_name="Jane Smith",
             employee_id="EMP67890",
             termination_date="2025-02-15",
@@ -77,7 +77,7 @@ async def test_template_rendering():
             pronoun="her",
             pronoun2="her",
             department="Finance",
-            cc_emails=["NatalieL@nbsbenefits.com"]
+            cc_emails=["NatalieL@example.com"]
         )
         print("   SUCCESS: NBS accounting term email template rendered\n")
     except Exception as e:
@@ -88,7 +88,7 @@ async def test_template_rendering():
     try:
         await email_service.send_nbs_term_email(
             email_type="leadership",
-            to_emails=["leadership@nbsbenefits.com"],
+            to_emails=["leadership@example.com"],
             employee_name="Bob Johnson",
             employee_id="EMP11111",
             termination_date="2025-03-01",
@@ -132,7 +132,7 @@ async def test_template_rendering():
             days_until_return=7,
             fitness_for_duty_required=True,
             manager_name="Tom Brown",
-            manager_email="tom.brown@nbsbenefits.com"
+            manager_email="tom.brown@example.com"
         )
         print("   SUCCESS: FMLA reminder template rendered\n")
     except Exception as e:

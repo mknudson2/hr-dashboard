@@ -91,7 +91,7 @@
 <h3>Questions?</h3>
 <p>If you have any questions or concerns, please contact:</p>
 <ul>
-    <li><strong>HR Contact:</strong> {{ hr_contact|default('HR Department') }} - {{ hr_email|default('hr@nbsbenefits.com') }}</li>
+    <li><strong>HR Contact:</strong> {{ hr_contact|default('HR Department') }} - {{ support_email }}</li>
     <li><strong>Your Manager:</strong> {{ manager_name }}{% if manager_email %} - {{ manager_email }}{% endif %}</li>
 </ul>
 
@@ -114,7 +114,7 @@
             <p style="margin: 5px 0; color: #9ca3af; font-size: 13px;">Mountain Time Zone</p>
             <p style="margin: 5px 0; color: #9ca3af; font-size: 13px;">Phone (801) 858-0266 | Fax (801) 858-0252</p>
             <p style="margin: 5px 0; color: #9ca3af; font-size: 13px;">
-                <a href="mailto:mknudson@nbsbenefits.com" style="color: #F4DC5E; text-decoration: none;">mknudson@nbsbenefits.com</a> |
+                <a href="mailto:{{ hr_contact_email }}" style="color: #F4DC5E; text-decoration: none;">{{ hr_contact_email }}</a> |
                 <a href="https://www.nbsbenefits.com" style="color: #F4DC5E; text-decoration: none;">www.nbsbenefits.com</a>
             </p>
         </td>

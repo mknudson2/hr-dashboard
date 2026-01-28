@@ -55,7 +55,7 @@ curl -X POST http://localhost:8000/fmla/notices/1/send-email \
 
 **Features**:
 - ✅ Automatic PDF attachment
-- ✅ CC to HR (mknudson@nbsbenefits.com)
+- ✅ CC to HR (mknudson@example.com)
 - ✅ Updates notice status to 'sent_to_employee'
 - ✅ Tracks sent_date and sent_method
 - ✅ Validates employee has email address
@@ -254,7 +254,7 @@ EMAIL_ENABLED=true
 EMAIL_PROVIDER=gmail  # or outlook
 GMAIL_USERNAME=your-email@gmail.com
 GMAIL_APP_PASSWORD=your-app-password
-GMAIL_FROM_EMAIL=noreply@nbsbenefits.com
+GMAIL_FROM_EMAIL=noreply@example.com
 GMAIL_FROM_NAME=NBS HR Department
 ```
 
