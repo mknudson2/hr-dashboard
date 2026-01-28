@@ -138,9 +138,12 @@ def get_current_user(
     db: Session = Depends(get_db)
 ) -> models.User:
     """Get the current authenticated user from JWT token (cookie or header)."""
-    # Try portal-specific cookies first, then legacy cookie, then Authorization header
+    # Determine which portal-specific cookie to prefer based on request source
+    portal_source = request.headers.get("X-Portal-Source", "")
     token = None
-    if hr_access_token:
+    if portal_source == "employee-portal" and portal_access_token:
+        token = portal_access_token
+    elif hr_access_token:
         token = hr_access_token
     elif portal_access_token:
         token = portal_access_token

@@ -354,7 +354,26 @@ def assign_roles_to_users(db: Session, role_map: dict):
         "employee": "employee",
     }
 
+    # First, assign the employee base role to ALL users
+    employee_role = role_map.get("employee")
+    if employee_role:
+        all_users = db.query(models.User).all()
+        for user in all_users:
+            existing = db.query(models.UserRole).filter(
+                models.UserRole.user_id == user.id,
+                models.UserRole.role_id == employee_role.id
+            ).first()
+            if not existing:
+                db.add(models.UserRole(user_id=user.id, role_id=employee_role.id))
+                print(f"  + Assigned 'employee' base role to user '{user.username}'")
+            else:
+                print(f"  - User '{user.username}' already has 'employee' role")
+
+    # Then, assign additional RBAC roles based on legacy role column
     for legacy_role, rbac_role_name in legacy_to_rbac.items():
+        if rbac_role_name == "employee":
+            continue  # Already handled above
+
         rbac_role = role_map.get(rbac_role_name)
         if not rbac_role:
             print(f"  ! RBAC role '{rbac_role_name}' not found")

@@ -408,6 +408,14 @@ def assign_user_roles(
             detail="One or more role IDs are invalid or inactive"
         )
 
+    # Ensure employee role is always included
+    employee_role = db.query(models.Role).filter(
+        models.Role.name == "employee",
+        models.Role.is_active == True
+    ).first()
+    if employee_role and employee_role.id not in role_ids:
+        roles.append(employee_role)
+
     # Clear existing role assignments
     db.query(models.UserRole).filter(models.UserRole.user_id == user_id).delete()
 
@@ -479,6 +487,14 @@ def remove_user_role(
     db: Session = Depends(get_db)
 ):
     """Remove a single role from a user."""
+    # Block removal of the employee base role
+    role = db.query(models.Role).filter(models.Role.id == role_id).first()
+    if role and role.name == "employee":
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Cannot remove the employee base role. It is required for portal access."
+        )
+
     user_role = db.query(models.UserRole).filter(
         models.UserRole.user_id == user_id,
         models.UserRole.role_id == role_id

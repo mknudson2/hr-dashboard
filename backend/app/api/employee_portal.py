@@ -101,12 +101,27 @@ class EquitySummary(BaseModel):
     status: str
 
 
+class BenefitLineItem(BaseModel):
+    benefit_type: str
+    employee_annual: float
+    employer_annual: float
+
+
+class TotalCompBreakdown(BaseModel):
+    base_wages: float
+    employer_benefits: float
+    employer_taxes: float
+    total: float
+    benefits_breakdown: List[BenefitLineItem] = []
+
+
 class CompensationResponse(BaseModel):
     salary: SalaryInfo
     salary_history: List[SalaryChange]
     bonuses: List[BonusSummary]
     equity_grants: List[EquitySummary]
     total_compensation_ytd: float
+    total_compensation_breakdown: Optional[TotalCompBreakdown] = None
 
 
 class BenefitPlan(BaseModel):
@@ -381,12 +396,61 @@ def get_compensation(
 
     total_compensation_ytd = ytd_salary + ytd_bonuses
 
+    # Total employer investment breakdown
+    base_wages = employee.annual_wage or 0
+    employer_benefits = employee.benefits_cost_annual or 0
+    employer_taxes = employee.employer_taxes_annual or 0
+    total_employer_investment = employee.total_compensation or (base_wages + employer_benefits + employer_taxes)
+
+    # Build itemized benefits breakdown (monthly -> annual)
+    benefits_breakdown = []
+    benefit_mappings = [
+        ("Medical", employee.medical_ee_cost, employee.medical_er_cost),
+        ("HSA", employee.hsa_ee_contribution, employee.hsa_er_contribution),
+        ("Dental", employee.dental_ee_cost, employee.dental_er_cost),
+        ("Vision", employee.vision_ee_cost, employee.vision_er_cost),
+        ("Life Insurance", employee.life_insurance_ee_cost, employee.life_insurance_er_cost),
+        ("Long-Term Disability", 0, employee.disability_ltd_cost),
+    ]
+    for name, ee_monthly, er_monthly in benefit_mappings:
+        ee_annual = round((ee_monthly or 0) * 12, 2)
+        er_annual = round((er_monthly or 0) * 12, 2)
+        if ee_annual > 0 or er_annual > 0:
+            benefits_breakdown.append(BenefitLineItem(
+                benefit_type=name,
+                employee_annual=ee_annual,
+                employer_annual=er_annual,
+            ))
+
+    # Employer payroll taxes as line items (6.2% SS + 1.45% Medicare)
+    ss_annual = round(base_wages * 0.062, 2)
+    medicare_annual = round(base_wages * 0.0145, 2)
+    benefits_breakdown.append(BenefitLineItem(
+        benefit_type="Social Security",
+        employee_annual=0,
+        employer_annual=ss_annual,
+    ))
+    benefits_breakdown.append(BenefitLineItem(
+        benefit_type="Medicare",
+        employee_annual=0,
+        employer_annual=medicare_annual,
+    ))
+
+    total_comp_breakdown = TotalCompBreakdown(
+        base_wages=base_wages,
+        employer_benefits=employer_benefits,
+        employer_taxes=employer_taxes,
+        total=total_employer_investment,
+        benefits_breakdown=benefits_breakdown,
+    )
+
     return CompensationResponse(
         salary=salary,
         salary_history=salary_history,
         bonuses=bonuses,
         equity_grants=equity_grants,
-        total_compensation_ytd=total_compensation_ytd
+        total_compensation_ytd=total_compensation_ytd,
+        total_compensation_breakdown=total_comp_breakdown
     )
 
 

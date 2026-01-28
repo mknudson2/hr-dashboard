@@ -234,6 +234,26 @@ def create_user(
     db.commit()
     db.refresh(new_user)
 
+    # Auto-assign RBAC roles: every user gets the employee base role
+    employee_role = db.query(models.Role).filter(
+        models.Role.name == "employee",
+        models.Role.is_active == True
+    ).first()
+    if employee_role:
+        db.add(models.UserRole(user_id=new_user.id, role_id=employee_role.id))
+
+    # If legacy role is manager or admin, also assign that RBAC role
+    if user_data.role in ("manager", "admin"):
+        extra_role = db.query(models.Role).filter(
+            models.Role.name == user_data.role,
+            models.Role.is_active == True
+        ).first()
+        if extra_role:
+            db.add(models.UserRole(user_id=new_user.id, role_id=extra_role.id))
+
+    db.commit()
+    db.refresh(new_user)
+
     # Audit log: user created
     audit_service.log_user_created(db, current_user, new_user, request)
 

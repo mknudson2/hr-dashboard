@@ -110,10 +110,6 @@ export default defineConfig({
         target: "http://localhost:8000",
         changeOrigin: true,
       },
-      "/settings": {
-        target: "http://localhost:8000",
-        changeOrigin: true,
-      },
       "/emails": {
         target: "http://localhost:8000",
         changeOrigin: true,
