@@ -32,6 +32,7 @@ from app.db import models
 from app.api.auth import get_current_user
 from app.services.audit_service import audit_service
 from app.services.rbac_service import require_permission, require_any_permission, Permissions
+from app.services.notification_service import notification_service
 from app.schemas.fmla_portal import (
     TimeSubmissionCreate, TimeSubmissionResponse, TimeSubmissionListResponse,
     LeaveRequestCreate, LeaveRequestResponse,
@@ -281,7 +282,23 @@ def submit_time_entry(
     if case.status not in ("Active", "Approved"):
         raise HTTPException(
             status_code=400,
-            detail=f"Cannot submit time for a case with status '{case.status}'"
+            detail=f"Cannot submit time for a case with status '{case.status}'. "
+                   f"{'This case is pending activation and will become active when your current case ends.' if case.status == 'Pending Activation' else 'Please contact HR for assistance.'}"
+        )
+
+    # Validate case has hours remaining
+    if case.hours_remaining is not None and case.hours_remaining <= 0:
+        raise HTTPException(
+            status_code=400,
+            detail="This case has no hours remaining. Please contact HR if you need additional leave time."
+        )
+
+    # Validate hours requested doesn't exceed remaining
+    if case.hours_remaining is not None and submission.hours_requested > case.hours_remaining:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Hours requested ({submission.hours_requested}) exceeds remaining hours ({case.hours_remaining:.1f}). "
+                   f"Please reduce your request or contact HR."
         )
 
     # Parse and validate date
@@ -400,6 +417,19 @@ def request_leave(
     db.add(new_request)
     db.commit()
     db.refresh(new_request)
+
+    # Get employee record for notification
+    employee = db.query(models.Employee).filter(
+        models.Employee.employee_id == current_user.employee_id
+    ).first()
+
+    # Send notification to HR subscribers
+    if employee:
+        try:
+            notification_service.notify_fmla_leave_request(db, new_request, employee)
+        except Exception as e:
+            # Log but don't fail the request if notification fails
+            print(f"[FMLA PORTAL] Failed to send HR notification: {e}")
 
     return LeaveRequestResponse(
         id=new_request.id,

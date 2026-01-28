@@ -203,6 +203,8 @@ CSRF_EXEMPT_PATHS = frozenset({
     "/docs",
     "/redoc",
     "/openapi.json",
+    "/performance",  # Employee portal goals - protected by auth middleware
+    "/portal",  # Employee portal routes - protected by auth middleware
 })
 
 

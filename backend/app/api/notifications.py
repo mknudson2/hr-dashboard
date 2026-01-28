@@ -24,6 +24,7 @@ class NotificationPreferences(BaseModel):
     wage_changes: bool = False
     pto_requests: bool = True
     weekly_report: bool = True
+    fmla_leave_requests: bool = True
 
 
 class NotificationPreferenceRequest(BaseModel):
@@ -59,6 +60,7 @@ def save_notification_preferences(
         existing.wage_changes = request.preferences.wage_changes
         existing.pto_requests = request.preferences.pto_requests
         existing.weekly_report = request.preferences.weekly_report
+        existing.fmla_leave_requests = request.preferences.fmla_leave_requests
         db.commit()
         db.refresh(existing)
         return {
@@ -75,6 +77,7 @@ def save_notification_preferences(
             wage_changes=request.preferences.wage_changes,
             pto_requests=request.preferences.pto_requests,
             weekly_report=request.preferences.weekly_report,
+            fmla_leave_requests=request.preferences.fmla_leave_requests,
         )
         db.add(new_prefs)
         try:
@@ -97,6 +100,7 @@ def save_notification_preferences(
                 existing.wage_changes = request.preferences.wage_changes
                 existing.pto_requests = request.preferences.pto_requests
                 existing.weekly_report = request.preferences.weekly_report
+                existing.fmla_leave_requests = request.preferences.fmla_leave_requests
                 db.commit()
                 db.refresh(existing)
                 return {
@@ -130,6 +134,7 @@ def get_notification_preferences(email: str, db: Session = Depends(get_db)):
             "wage_changes": prefs.wage_changes,
             "pto_requests": prefs.pto_requests,
             "weekly_report": prefs.weekly_report,
+            "fmla_leave_requests": prefs.fmla_leave_requests if hasattr(prefs, 'fmla_leave_requests') else True,
         }
     else:
         # Return default preferences
@@ -141,6 +146,7 @@ def get_notification_preferences(email: str, db: Session = Depends(get_db)):
             "wage_changes": False,
             "pto_requests": True,
             "weekly_report": True,
+            "fmla_leave_requests": True,
         }
 
 
@@ -162,6 +168,7 @@ def get_all_subscribers(db: Session = Depends(get_db)):
             "terminations": sub.terminations,
             "wage_changes": sub.wage_changes,
             "weekly_report": sub.weekly_report,
+            "fmla_leave_requests": sub.fmla_leave_requests if hasattr(sub, 'fmla_leave_requests') else True,
         }
         for sub in subscribers
     ]

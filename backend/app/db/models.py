@@ -506,11 +506,108 @@ class PerformanceGoal(Base):
     aligned_to_company_goal = Column(String, nullable=True)
     aligned_to_team_goal = Column(String, nullable=True)
 
+    # Enhanced Tracking Type System
+    tracking_type = Column(String(50), default="percentage")  # percentage, target_percentage, counter, average, milestone
+
+    # Counter type fields
+    counter_current = Column(Integer, default=0, nullable=True)
+    counter_target = Column(Integer, nullable=True)
+
+    # Average type fields
+    average_values = Column(JSON, nullable=True)  # [{value, date, notes}]
+    average_target = Column(Float, nullable=True)
+
+    # Milestone type fields
+    milestones_total = Column(Integer, default=0, nullable=True)
+    milestones_completed = Column(Integer, default=0, nullable=True)
+
     created_at = Column(DateTime, server_default=func.now())
     updated_at = Column(DateTime, onupdate=func.now())
 
     # Relationships
     employee = relationship("Employee", backref="goals")
+    progress_entries = relationship("GoalProgressEntry", back_populates="goal", cascade="all, delete-orphan")
+    milestones = relationship("GoalMilestone", back_populates="goal", cascade="all, delete-orphan")
+
+
+class GoalProgressEntry(Base):
+    """Tracks individual progress updates for a goal with optional file attachments"""
+    __tablename__ = "goal_progress_entries"
+
+    id = Column(Integer, primary_key=True, index=True, autoincrement=True)
+    goal_id = Column(Integer, ForeignKey("performance_goals.id", ondelete="CASCADE"), nullable=False, index=True)
+
+    # Entry details
+    entry_date = Column(DateTime, server_default=func.now())
+    updated_by = Column(String, nullable=True)
+
+    # Progress values
+    progress_percentage = Column(Float, nullable=True)
+    value = Column(Float, nullable=True)  # For counter/average types
+    notes = Column(Text, nullable=True)
+
+    # Change tracking
+    previous_progress = Column(Float, nullable=True)
+    new_progress = Column(Float, nullable=True)
+
+    # Relationships
+    goal = relationship("PerformanceGoal", back_populates="progress_entries")
+    attachments = relationship("GoalProgressAttachment", back_populates="progress_entry", cascade="all, delete-orphan")
+
+
+class GoalProgressAttachment(Base):
+    """Links file uploads to goal progress entries"""
+    __tablename__ = "goal_progress_attachments"
+
+    id = Column(Integer, primary_key=True, index=True, autoincrement=True)
+    progress_entry_id = Column(Integer, ForeignKey("goal_progress_entries.id", ondelete="CASCADE"), nullable=False, index=True)
+    file_upload_id = Column(Integer, ForeignKey("file_uploads.id"), nullable=True)
+
+    # Attachment metadata
+    attachment_type = Column(String(50), nullable=True)  # document, image, spreadsheet
+    file_name = Column(String(255), nullable=False)
+    original_filename = Column(String(255), nullable=False)
+    file_path = Column(String(500), nullable=False)
+    file_size = Column(Integer, nullable=True)
+    mime_type = Column(String(100), nullable=True)
+    description = Column(String(500), nullable=True)
+    uploaded_at = Column(DateTime, server_default=func.now())
+
+    # Relationships
+    progress_entry = relationship("GoalProgressEntry", back_populates="attachments")
+
+
+class GoalMilestone(Base):
+    """Individual milestones for milestone-type goals"""
+    __tablename__ = "goal_milestones"
+
+    id = Column(Integer, primary_key=True, index=True, autoincrement=True)
+    goal_id = Column(Integer, ForeignKey("performance_goals.id", ondelete="CASCADE"), nullable=False, index=True)
+
+    # Milestone details
+    title = Column(String(255), nullable=False)
+    description = Column(Text, nullable=True)
+    sequence_order = Column(Integer, default=0)
+
+    # Dates
+    due_date = Column(Date, nullable=True)
+    completed_date = Column(Date, nullable=True)
+
+    # Status
+    status = Column(String(50), default="pending")  # pending, in_progress, completed, skipped
+
+    # Completion details
+    completed_by = Column(String, nullable=True)
+    completion_notes = Column(Text, nullable=True)
+
+    # Weight for progress calculation
+    weight = Column(Float, default=1.0)
+
+    created_at = Column(DateTime, server_default=func.now())
+    updated_at = Column(DateTime, onupdate=func.now())
+
+    # Relationships
+    goal = relationship("PerformanceGoal", back_populates="milestones")
 
 
 class ReviewFeedback(Base):
@@ -665,6 +762,7 @@ class NotificationPreference(Base):
     wage_changes = Column(Boolean, default=False)
     pto_requests = Column(Boolean, default=True)
     weekly_report = Column(Boolean, default=True)
+    fmla_leave_requests = Column(Boolean, default=True)  # New FMLA leave request notifications
 
 
 class FMLACase(Base):
@@ -824,6 +922,24 @@ class GarnishmentNote(Base):
 
     # Relationship
     garnishment = relationship("Garnishment", backref="case_notes")
+
+
+class GarnishmentCalculationDownload(Base):
+    """Track downloaded calculations for audit purposes."""
+    __tablename__ = "garnishment_calculation_downloads"
+
+    id = Column(Integer, primary_key=True, index=True)
+    garnishment_id = Column(Integer, ForeignKey("garnishments.id"), nullable=False, index=True)
+    payment_id = Column(Integer, ForeignKey("garnishment_payments.id"), nullable=True, index=True)
+    employee_id = Column(String, ForeignKey("employees.employee_id"), nullable=False, index=True)
+
+    download_type = Column(String, nullable=False)  # "single_payment", "all_payments", "summary"
+    downloaded_at = Column(DateTime, server_default=func.now())
+
+    # Relationships
+    garnishment = relationship("Garnishment", backref="calculation_downloads")
+    payment = relationship("GarnishmentPayment", backref="downloads")
+    employee = relationship("Employee", backref="garnishment_downloads")
 
 
 class Termination(Base):
@@ -1435,6 +1551,26 @@ class PasswordHistory(Base):
 
     # Relationship
     user = relationship("User", backref="password_history")
+
+
+class UserPreference(Base):
+    """User preferences for UI customization and settings."""
+    __tablename__ = "user_preferences"
+
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
+    key = Column(String(100), nullable=False)  # preference key, e.g., "team_dashboard_cards"
+    value = Column(Text, nullable=True)  # JSON string or simple value
+    created_at = Column(DateTime, server_default=func.now())
+    updated_at = Column(DateTime, server_default=func.now(), onupdate=func.now())
+
+    # Unique constraint on user_id + key
+    __table_args__ = (
+        Index('ix_user_preferences_user_key', 'user_id', 'key', unique=True),
+    )
+
+    # Relationship
+    user = relationship("User", backref="preferences")
 
 
 # ============================================================================
@@ -3238,3 +3374,190 @@ class FMLASupervisorAuditLog(Base):
         Index('ix_fmla_audit_employee_date', 'employee_id', 'created_at'),
         Index('ix_fmla_audit_action_type', 'action_type', 'created_at'),
     )
+
+
+# ============================================================================
+# EMPLOYEE PORTAL - PTO REQUESTS
+# ============================================================================
+
+class PTORequest(Base):
+    """
+    PTO (Paid Time Off) request tracking.
+    Supports vacation, sick, and personal time requests.
+    """
+    __tablename__ = "pto_requests"
+
+    id = Column(Integer, primary_key=True, index=True)
+    employee_id = Column(String, ForeignKey("employees.employee_id"), nullable=False, index=True)
+
+    # Request details
+    request_date = Column(DateTime, server_default=func.now())
+    start_date = Column(Date, nullable=False)
+    end_date = Column(Date, nullable=False)
+    pto_type = Column(String, nullable=False)  # vacation, sick, personal
+    hours_requested = Column(Float, nullable=False)
+    employee_notes = Column(Text, nullable=True)
+
+    # Workflow
+    status = Column(String, default="pending", index=True)  # pending, approved, denied, cancelled
+    reviewer_id = Column(Integer, ForeignKey("users.id"), nullable=True)
+    reviewer_notes = Column(Text, nullable=True)
+    reviewed_at = Column(DateTime, nullable=True)
+
+    # Relationships
+    employee = relationship("Employee", backref="pto_requests")
+    reviewer = relationship("User", backref="pto_reviews", foreign_keys=[reviewer_id])
+
+    # Indexes
+    __table_args__ = (
+        Index('ix_pto_requests_status_employee', 'status', 'employee_id'),
+        Index('ix_pto_requests_dates', 'start_date', 'end_date'),
+    )
+
+
+# ============================================================================
+# EMPLOYEE PORTAL - PERSONNEL ACTION REQUESTS (PARs)
+# ============================================================================
+
+class PersonnelActionRequest(Base):
+    """
+    Personnel Action Request (PAR) for supervisor-initiated HR changes.
+    Tracks salary changes, promotions, title changes, transfers, etc.
+    """
+    __tablename__ = "personnel_action_requests"
+
+    id = Column(Integer, primary_key=True, index=True)
+    employee_id = Column(String, ForeignKey("employees.employee_id"), nullable=False, index=True)
+    submitted_by = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
+
+    # Request details
+    action_type = Column(String, nullable=False)  # salary_change, title_change, promotion, transfer, demotion, termination
+    effective_date = Column(Date, nullable=False)
+    current_value = Column(String, nullable=False)
+    proposed_value = Column(String, nullable=False)
+    justification = Column(Text, nullable=False)
+
+    # Workflow
+    status = Column(String, default="pending", index=True)  # pending, approved, denied, processing, completed
+    submitted_at = Column(DateTime, server_default=func.now())
+    reviewed_by = Column(Integer, ForeignKey("users.id"), nullable=True)
+    reviewed_at = Column(DateTime, nullable=True)
+    reviewer_notes = Column(Text, nullable=True)
+
+    # Relationships
+    employee = relationship("Employee", backref="personnel_action_requests")
+    submitter = relationship("User", backref="submitted_pars", foreign_keys=[submitted_by])
+    reviewer = relationship("User", backref="reviewed_pars", foreign_keys=[reviewed_by])
+
+    # Indexes
+    __table_args__ = (
+        Index('ix_pars_status_employee', 'status', 'employee_id'),
+        Index('ix_pars_submitted_by', 'submitted_by', 'status'),
+    )
+
+
+# ============================================================================
+# EMPLOYEE PORTAL - HR RESOURCES
+# ============================================================================
+
+class HRResource(Base):
+    """
+    HR Resources such as employee handbook, FAQs, policies, and forms.
+    Supports versioning and markdown content.
+    """
+    __tablename__ = "hr_resources"
+
+    id = Column(Integer, primary_key=True, index=True)
+    resource_type = Column(String, nullable=False, index=True)  # handbook, faq, form, policy
+    title = Column(String, nullable=False)
+    content = Column(Text, nullable=True)  # Markdown content
+    file_path = Column(String, nullable=True)  # For downloadable files
+    category = Column(String, nullable=True, index=True)
+    sort_order = Column(Integer, default=0)
+
+    # Metadata
+    version = Column(String, nullable=True)
+    is_active = Column(Boolean, default=True)
+    created_at = Column(DateTime, server_default=func.now())
+    updated_at = Column(DateTime, onupdate=func.now())
+    created_by = Column(Integer, ForeignKey("users.id"), nullable=True)
+
+    # Relationships
+    creator = relationship("User", backref="created_resources")
+
+
+# ============================================================================
+# EMPLOYEE PORTAL - UNIFIED AUDIT LOG
+# ============================================================================
+
+class PortalAuditLog(Base):
+    """
+    Unified audit log for all employee portal actions.
+    Tracks views, submissions, approvals, and downloads across all portal modules.
+    """
+    __tablename__ = "portal_audit_log"
+
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
+
+    # Action details
+    action = Column(String, nullable=False, index=True)  # view, submit, approve, deny, download, update
+    resource_type = Column(String, nullable=False, index=True)  # pto, fmla, garnishment, performance, par, profile, document
+    resource_id = Column(Integer, nullable=True)
+    employee_id = Column(String, nullable=True, index=True)  # Target employee if supervisor action
+
+    # Additional context
+    details = Column(JSON, nullable=True)
+    ip_address = Column(String, nullable=True)
+    user_agent = Column(String, nullable=True)
+    timestamp = Column(DateTime, server_default=func.now(), index=True)
+
+    # Relationships
+    user = relationship("User", backref="portal_audit_logs")
+
+    # Indexes for reporting
+    __table_args__ = (
+        Index('ix_portal_audit_user_date', 'user_id', 'timestamp'),
+        Index('ix_portal_audit_resource', 'resource_type', 'resource_id'),
+        Index('ix_portal_audit_employee', 'employee_id', 'timestamp'),
+    )
+
+
+class InAppNotification(Base):
+    """
+    In-app notifications for HR Dashboard users.
+    Shows pending approvals, requests, and other actionable items.
+    """
+    __tablename__ = "in_app_notifications"
+
+    id = Column(Integer, primary_key=True, index=True)
+
+    # Target user (who should see this notification)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=True, index=True)  # Null = all HR admins
+
+    # Notification content
+    title = Column(String, nullable=False)
+    message = Column(String, nullable=False)
+    notification_type = Column(String, nullable=False, index=True)  # hr_request, pto_request, fmla_request, etc.
+    priority = Column(String, default="normal")  # low, normal, high, urgent
+
+    # Link to related resource
+    resource_type = Column(String, nullable=True)  # par, pto, fmla, etc.
+    resource_id = Column(Integer, nullable=True)
+    action_url = Column(String, nullable=True)  # Frontend route to navigate to
+
+    # Status tracking
+    is_read = Column(Boolean, default=False, index=True)
+    is_dismissed = Column(Boolean, default=False)
+
+    # Timestamps
+    created_at = Column(DateTime, server_default=func.now(), index=True)
+    read_at = Column(DateTime, nullable=True)
+
+    # Source info
+    created_by_user_id = Column(Integer, ForeignKey("users.id"), nullable=True)
+    employee_id = Column(String, nullable=True)  # Related employee if applicable
+
+    # Relationships
+    user = relationship("User", foreign_keys=[user_id], backref="notifications")
+    created_by = relationship("User", foreign_keys=[created_by_user_id])

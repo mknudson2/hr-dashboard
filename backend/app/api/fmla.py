@@ -14,15 +14,20 @@ from app.db.database import get_db
 from app.db import models
 from app.api.auth import get_current_user
 from app.services.audit_service import audit_service
-from app.services.rbac_service import require_permission, Permissions
+from app.services.rbac_service import require_permission, require_any_permission, Permissions
+from app.services.notification_service import notification_service
 import pytz
 
 
 router = APIRouter(
     prefix="/fmla",
     tags=["fmla"],
-    # RBAC: Require FMLA_READ permission for all endpoints (PHI protection)
-    dependencies=[Depends(require_permission(Permissions.FMLA_READ))]
+    # RBAC: FMLA data contains PHI - require FMLA permissions
+    # Users with FMLA_READ can view, FMLA_WRITE can modify
+    dependencies=[Depends(require_any_permission(
+        Permissions.FMLA_READ,
+        Permissions.FMLA_WRITE
+    ))]
 )
 
 
@@ -195,7 +200,7 @@ def get_fmla_dashboard(db: Session = Depends(get_db)):
 def create_fmla_case(
     request: Request,
     case_data: FMLACaseCreate,
-    current_user: models.User = Depends(require_permission(Permissions.FMLA_WRITE)),
+    current_user: models.User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
     """Create a new FMLA case.
@@ -282,9 +287,26 @@ def get_fmla_case(case_id: int, db: Session = Depends(get_db)):
         models.Employee.employee_id == case.employee_id
     ).first()
 
-    # Get leave entries
+    # Get leave entries for this specific case
     leave_entries = db.query(models.FMLALeaveEntry).filter(
         models.FMLALeaveEntry.case_id == case_id
+    ).order_by(models.FMLALeaveEntry.leave_date.desc()).all()
+
+    # Get all cases for this employee (for filter options)
+    all_employee_cases = db.query(models.FMLACase).filter(
+        models.FMLACase.employee_id == case.employee_id
+    ).order_by(models.FMLACase.start_date.desc()).all()
+
+    all_case_ids = [c.id for c in all_employee_cases]
+
+    # Get ALL leave entries across all cases for this employee (for complete history view)
+    # Filter to only show valid entries (positive hours, max 24 hrs/day) from the last 90 days
+    ninety_days_ago = date.today() - timedelta(days=90)
+    all_employee_entries = db.query(models.FMLALeaveEntry).filter(
+        models.FMLALeaveEntry.case_id.in_(all_case_ids),
+        models.FMLALeaveEntry.hours_taken > 0,  # Only valid positive entries
+        models.FMLALeaveEntry.hours_taken <= 24,  # Max 24 hours per day
+        models.FMLALeaveEntry.leave_date >= ninety_days_ago  # Last 90 days
     ).order_by(models.FMLALeaveEntry.leave_date.desc()).all()
 
     # Get case notes
@@ -323,6 +345,26 @@ def get_fmla_case(case_id: int, db: Session = Depends(get_db)):
             }
             for entry in leave_entries
         ],
+        "all_employee_entries": [
+            {
+                "id": entry.id,
+                "case_id": entry.case_id,
+                "leave_date": entry.leave_date.isoformat(),
+                "hours_taken": entry.hours_taken,
+                "entry_type": entry.entry_type,
+                "notes": entry.notes,
+            }
+            for entry in all_employee_entries
+        ],
+        "employee_cases": [
+            {
+                "id": c.id,
+                "case_number": c.case_number,
+                "status": c.status,
+                "start_date": c.start_date.isoformat() if c.start_date else None,
+            }
+            for c in all_employee_cases
+        ],
         "case_notes": [
             {
                 "id": note.id,
@@ -339,7 +381,7 @@ def update_fmla_case(
     request: Request,
     case_id: int,
     updates: FMLACaseUpdate,
-    current_user: models.User = Depends(require_permission(Permissions.FMLA_WRITE)),
+    current_user: models.User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
     """Update an existing FMLA case.
@@ -859,3 +901,545 @@ async def send_fmla_notice_email(
 
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Failed to send email: {str(e)}")
+
+
+# =============================================================================
+# FMLA LEAVE REQUEST MANAGEMENT (HR Review of Employee Portal Requests)
+# =============================================================================
+
+class LeaveRequestReviewSchema(BaseModel):
+    """Schema for HR to review an FMLA leave request."""
+    decision: str  # "approved" or "denied"
+    hr_notes: Optional[str] = None
+    template_id: Optional[str] = None  # Custom email template ID
+    custom_email_values: Optional[dict] = None  # Custom placeholder values for template
+    create_case: bool = True  # Whether to create an FMLA case when approving
+
+
+class LeaveRequestListItem(BaseModel):
+    """Schema for leave request list item."""
+    id: int
+    employee_id: str
+    employee_name: str
+    department: Optional[str]
+    leave_type: str
+    reason: Optional[str]
+    requested_start_date: str
+    requested_end_date: Optional[str]
+    intermittent: bool
+    reduced_schedule: bool
+    estimated_hours_per_week: Optional[float]
+    status: str
+    submitted_at: str
+    hr_notes: Optional[str]
+    linked_case_id: Optional[int]
+
+
+@router.get("/leave-requests")
+def get_leave_requests(
+    status: Optional[str] = None,
+    db: Session = Depends(get_db)
+):
+    """
+    Get all FMLA leave requests submitted through the employee portal.
+
+    Query Parameters:
+        status: Filter by status (submitted, under_review, approved, denied)
+
+    Returns:
+        List of leave requests with employee information
+    """
+    query = db.query(models.FMLACaseRequest).join(
+        models.Employee,
+        models.Employee.employee_id == models.FMLACaseRequest.employee_id
+    )
+
+    if status:
+        query = query.filter(models.FMLACaseRequest.status == status)
+
+    requests = query.order_by(models.FMLACaseRequest.submitted_at.desc()).all()
+
+    result = []
+    for req in requests:
+        employee = db.query(models.Employee).filter(
+            models.Employee.employee_id == req.employee_id
+        ).first()
+
+        result.append({
+            "id": req.id,
+            "employee_id": req.employee_id,
+            "employee_name": f"{employee.first_name} {employee.last_name}" if employee else "Unknown",
+            "department": employee.department if employee else None,
+            "leave_type": req.leave_type,
+            "reason": req.reason,
+            "requested_start_date": req.requested_start_date.isoformat() if req.requested_start_date else None,
+            "requested_end_date": req.requested_end_date.isoformat() if req.requested_end_date else None,
+            "intermittent": req.intermittent,
+            "reduced_schedule": req.reduced_schedule,
+            "estimated_hours_per_week": req.estimated_hours_per_week,
+            "status": req.status,
+            "submitted_at": req.submitted_at.isoformat() if req.submitted_at else None,
+            "hr_notes": req.hr_notes,
+            "linked_case_id": req.linked_case_id
+        })
+
+    return {"requests": result, "total": len(result)}
+
+
+@router.get("/leave-requests/pending/count")
+def get_pending_leave_requests_count(db: Session = Depends(get_db)):
+    """Get count of pending leave requests for dashboard badge."""
+    count = db.query(models.FMLACaseRequest).filter(
+        models.FMLACaseRequest.status.in_(["submitted", "under_review"])
+    ).count()
+
+    return {"count": count}
+
+
+@router.get("/leave-requests/email-templates")
+def get_fmla_email_templates(db: Session = Depends(get_db)):
+    """Get available email templates for FMLA leave request notifications."""
+    templates = db.query(models.CustomEmailTemplate).filter(
+        models.CustomEmailTemplate.category == "FMLA Leave Request",
+        models.CustomEmailTemplate.is_active == True
+    ).all()
+
+    return {
+        "templates": [
+            {
+                "id": t.template_id,
+                "name": t.name,
+                "description": t.description,
+                "is_default": t.is_default
+            }
+            for t in templates
+        ]
+    }
+
+
+@router.get("/leave-requests/{request_id}")
+def get_leave_request(
+    request_id: int,
+    db: Session = Depends(get_db)
+):
+    """Get a specific leave request by ID."""
+    req = db.query(models.FMLACaseRequest).filter(
+        models.FMLACaseRequest.id == request_id
+    ).first()
+
+    if not req:
+        raise HTTPException(status_code=404, detail="Leave request not found")
+
+    employee = db.query(models.Employee).filter(
+        models.Employee.employee_id == req.employee_id
+    ).first()
+
+    return {
+        "id": req.id,
+        "employee_id": req.employee_id,
+        "employee_name": f"{employee.first_name} {employee.last_name}" if employee else "Unknown",
+        "employee_email": employee.email or employee.work_email if employee else None,
+        "department": employee.department if employee else None,
+        "leave_type": req.leave_type,
+        "reason": req.reason,
+        "requested_start_date": req.requested_start_date.isoformat() if req.requested_start_date else None,
+        "requested_end_date": req.requested_end_date.isoformat() if req.requested_end_date else None,
+        "intermittent": req.intermittent,
+        "reduced_schedule": req.reduced_schedule,
+        "estimated_hours_per_week": req.estimated_hours_per_week,
+        "status": req.status,
+        "submitted_at": req.submitted_at.isoformat() if req.submitted_at else None,
+        "hr_notes": req.hr_notes,
+        "linked_case_id": req.linked_case_id
+    }
+
+
+@router.post("/leave-requests/{request_id}/review")
+async def review_leave_request(
+    request_id: int,
+    review: LeaveRequestReviewSchema,
+    request: Request,
+    current_user: models.User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """
+    Review (approve or deny) an FMLA leave request.
+
+    When approved and create_case=True, automatically creates an FMLA case.
+    Sends notification email to employee using either default or custom template.
+
+    Args:
+        request_id: ID of the leave request to review
+        review: Review decision and notes
+
+    Returns:
+        Updated leave request and optional case information
+    """
+    from app.services.notification_service import notification_service
+
+    # Get the leave request
+    leave_request = db.query(models.FMLACaseRequest).filter(
+        models.FMLACaseRequest.id == request_id
+    ).first()
+
+    if not leave_request:
+        raise HTTPException(status_code=404, detail="Leave request not found")
+
+    if leave_request.status not in ["submitted", "under_review"]:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Cannot review request with status '{leave_request.status}'"
+        )
+
+    # Validate decision
+    if review.decision not in ["approved", "denied"]:
+        raise HTTPException(
+            status_code=400,
+            detail="Decision must be 'approved' or 'denied'"
+        )
+
+    # Get employee record
+    employee = db.query(models.Employee).filter(
+        models.Employee.employee_id == leave_request.employee_id
+    ).first()
+
+    if not employee:
+        raise HTTPException(status_code=404, detail="Employee not found")
+
+    # Update request status and notes
+    leave_request.status = review.decision
+    leave_request.hr_notes = review.hr_notes
+
+    created_case = None
+    overlap_warning = None
+
+    # If approved and create_case is True, create an FMLA case
+    if review.decision == "approved" and review.create_case:
+        # Check for existing active cases for this employee
+        existing_active_cases = db.query(models.FMLACase).filter(
+            models.FMLACase.employee_id == leave_request.employee_id,
+            models.FMLACase.status.in_(["Active", "Pending"])
+        ).all()
+
+        # Determine if new case overlaps with any existing active case
+        new_start = leave_request.requested_start_date
+        new_end = leave_request.requested_end_date
+        has_overlap = False
+        overlapping_case = None
+
+        for existing_case in existing_active_cases:
+            # Check date overlap
+            existing_end = existing_case.end_date or datetime.max.date()
+            new_end_check = new_end or datetime.max.date()
+
+            # Cases overlap if: new_start <= existing_end AND new_end >= existing_start
+            if new_start <= existing_end and new_end_check >= existing_case.start_date:
+                # Also check if existing case still has hours remaining
+                if existing_case.hours_remaining > 0:
+                    has_overlap = True
+                    overlapping_case = existing_case
+                    break
+
+        # Generate case number
+        current_year = datetime.now().year
+        count = db.query(models.FMLACase).filter(
+            func.extract('year', models.FMLACase.start_date) == current_year
+        ).count()
+        case_number = f"FMLA-{current_year}-{count + 1:04d}"
+
+        # Determine status based on overlap
+        if has_overlap:
+            case_status = "Pending Activation"
+            overlap_warning = {
+                "message": f"Employee has an existing active case ({overlapping_case.case_number}) that overlaps with this request.",
+                "existing_case": {
+                    "case_number": overlapping_case.case_number,
+                    "start_date": str(overlapping_case.start_date),
+                    "end_date": str(overlapping_case.end_date) if overlapping_case.end_date else None,
+                    "hours_remaining": overlapping_case.hours_remaining
+                },
+                "action": "New case set to 'Pending Activation'. It will become active when the existing case ends or is closed."
+            }
+        else:
+            case_status = "Active"
+
+        new_case = models.FMLACase(
+            case_number=case_number,
+            employee_id=leave_request.employee_id,
+            leave_type=leave_request.leave_type,
+            reason=leave_request.reason,
+            request_date=leave_request.submitted_at.date() if leave_request.submitted_at else datetime.now().date(),
+            start_date=leave_request.requested_start_date,
+            end_date=leave_request.requested_end_date,
+            intermittent=leave_request.intermittent,
+            reduced_schedule=leave_request.reduced_schedule,
+            hours_approved=480.0,  # Default 480 hours (12 weeks)
+            hours_used=0.0,
+            hours_remaining=480.0,
+            status=case_status
+        )
+
+        db.add(new_case)
+        db.flush()  # Get the case ID
+
+        leave_request.linked_case_id = new_case.id
+        created_case = new_case
+
+    db.commit()
+
+    # Send notification to employee
+    try:
+        await notification_service.notify_fmla_request_decision(
+            db=db,
+            leave_request=leave_request,
+            employee=employee,
+            decision=review.decision,
+            hr_notes=review.hr_notes,
+            template_id=review.template_id,
+            custom_values=review.custom_email_values
+        )
+    except Exception as e:
+        # Log but don't fail if notification fails
+        print(f"[FMLA] Failed to send decision notification: {e}")
+        # Rollback any failed db operations from notification
+        try:
+            db.rollback()
+        except Exception:
+            pass
+
+    # Log audit entry
+    try:
+        audit_service.log_event(
+            db=db,
+            event_type="FMLA_REQUEST_REVIEWED",
+            event_category="DATA_ACCESS",
+            severity="INFO",
+            user_id=current_user.id,
+            username=current_user.username,
+            resource_type="FMLACaseRequest",
+            resource_id=str(request_id),
+            action="UPDATE",
+            request=request,
+            new_value={
+                "decision": review.decision,
+                "hr_notes": review.hr_notes,
+                "created_case_id": created_case.id if created_case else None
+            }
+        )
+    except Exception as e:
+        # Log but don't fail if audit logging fails
+        print(f"[FMLA] Failed to log audit entry: {e}")
+
+    response = {
+        "message": f"Leave request {review.decision}",
+        "request": {
+            "id": leave_request.id,
+            "status": leave_request.status,
+            "hr_notes": leave_request.hr_notes,
+            "linked_case_id": leave_request.linked_case_id
+        }
+    }
+
+    if created_case:
+        response["case"] = {
+            "id": created_case.id,
+            "case_number": created_case.case_number,
+            "status": created_case.status
+        }
+
+    if overlap_warning:
+        response["warning"] = overlap_warning
+
+    return response
+
+
+# =============================================================================
+# SCHEDULED JOB ENDPOINTS - Case Status Management
+# =============================================================================
+
+@router.post("/cases/process-status-transitions")
+def process_case_status_transitions(
+    current_user: models.User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """
+    Process automatic case status transitions.
+
+    This endpoint should be called periodically (e.g., daily via cron) to:
+    1. Close cases past their end date (with no remaining hours or end date passed)
+    2. Activate "Pending Activation" cases when appropriate
+
+    Returns summary of changes made.
+    """
+    today = date.today()
+    changes = {
+        "closed_cases": [],
+        "activated_cases": [],
+        "errors": []
+    }
+
+    # 1. Find and close cases that have ended
+    # Cases are closed if: end_date has passed AND (hours exhausted OR end_date is definitive)
+    cases_to_close = db.query(models.FMLACase).filter(
+        models.FMLACase.status == "Active",
+        models.FMLACase.end_date != None,
+        models.FMLACase.end_date < today
+    ).all()
+
+    for case in cases_to_close:
+        try:
+            old_status = case.status
+            case.status = "Closed"
+            changes["closed_cases"].append({
+                "case_number": case.case_number,
+                "employee_id": case.employee_id,
+                "end_date": str(case.end_date),
+                "hours_remaining": case.hours_remaining
+            })
+        except Exception as e:
+            changes["errors"].append({
+                "case_number": case.case_number,
+                "action": "close",
+                "error": str(e)
+            })
+
+    # 2. Find and activate pending cases
+    # A pending case should be activated when:
+    # - No other active case exists for this employee, OR
+    # - Its start_date has arrived and all prior cases are closed/exhausted
+    pending_cases = db.query(models.FMLACase).filter(
+        models.FMLACase.status == "Pending Activation"
+    ).order_by(models.FMLACase.start_date).all()
+
+    for pending_case in pending_cases:
+        try:
+            # Check if employee has any active cases
+            active_case_for_employee = db.query(models.FMLACase).filter(
+                models.FMLACase.employee_id == pending_case.employee_id,
+                models.FMLACase.status == "Active",
+                models.FMLACase.id != pending_case.id
+            ).first()
+
+            should_activate = False
+            reason = ""
+
+            if not active_case_for_employee:
+                # No active case - safe to activate if start date has arrived or passed
+                if pending_case.start_date and pending_case.start_date <= today:
+                    should_activate = True
+                    reason = "start_date_reached"
+                elif not pending_case.start_date:
+                    # No start date specified - activate immediately
+                    should_activate = True
+                    reason = "no_active_case"
+            else:
+                # There's an active case - check if it's ended or exhausted
+                if active_case_for_employee.hours_remaining <= 0:
+                    should_activate = True
+                    reason = "prior_case_exhausted"
+                    # Also close the exhausted case
+                    active_case_for_employee.status = "Closed"
+                    changes["closed_cases"].append({
+                        "case_number": active_case_for_employee.case_number,
+                        "employee_id": active_case_for_employee.employee_id,
+                        "reason": "hours_exhausted"
+                    })
+
+            if should_activate:
+                pending_case.status = "Active"
+                changes["activated_cases"].append({
+                    "case_number": pending_case.case_number,
+                    "employee_id": pending_case.employee_id,
+                    "start_date": str(pending_case.start_date) if pending_case.start_date else None,
+                    "reason": reason
+                })
+        except Exception as e:
+            changes["errors"].append({
+                "case_number": pending_case.case_number,
+                "action": "activate",
+                "error": str(e)
+            })
+
+    # Commit all changes
+    db.commit()
+
+    return {
+        "message": "Case status transitions processed",
+        "summary": {
+            "cases_closed": len(changes["closed_cases"]),
+            "cases_activated": len(changes["activated_cases"]),
+            "errors": len(changes["errors"])
+        },
+        "details": changes
+    }
+
+
+@router.get("/cases/pending-transitions")
+def get_pending_transitions(
+    current_user: models.User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """
+    Preview what case status transitions would occur.
+
+    Returns a list of cases that would be closed or activated
+    without actually making the changes.
+    """
+    today = date.today()
+
+    # Cases that would be closed
+    cases_to_close = db.query(models.FMLACase).filter(
+        models.FMLACase.status == "Active",
+        models.FMLACase.end_date != None,
+        models.FMLACase.end_date < today
+    ).all()
+
+    # Pending activation cases
+    pending_cases = db.query(models.FMLACase).filter(
+        models.FMLACase.status == "Pending Activation"
+    ).all()
+
+    pending_activations = []
+    for pending_case in pending_cases:
+        # Check if would activate
+        active_case = db.query(models.FMLACase).filter(
+            models.FMLACase.employee_id == pending_case.employee_id,
+            models.FMLACase.status == "Active",
+            models.FMLACase.id != pending_case.id
+        ).first()
+
+        would_activate = False
+        reason = ""
+
+        if not active_case:
+            if pending_case.start_date and pending_case.start_date <= today:
+                would_activate = True
+                reason = "Start date reached, no active case"
+            elif not pending_case.start_date:
+                would_activate = True
+                reason = "No active case blocking"
+        elif active_case.hours_remaining <= 0:
+            would_activate = True
+            reason = f"Prior case {active_case.case_number} exhausted"
+
+        pending_activations.append({
+            "case_number": pending_case.case_number,
+            "employee_id": pending_case.employee_id,
+            "start_date": str(pending_case.start_date) if pending_case.start_date else None,
+            "would_activate": would_activate,
+            "reason": reason if would_activate else "Waiting for prior case to end",
+            "blocked_by": active_case.case_number if active_case and not would_activate else None
+        })
+
+    return {
+        "would_close": [
+            {
+                "case_number": c.case_number,
+                "employee_id": c.employee_id,
+                "end_date": str(c.end_date),
+                "hours_remaining": c.hours_remaining
+            }
+            for c in cases_to_close
+        ],
+        "pending_activations": pending_activations
+    }

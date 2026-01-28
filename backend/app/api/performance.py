@@ -1,12 +1,15 @@
 """
 API endpoints for performance management, reviews, goals, and feedback
 """
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException, Query, UploadFile, File, Form
+from fastapi.responses import FileResponse
 from sqlalchemy.orm import Session
 from sqlalchemy import func, and_, or_
 from typing import Optional, List
 from datetime import datetime, date, timedelta
 from pydantic import BaseModel
+import os
+import uuid
 
 from app.db.database import get_db
 from app.db import models
@@ -72,6 +75,36 @@ class PerformanceGoalCreate(BaseModel):
     target_date: date
     status: str = "Not Started"
     priority: str = "Medium"
+    weight: Optional[float] = None
+    # Enhanced tracking type fields
+    tracking_type: str = "percentage"
+    counter_target: Optional[int] = None
+    average_target: Optional[float] = None
+    milestones: Optional[List[dict]] = None  # Initial milestones for milestone type
+
+
+class GoalProgressEntryCreate(BaseModel):
+    progress_percentage: Optional[float] = None
+    value: Optional[float] = None
+    notes: Optional[str] = None
+    status: Optional[str] = None
+    current_value: Optional[str] = None
+
+
+class GoalMilestoneCreate(BaseModel):
+    title: str
+    description: Optional[str] = None
+    due_date: Optional[date] = None
+    weight: float = 1.0
+    sequence_order: Optional[int] = None
+
+
+class GoalMilestoneUpdate(BaseModel):
+    status: Optional[str] = None
+    completion_notes: Optional[str] = None
+    title: Optional[str] = None
+    description: Optional[str] = None
+    due_date: Optional[date] = None
     weight: Optional[float] = None
 
 
@@ -417,6 +450,45 @@ def get_review(review_id: int, db: Session = Depends(get_db)):
     }
 
 
+@router.get("/reviews/{review_id}/self-review")
+def get_self_review(review_id: int, db: Session = Depends(get_db)):
+    """
+    Get the self-review feedback for a performance review
+    """
+    # Verify the review exists
+    review = db.query(models.PerformanceReview).filter(
+        models.PerformanceReview.id == review_id
+    ).first()
+
+    if not review:
+        raise HTTPException(status_code=404, detail="Review not found")
+
+    # Get self-review feedback
+    self_review = db.query(models.ReviewFeedback).filter(
+        models.ReviewFeedback.review_id == review_id,
+        models.ReviewFeedback.feedback_type == "Self"
+    ).first()
+
+    if not self_review:
+        return None
+
+    return {
+        "id": self_review.id,
+        "reviewer_name": self_review.reviewer_name,
+        "submitted_date": self_review.submitted_date,
+        "overall_rating": self_review.overall_rating,
+        "quality_of_work": self_review.quality_of_work,
+        "collaboration": self_review.collaboration,
+        "communication": self_review.communication,
+        "leadership": self_review.leadership,
+        "technical_skills": self_review.technical_skills,
+        "strengths": self_review.strengths,
+        "areas_for_improvement": self_review.areas_for_improvement,
+        "specific_examples": self_review.specific_examples,
+        "additional_comments": self_review.additional_comments
+    }
+
+
 @router.post("/reviews")
 def create_performance_review(review_data: PerformanceReviewCreate, db: Session = Depends(get_db)):
     """
@@ -525,6 +597,14 @@ def get_goals(
         "priority": r.PerformanceGoal.priority,
         "weight": r.PerformanceGoal.weight,
         "score": r.PerformanceGoal.score,
+        # Enhanced tracking type fields
+        "tracking_type": r.PerformanceGoal.tracking_type or "percentage",
+        "counter_current": r.PerformanceGoal.counter_current,
+        "counter_target": r.PerformanceGoal.counter_target,
+        "average_values": r.PerformanceGoal.average_values,
+        "average_target": r.PerformanceGoal.average_target,
+        "milestones_total": r.PerformanceGoal.milestones_total,
+        "milestones_completed": r.PerformanceGoal.milestones_completed,
         "created_at": r.PerformanceGoal.created_at,
         "updated_at": r.PerformanceGoal.updated_at
     } for r in results]
@@ -617,6 +697,14 @@ def create_performance_goal(goal_data: PerformanceGoalCreate, db: Session = Depe
         priority=goal_data.priority,
         weight=goal_data.weight,
         progress_percentage=0,
+        # Enhanced tracking type fields
+        tracking_type=goal_data.tracking_type,
+        counter_current=0 if goal_data.tracking_type == "counter" else None,
+        counter_target=goal_data.counter_target,
+        average_values=[] if goal_data.tracking_type == "average" else None,
+        average_target=goal_data.average_target,
+        milestones_total=len(goal_data.milestones) if goal_data.milestones else 0,
+        milestones_completed=0,
         created_at=datetime.now()
     )
 
@@ -624,12 +712,44 @@ def create_performance_goal(goal_data: PerformanceGoalCreate, db: Session = Depe
     db.commit()
     db.refresh(new_goal)
 
+    # Create initial milestones if provided
+    if goal_data.milestones and goal_data.tracking_type == "milestone":
+        for idx, milestone_data in enumerate(goal_data.milestones):
+            # Handle empty strings for optional fields
+            description = milestone_data.get("description")
+            if description == "":
+                description = None
+            due_date_str = milestone_data.get("due_date")
+            due_date = None
+            if due_date_str and due_date_str != "":
+                # Convert string to date if needed
+                if isinstance(due_date_str, str):
+                    try:
+                        due_date = date.fromisoformat(due_date_str)
+                    except ValueError:
+                        due_date = None
+                else:
+                    due_date = due_date_str
+
+            milestone = models.GoalMilestone(
+                goal_id=new_goal.id,
+                title=milestone_data.get("title", f"Milestone {idx + 1}"),
+                description=description,
+                due_date=due_date,
+                weight=milestone_data.get("weight", 1.0),
+                sequence_order=idx,
+                status="pending"
+            )
+            db.add(milestone)
+        db.commit()
+
     return {
         "id": new_goal.id,
         "goal_id": new_goal.goal_id,
         "employee_id": new_goal.employee_id,
         "goal_title": new_goal.goal_title,
         "status": new_goal.status,
+        "tracking_type": new_goal.tracking_type,
         "message": "Performance goal created successfully"
     }
 
@@ -686,6 +806,74 @@ def update_goal_full(
     }
 
 
+class SimpleProgressUpdate(BaseModel):
+    progress_percentage: float
+    notes: Optional[str] = None
+    current_value: Optional[str] = None
+
+
+@router.post("/goals/{goal_id}/progress")
+def update_goal_progress_simple(
+    goal_id: int,
+    progress_data: SimpleProgressUpdate,
+    db: Session = Depends(get_db)
+):
+    """
+    Simple progress update endpoint for basic percentage updates.
+    For more advanced tracking with file uploads, use POST /goals/{goal_id}/progress-entry
+    """
+    goal = db.query(models.PerformanceGoal).filter(models.PerformanceGoal.id == goal_id).first()
+    if not goal:
+        raise HTTPException(status_code=404, detail="Goal not found")
+
+    previous_progress = goal.progress_percentage or 0
+    new_progress = min(100, max(0, progress_data.progress_percentage))
+
+    # For target_percentage goals, calculate progress from current_value vs target_value
+    if goal.tracking_type == "target_percentage" and progress_data.current_value is not None:
+        try:
+            current_val = float(progress_data.current_value)
+            target_val = float(goal.target_value) if goal.target_value else 0
+            if target_val > 0:
+                new_progress = round(min(100, (current_val / target_val) * 100), 1)
+        except (ValueError, TypeError):
+            pass  # Use the provided progress_percentage if conversion fails
+
+    goal.progress_percentage = new_progress
+    if progress_data.current_value is not None:
+        goal.current_value = progress_data.current_value
+    if progress_data.notes:
+        goal.last_update_notes = progress_data.notes
+    goal.updated_at = datetime.now()
+
+    # Update status based on progress
+    if new_progress >= 100:
+        goal.status = "Completed"
+        goal.completed_date = date.today()
+    elif new_progress > 0 and goal.status == "Not Started":
+        goal.status = "On Track"
+
+    # Create a progress entry for tracking
+    progress_entry = models.GoalProgressEntry(
+        goal_id=goal_id,
+        entry_date=datetime.now(),
+        progress_percentage=new_progress,
+        notes=progress_data.notes,
+        previous_progress=previous_progress,
+        new_progress=new_progress
+    )
+    db.add(progress_entry)
+
+    db.commit()
+
+    return {
+        "id": goal.id,
+        "progress_percentage": goal.progress_percentage,
+        "status": goal.status,
+        "message": "Progress updated successfully"
+    }
+
+
 @router.delete("/goals/{goal_id}")
 def delete_performance_goal(goal_id: int, db: Session = Depends(get_db)):
     """
@@ -701,6 +889,479 @@ def delete_performance_goal(goal_id: int, db: Session = Depends(get_db)):
     return {
         "id": goal_id,
         "message": "Goal deleted successfully"
+    }
+
+
+# ============================================================================
+# GOAL PROGRESS TRACKING
+# ============================================================================
+
+GOAL_ATTACHMENTS_DIR = os.path.join(os.path.dirname(os.path.dirname(__file__)), "storage", "goal_attachments")
+ALLOWED_FILE_TYPES = {
+    'application/pdf': 'pdf',
+    'application/msword': 'doc',
+    'application/vnd.openxmlformats-officedocument.wordprocessingml.document': 'docx',
+    'application/vnd.ms-excel': 'xls',
+    'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet': 'xlsx',
+    'text/csv': 'csv',
+    'image/png': 'png',
+    'image/jpeg': 'jpg',
+}
+MAX_FILE_SIZE = 10 * 1024 * 1024  # 10MB
+MAX_FILES_PER_UPDATE = 5
+
+
+@router.post("/goals/{goal_id}/progress-entry")
+async def create_progress_entry(
+    goal_id: int,
+    progress_percentage: Optional[float] = Form(None),
+    value: Optional[float] = Form(None),
+    notes: Optional[str] = Form(None),
+    status: Optional[str] = Form(None),
+    current_value: Optional[str] = Form(None),
+    files: List[UploadFile] = File(default=[]),
+    db: Session = Depends(get_db)
+):
+    """
+    Create a progress entry for a goal with optional file attachments.
+    Handles different tracking types: percentage, target_percentage, counter, average, milestone
+    """
+    goal = db.query(models.PerformanceGoal).filter(models.PerformanceGoal.id == goal_id).first()
+    if not goal:
+        raise HTTPException(status_code=404, detail="Goal not found")
+
+    # Validate file count
+    if len(files) > MAX_FILES_PER_UPDATE:
+        raise HTTPException(status_code=400, detail=f"Maximum {MAX_FILES_PER_UPDATE} files allowed per update")
+
+    previous_progress = goal.progress_percentage or 0
+    new_progress = previous_progress
+
+    # Handle progress update based on tracking type
+    if goal.tracking_type == "percentage":
+        if progress_percentage is not None:
+            new_progress = min(100, max(0, progress_percentage))
+            goal.progress_percentage = new_progress
+        if current_value is not None:
+            goal.current_value = current_value
+
+    elif goal.tracking_type == "target_percentage":
+        if current_value is not None:
+            goal.current_value = current_value
+            # Calculate progress based on current vs target
+            try:
+                current_val = float(current_value)
+                target_val = float(goal.target_value) if goal.target_value else 0
+                if target_val > 0:
+                    new_progress = min(100, (current_val / target_val) * 100)
+                    goal.progress_percentage = new_progress
+            except (ValueError, TypeError):
+                # If conversion fails, use the provided progress_percentage
+                if progress_percentage is not None:
+                    new_progress = min(100, max(0, progress_percentage))
+                    goal.progress_percentage = new_progress
+        elif progress_percentage is not None:
+            new_progress = min(100, max(0, progress_percentage))
+            goal.progress_percentage = new_progress
+
+    elif goal.tracking_type == "counter":
+        if value is not None:
+            goal.counter_current = (goal.counter_current or 0) + int(value)
+        if goal.counter_target and goal.counter_target > 0:
+            new_progress = round(min(100, (goal.counter_current or 0) / goal.counter_target * 100), 1)
+            goal.progress_percentage = new_progress
+
+    elif goal.tracking_type == "average":
+        if value is not None:
+            # Create a NEW list to ensure SQLAlchemy detects the change
+            # (SQLAlchemy doesn't detect in-place mutations of JSON columns)
+            existing_values = list(goal.average_values) if goal.average_values else []
+            existing_values.append({
+                "value": value,
+                "date": datetime.now().isoformat(),
+                "notes": notes
+            })
+            goal.average_values = existing_values  # Assign new list
+            # Calculate running average
+            if existing_values:
+                avg = sum(v["value"] for v in existing_values) / len(existing_values)
+                if goal.average_target and goal.average_target > 0:
+                    new_progress = round(min(100, avg / goal.average_target * 100), 1)
+                    goal.progress_percentage = new_progress
+                goal.current_value = str(round(avg, 1))
+
+    # Update status if provided, otherwise auto-update based on progress
+    if status:
+        goal.status = status
+    else:
+        # Auto-update status based on progress
+        if new_progress >= 100:
+            goal.status = "Completed"
+            goal.completed_date = date.today()
+        elif new_progress > 0 and goal.status == "Not Started":
+            goal.status = "On Track"
+
+    goal.last_update_notes = notes
+    goal.updated_at = datetime.now()
+
+    # Create progress entry record
+    progress_entry = models.GoalProgressEntry(
+        goal_id=goal_id,
+        entry_date=datetime.now(),
+        progress_percentage=progress_percentage,
+        value=value,
+        notes=notes,
+        previous_progress=previous_progress,
+        new_progress=new_progress
+    )
+    db.add(progress_entry)
+    db.commit()
+    db.refresh(progress_entry)
+
+    # Handle file uploads
+    saved_attachments = []
+    if files:
+        os.makedirs(GOAL_ATTACHMENTS_DIR, exist_ok=True)
+
+        for file in files:
+            if not file.filename:
+                continue
+
+            # Validate file type
+            content_type = file.content_type or 'application/octet-stream'
+            if content_type not in ALLOWED_FILE_TYPES:
+                continue  # Skip invalid file types
+
+            # Read file and check size
+            file_content = await file.read()
+            if len(file_content) > MAX_FILE_SIZE:
+                continue  # Skip files that are too large
+
+            # Generate secure filename
+            timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+            secure_name = f"{uuid.uuid4().hex}_{timestamp}.{ALLOWED_FILE_TYPES[content_type]}"
+            file_path = os.path.join(GOAL_ATTACHMENTS_DIR, secure_name)
+
+            # Save file
+            with open(file_path, "wb") as f:
+                f.write(file_content)
+
+            # Determine attachment type
+            if content_type.startswith('image/'):
+                attachment_type = 'image'
+            elif content_type in ['application/vnd.ms-excel', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', 'text/csv']:
+                attachment_type = 'spreadsheet'
+            else:
+                attachment_type = 'document'
+
+            # Create attachment record
+            attachment = models.GoalProgressAttachment(
+                progress_entry_id=progress_entry.id,
+                attachment_type=attachment_type,
+                file_name=secure_name,
+                original_filename=file.filename,
+                file_path=file_path,
+                file_size=len(file_content),
+                mime_type=content_type
+            )
+            db.add(attachment)
+            saved_attachments.append({
+                "filename": file.filename,
+                "type": attachment_type,
+                "size": len(file_content)
+            })
+
+        db.commit()
+
+    return {
+        "id": progress_entry.id,
+        "goal_id": goal_id,
+        "previous_progress": previous_progress,
+        "new_progress": new_progress,
+        "attachments": saved_attachments,
+        "message": "Progress entry created successfully"
+    }
+
+
+@router.get("/goals/{goal_id}/history")
+def get_goal_history(
+    goal_id: int,
+    limit: int = Query(default=50, le=100),
+    offset: int = Query(default=0),
+    db: Session = Depends(get_db)
+):
+    """
+    Get paginated progress history for a goal with attachments
+    """
+    goal = db.query(models.PerformanceGoal).filter(models.PerformanceGoal.id == goal_id).first()
+    if not goal:
+        raise HTTPException(status_code=404, detail="Goal not found")
+
+    # Get progress entries with attachments
+    entries = db.query(models.GoalProgressEntry).filter(
+        models.GoalProgressEntry.goal_id == goal_id
+    ).order_by(models.GoalProgressEntry.entry_date.desc()).offset(offset).limit(limit).all()
+
+    total_count = db.query(models.GoalProgressEntry).filter(
+        models.GoalProgressEntry.goal_id == goal_id
+    ).count()
+
+    return {
+        "goal_id": goal_id,
+        "goal_title": goal.goal_title,
+        "tracking_type": goal.tracking_type,
+        "current_progress": goal.progress_percentage,
+        "total_entries": total_count,
+        "entries": [{
+            "id": entry.id,
+            "entry_date": entry.entry_date,
+            "updated_by": entry.updated_by,
+            "progress_percentage": entry.progress_percentage,
+            "value": entry.value,
+            "notes": entry.notes,
+            "previous_progress": entry.previous_progress,
+            "new_progress": entry.new_progress,
+            "attachments": [{
+                "id": att.id,
+                "filename": att.original_filename,
+                "type": att.attachment_type,
+                "size": att.file_size,
+                "uploaded_at": att.uploaded_at
+            } for att in entry.attachments]
+        } for entry in entries]
+    }
+
+
+@router.get("/goals/attachments/{attachment_id}/download")
+def download_goal_attachment(attachment_id: int, db: Session = Depends(get_db)):
+    """
+    Download a goal progress attachment
+    """
+    attachment = db.query(models.GoalProgressAttachment).filter(
+        models.GoalProgressAttachment.id == attachment_id
+    ).first()
+
+    if not attachment:
+        raise HTTPException(status_code=404, detail="Attachment not found")
+
+    if not os.path.exists(attachment.file_path):
+        raise HTTPException(status_code=404, detail="File not found on server")
+
+    return FileResponse(
+        attachment.file_path,
+        filename=attachment.original_filename,
+        media_type=attachment.mime_type or "application/octet-stream"
+    )
+
+
+# ============================================================================
+# GOAL MILESTONES
+# ============================================================================
+
+@router.get("/goals/{goal_id}/milestones")
+def get_goal_milestones(goal_id: int, db: Session = Depends(get_db)):
+    """
+    Get all milestones for a goal
+    """
+    goal = db.query(models.PerformanceGoal).filter(models.PerformanceGoal.id == goal_id).first()
+    if not goal:
+        raise HTTPException(status_code=404, detail="Goal not found")
+
+    milestones = db.query(models.GoalMilestone).filter(
+        models.GoalMilestone.goal_id == goal_id
+    ).order_by(models.GoalMilestone.sequence_order).all()
+
+    return {
+        "goal_id": goal_id,
+        "goal_title": goal.goal_title,
+        "milestones_total": goal.milestones_total,
+        "milestones_completed": goal.milestones_completed,
+        "progress_percentage": goal.progress_percentage,
+        "milestones": [{
+            "id": m.id,
+            "title": m.title,
+            "description": m.description,
+            "sequence_order": m.sequence_order,
+            "due_date": m.due_date,
+            "status": m.status,
+            "completed_date": m.completed_date,
+            "completed_by": m.completed_by,
+            "completion_notes": m.completion_notes,
+            "weight": m.weight
+        } for m in milestones]
+    }
+
+
+@router.post("/goals/{goal_id}/milestones")
+def add_goal_milestone(
+    goal_id: int,
+    milestone_data: GoalMilestoneCreate,
+    db: Session = Depends(get_db)
+):
+    """
+    Add a new milestone to a goal
+    """
+    goal = db.query(models.PerformanceGoal).filter(models.PerformanceGoal.id == goal_id).first()
+    if not goal:
+        raise HTTPException(status_code=404, detail="Goal not found")
+
+    # Get the next sequence order if not provided
+    if milestone_data.sequence_order is None:
+        max_order = db.query(func.max(models.GoalMilestone.sequence_order)).filter(
+            models.GoalMilestone.goal_id == goal_id
+        ).scalar() or -1
+        sequence_order = max_order + 1
+    else:
+        sequence_order = milestone_data.sequence_order
+
+    milestone = models.GoalMilestone(
+        goal_id=goal_id,
+        title=milestone_data.title,
+        description=milestone_data.description,
+        due_date=milestone_data.due_date,
+        weight=milestone_data.weight,
+        sequence_order=sequence_order,
+        status="pending"
+    )
+    db.add(milestone)
+
+    # Update goal's milestone count
+    goal.milestones_total = (goal.milestones_total or 0) + 1
+    goal.updated_at = datetime.now()
+
+    db.commit()
+    db.refresh(milestone)
+
+    return {
+        "id": milestone.id,
+        "title": milestone.title,
+        "sequence_order": milestone.sequence_order,
+        "message": "Milestone added successfully"
+    }
+
+
+@router.patch("/goals/milestones/{milestone_id}")
+def update_goal_milestone(
+    milestone_id: int,
+    update_data: GoalMilestoneUpdate,
+    db: Session = Depends(get_db)
+):
+    """
+    Update a goal milestone (status, completion, etc.)
+    """
+    milestone = db.query(models.GoalMilestone).filter(
+        models.GoalMilestone.id == milestone_id
+    ).first()
+
+    if not milestone:
+        raise HTTPException(status_code=404, detail="Milestone not found")
+
+    goal = db.query(models.PerformanceGoal).filter(
+        models.PerformanceGoal.id == milestone.goal_id
+    ).first()
+
+    old_status = milestone.status
+
+    # Update fields
+    if update_data.title is not None:
+        milestone.title = update_data.title
+    if update_data.description is not None:
+        milestone.description = update_data.description
+    if update_data.due_date is not None:
+        milestone.due_date = update_data.due_date
+    if update_data.weight is not None:
+        milestone.weight = update_data.weight
+    if update_data.status is not None:
+        milestone.status = update_data.status
+        if update_data.status == "completed" and old_status != "completed":
+            milestone.completed_date = date.today()
+        elif update_data.status != "completed":
+            milestone.completed_date = None
+    if update_data.completion_notes is not None:
+        milestone.completion_notes = update_data.completion_notes
+
+    milestone.updated_at = datetime.now()
+
+    # Recalculate goal progress based on completed milestones
+    if goal and goal.tracking_type == "milestone":
+        all_milestones = db.query(models.GoalMilestone).filter(
+            models.GoalMilestone.goal_id == goal.id
+        ).all()
+
+        total_weight = sum(m.weight for m in all_milestones)
+        completed_weight = sum(m.weight for m in all_milestones if m.status == "completed")
+        completed_count = sum(1 for m in all_milestones if m.status == "completed")
+
+        goal.milestones_completed = completed_count
+        if total_weight > 0:
+            goal.progress_percentage = (completed_weight / total_weight) * 100
+
+        # Update status based on progress
+        if goal.progress_percentage >= 100:
+            goal.status = "Completed"
+            goal.completed_date = date.today()
+        elif goal.progress_percentage > 0:
+            goal.status = "On Track"
+
+        goal.updated_at = datetime.now()
+
+    db.commit()
+    db.refresh(milestone)
+
+    return {
+        "id": milestone.id,
+        "title": milestone.title,
+        "status": milestone.status,
+        "goal_progress": goal.progress_percentage if goal else None,
+        "message": "Milestone updated successfully"
+    }
+
+
+@router.delete("/goals/milestones/{milestone_id}")
+def delete_goal_milestone(milestone_id: int, db: Session = Depends(get_db)):
+    """
+    Delete a goal milestone
+    """
+    milestone = db.query(models.GoalMilestone).filter(
+        models.GoalMilestone.id == milestone_id
+    ).first()
+
+    if not milestone:
+        raise HTTPException(status_code=404, detail="Milestone not found")
+
+    goal = db.query(models.PerformanceGoal).filter(
+        models.PerformanceGoal.id == milestone.goal_id
+    ).first()
+
+    db.delete(milestone)
+
+    # Update goal's milestone count
+    if goal:
+        goal.milestones_total = max(0, (goal.milestones_total or 0) - 1)
+        if milestone.status == "completed":
+            goal.milestones_completed = max(0, (goal.milestones_completed or 0) - 1)
+
+        # Recalculate progress
+        remaining_milestones = db.query(models.GoalMilestone).filter(
+            models.GoalMilestone.goal_id == goal.id,
+            models.GoalMilestone.id != milestone_id
+        ).all()
+
+        if remaining_milestones:
+            total_weight = sum(m.weight for m in remaining_milestones)
+            completed_weight = sum(m.weight for m in remaining_milestones if m.status == "completed")
+            if total_weight > 0:
+                goal.progress_percentage = (completed_weight / total_weight) * 100
+        else:
+            goal.progress_percentage = 0
+
+        goal.updated_at = datetime.now()
+
+    db.commit()
+
+    return {
+        "id": milestone_id,
+        "message": "Milestone deleted successfully"
     }
 
 

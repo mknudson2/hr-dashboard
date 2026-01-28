@@ -541,3 +541,189 @@ class DataImportService:
         except Exception as e:
             logger.error(f"Error importing file {file_upload_id}: {e}")
             raise HTTPException(status_code=500, detail=f"Import failed: {str(e)}")
+
+    @staticmethod
+    async def import_with_custom_mappings(
+        file_upload_id: int,
+        column_mappings: Dict[str, str],
+        db: Session,
+        dry_run: bool = False
+    ) -> Dict[str, Any]:
+        """
+        Import file data using custom column mappings
+
+        Args:
+            file_upload_id: ID of the file upload record
+            column_mappings: Dict mapping source columns to database fields
+            db: Database session
+            dry_run: If True, validate but don't import
+
+        Returns:
+            Import statistics and results
+        """
+        from app.services.column_mapping_service import column_mapping_service
+        from app.services.file_upload_service import CSVParser, ExcelParser
+
+        # Get file upload record
+        file_upload = db.query(models.FileUpload).filter(
+            models.FileUpload.id == file_upload_id
+        ).first()
+
+        if not file_upload:
+            raise HTTPException(status_code=404, detail="File upload not found")
+
+        # Update status to processing
+        file_upload.status = 'processing'
+        file_upload.processing_started_at = datetime.now()
+        db.commit()
+
+        imported = 0
+        updated = 0
+        skipped = 0
+        errors = []
+
+        try:
+            # Parse file based on type
+            if file_upload.file_type == 'csv':
+                parser = CSVParser()
+            elif file_upload.file_type in ['xlsx', 'xls']:
+                parser = ExcelParser()
+            else:
+                raise HTTPException(
+                    status_code=400,
+                    detail=f"Unsupported file type: {file_upload.file_type}"
+                )
+
+            # Parse the file
+            result = parser.parse(file_upload.file_path)
+            data_rows = result.get('data', [])
+            total_rows = len(data_rows)
+
+            if dry_run:
+                # Validate and return preview
+                preview_data = []
+                for row in data_rows[:10]:
+                    mapped_row = column_mapping_service.apply_mappings(row, column_mappings)
+                    preview_data.append(mapped_row)
+
+                return {
+                    'status': 'dry_run',
+                    'imported': 0,
+                    'updated': 0,
+                    'skipped': 0,
+                    'total': total_rows,
+                    'errors': [],
+                    'preview': preview_data
+                }
+
+            # Process each row
+            for idx, row in enumerate(data_rows):
+                try:
+                    # Apply column mappings
+                    mapped_data = column_mapping_service.apply_mappings(row, column_mappings)
+
+                    # Get employee_id - required field
+                    employee_id = mapped_data.get('employee_id')
+                    if not employee_id:
+                        skipped += 1
+                        errors.append(f"Row {idx + 2}: Missing employee_id")
+                        continue
+
+                    # Convert to string and clean
+                    employee_id = str(employee_id).strip()
+                    if employee_id.endswith('.0'):
+                        employee_id = employee_id[:-2]
+
+                    mapped_data['employee_id'] = employee_id
+
+                    # Parse dates
+                    date_fields = ['hire_date', 'termination_date', 'birth_date', 'rehire_date', 'original_hire_date']
+                    for date_field in date_fields:
+                        if date_field in mapped_data and mapped_data[date_field]:
+                            try:
+                                date_val = mapped_data[date_field]
+                                if isinstance(date_val, str):
+                                    # Try various date formats
+                                    for fmt in ['%Y-%m-%d', '%m/%d/%Y', '%m-%d-%Y', '%d/%m/%Y']:
+                                        try:
+                                            parsed = datetime.strptime(date_val.strip(), fmt)
+                                            mapped_data[date_field] = parsed.date()
+                                            break
+                                        except ValueError:
+                                            continue
+                                    else:
+                                        # Couldn't parse, set to None
+                                        mapped_data[date_field] = None
+                            except Exception:
+                                mapped_data[date_field] = None
+
+                    # Check if employee exists
+                    existing_employee = db.query(models.Employee).filter(
+                        models.Employee.employee_id == employee_id
+                    ).first()
+
+                    if existing_employee:
+                        # Update existing employee
+                        for key, value in mapped_data.items():
+                            if value is not None and hasattr(existing_employee, key):
+                                setattr(existing_employee, key, value)
+                        updated += 1
+                    else:
+                        # Create new employee
+                        # Filter to only valid model fields
+                        valid_fields = {k: v for k, v in mapped_data.items()
+                                       if hasattr(models.Employee, k) and v is not None}
+                        new_employee = models.Employee(**valid_fields)
+                        db.add(new_employee)
+                        imported += 1
+
+                except Exception as e:
+                    skipped += 1
+                    errors.append(f"Row {idx + 2}: {str(e)}")
+                    logger.warning(f"Error importing row {idx + 2}: {e}")
+
+            # Commit all changes
+            db.commit()
+
+            # Update file upload record
+            file_upload.status = 'completed'
+            file_upload.records_processed = imported + updated
+            file_upload.records_failed = skipped
+            file_upload.processing_completed_at = datetime.now()
+
+            # Store the column mappings used
+            file_upload.file_metadata = {
+                'column_mappings_used': column_mappings,
+                'import_stats': {
+                    'imported': imported,
+                    'updated': updated,
+                    'skipped': skipped,
+                    'total': total_rows
+                }
+            }
+
+            if errors:
+                file_upload.error_message = '; '.join(errors[:10])
+
+            db.commit()
+
+            return {
+                'status': 'success',
+                'imported': imported,
+                'updated': updated,
+                'skipped': skipped,
+                'total': total_rows,
+                'errors': errors[:50]  # Limit errors returned
+            }
+
+        except HTTPException:
+            raise
+        except Exception as e:
+            # Update file upload with error
+            file_upload.status = 'failed'
+            file_upload.error_message = str(e)
+            file_upload.processing_completed_at = datetime.now()
+            db.commit()
+
+            logger.error(f"Error importing file {file_upload_id}: {e}")
+            raise HTTPException(status_code=500, detail=f"Import failed: {str(e)}")

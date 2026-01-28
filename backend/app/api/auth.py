@@ -132,14 +132,20 @@ def create_access_token(data: dict, expires_delta: Optional[timedelta] = None):
 def get_current_user(
     request: Request,
     access_token: Optional[str] = Cookie(None),
+    hr_access_token: Optional[str] = Cookie(None),
+    portal_access_token: Optional[str] = Cookie(None),
     credentials: Optional[HTTPAuthorizationCredentials] = Depends(security),
     db: Session = Depends(get_db)
 ) -> models.User:
     """Get the current authenticated user from JWT token (cookie or header)."""
-    # Try cookie first, then Authorization header for backwards compatibility
+    # Try portal-specific cookies first, then legacy cookie, then Authorization header
     token = None
-    if access_token:
-        token = access_token
+    if hr_access_token:
+        token = hr_access_token
+    elif portal_access_token:
+        token = portal_access_token
+    elif access_token:
+        token = access_token  # Legacy fallback
     elif credentials:
         token = credentials.credentials
 
@@ -377,8 +383,13 @@ def login(
     # Set httpOnly cookie for XSS protection
     # secure=True in production (HTTPS), False in development
     is_production = os.getenv("ENVIRONMENT", "development").lower() == "production"
+
+    # Determine cookie name based on portal source header
+    portal_source = request.headers.get("X-Portal-Source", "hr")
+    cookie_name = "portal_access_token" if portal_source == "employee-portal" else "hr_access_token"
+
     response.set_cookie(
-        key="access_token",
+        key=cookie_name,
         value=access_token,
         httponly=True,
         secure=is_production,
@@ -398,14 +409,20 @@ def logout(
     request: Request,
     current_user: models.User = Depends(get_current_user),
     access_token: Optional[str] = Cookie(None),
+    hr_access_token: Optional[str] = Cookie(None),
+    portal_access_token: Optional[str] = Cookie(None),
     credentials: Optional[HTTPAuthorizationCredentials] = Depends(security),
     db: Session = Depends(get_db)
 ):
     """Logout user and invalidate token."""
 
-    # Get token from cookie or header
+    # Get token from portal-specific cookies, legacy cookie, or header
     token = None
-    if access_token:
+    if hr_access_token:
+        token = hr_access_token
+    elif portal_access_token:
+        token = portal_access_token
+    elif access_token:
         token = access_token
     elif credentials:
         token = credentials.credentials
@@ -436,9 +453,12 @@ def logout(
     # Audit log: logout
     audit_service.log_logout(db, current_user, request)
 
-    # Create response and clear the httpOnly cookie
+    # Create response and clear all portal cookies
     response = JSONResponse(content={"message": "Successfully logged out"})
-    response.delete_cookie(key="access_token", path="/")
+    portal_source = request.headers.get("X-Portal-Source", "hr")
+    cookie_name = "portal_access_token" if portal_source == "employee-portal" else "hr_access_token"
+    response.delete_cookie(key=cookie_name, path="/")
+    response.delete_cookie(key="access_token", path="/")  # Clear legacy cookie too
 
     # Clear CSRF token cookie
     csrf_service.clear_csrf_token(response)

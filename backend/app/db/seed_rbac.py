@@ -109,6 +109,36 @@ PERMISSIONS = [
     {"name": "roles:read", "display_name": "View Roles", "category": "Roles", "description": "View roles and permissions"},
     {"name": "roles:write", "display_name": "Manage Roles", "category": "Roles", "description": "Create and edit roles"},
     {"name": "roles:assign", "display_name": "Assign Roles", "category": "Roles", "description": "Assign roles to users"},
+
+    # Employee Portal - Core Access
+    {"name": "employee_portal:access", "display_name": "Portal Access", "category": "Employee Portal", "description": "Access employee self-service portal"},
+
+    # Employee Portal - My HR Section
+    {"name": "employee_portal:profile:read", "display_name": "View Profile", "category": "Employee Portal", "description": "View own profile information"},
+    {"name": "employee_portal:profile:write", "display_name": "Edit Profile", "category": "Employee Portal", "description": "Edit limited profile fields"},
+    {"name": "employee_portal:compensation:read", "display_name": "View Compensation", "category": "Employee Portal", "description": "View own compensation details"},
+    {"name": "employee_portal:benefits:read", "display_name": "View Benefits", "category": "Employee Portal", "description": "View own benefits enrollment"},
+    {"name": "employee_portal:documents:read", "display_name": "View Documents", "category": "Employee Portal", "description": "View personal documents"},
+    {"name": "employee_portal:resources:read", "display_name": "View Resources", "category": "Employee Portal", "description": "View company resources and handbook"},
+
+    # FMLA Self-Service Portal
+    {"name": "fmla_portal:employee", "display_name": "FMLA Self-Service", "category": "FMLA Portal", "description": "View own FMLA cases and submit time"},
+    {"name": "fmla_portal:supervisor", "display_name": "FMLA Team Management", "category": "FMLA Portal", "description": "Approve/reject team FMLA submissions"},
+    {"name": "fmla_portal:report", "display_name": "FMLA Reports", "category": "FMLA Portal", "description": "Export team FMLA reports"},
+
+    # Garnishment Portal
+    {"name": "garnishment_portal:employee", "display_name": "Garnishment Self-Service", "category": "Garnishment Portal", "description": "View own garnishments"},
+
+    # PTO Portal
+    {"name": "pto_portal:employee", "display_name": "PTO Self-Service", "category": "PTO Portal", "description": "View own PTO and submit requests"},
+    {"name": "pto_portal:supervisor", "display_name": "PTO Team Management", "category": "PTO Portal", "description": "Approve team PTO requests"},
+
+    # Performance Portal
+    {"name": "performance_portal:employee", "display_name": "Performance Self-Service", "category": "Performance Portal", "description": "View own reviews and goals"},
+    {"name": "performance_portal:supervisor", "display_name": "Performance Team Management", "category": "Performance Portal", "description": "Manage team performance"},
+
+    # Personnel Actions
+    {"name": "par_portal:supervisor", "display_name": "Personnel Actions", "category": "Personnel Actions", "description": "Submit PARs for direct reports"},
 ]
 
 
@@ -144,6 +174,18 @@ ROLES = [
             "aca:read", "aca:write",
             "emails:send", "emails:templates",
             "files:upload", "files:delete",
+            # Employee Portal - Full Access
+            "employee_portal:access",
+            "employee_portal:profile:read", "employee_portal:profile:write",
+            "employee_portal:compensation:read",
+            "employee_portal:benefits:read",
+            "employee_portal:documents:read",
+            "employee_portal:resources:read",
+            "fmla_portal:employee", "fmla_portal:supervisor", "fmla_portal:report",
+            "garnishment_portal:employee",
+            "pto_portal:employee", "pto_portal:supervisor",
+            "performance_portal:employee", "performance_portal:supervisor",
+            "par_portal:supervisor",
         ],
     },
     {
@@ -178,6 +220,22 @@ ROLES = [
             "analytics:read:team",
             "settings:read",
             "files:upload",
+            # Employee Portal - Employee Access
+            "employee_portal:access",
+            "employee_portal:profile:read", "employee_portal:profile:write",
+            "employee_portal:compensation:read",
+            "employee_portal:benefits:read",
+            "employee_portal:documents:read",
+            "employee_portal:resources:read",
+            "fmla_portal:employee",
+            "garnishment_portal:employee",
+            "pto_portal:employee",
+            "performance_portal:employee",
+            # Employee Portal - Supervisor Access
+            "fmla_portal:supervisor", "fmla_portal:report",
+            "pto_portal:supervisor",
+            "performance_portal:supervisor",
+            "par_portal:supervisor",
         ],
     },
     {
@@ -191,6 +249,17 @@ ROLES = [
             "performance:read:self",
             "pto:read:self",
             "settings:read",
+            # Employee Portal Access
+            "employee_portal:access",
+            "employee_portal:profile:read", "employee_portal:profile:write",
+            "employee_portal:compensation:read",
+            "employee_portal:benefits:read",
+            "employee_portal:documents:read",
+            "employee_portal:resources:read",
+            "fmla_portal:employee",
+            "garnishment_portal:employee",
+            "pto_portal:employee",
+            "performance_portal:employee",
         ],
     },
 ]
@@ -274,36 +343,44 @@ def seed_roles(db: Session, permission_map: dict) -> dict:
     return role_map
 
 
-def assign_admin_role(db: Session, role_map: dict):
-    """Assign admin role to existing admin users."""
-    print("\nAssigning admin role to admin users...")
+def assign_roles_to_users(db: Session, role_map: dict):
+    """Assign RBAC roles to users based on their legacy role column."""
+    print("\nAssigning roles to users based on legacy role column...")
 
-    admin_role = role_map.get("admin")
-    if not admin_role:
-        print("  ! Admin role not found")
-        return
+    # Map legacy role names to RBAC role names
+    legacy_to_rbac = {
+        "admin": "admin",
+        "manager": "manager",
+        "employee": "employee",
+    }
 
-    # Find users with role='admin' in the legacy column
-    admin_users = db.query(models.User).filter(
-        models.User.role == "admin"
-    ).all()
+    for legacy_role, rbac_role_name in legacy_to_rbac.items():
+        rbac_role = role_map.get(rbac_role_name)
+        if not rbac_role:
+            print(f"  ! RBAC role '{rbac_role_name}' not found")
+            continue
 
-    for user in admin_users:
-        # Check if user already has admin role assigned
-        existing = db.query(models.UserRole).filter(
-            models.UserRole.user_id == user.id,
-            models.UserRole.role_id == admin_role.id
-        ).first()
+        # Find users with this legacy role
+        users = db.query(models.User).filter(
+            models.User.role == legacy_role
+        ).all()
 
-        if not existing:
-            user_role = models.UserRole(
-                user_id=user.id,
-                role_id=admin_role.id
-            )
-            db.add(user_role)
-            print(f"  + Assigned admin role to user '{user.username}'")
-        else:
-            print(f"  - User '{user.username}' already has admin role")
+        for user in users:
+            # Check if user already has this role assigned
+            existing = db.query(models.UserRole).filter(
+                models.UserRole.user_id == user.id,
+                models.UserRole.role_id == rbac_role.id
+            ).first()
+
+            if not existing:
+                user_role = models.UserRole(
+                    user_id=user.id,
+                    role_id=rbac_role.id
+                )
+                db.add(user_role)
+                print(f"  + Assigned '{rbac_role_name}' role to user '{user.username}'")
+            else:
+                print(f"  - User '{user.username}' already has '{rbac_role_name}' role")
 
     db.commit()
 
@@ -325,8 +402,8 @@ def seed_rbac():
         # Seed roles
         role_map = seed_roles(db, permission_map)
 
-        # Assign admin role to existing admin users
-        assign_admin_role(db, role_map)
+        # Assign RBAC roles to users based on legacy role column
+        assign_roles_to_users(db, role_map)
 
         print("\n" + "=" * 60)
         print("RBAC seeding completed successfully!")
