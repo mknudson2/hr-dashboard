@@ -10,12 +10,17 @@ import os
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 from app.services.file_parsers import DeductionListingParser
+import pytest
+
+_DEDUCTION_FILE = "/Users/michaelknudson/Downloads/Deduction Listing-2.PDF"
 
 
 async def test_deduction_listing_parser():
     """Test parsing Deduction Listing PDF"""
 
-    file_path = "/Users/michaelknudson/Downloads/Deduction Listing-2.PDF"
+    file_path = _DEDUCTION_FILE
+    if not os.path.exists(file_path):
+        pytest.skip(f"Test file not found: {file_path}")
 
     print("=" * 80)
     print("TESTING DEDUCTION LISTING PARSER")
