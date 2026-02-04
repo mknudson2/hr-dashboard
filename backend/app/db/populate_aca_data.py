@@ -35,7 +35,7 @@ def populate_aca_data():
         print("\n📊 Populating Monthly Hours Data...")
 
         monthly_hours_added = 0
-        current_year = 2025
+        current_year = 2026
 
         # Generate hours for the past 12 months
         for month_offset in range(12):
@@ -103,17 +103,17 @@ def populate_aca_data():
             if employee.employment_type != "Full Time":
                 continue
 
-            # Check if already has an offer for 2025
+            # Check if already has an offer for 2026
             existing = db.query(models.ACACoverageOffer).filter(
                 models.ACACoverageOffer.employee_id == employee.employee_id,
-                models.ACACoverageOffer.year == 2025
+                models.ACACoverageOffer.year == 2026
             ).first()
 
             if existing:
                 continue
 
             # Create offer
-            offer_id = f"ACA-OFFER-2025-{str(coverage_offers_added + 1).zfill(4)}"
+            offer_id = f"ACA-OFFER-2026-{str(coverage_offers_added + 1).zfill(4)}"
 
             # Most employees get 1A (comprehensive coverage)
             offer_code = random.choices(offer_codes, weights=[70, 15, 10, 5])[0]
@@ -132,21 +132,21 @@ def populate_aca_data():
             offer = models.ACACoverageOffer(
                 offer_id=offer_id,
                 employee_id=employee.employee_id,
-                year=2025,
-                coverage_start_date=date(2025, 1, 1),
+                year=2026,
+                coverage_start_date=date(2026, 1, 1),
                 coverage_end_date=None,
                 offer_of_coverage_code=offer_code,
                 employee_monthly_cost=employee_cost,
                 safe_harbor_code=random.choice(safe_harbor_codes),
                 coverage_accepted=coverage_accepted,
-                acceptance_date=date(2024, 11, random.randint(15, 30)) if coverage_accepted else None,
+                acceptance_date=date(2025, 11, random.randint(15, 30)) if coverage_accepted else None,
                 plan_name=random.choice(plan_names) if coverage_accepted else None,
                 is_affordable=is_affordable,
                 affordability_percentage=affordability_pct,
-                affordability_threshold=9.02,  # 2024-2025 threshold
-                offer_communication_date=date(2024, 10, random.randint(1, 15)),
+                affordability_threshold=9.02,  # 2025-2026 threshold
+                offer_communication_date=date(2025, 10, random.randint(1, 15)),
                 offer_method=random.choice(["Email", "Portal", "Mail"]),
-                response_due_date=date(2024, 11, 15)
+                response_due_date=date(2025, 11, 15)
             )
             db.add(offer)
             coverage_offers_added += 1
@@ -160,7 +160,7 @@ def populate_aca_data():
         print("\n📋 Populating Form 1095-C Records...")
 
         forms_added = 0
-        tax_years = [2024, 2023]
+        tax_years = [2025, 2024]
 
         for tax_year in tax_years:
             for employee in employees:
@@ -180,10 +180,10 @@ def populate_aca_data():
                 form_id = f"1095C-{tax_year}-{str(forms_added + 1).zfill(4)}"
 
                 # Determine status based on tax year
-                if tax_year == 2024:
+                if tax_year == 2025:
                     status = random.choice(["Draft", "Ready for Filing"])
                     filed_date = None
-                else:  # 2023
+                else:  # 2024
                     status = "Filed"
                     filed_date = date(tax_year + 1, 2, random.randint(15, 28))
 
@@ -234,15 +234,15 @@ def populate_aca_data():
         alert_employees = random.sample(employees, min(3, len(employees)))
         for emp in alert_employees:
             alert = models.ACAAlert(
-                alert_id=f"ACA-ALERT-2025-{str(alerts_added + 1).zfill(4)}",
+                alert_id=f"ACA-ALERT-2026-{str(alerts_added + 1).zfill(4)}",
                 alert_type="Missing Hours Data",
                 severity="High",
                 employee_id=emp.employee_id,
                 title=f"Missing hours data for {emp.first_name} {emp.last_name}",
-                message=f"No hours data recorded for {emp.first_name} {emp.last_name} for December 2024. This may affect ACA reporting.",
+                message=f"No hours data recorded for {emp.first_name} {emp.last_name} for December 2025. This may affect ACA reporting.",
                 recommended_action="Import December payroll data or manually enter hours worked.",
                 status="Active",
-                due_date=date(2025, 1, 15)
+                due_date=date(2026, 1, 15)
             )
             db.add(alert)
             alerts_added += 1
@@ -252,7 +252,7 @@ def populate_aca_data():
         if pt_employees:
             for emp in random.sample(pt_employees, min(2, len(pt_employees))):
                 alert = models.ACAAlert(
-                    alert_id=f"ACA-ALERT-2025-{str(alerts_added + 1).zfill(4)}",
+                    alert_id=f"ACA-ALERT-2026-{str(alerts_added + 1).zfill(4)}",
                     alert_type="Approaching FT Status",
                     severity="Medium",
                     employee_id=emp.employee_id,
@@ -260,22 +260,22 @@ def populate_aca_data():
                     message=f"Part-time employee {emp.first_name} {emp.last_name} has worked 125+ hours in the last month, approaching the 130-hour ACA full-time threshold.",
                     recommended_action="Review employee's measurement period hours. If averaging 130+ hours, offer coverage or adjust schedule.",
                     status="Active",
-                    due_date=date(2025, 2, 1)
+                    due_date=date(2026, 2, 1)
                 )
                 db.add(alert)
                 alerts_added += 1
 
         # Alert 3: Form filing deadline
         alert = models.ACAAlert(
-            alert_id=f"ACA-ALERT-2025-{str(alerts_added + 1).zfill(4)}",
+            alert_id=f"ACA-ALERT-2026-{str(alerts_added + 1).zfill(4)}",
             alert_type="Deadline Approaching",
             severity="Critical",
             employee_id=None,
             title="Form 1095-C filing deadline approaching",
-            message="IRS deadline for furnishing Form 1095-C to employees is March 3, 2025. 15 forms are still in Draft status.",
+            message="IRS deadline for furnishing Form 1095-C to employees is March 3, 2026. 15 forms are still in Draft status.",
             recommended_action="Review and finalize all Form 1095-C records. Ensure employee addresses are current before printing/mailing.",
             status="Active",
-            due_date=date(2025, 3, 3)
+            due_date=date(2026, 3, 3)
         )
         db.add(alert)
         alerts_added += 1
@@ -283,7 +283,7 @@ def populate_aca_data():
         # Alert 4: Affordability concern
         if coverage_offers_added > 0:
             alert = models.ACAAlert(
-                alert_id=f"ACA-ALERT-2025-{str(alerts_added + 1).zfill(4)}",
+                alert_id=f"ACA-ALERT-2026-{str(alerts_added + 1).zfill(4)}",
                 alert_type="Affordability Issue",
                 severity="High",
                 employee_id=None,
@@ -291,18 +291,18 @@ def populate_aca_data():
                 message="3 employees have coverage offers that may exceed the 9.02% affordability threshold based on current wages.",
                 recommended_action="Review employee wages and coverage costs. Adjust employee contributions or apply safe harbor codes as appropriate.",
                 status="Active",
-                due_date=date(2025, 1, 31)
+                due_date=date(2026, 1, 31)
             )
             db.add(alert)
             alerts_added += 1
 
         # Alert 5: ALE status monitoring
         alert = models.ACAAlert(
-            alert_id=f"ACA-ALERT-2025-{str(alerts_added + 1).zfill(4)}",
+            alert_id=f"ACA-ALERT-2026-{str(alerts_added + 1).zfill(4)}",
             alert_type="ALE Status",
             severity="Low",
             employee_id=None,
-            title="Monitoring ALE status for 2025",
+            title="Monitoring ALE status for 2026",
             message=f"Company currently has {len(employees)} active employees. Continue monitoring to ensure compliance with ALE requirements (50+ FTE threshold).",
             recommended_action="Track monthly FTE counts and maintain documentation of measurement period calculations.",
             status="Active",
@@ -331,12 +331,12 @@ def populate_aca_data():
 
         # Count full-time employees by month
         current_month_ft = db.query(models.ACAMonthlyHours).filter(
-            models.ACAMonthlyHours.year == 2025,
+            models.ACAMonthlyHours.year == 2026,
             models.ACAMonthlyHours.month == 1,
             models.ACAMonthlyHours.is_full_time == True
         ).count()
 
-        print(f"  • Full-time employees (Jan 2025): {current_month_ft}")
+        print(f"  • Full-time employees (Jan 2026): {current_month_ft}")
         print(f"  • Coverage acceptance rate: ~80%")
         print(f"  • Affordability compliance: ~95%")
 

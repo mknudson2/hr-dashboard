@@ -38,9 +38,7 @@ export const getPreferences = (): UserPreferences => {
 
     const parsed = JSON.parse(stored);
 
-    // Check version compatibility
     if (parsed.version !== VERSION) {
-      console.log('Preferences version mismatch, resetting to defaults');
       return getDefaultPreferences();
     }
 

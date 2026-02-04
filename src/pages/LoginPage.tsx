@@ -239,14 +239,6 @@ const LoginPage = () => {
             </button>
           </form>
 
-          {/* Demo Credentials */}
-          <div className="mt-6 p-4 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
-            <p className="text-xs font-medium text-gray-700 dark:text-gray-300 mb-2">Demo Credentials:</p>
-            <div className="space-y-1 text-xs text-gray-600 dark:text-gray-400">
-              <p>Username: <span className="font-mono font-medium">mknudson</span></p>
-              <p>Password: <span className="font-mono font-medium">welcome123</span></p>
-            </div>
-          </div>
         </motion.div>
 
         {/* Footer */}

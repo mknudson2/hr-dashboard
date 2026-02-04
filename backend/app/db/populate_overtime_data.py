@@ -35,11 +35,11 @@ def populate_overtime_data():
         print("\n📊 Populating Overtime Records...")
 
         records_added = 0
-        current_year = 2025
+        current_year = 2026
 
         # Generate bi-weekly pay periods for the past 6 months
         pay_periods = []
-        start_date = date(2024, 7, 1)  # July 1, 2024
+        start_date = date(2025, 7, 1)  # July 1, 2025
         current_date = date.today()
 
         while start_date <= current_date:
@@ -160,12 +160,12 @@ def populate_overtime_data():
 
         # Add a few import history records to show the system has been used
         import_dates = [
-            date(2024, 7, 15),
-            date(2024, 8, 15),
-            date(2024, 9, 15),
-            date(2024, 10, 15),
-            date(2024, 11, 15),
-            date(2024, 12, 15)
+            date(2025, 7, 15),
+            date(2025, 8, 15),
+            date(2025, 9, 15),
+            date(2025, 10, 15),
+            date(2025, 11, 15),
+            date(2025, 12, 15)
         ]
 
         for import_date in import_dates:

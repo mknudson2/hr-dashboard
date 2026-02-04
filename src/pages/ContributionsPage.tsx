@@ -120,21 +120,13 @@ const ContributionsPage = () => {
       const response = await fetch('/contribution-limits/current', { credentials: 'include' });
       const data = await response.json();
       setContributionLimits(data);
-      console.log('Fetched contribution limits:', data);
     } catch (error) {
       console.error('Error fetching contribution limits:', error);
-      // Keep using default limits on error
     }
   };
 
   const handleSaveContributions = async (employeeId: string, updates: any) => {
     try {
-      // Debug logging
-      console.log('Frontend sending updates:', updates);
-      if (updates.hra_er_contribution !== undefined) {
-        console.log('HRA value being sent:', updates.hra_er_contribution, 'Type:', typeof updates.hra_er_contribution);
-      }
-
       const response = await fetch(`/employees/${employeeId}/contributions`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },

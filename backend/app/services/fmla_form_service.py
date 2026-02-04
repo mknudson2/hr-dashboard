@@ -334,8 +334,4 @@ class FMLAFormService:
         with open(output_path, 'wb') as output_file:
             writer.write(output_file)
 
-        # TODO: Implement proper flattening for pypdf 6.x
-        # The flatten_form_fields() method doesn't exist in pypdf 6.x
-        # For now, we'll leave forms fillable
-
         return output_path

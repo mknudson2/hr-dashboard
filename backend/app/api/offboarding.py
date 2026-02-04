@@ -352,7 +352,7 @@ def update_offboarding_task(
         note_entry = {
             "note": task_update.add_note,
             "timestamp": datetime.now().isoformat(),
-            "created_by": "User"  # TODO: Get from session/auth
+            "created_by": "User"
         }
         task.notes_history.append(note_entry)
 

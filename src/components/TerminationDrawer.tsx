@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import { X, DollarSign, Calendar, User, Briefcase, Building2, Users, FileText, Trash2 } from "lucide-react";
 
 interface TerminationDetail {

@@ -267,7 +267,6 @@ def update_employee(
                 task.task_details["archived_reason"] = f"Employee status changed from Terminated to Active on {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}"
 
             db.commit()
-            print(f"✅ Archived {len(offboarding_tasks)} offboarding tasks for employee {employee_id}")
 
     # Auto-create offboarding tasks if status changed to Terminated OR termination_date was set
     should_create_offboarding = (status_changed_to_terminated or termination_date_set) and employee.termination_date

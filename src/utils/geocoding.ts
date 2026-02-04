@@ -7,6 +7,23 @@ export interface Coordinates {
   lng: number;
 }
 
+// State abbreviation to full name mapping
+export const STATE_ABBREV_TO_NAME: Record<string, string> = {
+  "AL": "Alabama", "AK": "Alaska", "AZ": "Arizona", "AR": "Arkansas",
+  "CA": "California", "CO": "Colorado", "CT": "Connecticut", "DE": "Delaware",
+  "FL": "Florida", "GA": "Georgia", "HI": "Hawaii", "ID": "Idaho",
+  "IL": "Illinois", "IN": "Indiana", "IA": "Iowa", "KS": "Kansas",
+  "KY": "Kentucky", "LA": "Louisiana", "ME": "Maine", "MD": "Maryland",
+  "MA": "Massachusetts", "MI": "Michigan", "MN": "Minnesota", "MS": "Mississippi",
+  "MO": "Missouri", "MT": "Montana", "NE": "Nebraska", "NV": "Nevada",
+  "NH": "New Hampshire", "NJ": "New Jersey", "NM": "New Mexico", "NY": "New York",
+  "NC": "North Carolina", "ND": "North Dakota", "OH": "Ohio", "OK": "Oklahoma",
+  "OR": "Oregon", "PA": "Pennsylvania", "RI": "Rhode Island", "SC": "South Carolina",
+  "SD": "South Dakota", "TN": "Tennessee", "TX": "Texas", "UT": "Utah",
+  "VT": "Vermont", "VA": "Virginia", "WA": "Washington", "WV": "West Virginia",
+  "WI": "Wisconsin", "WY": "Wyoming"
+};
+
 // US State Centers (approximate geographic centers)
 export const US_STATE_COORDS: Record<string, Coordinates> = {
   "Alabama": { lat: 32.806671, lng: -86.791130 },
@@ -77,7 +94,11 @@ export const COUNTRY_COORDS: Record<string, Coordinates> = {
   "Italy": { lat: 41.871940, lng: 12.567380 },
   "South Korea": { lat: 35.907757, lng: 127.766922 },
   "China": { lat: 35.86166, lng: 104.195397 },
-  "Singapore": { lat: 1.352083, lng: 103.819836 }
+  "Singapore": { lat: 1.352083, lng: 103.819836 },
+  // International employer of record companies (approximate regions)
+  "Congruent": { lat: 51.5074, lng: -0.1278 },  // Europe (London)
+  "Ameripol": { lat: -23.5505, lng: -46.6333 }, // Latin America (São Paulo)
+  "Bloom": { lat: 35.6762, lng: 139.6503 }      // Asia Pacific (Tokyo)
 };
 
 // City coordinates for major cities (subset - can be expanded)
@@ -241,7 +262,15 @@ export function getCoordinates(location: string): Coordinates | null {
     const parts = location.split(', ');
     const stateOrCountry = parts[parts.length - 1].trim();
 
-    // Try state
+    // Try state abbreviation first (e.g., "UT" -> "Utah")
+    if (STATE_ABBREV_TO_NAME[stateOrCountry]) {
+      const fullStateName = STATE_ABBREV_TO_NAME[stateOrCountry];
+      if (US_STATE_COORDS[fullStateName]) {
+        return US_STATE_COORDS[fullStateName];
+      }
+    }
+
+    // Try state full name
     if (US_STATE_COORDS[stateOrCountry]) {
       return US_STATE_COORDS[stateOrCountry];
     }
@@ -252,7 +281,15 @@ export function getCoordinates(location: string): Coordinates | null {
     }
   }
 
-  // Try as direct state lookup
+  // Try as state abbreviation (e.g., "UT")
+  if (STATE_ABBREV_TO_NAME[location]) {
+    const fullStateName = STATE_ABBREV_TO_NAME[location];
+    if (US_STATE_COORDS[fullStateName]) {
+      return US_STATE_COORDS[fullStateName];
+    }
+  }
+
+  // Try as direct state lookup (full name)
   if (US_STATE_COORDS[location]) {
     return US_STATE_COORDS[location];
   }

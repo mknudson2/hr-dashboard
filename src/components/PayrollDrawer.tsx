@@ -177,8 +177,6 @@ export default function PayrollDrawer({ open, onClose, period: initialPeriod }: 
   };
 
   const handleSavePeriodNotes = async () => {
-    console.log('💾 Saving period notes:', periodNotes);
-
     if (!periodNotes.trim()) {
       return; // Don't save empty notes
     }
@@ -188,8 +186,6 @@ export default function PayrollDrawer({ open, onClose, period: initialPeriod }: 
 
     try {
       const response = await fetch(`${BASE_URL}/payroll/periods/${period.id}`, getRequestOptions('PATCH', { notes: periodNotes }));
-
-      console.log('📡 Response:', response.status, response.ok);
 
       if (response.ok) {
         await refreshPeriod();
@@ -653,12 +649,6 @@ export default function PayrollDrawer({ open, onClose, period: initialPeriod }: 
 
                 // Sort by timestamp (newest first)
                 allNotes.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
-
-                console.log('📝 All Notes Debug:', {
-                  periodNotesHistory: period.notes_history?.notes?.length || 0,
-                  taskNotes: taskNotes.length,
-                  totalNotes: allNotes.length
-                });
 
                 return (
                   <div className="bg-gray-50 dark:bg-gray-900 p-4 rounded-lg border border-gray-200 dark:border-gray-700">

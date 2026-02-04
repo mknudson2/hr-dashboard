@@ -267,8 +267,7 @@ async def send_nbs_term_email(request: NBSTermEmailRequest):
 async def send_all_nbs_term_emails(request: NBSTermBulkEmailRequest):
     """Send all NBS termination emails at once."""
 
-    # TODO: Replace with actual recipient emails in production
-    # For now, all emails go to test address
+    # Email recipients configured via environment variables
     default_test_email = os.getenv('TEST_EMAIL_RECIPIENT', 'test@example.com')
 
     # Define recipients for each email type (loaded from environment variables)

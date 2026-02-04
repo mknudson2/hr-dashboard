@@ -22,9 +22,9 @@ print(f"Found {len(employees)} employees for event assignment...")
 today = datetime.now().date()
 
 events_to_create = [
-    # Performance Reviews - Q1 2025
+    # Performance Reviews - Q1 2026
     {
-        "title": "Q1 2025 Performance Reviews",
+        "title": "Q1 2026 Performance Reviews",
         "description": "Quarterly performance review cycle for all departments",
         "event_type": "Performance Review",
         "category": "HR Process",
@@ -40,7 +40,7 @@ events_to_create = [
     },
     # Annual Benefits Open Enrollment
     {
-        "title": "2025 Benefits Open Enrollment",
+        "title": "2026 Benefits Open Enrollment",
         "description": "Annual benefits enrollment period for medical, dental, vision, and retirement plans",
         "event_type": "Open Enrollment",
         "category": "Benefits",
@@ -56,7 +56,7 @@ events_to_create = [
     },
     # Q1 Bonus Distribution
     {
-        "title": "Q4 2024 Bonus Payments",
+        "title": "Q4 2025 Bonus Payments",
         "description": "Distribution of Q4 performance bonuses",
         "event_type": "Bonus Distribution",
         "category": "Compensation",
@@ -124,8 +124,8 @@ events_to_create = [
         "description": "Company holiday - office closed",
         "event_type": "Holiday",
         "category": "Time Off",
-        "start_date": datetime(2025, 5, 26).date(),
-        "end_date": datetime(2025, 5, 26).date(),
+        "start_date": datetime(2026, 5, 25).date(),
+        "end_date": datetime(2026, 5, 25).date(),
         "is_recurring": True,
         "recurrence_pattern": "Yearly",
         "status": "scheduled",
@@ -138,14 +138,14 @@ events_to_create = [
         "description": "Company holiday - office closed",
         "event_type": "Holiday",
         "category": "Time Off",
-        "start_date": datetime(2025, 7, 4).date(),
-        "end_date": datetime(2025, 7, 4).date(),
+        "start_date": datetime(2026, 7, 3).date(),
+        "end_date": datetime(2026, 7, 3).date(),
         "is_recurring": True,
         "recurrence_pattern": "Yearly",
         "status": "scheduled",
         "reminder_days": 7,
         "priority": "medium",
-        "notes": "Paid holiday for all full-time employees"
+        "notes": "Paid holiday for all full-time employees (observed)"
     },
     # Compliance Deadlines
     {
@@ -153,8 +153,8 @@ events_to_create = [
         "description": "Annual EEO-1 Component 1 filing deadline",
         "event_type": "Compliance",
         "category": "Legal",
-        "start_date": datetime(2025, 5, 31).date(),
-        "end_date": datetime(2025, 5, 31).date(),
+        "start_date": datetime(2026, 5, 31).date(),
+        "end_date": datetime(2026, 5, 31).date(),
         "is_recurring": True,
         "recurrence_pattern": "Yearly",
         "status": "scheduled",
@@ -201,8 +201,8 @@ events_to_create = [
         "description": "Annual summer celebration for all employees and families",
         "event_type": "Team Event",
         "category": "Culture",
-        "start_date": datetime(2025, 7, 12).date(),
-        "end_date": datetime(2025, 7, 12).date(),
+        "start_date": datetime(2026, 7, 11).date(),
+        "end_date": datetime(2026, 7, 11).date(),
         "is_recurring": True,
         "recurrence_pattern": "Yearly",
         "status": "scheduled",

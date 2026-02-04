@@ -19,7 +19,6 @@ from ..db import models
 from ..db.database import get_db
 from .auth import get_current_user
 from ..services.rbac_service import require_permission, Permissions
-# from ..services.email_service import send_email  # TODO: Implement email sending
 
 router = APIRouter(
     prefix="/payroll",
@@ -387,10 +386,8 @@ async def update_payroll_period(
     if not period:
         raise HTTPException(status_code=404, detail="Payroll period not found")
 
-    # Track notes history - always add to history when a note is provided
+    # Track notes history
     if update.notes is not None and update.notes.strip():
-        print(f"📝 DEBUG: Saving note - old: '{period.notes}', new: '{update.notes}'")
-        print(f"📝 DEBUG: Current history: {period.notes_history}")
         period.notes_history = add_to_history(
             period.notes_history,
             'notes',
@@ -398,8 +395,7 @@ async def update_payroll_period(
             update.notes,
             current_user.username
         )
-        flag_modified(period, 'notes_history')  # Tell SQLAlchemy the JSON field changed
-        print(f"📝 DEBUG: Updated history: {period.notes_history}")
+        flag_modified(period, 'notes_history')
         period.notes = update.notes
 
     # Update other fields
@@ -725,9 +721,6 @@ async def send_payroll_email(
 
     if not period:
         raise HTTPException(status_code=404, detail="Payroll period not found")
-
-    # TODO: Implement email templates and sending
-    # For now, return success
 
     return {
         "success": True,

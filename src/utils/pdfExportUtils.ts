@@ -72,56 +72,36 @@ export async function exportPayrollToPDF(
   data: PayrollPDFData,
   containerRef: HTMLDivElement
 ): Promise<void> {
-  console.log('Starting PDF export...', { containerRef, data });
-
-  // Capture the element with html2canvas
-  console.log('Capturing with html2canvas...');
   const canvas = await html2canvas(containerRef, {
-    scale: 2, // Higher resolution for better PDF quality
+    scale: 2,
     useCORS: true,
-    logging: true, // Enable logging for debugging
+    logging: false,
     backgroundColor: '#ffffff',
   });
-
-  console.log('Canvas created:', { width: canvas.width, height: canvas.height });
 
   // A4 dimensions in mm
   const imgWidth = 210;
   const pageHeight = 297;
   const imgHeight = (canvas.height * imgWidth) / canvas.width;
 
-  // Create PDF document
-  console.log('Creating PDF document...');
   const pdf = new jsPDF('p', 'mm', 'a4');
   let heightLeft = imgHeight;
   let position = 0;
 
-  // Get image data
   const imgData = canvas.toDataURL('image/png');
-  console.log('Image data created, length:', imgData.length);
 
-  // Add first page
   pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
   heightLeft -= pageHeight;
-  console.log('First page added');
 
-  // Add additional pages if content overflows
-  let pageCount = 1;
   while (heightLeft > 0) {
     position = heightLeft - imgHeight;
     pdf.addPage();
     pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
     heightLeft -= pageHeight;
-    pageCount++;
   }
-  console.log('Total pages:', pageCount);
 
-  // Generate filename with timestamp
   const timestamp = new Date().toISOString().split('T')[0];
   const filename = `Payroll_Period_${data.periodNumber}_${data.year}_${timestamp}.pdf`;
 
-  // Trigger download
-  console.log('Saving PDF as:', filename);
   pdf.save(filename);
-  console.log('PDF saved successfully');
 }

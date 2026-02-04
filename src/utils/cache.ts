@@ -124,11 +124,9 @@ export function withCache<T extends (...args: any[]) => Promise<any>>(
     const cached = cache.get(key);
 
     if (cached !== null) {
-      console.log(`Cache hit: ${key}`);
       return cached;
     }
 
-    console.log(`Cache miss: ${key}`);
     const result = await fn(...args);
     cache.set(key, result, ttl);
     return result;
