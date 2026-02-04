@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { apiGet } from '@/utils/api';
 import { HelpCircle, Search, ChevronDown, ChevronUp, AlertCircle, Tag } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+import DOMPurify from 'dompurify';
 
 interface FAQ {
   id: number;
@@ -175,7 +176,7 @@ export default function FAQs() {
                         <div className="p-4 pl-12">
                           <div
                             className="text-gray-700 dark:text-gray-300 prose dark:prose-invert max-w-none text-sm"
-                            dangerouslySetInnerHTML={{ __html: faq.answer }}
+                            dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(faq.answer) }}
                           />
                           {faq.tags.length > 0 && (
                             <div className="flex items-center gap-2 mt-4 pt-4 border-t border-gray-100 dark:border-gray-700">

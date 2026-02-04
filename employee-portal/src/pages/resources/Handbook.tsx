@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { apiGet } from '@/utils/api';
 import { BookOpen, ChevronRight, Search, AlertCircle, Download } from 'lucide-react';
 import { motion } from 'framer-motion';
+import DOMPurify from 'dompurify';
 
 interface HandbookSection {
   id: number;
@@ -213,7 +214,7 @@ export default function Handbook() {
               </div>
               <div
                 className="prose dark:prose-invert max-w-none"
-                dangerouslySetInnerHTML={{ __html: currentSection.content }}
+                dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(currentSection.content) }}
               />
             </div>
           ) : (
