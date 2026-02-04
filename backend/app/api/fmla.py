@@ -4,7 +4,10 @@ RBAC Protection: FMLA data contains Protected Health Information (PHI).
 Access is restricted to users with FMLA_READ or FMLA_WRITE permissions.
 Roles with access: admin, hr
 """
+import logging
 from datetime import datetime, date, timedelta
+
+logger = logging.getLogger(__name__)
 from typing import Optional, List
 from fastapi import APIRouter, Depends, HTTPException, Request
 from sqlalchemy.orm import Session
@@ -1199,8 +1202,7 @@ async def review_leave_request(
             custom_values=review.custom_email_values
         )
     except Exception as e:
-        # Log but don't fail if notification fails
-        print(f"[FMLA] Failed to send decision notification: {e}")
+        logger.warning(f"Failed to send decision notification: {e}")
         # Rollback any failed db operations from notification
         try:
             db.rollback()
@@ -1227,8 +1229,7 @@ async def review_leave_request(
             }
         )
     except Exception as e:
-        # Log but don't fail if audit logging fails
-        print(f"[FMLA] Failed to log audit entry: {e}")
+        logger.warning(f"Failed to log audit entry: {e}")
 
     response = {
         "message": f"Leave request {review.decision}",

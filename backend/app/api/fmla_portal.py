@@ -18,14 +18,17 @@ Supervisor Endpoints (require fmla_portal:supervisor permission):
 - GET /portal/export-report - Download team FMLA report
 """
 
+import logging
+import csv
+import io
 from datetime import datetime, date, timedelta
 from typing import Optional, List
 from fastapi import APIRouter, Depends, HTTPException, Request, Query
 from fastapi.responses import StreamingResponse
 from sqlalchemy.orm import Session
 from sqlalchemy import func, or_
-import csv
-import io
+
+logger = logging.getLogger(__name__)
 
 from app.db.database import get_db
 from app.db import models
@@ -428,8 +431,7 @@ def request_leave(
         try:
             notification_service.notify_fmla_leave_request(db, new_request, employee)
         except Exception as e:
-            # Log but don't fail the request if notification fails
-            print(f"[FMLA PORTAL] Failed to send HR notification: {e}")
+            logger.warning(f"Failed to send HR notification: {e}")
 
     return LeaveRequestResponse(
         id=new_request.id,

@@ -37,82 +37,53 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
   const [loading, setLoading] = useState(true);
 
   // Verify authentication on mount using httpOnly cookie
-  // Token is stored in httpOnly cookie (not accessible via JS for XSS protection)
   useEffect(() => {
-    const loadAuth = async () => {
+    const verifyAuth = async () => {
       try {
-        // Check if we have cached user info
-        const storedUser = localStorage.getItem('auth_user');
-
-        // Only verify with server if we have cached user info
-        // This prevents unnecessary 401 console messages when not logged in
-        if (!storedUser) {
-          setLoading(false);
-          return;
-        }
-
-        // Verify with server if cookie is still valid (cookie sent automatically)
         const response = await fetch(`${API_URL}/auth/verify`, {
-          credentials: 'include',  // Send httpOnly cookie with request
+          credentials: 'include',
         });
 
         if (response.ok) {
-          // Cookie is valid, restore user from cache
-          setUser(JSON.parse(storedUser));
-        } else {
-          // Cookie invalid or expired, clear cached user
-          localStorage.removeItem('auth_user');
+          const data = await response.json();
+          setUser(data.user);
         }
-      } catch (error) {
-        // Network error - clear cached user to be safe
-        localStorage.removeItem('auth_user');
+      } catch {
+        // Network error or not authenticated - user remains null
       } finally {
         setLoading(false);
       }
     };
 
-    loadAuth();
+    verifyAuth();
   }, []);
 
   const login = async (username: string, password: string) => {
-    try {
-      const response = await fetch(`${API_URL}/auth/login`, {
-        method: 'POST',
-        credentials: 'include',  // Receive httpOnly cookie from server
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ username, password }),
-      });
+    const response = await fetch(`${API_URL}/auth/login`, {
+      method: 'POST',
+      credentials: 'include',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ username, password }),
+    });
 
-      if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.detail || 'Login failed');
-      }
-
-      const data = await response.json();
-
-      // Store user info for UI display (token is in httpOnly cookie, not accessible via JS)
-      localStorage.setItem('auth_user', JSON.stringify(data.user));
-      setUser(data.user);
-    } catch (error) {
-      console.error('Login error:', error);
-      throw error;
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.detail || 'Login failed');
     }
+
+    const data = await response.json();
+    setUser(data.user);
   };
 
   const logout = async () => {
     try {
-      // Server will clear the httpOnly cookie and blacklist the token
       await fetch(`${API_URL}/auth/logout`, {
         method: 'POST',
-        credentials: 'include',  // Send httpOnly cookie with request
+        credentials: 'include',
       });
-    } catch (error) {
-      console.error('Logout error:', error);
     } finally {
-      // Clear local state and cached user info
-      localStorage.removeItem('auth_user');
       setUser(null);
     }
   };

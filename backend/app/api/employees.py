@@ -1,13 +1,16 @@
+import logging
+import csv
+import io
+from typing import List, Dict, Optional
+from datetime import datetime, timedelta
 from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Request
 from sqlalchemy.orm import Session
 from pydantic import BaseModel
 from app.db import models, database
 from app.api.auth import get_current_user
 from app.services.audit_service import audit_service
-import csv
-import io
-from typing import List, Dict, Optional
-from datetime import datetime, timedelta
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter(
     prefix="/employees",
@@ -417,10 +420,8 @@ def update_employee(
                 db.commit()
 
             except Exception as e:
-                print(f"Error creating comprehensive offboarding tasks: {e}")
+                logger.error(f"Error creating offboarding tasks: {e}")
                 db.rollback()
-                # Fall back to not creating tasks if there's an error
-                pass
 
     # Audit log: employee updated
     new_values = {
@@ -708,7 +709,7 @@ def change_employee_status_with_reason(
                             db.add(new_subtask)
 
             except Exception as e:
-                print(f"Error creating offboarding tasks: {e}")
+                logger.error(f"Error creating offboarding tasks: {e}")
 
     # Update status and history
     employee.status = new_status

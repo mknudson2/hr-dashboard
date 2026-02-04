@@ -1,73 +1,142 @@
-# React + TypeScript + Vite
+# HR Hub - Enterprise Human Resources Management System
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+A comprehensive HR management platform built for modern enterprises, featuring employee management, payroll processing, compliance tracking, and advanced analytics.
 
-Currently, two official plugins are available:
+## Features
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) (or [oxc](https://oxc.rs) when used in [rolldown-vite](https://vite.dev/guide/rolldown)) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+### Core HR Management
+- **Employee Directory** - Complete employee profiles with contact info, employment history, and documentation
+- **Onboarding/Offboarding** - Automated task workflows for new hires and departing employees
+- **Equipment Tracking** - Asset management for company equipment assignments
 
-## React Compiler
+### Compensation & Payroll
+- **Payroll Processing** - Semi-monthly payroll period management with approval workflows
+- **Compensation Analysis** - Market data comparisons and salary benchmarking
+- **Wage History** - Complete compensation change tracking with audit trails
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+### Compliance & Benefits
+- **FMLA Management** - Family Medical Leave Act case tracking with DOL form generation
+- **ACA Compliance** - Affordable Care Act eligibility tracking and 1095-C preparation
+- **Garnishment Processing** - Court-ordered wage garnishment calculations and tracking
+- **401(k) & Benefits** - Contribution tracking with IRS limit monitoring
 
-## Expanding the ESLint configuration
+### Analytics & Reporting
+- **Dashboard** - Real-time workforce metrics and KPIs
+- **Turnover Analysis** - Cost tracking and trend analysis for employee departures
+- **EEO Reporting** - Equal Employment Opportunity compliance reporting
+- **Custom Reports** - Exportable data in Excel and PDF formats
 
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
+### Security & Access Control
+- **Role-Based Access Control (RBAC)** - 40+ granular permissions across 8 role levels
+- **Two-Factor Authentication** - TOTP-based 2FA with backup codes
+- **Audit Logging** - Comprehensive activity tracking for compliance
+- **Session Management** - Secure token-based authentication with automatic expiry
 
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
+## Technology Stack
 
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
+### Frontend
+- **React 18** with TypeScript
+- **Tailwind CSS** for styling
+- **Framer Motion** for animations
+- **Recharts** for data visualization
+- **React Router** for navigation
 
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+### Backend
+- **FastAPI** (Python 3.12)
+- **SQLAlchemy** ORM with SQLite
+- **Pydantic** for data validation
+- **APScheduler** for background jobs
+
+## Getting Started
+
+### Prerequisites
+- Node.js 18+ and npm
+- Python 3.12+
+- Git
+
+### Installation
+
+1. **Clone the repository**
+   ```bash
+   git clone https://github.com/mknudson2/hr-dashboard.git
+   cd hr-dashboard
+   ```
+
+2. **Set up the backend**
+   ```bash
+   cd backend
+   python -m venv venv
+   source venv/bin/activate  # On Windows: venv\Scripts\activate
+   pip install -r requirements.txt
+   ```
+
+3. **Configure environment variables**
+   ```bash
+   cp .env.example .env
+   # Edit .env with your configuration
+   ```
+
+4. **Initialize the database**
+   ```bash
+   python -m app.db.seed_data
+   ```
+
+5. **Start the backend server**
+   ```bash
+   uvicorn app.main:app --reload --port 8000
+   ```
+
+6. **Set up the frontend** (new terminal)
+   ```bash
+   cd hr-dashboard  # project root
+   npm install
+   npm run dev
+   ```
+
+7. **Access the application**
+   - HR Portal: http://localhost:5173
+   - Employee Portal: http://localhost:5174
+   - API Documentation: http://localhost:8000/docs
+
+## Project Structure
+
+```
+hr-dashboard/
+├── backend/
+│   ├── app/
+│   │   ├── api/           # API route handlers
+│   │   ├── db/            # Database models and migrations
+│   │   ├── services/      # Business logic services
+│   │   └── main.py        # FastAPI application entry
+│   ├── data/              # SQLite database files
+│   └── requirements.txt
+├── src/
+│   ├── components/        # Reusable React components
+│   ├── pages/             # Page-level components
+│   ├── contexts/          # React context providers
+│   ├── services/          # API service functions
+│   └── utils/             # Utility functions
+├── employee-portal/       # Separate employee self-service app
+└── package.json
 ```
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
+## Security Features
 
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
+- **Authentication**: JWT tokens stored in httpOnly cookies (XSS protection)
+- **Password Security**: bcrypt hashing with configurable work factor
+- **Rate Limiting**: Protection against brute force attacks
+- **CSRF Protection**: Token-based cross-site request forgery prevention
+- **Input Validation**: Server-side validation on all endpoints
+- **Audit Trail**: Comprehensive logging of all data access and modifications
 
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
-```
+## API Documentation
+
+Interactive API documentation is available at `/docs` when running the backend server. The API follows RESTful conventions with JSON request/response formats.
+
+## License
+
+Proprietary - All rights reserved.
+
+## Support
+
+For technical support or questions, contact the development team.

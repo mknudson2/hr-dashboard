@@ -4,7 +4,10 @@ RBAC Protection: Garnishment data contains sensitive financial and legal informa
 Access is restricted to users with GARNISHMENTS_READ or GARNISHMENTS_WRITE permissions.
 Roles with access: admin, payroll
 """
+import logging
 from datetime import datetime, date, timedelta
+
+logger = logging.getLogger(__name__)
 from typing import Optional, List
 from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Request
 from fastapi.responses import StreamingResponse
@@ -460,7 +463,7 @@ def update_garnishment(
                     db, garnishment, employee, old_status, updates.status
                 )
             except Exception as e:
-                print(f"[GARNISHMENT] Failed to send status change notification: {e}")
+                logger.warning(f"Failed to send status change notification: {e}")
 
     return {"message": "Garnishment updated successfully", "garnishment_id": garnishment.id}
 
@@ -524,7 +527,7 @@ def add_payment(payment_data: GarnishmentPaymentCreate, db: Session = Depends(ge
                 db, garnishment, new_payment, employee
             )
         except Exception as e:
-            print(f"[GARNISHMENT] Failed to send payment notification: {e}")
+            logger.warning(f"Failed to send payment notification: {e}")
 
     return {
         "message": "Payment added successfully",
@@ -646,7 +649,7 @@ async def upload_document(
                 db, garnishment, new_document, employee
             )
         except Exception as e:
-            print(f"[GARNISHMENT] Failed to send document upload notification: {e}")
+            logger.warning(f"Failed to send document upload notification: {e}")
 
     return {
         "message": "Document uploaded successfully",

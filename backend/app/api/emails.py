@@ -1,4 +1,5 @@
 """API endpoints for email management and sending."""
+import logging
 import os
 from fastapi import APIRouter, HTTPException, Depends
 from pydantic import BaseModel, EmailStr
@@ -7,6 +8,8 @@ from sqlalchemy.orm import Session
 from app.services.email_service import email_service
 from app.db import database
 from app.api.auth import get_current_user
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter(
     prefix="/emails",
@@ -431,9 +434,7 @@ async def send_funds_transfer_email(request: FundsTransferRequest):
             "to": request.to_email
         }
     except Exception as e:
-        import traceback
-        print(f"ERROR sending funds transfer email: {str(e)}")
-        print(traceback.format_exc())
+        logger.exception(f"Error sending funds transfer email: {str(e)}")
         raise HTTPException(status_code=500, detail=f"Failed to send funds transfer email: {str(e)}")
 
 

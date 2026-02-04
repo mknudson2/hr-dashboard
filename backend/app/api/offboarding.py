@@ -1,3 +1,6 @@
+import logging
+import json
+import os
 from fastapi import APIRouter, Depends, HTTPException
 from fastapi.responses import StreamingResponse
 from sqlalchemy.orm import Session
@@ -10,8 +13,8 @@ from app.api.auth import get_current_user
 from app.services.email_service import email_service
 from app.services.offboarding_pdf_service import offboarding_pdf_service
 from app.services.exit_document_service import exit_document_service
-import json
-import os
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter(
     prefix="/offboarding",
@@ -1677,8 +1680,7 @@ def delete_exit_document(
         try:
             os.remove(file_path)
         except Exception as e:
-            # Log the error but don't fail - record is already deleted
-            print(f"Warning: Could not delete file {file_path}: {e}")
+            logger.warning(f"Could not delete file {file_path}: {e}")
 
     return {"success": True, "message": "Document deleted successfully"}
 
@@ -2111,8 +2113,7 @@ def generate_unified_documents(
             # Skip unimplemented form types
             continue
         except Exception as e:
-            # Log error but continue with other documents
-            print(f"Error generating {doc_type}: {e}")
+            logger.error(f"Error generating {doc_type}: {e}")
             continue
 
     db.commit()
