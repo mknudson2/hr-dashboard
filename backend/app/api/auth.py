@@ -307,6 +307,16 @@ def login(
             detail="User account is inactive"
         )
 
+    # Check portal access
+    portal_source = request.headers.get("X-Portal-Source", "hr")
+    if portal_source not in user.allowed_portals_list:
+        portal_label = "HR Portal" if portal_source == "hr" else "Employee Portal"
+        audit_service.log_login_failed(db, login_data.username, request, f"Portal access denied: {portal_source}")
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail=f"Your account does not have access to the {portal_label}. Please contact your administrator."
+        )
+
     # Check if 2FA is enabled
     if user.totp_enabled and user.totp_secret:
         # If 2FA code not provided, indicate that 2FA is required
@@ -376,7 +386,8 @@ def login(
             "email": user.email,
             "full_name": user.full_name,
             "role": user.role,
-            "employee_id": user.employee_id
+            "employee_id": user.employee_id,
+            "allowed_portals": user.allowed_portals_list
         },
         "requires_2fa": False,
         "password_must_change": user.password_must_change if hasattr(user, 'password_must_change') else False,

@@ -7,10 +7,11 @@ Roles with access: admin only
 from fastapi import APIRouter, Depends, HTTPException, status, Query, Request
 from sqlalchemy.orm import Session
 from sqlalchemy import or_, func
-from pydantic import BaseModel, EmailStr
+from pydantic import BaseModel, EmailStr, field_validator
 from typing import Optional, List
 from datetime import datetime
 import bcrypt
+import json
 from app.db import models, database
 from app.api.auth import get_current_user
 from app.services.audit_service import audit_service
@@ -37,6 +38,9 @@ def get_db():
 # PYDANTIC SCHEMAS
 # ============================================================================
 
+VALID_PORTALS = {"hr", "employee-portal"}
+
+
 class UserCreate(BaseModel):
     username: str
     email: EmailStr
@@ -45,6 +49,7 @@ class UserCreate(BaseModel):
     role: str = "employee"
     employee_id: Optional[str] = None
     is_active: bool = True
+    allowed_portals: List[str] = ["employee-portal"]
 
 
 class UserUpdate(BaseModel):
@@ -53,6 +58,7 @@ class UserUpdate(BaseModel):
     role: Optional[str] = None
     employee_id: Optional[str] = None
     is_active: Optional[bool] = None
+    allowed_portals: Optional[List[str]] = None
 
 
 class UserPasswordReset(BaseModel):
@@ -68,8 +74,16 @@ class UserResponse(BaseModel):
     employee_id: Optional[str]
     is_active: bool
     totp_enabled: bool
+    allowed_portals: List[str] = ["employee-portal"]
     created_at: datetime
     last_login: Optional[datetime]
+
+    @field_validator("allowed_portals", mode="before")
+    @classmethod
+    def parse_portals(cls, v):
+        if isinstance(v, str):
+            return json.loads(v)
+        return v or ["employee-portal"]
 
     class Config:
         from_attributes = True
@@ -204,6 +218,15 @@ def create_user(
             detail=f"Invalid role. Must be one of: {', '.join(valid_roles)}"
         )
 
+    # Validate allowed_portals
+    if user_data.allowed_portals:
+        invalid = set(user_data.allowed_portals) - VALID_PORTALS
+        if invalid:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"Invalid portal values: {', '.join(invalid)}. Must be: {', '.join(VALID_PORTALS)}"
+            )
+
     # Validate password strength (NIST 800-63B compliance)
     is_valid, error = password_service.validate_password(
         user_data.password,
@@ -227,7 +250,8 @@ def create_user(
         password_hash=password_hash,
         role=user_data.role,
         employee_id=user_data.employee_id,
-        is_active=user_data.is_active
+        is_active=user_data.is_active,
+        allowed_portals=json.dumps(user_data.allowed_portals),
     )
 
     db.add(new_user)
@@ -320,6 +344,15 @@ def update_user(
 
     if user_data.is_active is not None:
         user.is_active = user_data.is_active
+
+    if user_data.allowed_portals is not None:
+        invalid = set(user_data.allowed_portals) - VALID_PORTALS
+        if invalid:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"Invalid portal values: {', '.join(invalid)}. Must be: {', '.join(VALID_PORTALS)}"
+            )
+        user.allowed_portals = json.dumps(user_data.allowed_portals)
 
     user.updated_at = datetime.utcnow()
     db.commit()

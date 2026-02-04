@@ -7,7 +7,7 @@ compensation, benefits, time off, and documents.
 
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
-from sqlalchemy import and_
+from sqlalchemy import and_, extract, func
 from typing import Optional, List
 from datetime import date, datetime
 from pydantic import BaseModel
@@ -115,11 +115,23 @@ class TotalCompBreakdown(BaseModel):
     benefits_breakdown: List[BenefitLineItem] = []
 
 
+class OvertimeMonthly(BaseModel):
+    month: int  # 1-12
+    month_name: str
+    hours: float
+    earnings: float
+
+class OvertimeSummary(BaseModel):
+    ytd_hours: float
+    ytd_earnings: float
+    monthly_breakdown: List[OvertimeMonthly]
+
 class CompensationResponse(BaseModel):
     salary: SalaryInfo
     salary_history: List[SalaryChange]
     bonuses: List[BonusSummary]
     equity_grants: List[EquitySummary]
+    overtime: Optional[OvertimeSummary] = None
     total_compensation_ytd: float
     total_compensation_breakdown: Optional[TotalCompBreakdown] = None
 
@@ -444,11 +456,48 @@ def get_compensation(
         benefits_breakdown=benefits_breakdown,
     )
 
+    # Overtime data from PTORecord table (YTD + monthly breakdown)
+    import calendar
+    current_year = datetime.now().year
+    ot_records = db.query(models.PTORecord).filter(
+        models.PTORecord.employee_id == employee.employee_id,
+        extract('year', models.PTORecord.pay_period_date) == current_year
+    ).all()
+
+    ytd_ot_hours = sum(r.pto_hours or 0 for r in ot_records)
+    ytd_ot_earnings = sum(r.pto_cost or 0 for r in ot_records)
+
+    # Group by month
+    monthly_map: dict[int, dict] = {}
+    for r in ot_records:
+        m = r.pay_period_date.month
+        if m not in monthly_map:
+            monthly_map[m] = {"hours": 0.0, "earnings": 0.0}
+        monthly_map[m]["hours"] += r.pto_hours or 0
+        monthly_map[m]["earnings"] += r.pto_cost or 0
+
+    monthly_breakdown = [
+        OvertimeMonthly(
+            month=m,
+            month_name=calendar.month_abbr[m],
+            hours=round(monthly_map.get(m, {}).get("hours", 0), 2),
+            earnings=round(monthly_map.get(m, {}).get("earnings", 0), 2),
+        )
+        for m in range(1, 13)
+    ]
+
+    overtime_summary = OvertimeSummary(
+        ytd_hours=round(ytd_ot_hours, 2),
+        ytd_earnings=round(ytd_ot_earnings, 2),
+        monthly_breakdown=monthly_breakdown,
+    )
+
     return CompensationResponse(
         salary=salary,
         salary_history=salary_history,
         bonuses=bonuses,
         equity_grants=equity_grants,
+        overtime=overtime_summary,
         total_compensation_ytd=total_compensation_ytd,
         total_compensation_breakdown=total_comp_breakdown
     )
@@ -702,16 +751,16 @@ class PerformanceReviewDetail(BaseModel):
     status: str
     submitted_date: Optional[datetime] = None
     acknowledged_date: Optional[datetime] = None
-    # Ratings
-    overall_rating: Optional[int] = None
-    quality_of_work: Optional[int] = None
-    productivity: Optional[int] = None
-    communication: Optional[int] = None
-    teamwork: Optional[int] = None
-    initiative: Optional[int] = None
-    leadership: Optional[int] = None
-    problem_solving: Optional[int] = None
-    attendance_punctuality: Optional[int] = None
+    # Ratings (float to support decimal scores)
+    overall_rating: Optional[float] = None
+    quality_of_work: Optional[float] = None
+    productivity: Optional[float] = None
+    communication: Optional[float] = None
+    teamwork: Optional[float] = None
+    initiative: Optional[float] = None
+    leadership: Optional[float] = None
+    problem_solving: Optional[float] = None
+    attendance_punctuality: Optional[float] = None
     # Feedback
     strengths: Optional[str] = None
     areas_for_improvement: Optional[str] = None
@@ -725,12 +774,12 @@ class PerformanceReviewDetail(BaseModel):
 class SelfReviewDetail(BaseModel):
     id: int
     submitted_date: Optional[date] = None
-    overall_rating: Optional[int] = None
-    quality_of_work: Optional[int] = None
-    collaboration: Optional[int] = None
-    communication: Optional[int] = None
-    leadership: Optional[int] = None
-    technical_skills: Optional[int] = None
+    overall_rating: Optional[float] = None
+    quality_of_work: Optional[float] = None
+    collaboration: Optional[float] = None
+    communication: Optional[float] = None
+    leadership: Optional[float] = None
+    technical_skills: Optional[float] = None
     strengths: Optional[str] = None
     areas_for_improvement: Optional[str] = None
     specific_examples: Optional[str] = None
@@ -907,3 +956,434 @@ def get_my_performance(
         past_reviews=past_reviews,
         current_cycle=current_cycle_info
     )
+
+
+# ============================================================================
+# Goals Endpoints (Employee View)
+# ============================================================================
+
+class GoalProgressEntryResponse(BaseModel):
+    id: int
+    entry_date: datetime
+    updated_by: Optional[str] = None
+    progress_percentage: Optional[float] = None
+    value: Optional[float] = None
+    notes: Optional[str] = None
+    previous_progress: Optional[float] = None
+    new_progress: Optional[float] = None
+
+class GoalMilestoneResponse(BaseModel):
+    id: int
+    title: str
+    description: Optional[str] = None
+    sequence_order: Optional[int] = None
+    due_date: Optional[date] = None
+    completed_date: Optional[date] = None
+    status: str
+    completion_notes: Optional[str] = None
+    weight: Optional[float] = None
+
+class MyGoalResponse(BaseModel):
+    id: int
+    goal_id: str
+    goal_title: str
+    goal_description: Optional[str] = None
+    goal_type: Optional[str] = None
+    category: Optional[str] = None
+    status: str
+    priority: Optional[str] = None
+    progress_percentage: float
+    start_date: Optional[date] = None
+    target_date: Optional[date] = None
+    completed_date: Optional[date] = None
+    measurement_criteria: Optional[str] = None
+    target_value: Optional[str] = None
+    current_value: Optional[str] = None
+    unit_of_measure: Optional[str] = None
+    tracking_type: Optional[str] = None
+    counter_current: Optional[int] = None
+    counter_target: Optional[int] = None
+    milestones_total: Optional[int] = None
+    milestones_completed: Optional[int] = None
+    notes: Optional[str] = None
+    last_update_notes: Optional[str] = None
+    last_updated_by: Optional[str] = None
+    weight: Optional[float] = None
+    score: Optional[float] = None
+    created_at: datetime
+    updated_at: Optional[datetime] = None
+
+class MyGoalDetailResponse(MyGoalResponse):
+    progress_entries: List[GoalProgressEntryResponse] = []
+    milestones: List[GoalMilestoneResponse] = []
+
+class MyGoalsListResponse(BaseModel):
+    goals: List[MyGoalResponse]
+    summary: dict  # total, by status, on track %, etc.
+
+
+@router.get("/goals", response_model=MyGoalsListResponse)
+def get_my_goals(
+    status: Optional[str] = None,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(require_any_permission(
+        Permissions.EMPLOYEE_PORTAL_ACCESS,
+        Permissions.EMPLOYEE_PROFILE_READ
+    ))
+):
+    """Get the current user's performance goals."""
+    employee = get_employee_for_user(db, current_user)
+
+    query = db.query(models.PerformanceGoal).filter(
+        models.PerformanceGoal.employee_id == employee.employee_id
+    )
+
+    if status:
+        query = query.filter(models.PerformanceGoal.status == status)
+
+    goals = query.order_by(
+        models.PerformanceGoal.target_date.asc(),
+        models.PerformanceGoal.priority.desc()
+    ).all()
+
+    goal_responses = [
+        MyGoalResponse(
+            id=g.id,
+            goal_id=g.goal_id,
+            goal_title=g.goal_title,
+            goal_description=g.goal_description,
+            goal_type=g.goal_type,
+            category=g.category,
+            status=g.status or "Not Started",
+            priority=g.priority,
+            progress_percentage=g.progress_percentage or 0,
+            start_date=g.start_date,
+            target_date=g.target_date,
+            completed_date=g.completed_date,
+            measurement_criteria=g.measurement_criteria,
+            target_value=g.target_value,
+            current_value=g.current_value,
+            unit_of_measure=g.unit_of_measure,
+            tracking_type=g.tracking_type,
+            counter_current=g.counter_current,
+            counter_target=g.counter_target,
+            milestones_total=g.milestones_total,
+            milestones_completed=g.milestones_completed,
+            notes=g.notes,
+            last_update_notes=g.last_update_notes,
+            last_updated_by=g.last_updated_by,
+            weight=g.weight,
+            score=g.score,
+            created_at=g.created_at,
+            updated_at=g.updated_at,
+        )
+        for g in goals
+    ]
+
+    # Calculate summary
+    total = len(goals)
+    by_status = {}
+    on_track_count = 0
+    for g in goals:
+        s = g.status or "Not Started"
+        by_status[s] = by_status.get(s, 0) + 1
+        if s in ("On Track", "Completed"):
+            on_track_count += 1
+
+    summary = {
+        "total": total,
+        "by_status": by_status,
+        "on_track_percentage": round((on_track_count / total) * 100, 1) if total > 0 else 0,
+        "completed": by_status.get("Completed", 0),
+        "in_progress": by_status.get("In Progress", 0) + by_status.get("On Track", 0),
+        "at_risk": by_status.get("At Risk", 0) + by_status.get("Behind", 0),
+    }
+
+    return MyGoalsListResponse(goals=goal_responses, summary=summary)
+
+
+@router.get("/goals/{goal_id}", response_model=MyGoalDetailResponse)
+def get_my_goal_detail(
+    goal_id: int,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(require_any_permission(
+        Permissions.EMPLOYEE_PORTAL_ACCESS,
+        Permissions.EMPLOYEE_PROFILE_READ
+    ))
+):
+    """Get detailed information about a specific goal including progress history."""
+    employee = get_employee_for_user(db, current_user)
+
+    goal = db.query(models.PerformanceGoal).filter(
+        models.PerformanceGoal.id == goal_id,
+        models.PerformanceGoal.employee_id == employee.employee_id
+    ).first()
+
+    if not goal:
+        raise HTTPException(status_code=404, detail="Goal not found")
+
+    # Get progress entries
+    progress_entries = [
+        GoalProgressEntryResponse(
+            id=pe.id,
+            entry_date=pe.entry_date or pe.created_at,
+            updated_by=pe.updated_by,
+            progress_percentage=pe.progress_percentage,
+            value=pe.value,
+            notes=pe.notes,
+            previous_progress=pe.previous_progress,
+            new_progress=pe.new_progress,
+        )
+        for pe in (goal.progress_entries or [])
+    ]
+
+    # Get milestones
+    milestones = [
+        GoalMilestoneResponse(
+            id=m.id,
+            title=m.title,
+            description=m.description,
+            sequence_order=m.sequence_order,
+            due_date=m.due_date,
+            completed_date=m.completed_date,
+            status=m.status or "pending",
+            completion_notes=m.completion_notes,
+            weight=m.weight,
+        )
+        for m in sorted(goal.milestones or [], key=lambda x: x.sequence_order or 0)
+    ]
+
+    return MyGoalDetailResponse(
+        id=goal.id,
+        goal_id=goal.goal_id,
+        goal_title=goal.goal_title,
+        goal_description=goal.goal_description,
+        goal_type=goal.goal_type,
+        category=goal.category,
+        status=goal.status or "Not Started",
+        priority=goal.priority,
+        progress_percentage=goal.progress_percentage or 0,
+        start_date=goal.start_date,
+        target_date=goal.target_date,
+        completed_date=goal.completed_date,
+        measurement_criteria=goal.measurement_criteria,
+        target_value=goal.target_value,
+        current_value=goal.current_value,
+        unit_of_measure=goal.unit_of_measure,
+        tracking_type=goal.tracking_type,
+        counter_current=goal.counter_current,
+        counter_target=goal.counter_target,
+        milestones_total=goal.milestones_total,
+        milestones_completed=goal.milestones_completed,
+        notes=goal.notes,
+        last_update_notes=goal.last_update_notes,
+        last_updated_by=goal.last_updated_by,
+        weight=goal.weight,
+        score=goal.score,
+        created_at=goal.created_at,
+        updated_at=goal.updated_at,
+        progress_entries=progress_entries,
+        milestones=milestones,
+    )
+
+
+# ============================================================================
+# PIP Endpoints (Employee View)
+# ============================================================================
+
+class PIPNoteResponse(BaseModel):
+    id: int
+    note_text: str
+    note_type: Optional[str] = None
+    created_by: Optional[str] = None
+    created_at: datetime
+
+class PIPMilestoneResponse(BaseModel):
+    id: int
+    milestone_title: str
+    description: Optional[str] = None
+    due_date: Optional[date] = None
+    status: str
+    completed_date: Optional[date] = None
+    notes: Optional[str] = None
+
+class MyPIPResponse(BaseModel):
+    id: int
+    pip_id: str
+    title: str
+    status: str
+    reason: Optional[str] = None
+    performance_issues: Optional[str] = None
+    start_date: Optional[date] = None
+    end_date: Optional[date] = None
+    review_frequency: Optional[str] = None
+    next_review_date: Optional[date] = None
+    expectations: Optional[str] = None
+    success_criteria: Optional[str] = None
+    support_provided: Optional[str] = None
+    manager_name: Optional[str] = None
+    hr_partner: Optional[str] = None
+    progress_notes: Optional[str] = None
+    employee_acknowledged: bool = False
+    employee_acknowledgment_date: Optional[date] = None
+    created_at: datetime
+    updated_at: Optional[datetime] = None
+
+class MyPIPDetailResponse(MyPIPResponse):
+    notes: List[PIPNoteResponse] = []
+    milestones: List[PIPMilestoneResponse] = []
+
+class MyPIPsListResponse(BaseModel):
+    pips: List[MyPIPResponse]
+    has_active_pip: bool
+
+
+@router.get("/pips", response_model=MyPIPsListResponse)
+def get_my_pips(
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(require_any_permission(
+        Permissions.EMPLOYEE_PORTAL_ACCESS,
+        Permissions.EMPLOYEE_PROFILE_READ
+    ))
+):
+    """Get the current user's Performance Improvement Plans (if any)."""
+    employee = get_employee_for_user(db, current_user)
+
+    pips = db.query(models.PerformanceImprovementPlan).filter(
+        models.PerformanceImprovementPlan.employee_id == employee.employee_id
+    ).order_by(
+        models.PerformanceImprovementPlan.created_at.desc()
+    ).all()
+
+    pip_responses = [
+        MyPIPResponse(
+            id=p.id,
+            pip_id=p.pip_id,
+            title=p.title,
+            status=p.status or "Draft",
+            reason=p.reason,
+            performance_issues=p.performance_issues,
+            start_date=p.start_date,
+            end_date=p.end_date,
+            review_frequency=p.review_frequency,
+            next_review_date=p.next_review_date,
+            expectations=p.expectations,
+            success_criteria=p.success_criteria,
+            support_provided=p.support_provided,
+            manager_name=p.manager_name,
+            hr_partner=p.hr_partner,
+            progress_notes=p.progress_notes,
+            employee_acknowledged=p.employee_acknowledged or False,
+            employee_acknowledgment_date=p.employee_acknowledgment_date,
+            created_at=p.created_at,
+            updated_at=p.updated_at,
+        )
+        for p in pips
+    ]
+
+    has_active = any(p.status in ("Active", "Extended", "Draft") for p in pips)
+
+    return MyPIPsListResponse(pips=pip_responses, has_active_pip=has_active)
+
+
+@router.get("/pips/{pip_id}", response_model=MyPIPDetailResponse)
+def get_my_pip_detail(
+    pip_id: int,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(require_any_permission(
+        Permissions.EMPLOYEE_PORTAL_ACCESS,
+        Permissions.EMPLOYEE_PROFILE_READ
+    ))
+):
+    """Get detailed information about a specific PIP."""
+    employee = get_employee_for_user(db, current_user)
+
+    pip = db.query(models.PerformanceImprovementPlan).filter(
+        models.PerformanceImprovementPlan.id == pip_id,
+        models.PerformanceImprovementPlan.employee_id == employee.employee_id
+    ).first()
+
+    if not pip:
+        raise HTTPException(status_code=404, detail="PIP not found")
+
+    # Get notes (visible to employee)
+    notes = [
+        PIPNoteResponse(
+            id=n.id,
+            note_text=n.note_text,
+            note_type=n.note_type,
+            created_by=n.created_by,
+            created_at=n.created_at,
+        )
+        for n in (pip.pip_notes or [])
+    ]
+
+    # Get milestones
+    milestones = [
+        PIPMilestoneResponse(
+            id=m.id,
+            milestone_title=m.milestone_title,
+            description=m.description,
+            due_date=m.due_date,
+            status=m.status or "Pending",
+            completed_date=m.completed_date,
+            notes=m.notes,
+        )
+        for m in (pip.pip_milestones or [])
+    ]
+
+    return MyPIPDetailResponse(
+        id=pip.id,
+        pip_id=pip.pip_id,
+        title=pip.title,
+        status=pip.status or "Draft",
+        reason=pip.reason,
+        performance_issues=pip.performance_issues,
+        start_date=pip.start_date,
+        end_date=pip.end_date,
+        review_frequency=pip.review_frequency,
+        next_review_date=pip.next_review_date,
+        expectations=pip.expectations,
+        success_criteria=pip.success_criteria,
+        support_provided=pip.support_provided,
+        manager_name=pip.manager_name,
+        hr_partner=pip.hr_partner,
+        progress_notes=pip.progress_notes,
+        employee_acknowledged=pip.employee_acknowledged or False,
+        employee_acknowledgment_date=pip.employee_acknowledgment_date,
+        created_at=pip.created_at,
+        updated_at=pip.updated_at,
+        notes=notes,
+        milestones=milestones,
+    )
+
+
+@router.post("/pips/{pip_id}/acknowledge")
+def acknowledge_pip(
+    pip_id: int,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(require_any_permission(
+        Permissions.EMPLOYEE_PORTAL_ACCESS,
+        Permissions.EMPLOYEE_PROFILE_READ
+    ))
+):
+    """Employee acknowledges receipt and understanding of PIP."""
+    employee = get_employee_for_user(db, current_user)
+
+    pip = db.query(models.PerformanceImprovementPlan).filter(
+        models.PerformanceImprovementPlan.id == pip_id,
+        models.PerformanceImprovementPlan.employee_id == employee.employee_id
+    ).first()
+
+    if not pip:
+        raise HTTPException(status_code=404, detail="PIP not found")
+
+    if pip.employee_acknowledged:
+        raise HTTPException(status_code=400, detail="PIP already acknowledged")
+
+    pip.employee_acknowledged = True
+    pip.employee_acknowledgment_date = date.today()
+    pip.updated_at = datetime.now()
+    db.commit()
+
+    return {"success": True, "message": "PIP acknowledged successfully"}

@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { apiGet } from '@/utils/api';
-import { DollarSign, TrendingUp, Calendar, Award, AlertCircle, ChevronDown, ChevronUp } from 'lucide-react';
+import { DollarSign, TrendingUp, Clock, Award, AlertCircle, ChevronDown, ChevronUp, Info } from 'lucide-react';
 import { motion } from 'framer-motion';
 
 interface SalaryInfo {
@@ -43,6 +43,19 @@ interface EquitySummary {
   status: string;
 }
 
+interface OvertimeMonthly {
+  month: number;
+  month_name: string;
+  hours: number;
+  earnings: number;
+}
+
+interface OvertimeSummary {
+  ytd_hours: number;
+  ytd_earnings: number;
+  monthly_breakdown: OvertimeMonthly[];
+}
+
 interface BenefitLineItem {
   benefit_type: string;
   employee_annual: number;
@@ -62,6 +75,7 @@ interface CompensationData {
   salary_history: SalaryChange[];
   bonuses: BonusSummary[];
   equity_grants: EquitySummary[];
+  overtime: OvertimeSummary | null;
   total_compensation_ytd: number;
   total_compensation_breakdown: TotalCompBreakdown | null;
 }
@@ -71,6 +85,7 @@ export default function Compensation() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [showFullHistory, setShowFullHistory] = useState(false);
+  const [showFlsaInfo, setShowFlsaInfo] = useState(false);
 
   useEffect(() => {
     const fetchCompensation = async () => {
@@ -141,7 +156,7 @@ export default function Compensation() {
       <div>
         <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Compensation</h1>
         <p className="text-gray-600 dark:text-gray-400 mt-1">
-          View your salary, bonuses, and equity information
+          View your salary, bonuses, and overtime information
         </p>
       </div>
 
@@ -224,14 +239,45 @@ export default function Compensation() {
         >
           <div className="flex items-start justify-between">
             <div>
-              <p className="text-sm text-gray-500 dark:text-gray-400 font-medium">Equity Vested</p>
-              <p className="text-2xl font-bold text-gray-900 dark:text-white mt-1">
-                {data?.equity_grants.reduce((sum, g) => sum + g.shares_vested, 0).toLocaleString() || 0}
-              </p>
-              <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">shares</p>
+              <p className="text-sm text-gray-500 dark:text-gray-400 font-medium">Overtime (YTD)</p>
+              {data?.salary.wage_type === 'Salary' ? (
+                <div className="mt-1 relative">
+                  <span className="text-lg font-bold text-gray-900 dark:text-white">
+                    FLSA Exempt
+                  </span>
+                  <button
+                    onClick={() => setShowFlsaInfo(!showFlsaInfo)}
+                    className="inline-block align-top ml-1 text-gray-400 hover:text-blue-500 transition-colors"
+                    aria-label="What does FLSA Exempt mean?"
+                  >
+                    <Info size={14} />
+                  </button>
+                  {showFlsaInfo && (
+                    <div className="absolute top-full left-0 mt-2 w-72 bg-gray-900 dark:bg-gray-100 text-white dark:text-gray-900 text-xs rounded-lg p-3 shadow-lg z-20">
+                      <p className="font-semibold mb-1">FLSA Exempt Status</p>
+                      <p>Under the Fair Labor Standards Act (FLSA), salaried employees who meet certain duties and salary thresholds are classified as "exempt" and are not eligible for overtime pay. This means overtime hours and earnings do not apply to your compensation.</p>
+                      <button
+                        onClick={() => setShowFlsaInfo(false)}
+                        className="mt-2 text-blue-300 dark:text-blue-600 hover:underline text-xs"
+                      >
+                        Dismiss
+                      </button>
+                    </div>
+                  )}
+                </div>
+              ) : (
+                <>
+                  <p className="text-2xl font-bold text-gray-900 dark:text-white mt-1">
+                    {formatCurrency(data?.overtime?.ytd_earnings || 0)}
+                  </p>
+                  <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                    {(data?.overtime?.ytd_hours || 0).toFixed(1)} hours
+                  </p>
+                </>
+              )}
             </div>
-            <div className="p-3 rounded-lg bg-purple-50 dark:bg-purple-900/30 text-purple-600 dark:text-purple-400">
-              <Calendar size={24} />
+            <div className="p-3 rounded-lg bg-orange-50 dark:bg-orange-900/30 text-orange-600 dark:text-orange-400">
+              <Clock size={24} />
             </div>
           </div>
         </motion.div>
@@ -526,66 +572,69 @@ export default function Compensation() {
         );
       })()}
 
-      {/* Equity Grants */}
-      <motion.div
+      {/* Overtime - Annual Visualization (hourly employees only) */}
+      {data?.salary.wage_type !== 'Salary' && <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.7 }}
         className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-300 dark:border-gray-700 p-6"
       >
-        <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Equity Grants</h3>
-        {data?.equity_grants && data.equity_grants.length > 0 ? (
-          <div className="overflow-x-auto">
-            <table className="w-full">
-              <thead>
-                <tr className="text-left text-sm text-gray-500 dark:text-gray-400 border-b border-gray-300 dark:border-gray-700">
-                  <th className="pb-3 font-medium">Grant Type</th>
-                  <th className="pb-3 font-medium">Grant Date</th>
-                  <th className="pb-3 font-medium text-right">Shares Granted</th>
-                  <th className="pb-3 font-medium text-right">Shares Vested</th>
-                  <th className="pb-3 font-medium text-right">Strike Price</th>
-                  <th className="pb-3 font-medium">Status</th>
-                </tr>
-              </thead>
-              <tbody>
-                {data.equity_grants.map((grant) => (
-                  <tr key={grant.id} className="border-b border-gray-100 dark:border-gray-700 last:border-0">
-                    <td className="py-3 text-gray-900 dark:text-white font-medium">{grant.grant_type}</td>
-                    <td className="py-3 text-gray-600 dark:text-gray-400">{formatDate(grant.grant_date)}</td>
-                    <td className="py-3 text-gray-900 dark:text-white text-right">
-                      {grant.shares_granted.toLocaleString()}
-                    </td>
-                    <td className="py-3 text-gray-900 dark:text-white text-right">
-                      {grant.shares_vested.toLocaleString()}
-                      <span className="text-gray-500 dark:text-gray-400 text-sm ml-1">
-                        ({((grant.shares_vested / grant.shares_granted) * 100).toFixed(0)}%)
-                      </span>
-                    </td>
-                    <td className="py-3 text-gray-600 dark:text-gray-400 text-right">
-                      {grant.strike_price ? formatCurrency(grant.strike_price) : '-'}
-                    </td>
-                    <td className="py-3">
-                      <span
-                        className={`text-xs px-2 py-0.5 rounded-full ${
-                          grant.status === 'Active'
-                            ? 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400'
-                            : grant.status === 'Fully Vested'
-                              ? 'bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400'
-                              : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-400'
-                        }`}
-                      >
-                        {grant.status}
-                      </span>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+        <div className="flex items-center justify-between mb-6">
+          <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Overtime Earnings</h3>
+          <div className="text-right">
+            <p className="text-sm text-gray-500 dark:text-gray-400">YTD Total</p>
+            <p className="text-lg font-bold text-gray-900 dark:text-white">
+              {formatCurrency(data?.overtime?.ytd_earnings || 0)}
+            </p>
+            <p className="text-xs text-gray-500 dark:text-gray-400">
+              {(data?.overtime?.ytd_hours || 0).toFixed(1)} hours
+            </p>
           </div>
-        ) : (
-          <p className="text-gray-500 dark:text-gray-400 text-sm">No equity grants on record.</p>
-        )}
-      </motion.div>
+        </div>
+        {(() => {
+          const months = data?.overtime?.monthly_breakdown || [];
+          const maxEarnings = Math.max(...months.map((m) => m.earnings), 1);
+          const hasData = months.some((m) => m.earnings > 0);
+
+          if (!hasData) {
+            return (
+              <p className="text-gray-500 dark:text-gray-400 text-sm">No overtime records for this year.</p>
+            );
+          }
+
+          return (
+            <div>
+              {/* Bar chart */}
+              <div className="flex items-end gap-2 h-48 mb-2">
+                {months.map((m) => {
+                  const heightPct = maxEarnings > 0 ? (m.earnings / maxEarnings) * 100 : 0;
+                  return (
+                    <div key={m.month} className="flex-1 flex flex-col items-center justify-end h-full group relative">
+                      {m.earnings > 0 && (
+                        <div className="absolute bottom-full mb-1 hidden group-hover:block bg-gray-900 dark:bg-gray-100 text-white dark:text-gray-900 text-xs rounded px-2 py-1 whitespace-nowrap z-10">
+                          {formatCurrency(m.earnings)} / {m.hours.toFixed(1)}h
+                        </div>
+                      )}
+                      <div
+                        className="w-full rounded-t bg-orange-500 dark:bg-orange-400 transition-all duration-300"
+                        style={{ height: `${Math.max(heightPct, m.earnings > 0 ? 4 : 0)}%` }}
+                      />
+                    </div>
+                  );
+                })}
+              </div>
+              {/* Month labels */}
+              <div className="flex gap-2">
+                {months.map((m) => (
+                  <div key={m.month} className="flex-1 text-center text-xs text-gray-500 dark:text-gray-400">
+                    {m.month_name}
+                  </div>
+                ))}
+              </div>
+            </div>
+          );
+        })()}
+      </motion.div>}
     </div>
   );
 }

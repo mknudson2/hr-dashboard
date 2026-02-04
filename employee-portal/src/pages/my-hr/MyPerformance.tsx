@@ -1,8 +1,8 @@
 import { useEffect, useState } from 'react';
 import { apiGet, apiPost } from '@/utils/api';
-import { TrendingUp, AlertCircle, Star, Clock, CheckCircle, FileText, Send, Calendar, Award, User } from 'lucide-react';
+import { TrendingUp, AlertCircle, Star, Clock, CheckCircle, FileText, Send, Award, Target, AlertTriangle, ChevronDown, ChevronUp } from 'lucide-react';
 import { motion } from 'framer-motion';
-import { RatingCategory, StarRatingInput } from '@/components/performance';
+import { RatingCategory } from '@/components/performance';
 
 interface SelfReview {
   id: number;
@@ -81,12 +81,133 @@ interface MyPerformanceData {
   current_cycle: ReviewCycle | null;
 }
 
+// Goal interfaces
+interface GoalProgressEntry {
+  id: number;
+  entry_date: string;
+  updated_by: string | null;
+  progress_percentage: number | null;
+  value: number | null;
+  notes: string | null;
+  previous_progress: number | null;
+  new_progress: number | null;
+}
+
+interface GoalMilestone {
+  id: number;
+  title: string;
+  description: string | null;
+  sequence_order: number | null;
+  due_date: string | null;
+  completed_date: string | null;
+  status: string;
+  completion_notes: string | null;
+  weight: number | null;
+}
+
+interface Goal {
+  id: number;
+  goal_id: string;
+  goal_title: string;
+  goal_description: string | null;
+  goal_type: string | null;
+  category: string | null;
+  status: string;
+  priority: string | null;
+  progress_percentage: number;
+  start_date: string | null;
+  target_date: string | null;
+  completed_date: string | null;
+  measurement_criteria: string | null;
+  target_value: string | null;
+  current_value: string | null;
+  unit_of_measure: string | null;
+  tracking_type: string | null;
+  counter_current: number | null;
+  counter_target: number | null;
+  milestones_total: number | null;
+  milestones_completed: number | null;
+  notes: string | null;
+  last_update_notes: string | null;
+  last_updated_by: string | null;
+  weight: number | null;
+  score: number | null;
+  created_at: string;
+  updated_at: string | null;
+  progress_entries?: GoalProgressEntry[];
+  milestones?: GoalMilestone[];
+}
+
+interface GoalsData {
+  goals: Goal[];
+  summary: {
+    total: number;
+    by_status: Record<string, number>;
+    on_track_percentage: number;
+    completed: number;
+    in_progress: number;
+    at_risk: number;
+  };
+}
+
+// PIP interfaces
+interface PIPNote {
+  id: number;
+  note_text: string;
+  note_type: string | null;
+  created_by: string | null;
+  created_at: string;
+}
+
+interface PIPMilestone {
+  id: number;
+  milestone_title: string;
+  description: string | null;
+  due_date: string | null;
+  status: string;
+  completed_date: string | null;
+  notes: string | null;
+}
+
+interface PIP {
+  id: number;
+  pip_id: string;
+  title: string;
+  status: string;
+  reason: string | null;
+  performance_issues: string | null;
+  start_date: string | null;
+  end_date: string | null;
+  review_frequency: string | null;
+  next_review_date: string | null;
+  expectations: string | null;
+  success_criteria: string | null;
+  support_provided: string | null;
+  manager_name: string | null;
+  hr_partner: string | null;
+  progress_notes: string | null;
+  employee_acknowledged: boolean;
+  employee_acknowledgment_date: string | null;
+  created_at: string;
+  updated_at: string | null;
+  notes?: PIPNote[];
+  milestones?: PIPMilestone[];
+}
+
+interface PIPsData {
+  pips: PIP[];
+  has_active_pip: boolean;
+}
+
 export default function MyPerformance() {
   const [data, setData] = useState<MyPerformanceData | null>(null);
+  const [goalsData, setGoalsData] = useState<GoalsData | null>(null);
+  const [pipsData, setPipsData] = useState<PIPsData | null>(null);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [activeTab, setActiveTab] = useState<'current' | 'history'>('current');
+  const [activeTab, setActiveTab] = useState<'current' | 'history' | 'goals' | 'pips'>('current');
+  const [expandedGoals, setExpandedGoals] = useState<Set<number>>(new Set());
 
   // Self-review form state
   const [selfReviewRatings, setSelfReviewRatings] = useState({
@@ -112,30 +233,39 @@ export default function MyPerformance() {
     const fetchData = async () => {
       try {
         setLoading(true);
-        const result = await apiGet<MyPerformanceData>('/portal/my-hr/performance');
-        setData(result);
+
+        // Fetch all data in parallel
+        const [performanceResult, goalsResult, pipsResult] = await Promise.all([
+          apiGet<MyPerformanceData>('/portal/my-hr/performance'),
+          apiGet<GoalsData>('/portal/my-hr/goals'),
+          apiGet<PIPsData>('/portal/my-hr/pips'),
+        ]);
+
+        setData(performanceResult);
+        setGoalsData(goalsResult);
+        setPipsData(pipsResult);
 
         // Initialize self-review form if exists
-        if (result.self_review) {
+        if (performanceResult.self_review) {
           setSelfReviewRatings({
-            overall_rating: result.self_review.overall_rating || 0,
-            quality_of_work: result.self_review.quality_of_work || 0,
-            collaboration: result.self_review.collaboration || 0,
-            communication: result.self_review.communication || 0,
-            leadership: result.self_review.leadership || 0,
-            technical_skills: result.self_review.technical_skills || 0,
+            overall_rating: performanceResult.self_review.overall_rating || 0,
+            quality_of_work: performanceResult.self_review.quality_of_work || 0,
+            collaboration: performanceResult.self_review.collaboration || 0,
+            communication: performanceResult.self_review.communication || 0,
+            leadership: performanceResult.self_review.leadership || 0,
+            technical_skills: performanceResult.self_review.technical_skills || 0,
           });
           setSelfReviewText({
-            strengths: result.self_review.strengths || '',
-            areas_for_improvement: result.self_review.areas_for_improvement || '',
-            specific_examples: result.self_review.specific_examples || '',
-            additional_comments: result.self_review.additional_comments || '',
+            strengths: performanceResult.self_review.strengths || '',
+            areas_for_improvement: performanceResult.self_review.areas_for_improvement || '',
+            specific_examples: performanceResult.self_review.specific_examples || '',
+            additional_comments: performanceResult.self_review.additional_comments || '',
           });
         }
 
         // Initialize acknowledge comments if exists
-        if (result.current_review?.employee_comments) {
-          setAcknowledgeComments(result.current_review.employee_comments);
+        if (performanceResult.current_review?.employee_comments) {
+          setAcknowledgeComments(performanceResult.current_review.employee_comments);
         }
       } catch (err) {
         setError(err instanceof Error ? err.message : 'Failed to load performance data');
@@ -283,6 +413,30 @@ export default function MyPerformance() {
         >
           Review History ({data?.past_reviews.length || 0})
         </button>
+        <button
+          onClick={() => setActiveTab('goals')}
+          className={`px-4 py-2 font-medium text-sm border-b-2 transition-colors flex items-center gap-2 ${
+            activeTab === 'goals'
+              ? 'border-blue-600 text-blue-600 dark:border-blue-400 dark:text-blue-400'
+              : 'border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300'
+          }`}
+        >
+          <Target size={16} />
+          My Goals ({goalsData?.summary.total || 0})
+        </button>
+        {pipsData?.has_active_pip && (
+          <button
+            onClick={() => setActiveTab('pips')}
+            className={`px-4 py-2 font-medium text-sm border-b-2 transition-colors flex items-center gap-2 ${
+              activeTab === 'pips'
+                ? 'border-orange-600 text-orange-600 dark:border-orange-400 dark:text-orange-400'
+                : 'border-transparent text-orange-500 dark:text-orange-400 hover:text-orange-700 dark:hover:text-orange-300'
+            }`}
+          >
+            <AlertTriangle size={16} />
+            Development Plan
+          </button>
+        )}
       </div>
 
       {/* Error Alert */}
@@ -808,6 +962,443 @@ export default function MyPerformance() {
             </div>
           )}
         </motion.div>
+      )}
+
+      {/* Goals Tab */}
+      {activeTab === 'goals' && (
+        <div className="space-y-6">
+          {/* Goals Summary Cards */}
+          {goalsData && goalsData.summary.total > 0 && (
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-300 dark:border-gray-700 p-4"
+              >
+                <p className="text-sm text-gray-500 dark:text-gray-400">Total Goals</p>
+                <p className="text-2xl font-bold text-gray-900 dark:text-white">{goalsData.summary.total}</p>
+              </motion.div>
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.1 }}
+                className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-300 dark:border-gray-700 p-4"
+              >
+                <p className="text-sm text-gray-500 dark:text-gray-400">On Track</p>
+                <p className="text-2xl font-bold text-green-600 dark:text-green-400">{goalsData.summary.on_track_percentage}%</p>
+              </motion.div>
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.2 }}
+                className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-300 dark:border-gray-700 p-4"
+              >
+                <p className="text-sm text-gray-500 dark:text-gray-400">Completed</p>
+                <p className="text-2xl font-bold text-blue-600 dark:text-blue-400">{goalsData.summary.completed}</p>
+              </motion.div>
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.3 }}
+                className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-300 dark:border-gray-700 p-4"
+              >
+                <p className="text-sm text-gray-500 dark:text-gray-400">At Risk</p>
+                <p className="text-2xl font-bold text-orange-600 dark:text-orange-400">{goalsData.summary.at_risk}</p>
+              </motion.div>
+            </div>
+          )}
+
+          {/* Goals List */}
+          {goalsData && goalsData.goals.length > 0 ? (
+            <div className="space-y-4">
+              {goalsData.goals.map((goal, index) => {
+                const isExpanded = expandedGoals.has(goal.id);
+                const statusColors: Record<string, string> = {
+                  'On Track': 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400',
+                  'Completed': 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400',
+                  'In Progress': 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400',
+                  'At Risk': 'bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-400',
+                  'Behind': 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400',
+                  'Not Started': 'bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-400',
+                };
+                const priorityColors: Record<string, string> = {
+                  'Critical': 'text-red-600 dark:text-red-400',
+                  'High': 'text-orange-600 dark:text-orange-400',
+                  'Medium': 'text-yellow-600 dark:text-yellow-400',
+                  'Low': 'text-gray-500 dark:text-gray-400',
+                };
+
+                return (
+                  <motion.div
+                    key={goal.id}
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: index * 0.05 }}
+                    className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-300 dark:border-gray-700 overflow-hidden"
+                  >
+                    {/* Goal Header - Clickable to expand */}
+                    <button
+                      onClick={() => {
+                        const newExpanded = new Set(expandedGoals);
+                        if (isExpanded) {
+                          newExpanded.delete(goal.id);
+                        } else {
+                          newExpanded.add(goal.id);
+                          // Fetch detailed goal data if needed
+                          if (!goal.progress_entries) {
+                            apiGet<Goal>(`/portal/my-hr/goals/${goal.id}`).then((detailed) => {
+                              setGoalsData((prev) =>
+                                prev
+                                  ? {
+                                      ...prev,
+                                      goals: prev.goals.map((g) => (g.id === goal.id ? detailed : g)),
+                                    }
+                                  : null
+                              );
+                            });
+                          }
+                        }
+                        setExpandedGoals(newExpanded);
+                      }}
+                      className="w-full p-4 text-left hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors"
+                    >
+                      <div className="flex items-start justify-between gap-4">
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2 mb-1">
+                            <span className={`text-xs px-2 py-0.5 rounded-full ${statusColors[goal.status] || statusColors['Not Started']}`}>
+                              {goal.status}
+                            </span>
+                            {goal.goal_type && (
+                              <span className="text-xs px-2 py-0.5 rounded-full bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300">
+                                {goal.goal_type}
+                              </span>
+                            )}
+                            {goal.priority && (
+                              <span className={`text-xs font-medium ${priorityColors[goal.priority] || ''}`}>
+                                {goal.priority}
+                              </span>
+                            )}
+                          </div>
+                          <h3 className="font-semibold text-gray-900 dark:text-white truncate">{goal.goal_title}</h3>
+                          {goal.goal_description && (
+                            <p className="text-sm text-gray-600 dark:text-gray-400 mt-1 line-clamp-2">{goal.goal_description}</p>
+                          )}
+                        </div>
+                        <div className="flex items-center gap-4">
+                          {/* Progress indicator */}
+                          <div className="text-right">
+                            <p className="text-lg font-bold text-gray-900 dark:text-white">{Math.round(goal.progress_percentage)}%</p>
+                            {goal.target_date && (
+                              <p className="text-xs text-gray-500 dark:text-gray-400">
+                                Due {formatDate(goal.target_date)}
+                              </p>
+                            )}
+                          </div>
+                          {isExpanded ? <ChevronUp size={20} className="text-gray-400" /> : <ChevronDown size={20} className="text-gray-400" />}
+                        </div>
+                      </div>
+                      {/* Progress bar */}
+                      <div className="mt-3 h-2 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
+                        <div
+                          className={`h-full transition-all duration-500 ${
+                            goal.status === 'Completed'
+                              ? 'bg-blue-500'
+                              : goal.status === 'At Risk' || goal.status === 'Behind'
+                              ? 'bg-orange-500'
+                              : 'bg-green-500'
+                          }`}
+                          style={{ width: `${Math.min(goal.progress_percentage, 100)}%` }}
+                        />
+                      </div>
+                    </button>
+
+                    {/* Expanded Content */}
+                    {isExpanded && (
+                      <div className="border-t border-gray-200 dark:border-gray-700 p-4 bg-gray-50 dark:bg-gray-800/50">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                          {/* Goal Details */}
+                          <div className="space-y-4">
+                            <div>
+                              <h4 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Details</h4>
+                              <div className="space-y-2 text-sm">
+                                {goal.measurement_criteria && (
+                                  <div>
+                                    <span className="text-gray-500 dark:text-gray-400">Measurement: </span>
+                                    <span className="text-gray-900 dark:text-white">{goal.measurement_criteria}</span>
+                                  </div>
+                                )}
+                                {goal.target_value && (
+                                  <div>
+                                    <span className="text-gray-500 dark:text-gray-400">Target: </span>
+                                    <span className="text-gray-900 dark:text-white">{goal.target_value}</span>
+                                  </div>
+                                )}
+                                {goal.current_value && (
+                                  <div>
+                                    <span className="text-gray-500 dark:text-gray-400">Current: </span>
+                                    <span className="text-gray-900 dark:text-white">{goal.current_value}</span>
+                                  </div>
+                                )}
+                                {goal.tracking_type === 'counter' && goal.counter_target && (
+                                  <div>
+                                    <span className="text-gray-500 dark:text-gray-400">Progress: </span>
+                                    <span className="text-gray-900 dark:text-white">{goal.counter_current || 0} / {goal.counter_target}</span>
+                                  </div>
+                                )}
+                              </div>
+                            </div>
+
+                            {/* Milestones */}
+                            {goal.milestones && goal.milestones.length > 0 && (
+                              <div>
+                                <h4 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Milestones</h4>
+                                <div className="space-y-2">
+                                  {goal.milestones.map((m) => (
+                                    <div key={m.id} className="flex items-center gap-2 text-sm">
+                                      {m.status === 'completed' ? (
+                                        <CheckCircle size={16} className="text-green-500 flex-shrink-0" />
+                                      ) : (
+                                        <div className="w-4 h-4 rounded-full border-2 border-gray-300 dark:border-gray-600 flex-shrink-0" />
+                                      )}
+                                      <span className={m.status === 'completed' ? 'text-gray-500 dark:text-gray-400 line-through' : 'text-gray-900 dark:text-white'}>
+                                        {m.title}
+                                      </span>
+                                      {m.due_date && (
+                                        <span className="text-xs text-gray-400 ml-auto">{formatDate(m.due_date)}</span>
+                                      )}
+                                    </div>
+                                  ))}
+                                </div>
+                              </div>
+                            )}
+                          </div>
+
+                          {/* Progress History */}
+                          <div>
+                            <h4 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Recent Updates</h4>
+                            {goal.progress_entries && goal.progress_entries.length > 0 ? (
+                              <div className="space-y-3 max-h-48 overflow-y-auto">
+                                {goal.progress_entries.slice(0, 5).map((entry) => (
+                                  <div key={entry.id} className="text-sm border-l-2 border-blue-400 pl-3">
+                                    <div className="flex items-center justify-between">
+                                      <span className="font-medium text-gray-900 dark:text-white">
+                                        {entry.new_progress !== null ? `${Math.round(entry.new_progress)}%` : `${Math.round(entry.progress_percentage || 0)}%`}
+                                      </span>
+                                      <span className="text-xs text-gray-400">{formatDate(entry.entry_date)}</span>
+                                    </div>
+                                    {entry.notes && (
+                                      <p className="text-gray-600 dark:text-gray-400 mt-1">{entry.notes}</p>
+                                    )}
+                                    {entry.updated_by && (
+                                      <p className="text-xs text-gray-400 mt-1">Updated by {entry.updated_by}</p>
+                                    )}
+                                  </div>
+                                ))}
+                              </div>
+                            ) : (
+                              <p className="text-sm text-gray-500 dark:text-gray-400">No progress updates yet.</p>
+                            )}
+
+                            {/* Latest notes from supervisor */}
+                            {goal.last_update_notes && (
+                              <div className="mt-4 p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
+                                <p className="text-xs font-medium text-blue-700 dark:text-blue-300 mb-1">Latest Note from Supervisor</p>
+                                <p className="text-sm text-blue-900 dark:text-blue-100">{goal.last_update_notes}</p>
+                                {goal.last_updated_by && (
+                                  <p className="text-xs text-blue-600 dark:text-blue-400 mt-1">— {goal.last_updated_by}</p>
+                                )}
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                  </motion.div>
+                );
+              })}
+            </div>
+          ) : (
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-300 dark:border-gray-700 p-12 text-center"
+            >
+              <Target className="mx-auto text-gray-400" size={48} />
+              <p className="text-gray-600 dark:text-gray-400 mt-4">No goals have been assigned yet.</p>
+              <p className="text-sm text-gray-500 dark:text-gray-500 mt-2">Your supervisor will set goals for you during your next review cycle.</p>
+            </motion.div>
+          )}
+        </div>
+      )}
+
+      {/* PIPs Tab */}
+      {activeTab === 'pips' && pipsData && (
+        <div className="space-y-6">
+          {pipsData.pips.filter((p) => ['Active', 'Extended', 'Draft'].includes(p.status)).map((pip, index) => (
+            <motion.div
+              key={pip.id}
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: index * 0.1 }}
+              className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-orange-200 dark:border-orange-800 overflow-hidden"
+            >
+              {/* PIP Header */}
+              <div className="bg-orange-50 dark:bg-orange-900/20 p-4 border-b border-orange-200 dark:border-orange-800">
+                <div className="flex items-start justify-between">
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <AlertTriangle className="text-orange-500" size={20} />
+                      <h3 className="font-semibold text-gray-900 dark:text-white">{pip.title}</h3>
+                    </div>
+                    <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
+                      {pip.start_date && pip.end_date && (
+                        <>Period: {formatDate(pip.start_date)} - {formatDate(pip.end_date)}</>
+                      )}
+                    </p>
+                  </div>
+                  <span className={`px-3 py-1 rounded-full text-sm font-medium ${
+                    pip.status === 'Active' ? 'bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-400' :
+                    pip.status === 'Extended' ? 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400' :
+                    'bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-400'
+                  }`}>
+                    {pip.status}
+                  </span>
+                </div>
+              </div>
+
+              {/* PIP Content */}
+              <div className="p-6 space-y-6">
+                {/* Key Information Grid */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div>
+                    <h4 className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3">Performance Concerns</h4>
+                    <p className="text-sm text-gray-600 dark:text-gray-400 whitespace-pre-wrap">{pip.performance_issues || pip.reason || 'Not specified'}</p>
+                  </div>
+                  <div>
+                    <h4 className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3">Expectations</h4>
+                    <p className="text-sm text-gray-600 dark:text-gray-400 whitespace-pre-wrap">{pip.expectations || 'Not specified'}</p>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div>
+                    <h4 className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3">Success Criteria</h4>
+                    <p className="text-sm text-gray-600 dark:text-gray-400 whitespace-pre-wrap">{pip.success_criteria || 'Not specified'}</p>
+                  </div>
+                  <div>
+                    <h4 className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3">Support Provided</h4>
+                    <p className="text-sm text-gray-600 dark:text-gray-400 whitespace-pre-wrap">{pip.support_provided || 'Not specified'}</p>
+                  </div>
+                </div>
+
+                {/* Review Schedule */}
+                <div className="bg-gray-50 dark:bg-gray-700/50 rounded-lg p-4">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-sm font-medium text-gray-700 dark:text-gray-300">Check-in Frequency</p>
+                      <p className="text-lg font-semibold text-gray-900 dark:text-white">{pip.review_frequency || 'Weekly'}</p>
+                    </div>
+                    {pip.next_review_date && (
+                      <div className="text-right">
+                        <p className="text-sm font-medium text-gray-700 dark:text-gray-300">Next Review</p>
+                        <p className="text-lg font-semibold text-orange-600 dark:text-orange-400">{formatDate(pip.next_review_date)}</p>
+                      </div>
+                    )}
+                    <div className="text-right">
+                      <p className="text-sm font-medium text-gray-700 dark:text-gray-300">Manager</p>
+                      <p className="text-sm text-gray-900 dark:text-white">{pip.manager_name || 'Not assigned'}</p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Progress Notes */}
+                {pip.progress_notes && (
+                  <div>
+                    <h4 className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3">Progress Notes</h4>
+                    <p className="text-sm text-gray-600 dark:text-gray-400 whitespace-pre-wrap bg-blue-50 dark:bg-blue-900/20 p-4 rounded-lg">
+                      {pip.progress_notes}
+                    </p>
+                  </div>
+                )}
+
+                {/* Milestones */}
+                {pip.milestones && pip.milestones.length > 0 && (
+                  <div>
+                    <h4 className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3">Milestones</h4>
+                    <div className="space-y-3">
+                      {pip.milestones.map((m) => (
+                        <div key={m.id} className="flex items-start gap-3 p-3 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
+                          {m.status === 'Completed' ? (
+                            <CheckCircle size={20} className="text-green-500 flex-shrink-0 mt-0.5" />
+                          ) : m.status === 'Overdue' ? (
+                            <AlertCircle size={20} className="text-red-500 flex-shrink-0 mt-0.5" />
+                          ) : (
+                            <Clock size={20} className="text-gray-400 flex-shrink-0 mt-0.5" />
+                          )}
+                          <div className="flex-1">
+                            <div className="flex items-center justify-between">
+                              <p className="font-medium text-gray-900 dark:text-white">{m.milestone_title}</p>
+                              <span className={`text-xs px-2 py-0.5 rounded-full ${
+                                m.status === 'Completed' ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400' :
+                                m.status === 'Overdue' ? 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400' :
+                                m.status === 'In Progress' ? 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400' :
+                                'bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-400'
+                              }`}>
+                                {m.status}
+                              </span>
+                            </div>
+                            {m.description && (
+                              <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">{m.description}</p>
+                            )}
+                            {m.due_date && (
+                              <p className="text-xs text-gray-500 dark:text-gray-500 mt-1">Due: {formatDate(m.due_date)}</p>
+                            )}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Acknowledgment */}
+                {!pip.employee_acknowledged && (
+                  <div className="border-t border-gray-200 dark:border-gray-700 pt-4">
+                    <div className="bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg p-4">
+                      <p className="text-sm text-yellow-800 dark:text-yellow-200 mb-3">
+                        Please acknowledge that you have read and understand this Performance Improvement Plan.
+                      </p>
+                      <button
+                        onClick={async () => {
+                          try {
+                            setSubmitting(true);
+                            await apiPost(`/portal/my-hr/pips/${pip.id}/acknowledge`, {});
+                            const result = await apiGet<PIPsData>('/portal/my-hr/pips');
+                            setPipsData(result);
+                          } catch (err) {
+                            setError(err instanceof Error ? err.message : 'Failed to acknowledge PIP');
+                          } finally {
+                            setSubmitting(false);
+                          }
+                        }}
+                        disabled={submitting}
+                        className="px-4 py-2 bg-yellow-600 hover:bg-yellow-700 text-white rounded-lg font-medium transition-colors disabled:opacity-50"
+                      >
+                        {submitting ? 'Acknowledging...' : 'I Acknowledge This Plan'}
+                      </button>
+                    </div>
+                  </div>
+                )}
+
+                {pip.employee_acknowledged && (
+                  <div className="flex items-center gap-2 text-sm text-green-600 dark:text-green-400">
+                    <CheckCircle size={16} />
+                    <span>Acknowledged on {pip.employee_acknowledgment_date ? formatDate(pip.employee_acknowledgment_date) : 'N/A'}</span>
+                  </div>
+                )}
+              </div>
+            </motion.div>
+          ))}
+        </div>
       )}
     </div>
   );

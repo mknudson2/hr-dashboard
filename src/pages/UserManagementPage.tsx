@@ -16,6 +16,7 @@ interface User {
   employee_id: string | null;
   is_active: boolean;
   totp_enabled: boolean;
+  allowed_portals: string[];
   created_at: string;
   last_login: string | null;
 }
@@ -36,6 +37,7 @@ interface UserFormData {
   role: string;
   employee_id: string;
   is_active: boolean;
+  allowed_portals: string[];
 }
 
 const UserManagementPage = () => {
@@ -226,6 +228,7 @@ const UserManagementPage = () => {
         role: formData.role,
         employee_id: formData.employee_id || null,
         is_active: formData.is_active,
+        allowed_portals: formData.allowed_portals,
       };
 
       if (!editingUser) {
@@ -272,6 +275,7 @@ const UserManagementPage = () => {
       role: 'employee',
       employee_id: '',
       is_active: true,
+      allowed_portals: ['employee-portal'],
     });
     setFormErrors({});
     setEditingUser(null);
@@ -293,6 +297,7 @@ const UserManagementPage = () => {
       role: user.role,
       employee_id: user.employee_id || '',
       is_active: user.is_active,
+      allowed_portals: user.allowed_portals || ['employee-portal'],
     });
     setShowUserModal(true);
   };
@@ -497,6 +502,9 @@ const UserManagementPage = () => {
                   Status
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                  Portal Access
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
                   2FA
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
@@ -510,7 +518,7 @@ const UserManagementPage = () => {
             <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
               {users.length === 0 ? (
                 <tr>
-                  <td colSpan={7} className="px-6 py-12 text-center text-gray-500 dark:text-gray-400">
+                  <td colSpan={8} className="px-6 py-12 text-center text-gray-500 dark:text-gray-400">
                     No users found
                   </td>
                 </tr>
@@ -544,6 +552,16 @@ const UserManagementPage = () => {
                           Inactive
                         </span>
                       )}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div className="flex gap-1">
+                        {(user.allowed_portals || []).includes('employee-portal') && (
+                          <span className="text-xs px-1.5 py-0.5 rounded bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400">EP</span>
+                        )}
+                        {(user.allowed_portals || []).includes('hr') && (
+                          <span className="text-xs px-1.5 py-0.5 rounded bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400">HR</span>
+                        )}
+                      </div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       {user.totp_enabled ? (
@@ -789,6 +807,47 @@ const UserManagementPage = () => {
                       <option value="manager">Manager</option>
                       <option value="admin">Admin</option>
                     </select>
+                  </div>
+                </div>
+
+                {/* Portal Access */}
+                <div className="p-4 bg-gray-50 dark:bg-gray-700/50 rounded-lg space-y-2">
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    Portal Access
+                  </label>
+                  <div className="flex items-center gap-3">
+                    <input
+                      type="checkbox"
+                      id="portal_employee"
+                      checked={formData.allowed_portals.includes('employee-portal')}
+                      onChange={(e) => {
+                        const portals = e.target.checked
+                          ? [...formData.allowed_portals, 'employee-portal']
+                          : formData.allowed_portals.filter(p => p !== 'employee-portal');
+                        setFormData({ ...formData, allowed_portals: portals });
+                      }}
+                      className="w-4 h-4 text-blue-600 rounded focus:ring-2 focus:ring-blue-500"
+                    />
+                    <label htmlFor="portal_employee" className="text-sm text-gray-700 dark:text-gray-300">
+                      Employee Portal
+                    </label>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <input
+                      type="checkbox"
+                      id="portal_hr"
+                      checked={formData.allowed_portals.includes('hr')}
+                      onChange={(e) => {
+                        const portals = e.target.checked
+                          ? [...formData.allowed_portals, 'hr']
+                          : formData.allowed_portals.filter(p => p !== 'hr');
+                        setFormData({ ...formData, allowed_portals: portals });
+                      }}
+                      className="w-4 h-4 text-blue-600 rounded focus:ring-2 focus:ring-blue-500"
+                    />
+                    <label htmlFor="portal_hr" className="text-sm text-gray-700 dark:text-gray-300">
+                      HR Portal
+                    </label>
                   </div>
                 </div>
 

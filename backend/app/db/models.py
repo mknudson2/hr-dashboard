@@ -1500,6 +1500,20 @@ class User(Base):
     failed_login_attempts = Column(Integer, default=0)  # Count of consecutive failed login attempts
     locked_until = Column(DateTime, nullable=True)  # Account locked until this timestamp
 
+    # Portal access control
+    allowed_portals = Column(String, default='["employee-portal"]')  # JSON array: "hr", "employee-portal"
+
+    @property
+    def allowed_portals_list(self) -> list:
+        """Parse allowed_portals JSON string into a Python list."""
+        import json
+        if not self.allowed_portals:
+            return ["employee-portal"]
+        try:
+            return json.loads(self.allowed_portals)
+        except (json.JSONDecodeError, TypeError):
+            return ["employee-portal"]
+
     # Relationships
     employee = relationship("Employee", backref="user")
     sessions = relationship("Session", back_populates="user", cascade="all, delete-orphan")
