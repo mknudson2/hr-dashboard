@@ -2,6 +2,7 @@ import { LayoutDashboard, Users, FileBarChart, Settings, Heart, Scale, TrendingD
 import { NavLink, Outlet, useNavigate } from "react-router-dom";
 import { useState, useEffect } from "react";
 import DarkModeToggle from "@/components/DarkModeToggle";
+import NotificationBell from "@/components/NotificationBell";
 import { useAuth } from "@/contexts/AuthContext";
 
 interface NavigationLink {
@@ -35,6 +36,7 @@ const links: NavigationLink[] = [
     { to: "/file-uploads", text: "File Uploads", icon: Upload },
     { to: "/users", text: "User Management", icon: Users, adminOnly: true },
     { to: "/roles", text: "Role Management", icon: Shield, adminOnly: true },
+    { to: "/par-approvals", text: "HR Request Approvals", icon: ClipboardList, adminOnly: true },
     { to: "/settings", text: "Settings", icon: Settings },
 ];
 
@@ -84,7 +86,10 @@ export default function MainLayout() {
             <aside className="w-64 bg-white dark:bg-gray-800 shadow-md fixed left-0 top-0 h-full flex flex-col">
                 {/* Header - Fixed */}
                 <div className="p-6 flex-shrink-0">
-                    <h1 className="text-2xl font-bold text-gray-900 dark:text-white">HR Hub</h1>
+                    <div className="flex items-center justify-between">
+                        <h1 className="text-2xl font-bold text-gray-900 dark:text-white">HR Hub</h1>
+                        <NotificationBell />
+                    </div>
                 </div>
 
                 {/* Navigation - Scrollable */}

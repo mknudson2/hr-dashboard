@@ -273,9 +273,7 @@ async def send_all_nbs_term_emails(request: NBSTermBulkEmailRequest):
     # Email recipients configured via environment variables
     default_test_email = os.getenv('TEST_EMAIL_RECIPIENT', 'test@example.com')
 
-    # Define recipients for each email type (loaded from environment variables)
-    # In test mode, all emails go to default_test_email
-    # In production, set EMAIL_RECIPIENT_* vars in .env
+    # Define recipients for each email type
     def _get_recipients(env_var: str) -> list:
         val = os.getenv(env_var, '')
         return [e.strip() for e in val.split(',') if e.strip()] if val else [default_test_email]
@@ -284,7 +282,7 @@ async def send_all_nbs_term_emails(request: NBSTermBulkEmailRequest):
         '401k': _get_recipients('EMAIL_RECIPIENT_401K'),
         'accounting': _get_recipients('EMAIL_RECIPIENT_ACCOUNTING'),
         'cobra': _get_recipients('EMAIL_RECIPIENT_COBRA'),
-        'concur': [default_test_email],  # External: configure separately
+        'concur': [default_test_email],
         'crm': _get_recipients('EMAIL_RECIPIENT_CRM'),
         'data_admin': _get_recipients('EMAIL_RECIPIENT_DATA_ADMIN'),
         'flex': _get_recipients('EMAIL_RECIPIENT_FLEX'),
@@ -293,7 +291,6 @@ async def send_all_nbs_term_emails(request: NBSTermBulkEmailRequest):
         'leadership': _get_recipients('EMAIL_RECIPIENT_LEADERSHIP')
     }
 
-    # CC recipients
     cc_accounting = os.getenv('EMAIL_CC_ACCOUNTING', '')
     cc_recipients = {
         'accounting': [e.strip() for e in cc_accounting.split(',') if e.strip()] if cc_accounting else []

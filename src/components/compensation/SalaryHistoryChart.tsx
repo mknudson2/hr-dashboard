@@ -367,7 +367,7 @@ export default function SalaryHistoryChart({ history, currentSalary, employeeNam
             <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
               {sortedHistory.map((entry, index) => (
                 <tr
-                  key={entry.id}
+                  key={entry.id ?? `entry-${index}`}
                   className={`hover:bg-gray-50 dark:hover:bg-gray-700/50 ${
                     hoveredPoint === index ? 'bg-blue-50 dark:bg-blue-900/20' : ''
                   }`}

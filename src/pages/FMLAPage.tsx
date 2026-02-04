@@ -14,6 +14,7 @@ import {
 } from "lucide-react";
 import FMLACaseDrawer from "../components/FMLACaseDrawer";
 import NewFMLACaseModal from "../components/NewFMLACaseModal";
+import PendingLeaveRequests from "../components/PendingLeaveRequests";
 
 interface FMLACase {
   id: number;
@@ -54,11 +55,28 @@ export default function FMLAPage() {
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [showNewCaseModal, setShowNewCaseModal] = useState(false);
   const [selectedCaseId, setSelectedCaseId] = useState<number | null>(null);
+  const [showPendingRequests, setShowPendingRequests] = useState(false);
+  const [pendingRequestCount, setPendingRequestCount] = useState(0);
 
   useEffect(() => {
     fetchDashboardStats();
     fetchCases();
+    fetchPendingRequestCount();
   }, []);
+
+  const fetchPendingRequestCount = async () => {
+    try {
+      const response = await fetch("/fmla/leave-requests/pending/count", {
+        credentials: "include",
+      });
+      if (response.ok) {
+        const data = await response.json();
+        setPendingRequestCount(data.count || 0);
+      }
+    } catch (error) {
+      console.error("Error fetching pending request count:", error);
+    }
+  };
 
   const fetchDashboardStats = async () => {
     try {
@@ -167,16 +185,33 @@ export default function FMLAPage() {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.1 }}
-            className="bg-white dark:bg-gray-800 rounded-xl p-6 border dark:border-gray-700 shadow-sm"
+            onClick={() => setShowPendingRequests(true)}
+            className="bg-white dark:bg-gray-800 rounded-xl p-6 border dark:border-gray-700 shadow-sm cursor-pointer hover:shadow-md hover:border-yellow-400 dark:hover:border-yellow-500 transition-all"
           >
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm text-gray-600 dark:text-gray-400">Pending Requests</p>
                 <p className="text-3xl font-bold text-gray-900 dark:text-white mt-1">
-                  {stats.pending_requests}
+                  {pendingRequestCount}
                 </p>
+                {pendingRequestCount > 0 ? (
+                  <p className="text-xs text-yellow-600 dark:text-yellow-400 mt-1">
+                    Click to review
+                  </p>
+                ) : (
+                  <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                    Employee requests
+                  </p>
+                )}
               </div>
-              <Clock className="w-10 h-10 text-yellow-600 dark:text-yellow-400" />
+              <div className="relative">
+                <Clock className="w-10 h-10 text-yellow-600 dark:text-yellow-400" />
+                {pendingRequestCount > 0 && (
+                  <span className="absolute -top-1 -right-1 w-5 h-5 bg-red-500 text-white text-xs rounded-full flex items-center justify-center">
+                    {pendingRequestCount}
+                  </span>
+                )}
+              </div>
             </div>
           </motion.div>
 
@@ -400,6 +435,16 @@ export default function FMLAPage() {
           </div>
         </div>
       )}
+
+      {/* Pending Leave Requests Modal */}
+      <PendingLeaveRequests
+        isOpen={showPendingRequests}
+        onClose={() => setShowPendingRequests(false)}
+        onRequestReviewed={() => {
+          fetchPendingRequestCount();
+          fetchDashboardStats();
+        }}
+      />
     </div>
   );
 }

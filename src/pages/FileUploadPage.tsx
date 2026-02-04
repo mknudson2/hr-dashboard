@@ -14,8 +14,10 @@ import {
   Download,
   AlertCircle,
   Play,
-  Settings
+  Settings,
+  ArrowRightLeft
 } from 'lucide-react';
+import ColumnMappingModal from '../components/ColumnMappingModal';
 
 const BASE_URL = '';
 
@@ -68,10 +70,13 @@ export default function FileUploadPage() {
   const [processing, setProcessing] = useState<number | null>(null);
   const [toast, setToast] = useState<{ type: 'success' | 'error' | null; message: string }>({ type: null, message: '' });
 
-  // Column Mapping Modal
+  // Column Mapping Modal (old - for viewing default mappings)
   const [showColumnMappingModal, setShowColumnMappingModal] = useState(false);
   const [columnMappings, setColumnMappings] = useState<Record<string, string>>({});
   const [isLoadingMappings, setIsLoadingMappings] = useState(false);
+
+  // New Column Mapping Modal (interactive import)
+  const [mappingModalFile, setMappingModalFile] = useState<FileUpload | null>(null);
 
   // Filters
   const [statusFilter, setStatusFilter] = useState<string>('');
@@ -355,21 +360,39 @@ export default function FileUploadPage() {
             Upload and manage CSV, XLSX, DOCX, and PDF files for data processing
           </p>
         </div>
-        <a
-          href={`${BASE_URL}/file-uploads/templates/download?template_type=employee`}
-          download
-          className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors"
-        >
-          <Download className="h-4 w-4" />
-          Download Template
-        </a>
-        <button
-          onClick={openColumnMappingModal}
-          className="flex items-center gap-2 px-4 py-2 bg-gray-600 hover:bg-gray-700 dark:bg-gray-700 dark:hover:bg-gray-600 text-white rounded-lg font-medium transition-colors"
-        >
-          <Settings className="h-4 w-4" />
-          Column Mappings
-        </button>
+        <div className="flex items-center gap-3">
+          <div className="relative group">
+            <button className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors">
+              <Download className="h-4 w-4" />
+              Download Template
+            </button>
+            <div className="absolute right-0 mt-1 w-64 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-10">
+              <a
+                href={`${BASE_URL}/file-uploads/templates/download?template_type=employee`}
+                download
+                className="block px-4 py-3 hover:bg-gray-50 dark:hover:bg-gray-700 text-sm"
+              >
+                <div className="font-medium text-gray-900 dark:text-white">Basic Template</div>
+                <div className="text-xs text-gray-500 dark:text-gray-400">Standard Paylocity format</div>
+              </a>
+              <a
+                href={`${BASE_URL}/file-uploads/templates/download?template_type=comprehensive`}
+                download
+                className="block px-4 py-3 hover:bg-gray-50 dark:hover:bg-gray-700 text-sm border-t border-gray-200 dark:border-gray-700"
+              >
+                <div className="font-medium text-gray-900 dark:text-white">Comprehensive Template</div>
+                <div className="text-xs text-gray-500 dark:text-gray-400">All available fields</div>
+              </a>
+            </div>
+          </div>
+          <button
+            onClick={openColumnMappingModal}
+            className="flex items-center gap-2 px-4 py-2 bg-gray-600 hover:bg-gray-700 dark:bg-gray-700 dark:hover:bg-gray-600 text-white rounded-lg font-medium transition-colors"
+          >
+            <Settings className="h-4 w-4" />
+            Column Mappings
+          </button>
+        </div>
       </div>
 
       {/* Stats Cards */}
@@ -572,18 +595,27 @@ export default function FileUploadPage() {
                               <Eye className="h-4 w-4" />
                             </button>
                             {upload.status === 'pending' && (
-                              <button
-                                onClick={() => handleProcess(upload.id)}
-                                disabled={processing === upload.id}
-                                className="p-1.5 text-green-600 dark:text-green-400 hover:bg-green-50 dark:hover:bg-green-500/10 rounded disabled:opacity-50 disabled:cursor-not-allowed"
-                                title="Process Employee Data"
-                              >
-                                {processing === upload.id ? (
-                                  <Loader className="h-4 w-4 animate-spin" />
-                                ) : (
-                                  <Play className="h-4 w-4" />
-                                )}
-                              </button>
+                              <>
+                                <button
+                                  onClick={() => setMappingModalFile(upload)}
+                                  className="p-1.5 text-purple-600 dark:text-purple-400 hover:bg-purple-50 dark:hover:bg-purple-500/10 rounded"
+                                  title="Map Columns & Import"
+                                >
+                                  <ArrowRightLeft className="h-4 w-4" />
+                                </button>
+                                <button
+                                  onClick={() => handleProcess(upload.id)}
+                                  disabled={processing === upload.id}
+                                  className="p-1.5 text-green-600 dark:text-green-400 hover:bg-green-50 dark:hover:bg-green-500/10 rounded disabled:opacity-50 disabled:cursor-not-allowed"
+                                  title="Quick Process (Paylocity format)"
+                                >
+                                  {processing === upload.id ? (
+                                    <Loader className="h-4 w-4 animate-spin" />
+                                  ) : (
+                                    <Play className="h-4 w-4" />
+                                  )}
+                                </button>
+                              </>
                             )}
                           </>
                         )}
@@ -829,6 +861,21 @@ export default function FileUploadPage() {
             </div>
           </div>
         </div>
+      )}
+
+      {/* Interactive Column Mapping Modal */}
+      {mappingModalFile && (
+        <ColumnMappingModal
+          isOpen={!!mappingModalFile}
+          onClose={() => setMappingModalFile(null)}
+          fileId={mappingModalFile.id}
+          fileName={mappingModalFile.original_filename}
+          onImportComplete={() => {
+            fetchUploads();
+            fetchStats();
+            setToast({ type: 'success', message: 'Import completed successfully!' });
+          }}
+        />
       )}
     </div>
   );
