@@ -1,4 +1,5 @@
 """API endpoints for email management and sending."""
+import os
 from fastapi import APIRouter, HTTPException, Depends
 from pydantic import BaseModel, EmailStr
 from typing import List, Optional
@@ -268,40 +269,29 @@ async def send_all_nbs_term_emails(request: NBSTermBulkEmailRequest):
 
     # TODO: Replace with actual recipient emails in production
     # For now, all emails go to test address
-    default_test_email = 'michaelknudsonphd@gmail.com'
+    default_test_email = os.getenv('TEST_EMAIL_RECIPIENT', 'test@example.com')
 
-    # Define recipients for each email type
-    # PRODUCTION EMAILS (currently disabled for testing):
-    # email_recipients = {
-    #     '401k': ['kath@nbsbenefits.com'],
-    #     'accounting': ['shellim@nbsbenefits.com'],
-    #     'cobra': ['Nathan.Clark@nbsbenefits.com'],
-    #     'concur': ['onlinesupport@frosch.com'],
-    #     'crm': ['awdcrmchange@nbsbenefits.com', 'evan@nbsbenefits.com'],
-    #     'data_admin': ['lisag@nbsbenefits.com', 'kath@nbsbenefits.com', 'evan@nbsbenefits.com', 'nbstraining@nbsbenefits.com'],
-    #     'flex': ['kevin.price@nbsbenefits.com'],
-    #     'retirement': ['andreww@nbsbenefits.com', 'lisag@nbsbenefits.com'],
-    #     'welfare': ['Smuir@nbsbenefits.com', 'maggie.beckstrand@nbsbenefits.com'],
-    #     'leadership': ['leadership@nbsbenefits.com']
-    # }
+    # Define recipients for each email type from environment variables
+    def _get_recipients(env_var: str) -> list:
+        val = os.getenv(env_var, '')
+        return [e.strip() for e in val.split(',') if e.strip()] if val else [default_test_email]
 
-    # TEST MODE - All emails to default test address
     email_recipients = {
-        '401k': [default_test_email],
-        'accounting': [default_test_email],
-        'cobra': [default_test_email],
+        '401k': _get_recipients('EMAIL_RECIPIENT_401K'),
+        'accounting': _get_recipients('EMAIL_RECIPIENT_ACCOUNTING'),
+        'cobra': _get_recipients('EMAIL_RECIPIENT_COBRA'),
         'concur': [default_test_email],
-        'crm': [default_test_email],
-        'data_admin': [default_test_email],
-        'flex': [default_test_email],
-        'retirement': [default_test_email],
-        'welfare': [default_test_email],
-        'leadership': [default_test_email]
+        'crm': _get_recipients('EMAIL_RECIPIENT_CRM'),
+        'data_admin': _get_recipients('EMAIL_RECIPIENT_DATA_ADMIN'),
+        'flex': _get_recipients('EMAIL_RECIPIENT_FLEX'),
+        'retirement': _get_recipients('EMAIL_RECIPIENT_RETIREMENT'),
+        'welfare': _get_recipients('EMAIL_RECIPIENT_WELFARE'),
+        'leadership': _get_recipients('EMAIL_RECIPIENT_LEADERSHIP')
     }
 
-    # CC recipients (currently disabled for testing)
+    cc_accounting = os.getenv('EMAIL_CC_ACCOUNTING', '')
     cc_recipients = {
-        # 'accounting': ['NatalieL@nbsbenefits.com']
+        'accounting': [e.strip() for e in cc_accounting.split(',') if e.strip()] if cc_accounting else []
     }
 
     results = []

@@ -1,5 +1,6 @@
 """Send a test email to verify Gmail configuration."""
 import asyncio
+import os
 from dotenv import load_dotenv
 load_dotenv()
 
@@ -14,7 +15,8 @@ async def send_test_email():
     print(f"Provider: {email_service.provider}")
     print(f"Email Enabled: {email_service.enabled}")
     print(f"From: {email_service.fastmail.config.MAIL_FROM}")
-    print(f"To: michaelknudsonphd@gmail.com")
+    test_email = os.getenv("TEST_EMAIL_RECIPIENT", "test@example.com")
+    print(f"To: {test_email}")
     print("=" * 80)
     print()
     print("Sending welcome email template...")
@@ -22,13 +24,13 @@ async def send_test_email():
 
     try:
         await email_service.send_welcome_email(
-            to_email="michaelknudsonphd@gmail.com",
+            to_email=test_email,
             employee_name="Michael Knudson",
             role="Test User",
             start_date="2025-01-15",
             department="Testing Department",
             manager_name="Test Manager",
-            manager_email="manager@nbsbenefits.com"
+            manager_email=os.getenv("HR_CONTACT_EMAIL", "test@example.com")
         )
 
         print()
@@ -36,7 +38,7 @@ async def send_test_email():
         print("✅ SUCCESS! Email sent successfully!")
         print("=" * 80)
         print()
-        print("Check your inbox at: michaelknudsonphd@gmail.com")
+        print(f"Check your inbox at: {test_email}")
         print()
         print("If you don't see it:")
         print("1. Check your Spam/Junk folder")

@@ -1,5 +1,5 @@
 {
-  "base_path": "/Users/michaelknudson/Desktop",
+  "base_path": "./data",
   "subfolders": [
     "Application",
     "Notes",

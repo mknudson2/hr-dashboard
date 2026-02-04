@@ -506,11 +506,108 @@ class PerformanceGoal(Base):
     aligned_to_company_goal = Column(String, nullable=True)
     aligned_to_team_goal = Column(String, nullable=True)
 
+    # Enhanced Tracking Type System
+    tracking_type = Column(String(50), default="percentage")  # percentage, target_percentage, counter, average, milestone
+
+    # Counter type fields
+    counter_current = Column(Integer, default=0, nullable=True)
+    counter_target = Column(Integer, nullable=True)
+
+    # Average type fields
+    average_values = Column(JSON, nullable=True)  # [{value, date, notes}]
+    average_target = Column(Float, nullable=True)
+
+    # Milestone type fields
+    milestones_total = Column(Integer, default=0, nullable=True)
+    milestones_completed = Column(Integer, default=0, nullable=True)
+
     created_at = Column(DateTime, server_default=func.now())
     updated_at = Column(DateTime, onupdate=func.now())
 
     # Relationships
     employee = relationship("Employee", backref="goals")
+    progress_entries = relationship("GoalProgressEntry", back_populates="goal", cascade="all, delete-orphan")
+    milestones = relationship("GoalMilestone", back_populates="goal", cascade="all, delete-orphan")
+
+
+class GoalProgressEntry(Base):
+    """Tracks individual progress updates for a goal with optional file attachments"""
+    __tablename__ = "goal_progress_entries"
+
+    id = Column(Integer, primary_key=True, index=True, autoincrement=True)
+    goal_id = Column(Integer, ForeignKey("performance_goals.id", ondelete="CASCADE"), nullable=False, index=True)
+
+    # Entry details
+    entry_date = Column(DateTime, server_default=func.now())
+    updated_by = Column(String, nullable=True)
+
+    # Progress values
+    progress_percentage = Column(Float, nullable=True)
+    value = Column(Float, nullable=True)  # For counter/average types
+    notes = Column(Text, nullable=True)
+
+    # Change tracking
+    previous_progress = Column(Float, nullable=True)
+    new_progress = Column(Float, nullable=True)
+
+    # Relationships
+    goal = relationship("PerformanceGoal", back_populates="progress_entries")
+    attachments = relationship("GoalProgressAttachment", back_populates="progress_entry", cascade="all, delete-orphan")
+
+
+class GoalProgressAttachment(Base):
+    """Links file uploads to goal progress entries"""
+    __tablename__ = "goal_progress_attachments"
+
+    id = Column(Integer, primary_key=True, index=True, autoincrement=True)
+    progress_entry_id = Column(Integer, ForeignKey("goal_progress_entries.id", ondelete="CASCADE"), nullable=False, index=True)
+    file_upload_id = Column(Integer, ForeignKey("file_uploads.id"), nullable=True)
+
+    # Attachment metadata
+    attachment_type = Column(String(50), nullable=True)  # document, image, spreadsheet
+    file_name = Column(String(255), nullable=False)
+    original_filename = Column(String(255), nullable=False)
+    file_path = Column(String(500), nullable=False)
+    file_size = Column(Integer, nullable=True)
+    mime_type = Column(String(100), nullable=True)
+    description = Column(String(500), nullable=True)
+    uploaded_at = Column(DateTime, server_default=func.now())
+
+    # Relationships
+    progress_entry = relationship("GoalProgressEntry", back_populates="attachments")
+
+
+class GoalMilestone(Base):
+    """Individual milestones for milestone-type goals"""
+    __tablename__ = "goal_milestones"
+
+    id = Column(Integer, primary_key=True, index=True, autoincrement=True)
+    goal_id = Column(Integer, ForeignKey("performance_goals.id", ondelete="CASCADE"), nullable=False, index=True)
+
+    # Milestone details
+    title = Column(String(255), nullable=False)
+    description = Column(Text, nullable=True)
+    sequence_order = Column(Integer, default=0)
+
+    # Dates
+    due_date = Column(Date, nullable=True)
+    completed_date = Column(Date, nullable=True)
+
+    # Status
+    status = Column(String(50), default="pending")  # pending, in_progress, completed, skipped
+
+    # Completion details
+    completed_by = Column(String, nullable=True)
+    completion_notes = Column(Text, nullable=True)
+
+    # Weight for progress calculation
+    weight = Column(Float, default=1.0)
+
+    created_at = Column(DateTime, server_default=func.now())
+    updated_at = Column(DateTime, onupdate=func.now())
+
+    # Relationships
+    goal = relationship("PerformanceGoal", back_populates="milestones")
 
 
 class ReviewFeedback(Base):

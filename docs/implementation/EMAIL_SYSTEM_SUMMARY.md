@@ -199,7 +199,7 @@ await email_service.send_welcome_email(
     start_date="2025-01-15",
     department="Engineering",
     manager_name="Jane Smith",
-    manager_email="jane.smith@nbsbenefits.com"
+    manager_email="jane.smith@example.com"
 )
 ```
 
@@ -209,7 +209,7 @@ await email_service.send_welcome_email(
 # Send 401k termination notification
 await email_service.send_nbs_term_email(
     email_type="401k",
-    to_emails=["kath@nbsbenefits.com"],
+    to_emails=["kath@example.com"],
     employee_name="John Doe",
     employee_id="EMP12345",
     termination_date="2025-01-31",
@@ -221,7 +221,7 @@ await email_service.send_nbs_term_email(
 # Send accounting access removal notification
 await email_service.send_nbs_term_email(
     email_type="accounting",
-    to_emails=["shellim@nbsbenefits.com"],
+    to_emails=["shellim@example.com"],
     employee_name="John Doe",
     employee_id="EMP12345",
     termination_date="2025-01-31",
@@ -229,7 +229,7 @@ await email_service.send_nbs_term_email(
     pronoun="his",
     pronoun2="him",
     department="Engineering",
-    cc_emails=["NatalieL@nbsbenefits.com"]
+    cc_emails=["NatalieL@example.com"]
 )
 
 # Send all 10 NBS termination emails at once
@@ -362,15 +362,15 @@ Based on the Excel file analysis:
 
 | Email Type  | Recipients |
 |-------------|-----------|
-| **401k**    | kath@nbsbenefits.com |
-| **Accounting** | shellim@nbsbenefits.com (CC: NatalieL@nbsbenefits.com) |
-| **COBRA**   | Nathan.Clark@nbsbenefits.com |
+| **401k**    | kath@example.com |
+| **Accounting** | shellim@example.com (CC: NatalieL@example.com) |
+| **COBRA**   | Nathan.Clark@example.com |
 | **Concur**  | onlinesupport@frosch.com |
-| **CRM**     | awdcrmchange@nbsbenefits.com; evan@nbsbenefits.com |
-| **Data Admin** | lisag@nbsbenefits.com; kath@nbsbenefits.com; evan@nbsbenefits.com; nbstraining@nbsbenefits.com |
-| **Flex**    | kevin.price@nbsbenefits.com |
-| **Retirement** | andreww@nbsbenefits.com; lisag@nbsbenefits.com |
-| **Welfare** | Smuir@nbsbenefits.com; maggie.beckstrand@nbsbenefits.com |
+| **CRM**     | awdcrmchange@example.com; evan@example.com |
+| **Data Admin** | lisag@example.com; kath@example.com; evan@example.com; nbstraining@example.com |
+| **Flex**    | kevin.price@example.com |
+| **Retirement** | andreww@example.com; lisag@example.com |
+| **Welfare** | Smuir@example.com; maggie.beckstrand@example.com |
 | **Leadership** | (13 leadership email addresses - configure in code) |
 
 ---

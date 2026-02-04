@@ -1,4 +1,5 @@
 """PDF generation service for garnishment documents."""
+import os
 from datetime import datetime
 from reportlab.lib.pagesizes import letter
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
@@ -303,7 +304,7 @@ class GarnishmentPDFService:
             [Paragraph("<b>Fax Number</b>", self.styles['TableText']),
              Paragraph(company_info.get("contact_fax", "801-303-2628"), self.styles['TableText'])],
             [Paragraph("<b>Email Address</b>", self.styles['TableText']),
-             Paragraph(company_info.get("contact_email", "mknudson@nbsbenefits.com"), self.styles['TableText'])],
+             Paragraph(company_info.get("contact_email", os.getenv('HR_CONTACT_EMAIL', '')), self.styles['TableText'])],
         ]
 
         signature_table = Table(signature_data, colWidths=[2.0*inch, 5.0*inch])

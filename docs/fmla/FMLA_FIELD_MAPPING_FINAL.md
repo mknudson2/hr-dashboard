@@ -17,7 +17,7 @@ Based on the interactive mapping session, here are the finalized field mappings:
 FMLA_COMPANY_CONFIG = {
     'company_name': 'National Benefit Services',
     'hr_contact_name': 'Michael Knudson',
-    'hr_contact_email': 'mknudson@nbsbenefits.com',
+    'hr_contact_email': 'mknudson@example.com',
     'hr_contact_phone': None,  # Can be added if needed
 
     # Leave year calculation
@@ -35,7 +35,7 @@ FMLA_COMPANY_CONFIG = {
 
     # Benefits contact (same as HR)
     'benefits_contact_name': 'Michael Knudson',
-    'benefits_contact_email': 'mknudson@nbsbenefits.com',
+    'benefits_contact_email': 'mknudson@example.com',
 }
 ```
 
@@ -153,9 +153,9 @@ def calculate_fmla_eligibility(employee, leave_start_date, hours_worked_12months
 | Field Name | Data Source | Value |
 |------------|-------------|-------|
 | `Contact` | Config | `"Michael Knudson"` |
-| `Contact info` | Config | `"mknudson@nbsbenefits.com"` |
+| `Contact info` | Config | `"mknudson@example.com"` |
 | `If you have any questions please contact_2` | Config | `"Michael Knudson"` |
-| `at_2` | Config | `"mknudson@nbsbenefits.com"` |
+| `at_2` | Config | `"mknudson@example.com"` |
 
 ---
 
@@ -227,7 +227,7 @@ Policy: Some/all will not be paid AND Employer requires use of paid leave (Q6.2:
 | Field Name | Data Source | Value |
 |------------|-------------|-------|
 | `on your health insurance while you are on any unpaid FMLA leave contact` | Config | `"Michael Knudson"` |
-| `undefined_2` | Config | `"mknudson@nbsbenefits.com"` |
+| `undefined_2` | Config | `"mknudson@example.com"` |
 | `You have a minimum grace period of` | Config | `checkbox_value(True)` (30 days) |
 | `30days or` | Config | `checkbox_value(True)` ✓ |
 | `indicate longer period if applicable in which to` | Config | `""` (using 30 days) |
@@ -239,7 +239,7 @@ Policy: Some/all will not be paid AND Employer requires use of paid leave (Q6.2:
 | Field Name | Data Source | Value |
 |------------|-------------|-------|
 | `your employee benefits while you are on FMLA leave contact` | Config | `"Michael Knudson"` |
-| `at_3` | Config | `"mknudson@nbsbenefits.com"` |
+| `at_3` | Config | `"mknudson@example.com"` |
 
 ---
 

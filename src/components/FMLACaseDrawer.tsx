@@ -5,6 +5,7 @@ import FMLADocuments from "./FMLADocuments";
 
 interface LeaveEntry {
   id: number;
+  case_id?: number;
   leave_date: string;
   hours_taken: number;
   entry_type: string;
@@ -15,6 +16,13 @@ interface CaseNote {
   id: number;
   note_text: string;
   created_at: string;
+}
+
+interface EmployeeCase {
+  id: number;
+  case_number: string;
+  status: string;
+  start_date: string | null;
 }
 
 interface FMLACaseDetail {
@@ -39,6 +47,8 @@ interface FMLACaseDetail {
   return_to_work_date: string | null;
   notes: string | null;
   leave_entries: LeaveEntry[];
+  all_employee_entries: LeaveEntry[];
+  employee_cases: EmployeeCase[];
   case_notes: CaseNote[];
 }
 
@@ -54,9 +64,11 @@ export default function FMLACaseDrawer({ caseId, onClose, onUpdate }: FMLACaseDr
   const [newNote, setNewNote] = useState("");
   const [addingNote, setAddingNote] = useState(false);
   const [updatingStatus, setUpdatingStatus] = useState(false);
+  const [entryFilter, setEntryFilter] = useState<"current" | "all" | number>("current");
 
   useEffect(() => {
     if (caseId) {
+      setEntryFilter("current"); // Reset filter when opening a new case
       fetchCaseDetail();
     }
   }, [caseId]);
@@ -443,22 +455,76 @@ export default function FMLACaseDrawer({ caseId, onClose, onUpdate }: FMLACaseDr
                   </div>
                 )}
 
-                {/* Leave Entries */}
+                {/* Leave Entries - With Filter Badges */}
                 <div className="bg-gray-50 dark:bg-gray-900 rounded-lg p-4 space-y-3">
-                  <h3 className="text-lg font-semibold text-gray-900 dark:text-white flex items-center gap-2">
-                    <Activity className="w-5 h-5 text-pink-600 dark:text-pink-400" />
-                    Leave Entry History ({caseDetail.leave_entries.length})
-                  </h3>
+                  <div className="flex items-center justify-between">
+                    <h3 className="text-lg font-semibold text-gray-900 dark:text-white flex items-center gap-2">
+                      <Activity className="w-5 h-5 text-pink-600 dark:text-pink-400" />
+                      Leave Entry History
+                    </h3>
+                  </div>
+
+                  {/* Filter Badges */}
+                  <div className="flex flex-wrap gap-2">
+                    <button
+                      onClick={() => setEntryFilter("current")}
+                      className={`px-3 py-1 rounded-full text-xs font-medium transition-colors ${
+                        entryFilter === "current"
+                          ? "bg-blue-600 text-white"
+                          : "bg-gray-200 text-gray-700 hover:bg-gray-300 dark:bg-gray-700 dark:text-gray-300 dark:hover:bg-gray-600"
+                      }`}
+                    >
+                      Current Case ({caseDetail.leave_entries.length})
+                    </button>
+                    <button
+                      onClick={() => setEntryFilter("all")}
+                      className={`px-3 py-1 rounded-full text-xs font-medium transition-colors ${
+                        entryFilter === "all"
+                          ? "bg-blue-600 text-white"
+                          : "bg-gray-200 text-gray-700 hover:bg-gray-300 dark:bg-gray-700 dark:text-gray-300 dark:hover:bg-gray-600"
+                      }`}
+                    >
+                      All Cases ({caseDetail.all_employee_entries?.length || 0})
+                    </button>
+                    {caseDetail.employee_cases?.filter(c => c.id !== caseDetail.id).map((otherCase) => (
+                      <button
+                        key={otherCase.id}
+                        onClick={() => setEntryFilter(otherCase.id)}
+                        className={`px-3 py-1 rounded-full text-xs font-medium transition-colors ${
+                          entryFilter === otherCase.id
+                            ? "bg-purple-600 text-white"
+                            : "bg-gray-200 text-gray-700 hover:bg-gray-300 dark:bg-gray-700 dark:text-gray-300 dark:hover:bg-gray-600"
+                        }`}
+                      >
+                        {otherCase.case_number} ({otherCase.status})
+                      </button>
+                    ))}
+                  </div>
+
+                  {/* Filtered Entries List */}
                   <div className="space-y-2 max-h-64 overflow-y-auto">
-                    {caseDetail.leave_entries.length === 0 ? (
-                      <p className="text-sm text-gray-600 dark:text-gray-400 text-center py-4">
-                        No leave entries recorded yet
-                      </p>
-                    ) : (
-                      caseDetail.leave_entries.map((entry) => (
+                    {(() => {
+                      const allEntries = caseDetail.all_employee_entries || caseDetail.leave_entries;
+                      const filteredEntries = entryFilter === "current"
+                        ? caseDetail.leave_entries
+                        : entryFilter === "all"
+                        ? allEntries
+                        : allEntries.filter(e => e.case_id === entryFilter);
+
+                      if (filteredEntries.length === 0) {
+                        return (
+                          <p className="text-sm text-gray-600 dark:text-gray-400 text-center py-4">
+                            No leave entries recorded
+                          </p>
+                        );
+                      }
+
+                      return filteredEntries.map((entry) => (
                         <div
                           key={entry.id}
-                          className="bg-white dark:bg-gray-800 rounded-lg p-3 flex items-center justify-between"
+                          className={`bg-white dark:bg-gray-800 rounded-lg p-3 flex items-center justify-between ${
+                            entry.case_id && entry.case_id !== caseDetail.id ? 'border-l-4 border-purple-400 dark:border-purple-600' : ''
+                          }`}
                         >
                           <div className="flex-1">
                             <div className="flex items-center gap-3">
@@ -468,6 +534,11 @@ export default function FMLACaseDrawer({ caseId, onClose, onUpdate }: FMLACaseDr
                               <span className="px-2 py-0.5 rounded text-xs bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300">
                                 {entry.entry_type}
                               </span>
+                              {entryFilter === "all" && entry.case_id && entry.case_id !== caseDetail.id && (
+                                <span className="px-2 py-0.5 rounded text-xs bg-purple-100 text-purple-700 dark:bg-purple-900 dark:text-purple-300">
+                                  {caseDetail.employee_cases?.find(c => c.id === entry.case_id)?.case_number || "Other"}
+                                </span>
+                              )}
                             </div>
                             {entry.notes && (
                               <p className="text-xs text-gray-600 dark:text-gray-400 mt-1">{entry.notes}</p>
@@ -477,8 +548,8 @@ export default function FMLACaseDrawer({ caseId, onClose, onUpdate }: FMLACaseDr
                             <p className="font-bold text-gray-900 dark:text-white">{entry.hours_taken.toFixed(2)} hrs</p>
                           </div>
                         </div>
-                      ))
-                    )}
+                      ));
+                    })()}
                   </div>
                 </div>
 

@@ -8,12 +8,15 @@ from typing import Dict, Any, Optional
 from pypdf import PdfWriter
 import os
 from pathlib import Path
+from dotenv import load_dotenv
+
+load_dotenv()
 
 # Company-specific FMLA configuration
 FMLA_COMPANY_CONFIG = {
     'company_name': 'National Benefit Services',
-    'hr_contact_name': 'Michael Knudson',
-    'hr_contact_email': 'mknudson@nbsbenefits.com',
+    'hr_contact_name': os.getenv('HR_CONTACT_NAME', ''),
+    'hr_contact_email': os.getenv('HR_CONTACT_EMAIL', ''),
     'hr_contact_phone': None,
 
     # Leave year calculation
@@ -30,8 +33,8 @@ FMLA_COMPANY_CONFIG = {
     'periodic_reporting_interval': 'every 4 weeks',
 
     # Benefits contact (same as HR)
-    'benefits_contact_name': 'Michael Knudson',
-    'benefits_contact_email': 'mknudson@nbsbenefits.com',
+    'benefits_contact_name': os.getenv('HR_CONTACT_NAME', ''),
+    'benefits_contact_email': os.getenv('HR_CONTACT_EMAIL', ''),
 }
 
 

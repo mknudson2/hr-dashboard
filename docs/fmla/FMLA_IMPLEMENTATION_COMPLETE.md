@@ -46,7 +46,7 @@ Successfully implemented a complete PDF form filling system for the **FMLA WH-38
   - Header & employee information
   - Leave reason and family relationship
   - Eligibility determination with reasons if ineligible
-  - HR contact information (Michael Knudson, mknudson@nbsbenefits.com)
+  - HR contact information (Michael Knudson, mknudson@example.com)
   - Certification requirements (30-day deadline)
   - Rights & responsibilities
   - Company policies (leave year, paid leave, health benefits)
@@ -272,7 +272,7 @@ All company-specific settings are in `app/services/fmla_form_service.py`:
 FMLA_COMPANY_CONFIG = {
     'company_name': 'National Benefit Services',
     'hr_contact_name': 'Michael Knudson',
-    'hr_contact_email': 'mknudson@nbsbenefits.com',
+    'hr_contact_email': 'mknudson@example.com',
     'leave_year_method': 'forward',
     'paid_leave_default': ['unpaid', 'required'],
     'grace_period_days': 30,

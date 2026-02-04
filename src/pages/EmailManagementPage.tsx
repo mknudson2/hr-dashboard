@@ -544,7 +544,7 @@ export default function EmailManagementPage() {
                       type="email"
                       value={formData.manager_email}
                       onChange={(e) => setFormData({ ...formData, manager_email: e.target.value })}
-                      placeholder="manager@nbsbenefits.com"
+                      placeholder="manager@example.com"
                       className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500"
                     />
                   </div>

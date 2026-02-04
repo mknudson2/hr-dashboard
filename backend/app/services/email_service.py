@@ -99,6 +99,9 @@ class EmailService:
             # Add common variables to context
             context.setdefault('company_name', self.company_name)
             context.setdefault('current_year', self.current_year)
+            context.setdefault('hr_contact_email', os.getenv('HR_CONTACT_EMAIL', ''))
+            context.setdefault('hr_contact_name', os.getenv('HR_CONTACT_NAME', ''))
+            context.setdefault('support_email', os.getenv('HR_SUPPORT_EMAIL', ''))
 
             template = self.jinja_env.get_template(template_name)
             return template.render(**context)
@@ -534,15 +537,15 @@ class EmailService:
             'is_eligible': is_eligible,
             'certification_required': certification_required,
             'certification_due_date': certification_due_date,
-            'hr_contact_name': 'Michael Knudson',
-            'hr_contact_email': 'mknudson@nbsbenefits.com',
+            'hr_contact_name': os.getenv('HR_CONTACT_NAME', ''),
+            'hr_contact_email': os.getenv('HR_CONTACT_EMAIL', ''),
             'from_name': 'HR Department'
         }
 
         # Prepare CC list
         cc_emails = []
         if cc_hr:
-            cc_emails.append('mknudson@nbsbenefits.com')
+            cc_emails.append(os.getenv('HR_CONTACT_EMAIL', ''))
 
         # Prepare attachments
         attachments = []
@@ -591,8 +594,8 @@ class EmailService:
             'certification_due_date': certification_due_date,
             'days_remaining': days_remaining,
             'certification_type': cert_type_text,
-            'hr_contact_name': 'Michael Knudson',
-            'hr_contact_email': 'mknudson@nbsbenefits.com',
+            'hr_contact_name': os.getenv('HR_CONTACT_NAME', ''),
+            'hr_contact_email': os.getenv('HR_CONTACT_EMAIL', ''),
             'is_urgent': days_remaining <= 7,
             'from_name': 'HR Department'
         }
@@ -633,8 +636,8 @@ class EmailService:
             'leave_end_date': leave_end_date,
             'is_intermittent': is_intermittent,
             'hours_approved': hours_approved,
-            'hr_contact_name': 'Michael Knudson',
-            'hr_contact_email': 'mknudson@nbsbenefits.com',
+            'hr_contact_name': os.getenv('HR_CONTACT_NAME', ''),
+            'hr_contact_email': os.getenv('HR_CONTACT_EMAIL', ''),
             'from_name': 'HR Department'
         }
 

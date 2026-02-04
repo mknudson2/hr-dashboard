@@ -207,7 +207,7 @@ EMAIL_ENABLED=true
 EMAIL_PROVIDER=gmail
 GMAIL_USERNAME=your-email@gmail.com
 GMAIL_APP_PASSWORD=your-app-password
-GMAIL_FROM_EMAIL=noreply@nbsbenefits.com
+GMAIL_FROM_EMAIL=noreply@example.com
 GMAIL_FROM_NAME=NBS HR Department
 ```
 
