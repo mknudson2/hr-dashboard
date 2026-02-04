@@ -162,9 +162,9 @@ class SFTPService:
                                 db=db
                             )
                             if success:
-                                print(f"✓ Auto-processed {remote_file}: {msg}")
+                                print(f"Auto-processed {remote_file}: {msg}")
                         except Exception as e:
-                            print(f"⚠ Failed to auto-process {remote_file}: {str(e)}")
+                            print(f"Failed to auto-process {remote_file}: {str(e)}")
 
                     files_downloaded += 1
 

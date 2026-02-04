@@ -167,7 +167,7 @@ export default function EmailManagementPage() {
           endpoint = '/emails/onboarding/welcome';
           payload = {
             to_email: formData.to_email,
-            employee_name: formData.employee_name || 'Test Employee',
+            employee_name: formData.employee_name || 'Sample Employee',
             role: formData.role || 'Test Role',
             start_date: formData.start_date || '2025-01-15',
             department: formData.department || 'Test Department',
@@ -178,7 +178,7 @@ export default function EmailManagementPage() {
           endpoint = '/emails/onboarding/first-day-info';
           payload = {
             to_email: formData.to_email,
-            employee_name: formData.employee_name || 'Test Employee',
+            employee_name: formData.employee_name || 'Sample Employee',
             start_date: formData.start_date || '2025-01-15',
             start_time: '9:00 AM',
             office_location: 'Main Office',
@@ -191,8 +191,8 @@ export default function EmailManagementPage() {
         payload = {
           email_type: emailType,
           to_emails: [formData.to_email],
-          employee_name: formData.employee_name || 'Test Employee',
-          employee_id: formData.employee_id || 'TEST123',
+          employee_name: formData.employee_name || 'Sample Employee',
+          employee_id: formData.employee_id || 'EMP-SAMPLE',
           termination_date: formData.termination_date || '2025-01-31',
           verb: 'has',
           pronoun: 'their',
@@ -205,7 +205,7 @@ export default function EmailManagementPage() {
           endpoint = '/emails/fmla/approval';
           payload = {
             to_email: formData.to_email,
-            employee_name: formData.employee_name || 'Test Employee',
+            employee_name: formData.employee_name || 'Sample Employee',
             leave_type: 'Medical Leave',
             start_date: formData.start_date || '2025-02-01',
             return_date: '2025-04-01',
@@ -215,7 +215,7 @@ export default function EmailManagementPage() {
           endpoint = '/emails/fmla/reminder';
           payload = {
             to_email: formData.to_email,
-            employee_name: formData.employee_name || 'Test Employee',
+            employee_name: formData.employee_name || 'Sample Employee',
             start_date: formData.start_date || '2025-02-01',
             return_date: '2025-04-01',
             days_until_return: 7
@@ -224,7 +224,7 @@ export default function EmailManagementPage() {
           endpoint = '/emails/fmla/return';
           payload = {
             to_email: formData.to_email,
-            employee_name: formData.employee_name || 'Test Employee',
+            employee_name: formData.employee_name || 'Sample Employee',
             return_date: '2025-04-01',
             manager_name: formData.manager_name
           };
@@ -234,14 +234,14 @@ export default function EmailManagementPage() {
           endpoint = '/emails/events/birthday';
           payload = {
             to_email: formData.to_email,
-            employee_name: formData.employee_name || 'Test Employee',
+            employee_name: formData.employee_name || 'Sample Employee',
             birthday_message: 'Have a wonderful birthday!'
           };
         } else if (selectedTemplate === 'anniversary') {
           endpoint = '/emails/events/anniversary';
           payload = {
             to_email: formData.to_email,
-            employee_name: formData.employee_name || 'Test Employee',
+            employee_name: formData.employee_name || 'Sample Employee',
             years: 5,
             start_date: '2020-01-15',
             current_role: formData.role || 'Test Role',

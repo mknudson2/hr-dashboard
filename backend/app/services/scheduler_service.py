@@ -22,20 +22,20 @@ class SchedulerService:
     def start(self):
         """Start the background scheduler"""
         if self.is_running:
-            print("⚠ Scheduler already running")
+            print("Scheduler already running")
             return
 
         self.is_running = True
         self.thread = threading.Thread(target=self._run_scheduler, daemon=True)
         self.thread.start()
-        print("✓ SFTP Scheduler started")
+        print("SFTP Scheduler started")
 
     def stop(self):
         """Stop the background scheduler"""
         self.is_running = False
         if self.thread:
             self.thread.join(timeout=5)
-        print("✓ SFTP Scheduler stopped")
+        print("SFTP Scheduler stopped")
 
     def _run_scheduler(self):
         """Main scheduler loop (runs in background thread)"""
@@ -43,7 +43,7 @@ class SchedulerService:
             try:
                 self._check_and_poll()
             except Exception as e:
-                print(f"❌ Scheduler error: {str(e)}")
+                print(f"Scheduler error: {str(e)}")
 
             # Sleep for 1 minute between checks
             for _ in range(60):

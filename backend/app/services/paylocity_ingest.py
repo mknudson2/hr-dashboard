@@ -154,7 +154,7 @@ def process_paylocity_files():
 
             except Exception as e:
                 db.rollback()
-                print(f"❌ Error processing {file}: {e}")
+                print(f"Error processing {file}: {e}")
                 print(f"  File left in upload directory for review\n")
 
     finally:

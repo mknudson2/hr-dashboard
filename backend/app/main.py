@@ -178,12 +178,12 @@ def custom_rate_limit_exceeded_handler(request: Request, exc: RateLimitExceeded)
 @asynccontextmanager
 async def lifespan(_app: FastAPI):
     # Startup
-    print("🚀 Starting HR Dashboard API...")
+    print("Starting HR Dashboard API...")
     start_scheduler()
     sftp_scheduler.start()
     yield
     # Shutdown
-    print("🛑 Shutting down HR Dashboard API...")
+    print("Shutting down HR Dashboard API...")
     stop_scheduler()
     sftp_scheduler.stop()
 
