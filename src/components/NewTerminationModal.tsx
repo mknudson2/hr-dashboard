@@ -70,7 +70,7 @@ export default function NewTerminationModal({ onClose }: NewTerminationModalProp
 
     const fetchEmployees = async () => {
         try {
-            const response = await fetch("/employees");
+            const response = await fetch("/employees/");
             if (response.ok) {
                 const data = await response.json();
                 setEmployees(data.filter((e: Employee) => e.type !== "Terminated"));

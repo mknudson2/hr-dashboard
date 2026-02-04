@@ -87,7 +87,7 @@ const UserManagementPage = () => {
       if (roleFilter) params.append('role', roleFilter);
       if (statusFilter) params.append('is_active', statusFilter);
 
-      const response = await fetch(`${API_URL}/users?${params}`, {
+      const response = await fetch(`${API_URL}/users/?${params}`, {
         credentials: 'include',
       });
 
@@ -237,7 +237,7 @@ const UserManagementPage = () => {
 
       const url = editingUser
         ? `${API_URL}/users/${editingUser.id}`
-        : `${API_URL}/users`;
+        : `${API_URL}/users/`;
 
       const method = editingUser ? 'PUT' : 'POST';
 

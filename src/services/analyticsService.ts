@@ -1,7 +1,7 @@
 const API_BASE = "";
 
 export async function getAnalytics() {
-  const res = await fetch(`${API_BASE}/analytics`, {
+  const res = await fetch(`${API_BASE}/analytics/`, {
     credentials: 'include',
   });
   return res.json();

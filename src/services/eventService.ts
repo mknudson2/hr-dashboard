@@ -17,7 +17,7 @@ export const getEvents = async (params?: {
     });
   }
 
-  const url = `${API_BASE_URL}/events${queryParams.toString() ? `?${queryParams.toString()}` : ''}`;
+  const url = `${API_BASE_URL}/events/${queryParams.toString() ? `?${queryParams.toString()}` : ''}`;
   const response = await fetch(url, { credentials: 'include' });
   if (!response.ok) throw new Error('Failed to fetch events');
   return response.json();
@@ -30,7 +30,7 @@ export const getEvent = async (eventId: number) => {
 };
 
 export const createEvent = async (eventData: any) => {
-  const response = await fetch(`${API_BASE_URL}/events`, {
+  const response = await fetch(`${API_BASE_URL}/events/`, {
     method: 'POST',
     credentials: 'include',
     headers: { 'Content-Type': 'application/json' },

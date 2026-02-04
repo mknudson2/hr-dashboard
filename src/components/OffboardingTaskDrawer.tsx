@@ -141,7 +141,7 @@ export default function OffboardingTaskDrawer({
       // Fetch garnishments for garnishment notification task
       const fetchGarnishments = async () => {
         try {
-          const response = await fetch(`${BASE_URL}/garnishments?employee_id=${task.employee_id}&status=Active`);
+          const response = await fetch(`${BASE_URL}/garnishments/?employee_id=${task.employee_id}&status=Active`);
           if (response.ok) {
             const data = await response.json();
             setGarnishments(data.garnishments || []);

@@ -9,16 +9,16 @@ export const getEmployeeById = async (id: number) => {
 };
 
 export const getAnalytics = async () => {
-  const response = await axios.get(`${API_BASE}/analytics`, { withCredentials: true });
+  const response = await axios.get(`${API_BASE}/analytics/`, { withCredentials: true });
   return response.data;
 };
 
 export async function listEmployees() {
-  const res = await fetch("/employees", { credentials: 'include' });
+  const res = await fetch("/employees/", { credentials: 'include' });
   return res.json();
 }
 
 export async function getEmployees() {
-  const res = await fetch("/employees", { credentials: 'include' });
+  const res = await fetch("/employees/", { credentials: 'include' });
   return res.json();
 }
