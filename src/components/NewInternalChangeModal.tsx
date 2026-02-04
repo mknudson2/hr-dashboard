@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
-import { X, Search, ArrowRightLeft } from "lucide-react";
+import { X, Search, ArrowRightLeft, AlertTriangle } from "lucide-react";
 
 interface Employee {
     employee_id: string;
@@ -87,6 +87,12 @@ export default function NewInternalChangeModal({ onClose }: NewInternalChangeMod
             annual_cost_impact: changeAmount,
         }));
     }, [formData.total_compensation_before, formData.total_compensation_after]);
+
+    // Check if employment type is changing between Full Time and Part Time
+    const isEmploymentTypeChanging =
+        formData.employment_type_before !== formData.employment_type_after &&
+        ((formData.employment_type_before === "Full Time" && formData.employment_type_after === "Part Time") ||
+         (formData.employment_type_before === "Part Time" && formData.employment_type_after === "Full Time"));
 
     const fetchEmployees = async () => {
         try {
@@ -541,6 +547,30 @@ export default function NewInternalChangeModal({ onClose }: NewInternalChangeMod
                                 </div>
                             </div>
                         </div>
+
+                        {/* Benefits Adjustment Reminder */}
+                        {isEmploymentTypeChanging && (
+                            <div className="rounded-lg p-4 bg-amber-50 dark:bg-amber-900/30 border border-amber-300 dark:border-amber-700">
+                                <div className="flex items-start gap-3">
+                                    <AlertTriangle className="w-6 h-6 text-amber-600 dark:text-amber-400 flex-shrink-0 mt-0.5" />
+                                    <div>
+                                        <h4 className="font-semibold text-amber-800 dark:text-amber-200">
+                                            Benefits Adjustment Required
+                                        </h4>
+                                        <p className="text-sm text-amber-700 dark:text-amber-300 mt-1">
+                                            This employee is changing from <strong>{formData.employment_type_before}</strong> to <strong>{formData.employment_type_after}</strong>.
+                                            Please remember to review and adjust the employee's benefits eligibility and enrollment accordingly.
+                                        </p>
+                                        <ul className="text-sm text-amber-700 dark:text-amber-300 mt-2 list-disc list-inside space-y-1">
+                                            <li>Review health insurance eligibility</li>
+                                            <li>Update retirement plan contributions</li>
+                                            <li>Adjust PTO accrual rates</li>
+                                            <li>Verify other benefit elections</li>
+                                        </ul>
+                                    </div>
+                                </div>
+                            </div>
+                        )}
 
                         {/* Cost Impact Summary */}
                         <div className={`rounded-lg p-4 ${formData.annual_cost_impact >= 0 ? 'bg-red-100 dark:bg-red-900/30' : 'bg-green-100 dark:bg-green-900/30'}`}>
