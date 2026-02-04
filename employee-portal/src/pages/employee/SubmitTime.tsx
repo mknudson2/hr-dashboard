@@ -11,16 +11,27 @@ interface Case {
   status: string;
   leave_type: string;
   hours_remaining: number;
+  hours_approved: number;
+  start_date: string | null;
+  end_date: string | null;
 }
 
 interface MyCasesData {
   cases: Case[];
 }
 
+interface PendingCase {
+  id: number;
+  case_number: string;
+  leave_type: string;
+  start_date: string | null;
+}
+
 export default function SubmitTime() {
   const navigate = useNavigate();
   const { isSupervisor } = useAuth();
   const [cases, setCases] = useState<Case[]>([]);
+  const [pendingCases, setPendingCases] = useState<PendingCase[]>([]);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -40,11 +51,33 @@ export default function SubmitTime() {
         setLoading(true);
         setNoEmployeeRecord(false);
         const result = await apiGet<MyCasesData>('/portal/my-cases');
-        // Filter to only active/approved cases
+
+        // Filter to only active cases with hours remaining
         const activeCases = result.cases.filter(c =>
-          c.status.toLowerCase() === 'active' || c.status.toLowerCase() === 'approved'
+          (c.status.toLowerCase() === 'active' || c.status.toLowerCase() === 'approved') &&
+          c.hours_remaining > 0
         );
         setCases(activeCases);
+
+        // Track pending activation cases to show notice
+        const pendingActivationCases = result.cases
+          .filter(c => c.status.toLowerCase() === 'pending activation')
+          .map(c => ({
+            id: c.id,
+            case_number: c.case_number,
+            leave_type: c.leave_type,
+            start_date: c.start_date
+          }));
+        setPendingCases(pendingActivationCases);
+
+        // Also track exhausted cases (active but no hours)
+        const exhaustedCases = result.cases.filter(c =>
+          (c.status.toLowerCase() === 'active' || c.status.toLowerCase() === 'approved') &&
+          c.hours_remaining <= 0
+        );
+        if (exhaustedCases.length > 0 && activeCases.length === 0) {
+          setError('All your active FMLA cases have exhausted their approved hours. Contact HR if you need additional leave.');
+        }
       } catch (err) {
         const errMsg = err instanceof Error ? err.message : 'Failed to load cases';
         if (errMsg.includes('not linked to an employee record')) {
@@ -63,13 +96,21 @@ export default function SubmitTime() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
+
+    // Validate hours against remaining
+    const hours = parseFloat(hoursRequested);
+    if (selectedCase && hours > selectedCase.hours_remaining) {
+      setError(`Cannot request ${hours} hours. Only ${selectedCase.hours_remaining.toFixed(1)} hours remaining on this case.`);
+      return;
+    }
+
     setSubmitting(true);
 
     try {
       await apiPost('/portal/submit-time', {
         case_id: selectedCaseId,
         leave_date: leaveDate,
-        hours_requested: parseFloat(hoursRequested),
+        hours_requested: hours,
         entry_type: entryType,
         employee_notes: notes || null,
       });
@@ -94,6 +135,9 @@ export default function SubmitTime() {
   };
 
   const selectedCase = cases.find(c => c.id === selectedCaseId);
+
+  // Check if hours requested exceeds remaining
+  const hoursExceedsRemaining = selectedCase && parseFloat(hoursRequested || '0') > selectedCase.hours_remaining;
 
   if (loading) {
     return (
@@ -159,7 +203,7 @@ export default function SubmitTime() {
           <p className="text-gray-600 dark:text-gray-400 mt-1">Log your FMLA time for supervisor approval</p>
         </div>
 
-        <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-12 text-center">
+        <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-300 dark:border-gray-700 p-12 text-center">
           <FileText className="mx-auto text-gray-400 mb-4" size={48} />
           <h3 className="text-lg font-medium text-gray-900 dark:text-white">No Active Cases</h3>
           <p className="text-gray-500 dark:text-gray-400 mt-1">
@@ -182,7 +226,7 @@ export default function SubmitTime() {
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
-        className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-6"
+        className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-300 dark:border-gray-700 p-6"
       >
         <form onSubmit={handleSubmit} className="space-y-6">
           {/* Error message */}
@@ -190,6 +234,29 @@ export default function SubmitTime() {
             <div className="flex items-center gap-2 p-3 bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-800 rounded-lg text-red-700 dark:text-red-400 text-sm">
               <AlertCircle size={18} />
               <span>{error}</span>
+            </div>
+          )}
+
+          {/* Pending Activation Cases Notice */}
+          {pendingCases.length > 0 && (
+            <div className="p-4 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-700 rounded-lg">
+              <div className="flex items-start gap-3">
+                <AlertCircle className="text-blue-600 dark:text-blue-400 flex-shrink-0 mt-0.5" size={20} />
+                <div>
+                  <h4 className="font-medium text-blue-800 dark:text-blue-300">Upcoming FMLA Cases Approved</h4>
+                  <p className="text-sm text-blue-700 dark:text-blue-400 mt-1">
+                    The following case(s) have been approved and will become active once your current case ends:
+                  </p>
+                  <ul className="mt-2 space-y-1">
+                    {pendingCases.map(pc => (
+                      <li key={pc.id} className="text-sm text-blue-600 dark:text-blue-400">
+                        • <span className="font-medium">{pc.case_number}</span> - {pc.leave_type}
+                        {pc.start_date && ` (Starts ${new Date(pc.start_date).toLocaleDateString()})`}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              </div>
             </div>
           )}
 
@@ -216,14 +283,31 @@ export default function SubmitTime() {
 
           {/* Selected case info */}
           {selectedCase && (
-            <div className="p-4 bg-blue-50 dark:bg-blue-900/30 rounded-lg">
+            <div className={`p-4 rounded-lg ${selectedCase.hours_remaining < 8 ? 'bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-700' : 'bg-blue-50 dark:bg-blue-900/30'}`}>
               <div className="flex items-center gap-2 text-blue-700 dark:text-blue-400">
                 <FileText size={18} />
                 <span className="font-medium">{selectedCase.case_number}</span>
               </div>
-              <p className="text-sm text-blue-600 dark:text-blue-400 mt-1">
-                {selectedCase.leave_type} • {selectedCase.hours_remaining.toFixed(1)} hours remaining
+              <p className={`text-sm mt-1 ${selectedCase.hours_remaining < 8 ? 'text-amber-700 dark:text-amber-400' : 'text-blue-600 dark:text-blue-400'}`}>
+                {selectedCase.leave_type} • <span className="font-semibold">{selectedCase.hours_remaining.toFixed(1)} hours remaining</span>
               </p>
+              {selectedCase.hours_remaining < 8 && (
+                <p className="text-xs text-amber-600 dark:text-amber-400 mt-2 flex items-center gap-1">
+                  <AlertCircle size={14} />
+                  Low hours remaining - contact HR if you need additional leave time.
+                </p>
+              )}
+            </div>
+          )}
+
+          {/* Hours exceed warning */}
+          {hoursExceedsRemaining && (
+            <div className="flex items-center gap-2 p-3 bg-amber-50 dark:bg-amber-900/30 border border-amber-200 dark:border-amber-700 rounded-lg text-amber-700 dark:text-amber-400 text-sm">
+              <AlertCircle size={18} />
+              <span>
+                Hours requested ({hoursRequested}) exceeds remaining hours ({selectedCase?.hours_remaining.toFixed(1)}).
+                Please adjust your request.
+              </span>
             </div>
           )}
 
@@ -306,7 +390,7 @@ export default function SubmitTime() {
             </button>
             <button
               type="submit"
-              disabled={submitting || !selectedCaseId}
+              disabled={submitting || !selectedCaseId || hoursExceedsRemaining}
               className="px-6 py-3 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 disabled:bg-blue-400 disabled:cursor-not-allowed transition-colors flex items-center gap-2"
             >
               {submitting ? (

@@ -7,7 +7,7 @@ from fastapi import APIRouter, Depends, UploadFile, File, HTTPException, Query
 from fastapi.responses import FileResponse
 from sqlalchemy.orm import Session
 from sqlalchemy import func
-from typing import List, Optional
+from typing import List, Optional, Dict
 from datetime import datetime
 from pydantic import BaseModel
 from pathlib import Path
@@ -404,31 +404,6 @@ async def process_employee_file(
         raise HTTPException(status_code=500, detail=f"Processing failed: {str(e)}")
 
 
-@router.get("/templates/download")
-async def download_template(
-    template_type: str = Query(default="employee", description="Template type: employee")
-):
-    """
-    Download file templates for import
-
-    Available templates:
-    - employee: Paylocity employee data template (CSV)
-    """
-    templates_dir = Path(__file__).parent.parent / "data" / "templates"
-
-    if template_type == "employee":
-        template_path = templates_dir / "paylocity_employee_template.csv"
-        if not template_path.exists():
-            raise HTTPException(status_code=404, detail="Template not found")
-        return FileResponse(
-            path=str(template_path),
-            filename="paylocity_employee_template.csv",
-            media_type="text/csv"
-        )
-    else:
-        raise HTTPException(status_code=400, detail=f"Unknown template type: {template_type}")
-
-
 @router.get("/stats/summary", response_model=FileUploadStatsResponse)
 async def get_upload_stats(
     db: Session = Depends(database.get_db)
@@ -795,3 +770,214 @@ async def get_file_categories():
         })
 
     return categories
+
+
+# ============================================================================
+# FLEXIBLE COLUMN MAPPING ENDPOINTS
+# ============================================================================
+
+@router.get("/mapping/available-fields")
+async def get_available_fields():
+    """
+    Get all available database fields that can be mapped to
+
+    Returns fields organized by category with metadata including:
+    - db_field: Database column name
+    - display_name: Human-readable name
+    - description: Field description
+    - data_type: Expected data type (string, number, date, boolean)
+    - required: Whether field is required
+    - example: Example value
+    - common_aliases: Common column names that map to this field
+    """
+    from app.services.column_mapping_service import column_mapping_service
+
+    return {
+        "fields": column_mapping_service.get_all_fields(),
+        "fields_by_category": column_mapping_service.get_fields_by_category()
+    }
+
+
+@router.post("/{file_id}/detect-mappings")
+async def detect_column_mappings(
+    file_id: int,
+    db: Session = Depends(database.get_db)
+):
+    """
+    Auto-detect column mappings for an uploaded file
+
+    Analyzes the file's column headers and suggests mappings based on:
+    - Exact matches to known aliases
+    - Fuzzy matching for similar names
+    - Common patterns
+
+    Returns:
+    - detected_columns: List of columns found in file
+    - suggested_mappings: Dict mapping source columns to suggested db fields
+    - unmapped_columns: Columns that couldn't be automatically mapped
+    - validation_warnings: Any issues found
+    """
+    from app.services.column_mapping_service import column_mapping_service
+
+    # Get upload record
+    upload = db.query(models.FileUpload).filter(
+        models.FileUpload.id == file_id,
+        models.FileUpload.is_deleted == False
+    ).first()
+
+    if not upload:
+        raise HTTPException(status_code=404, detail=f"Upload {file_id} not found")
+
+    # Parse file to get columns
+    try:
+        file_path = Path(upload.file_path)
+
+        if upload.file_type in ['csv']:
+            parser = CSVParser()
+        elif upload.file_type in ['xlsx', 'xls']:
+            parser = ExcelParser()
+        else:
+            raise HTTPException(status_code=400, detail="Only CSV and Excel files support column mapping")
+
+        # Get columns and sample data
+        result = parser.parse(str(file_path), preview_rows=5)
+        columns = result.get('columns', [])
+        sample_data = result.get('data', [])
+
+        # Auto-detect mappings
+        suggested_mappings = column_mapping_service.auto_detect_mappings(columns)
+
+        # Find unmapped columns
+        unmapped = [col for col in columns if col not in suggested_mappings]
+
+        # Validate the auto-detected mappings
+        is_valid, validation_errors = column_mapping_service.validate_mappings(suggested_mappings)
+
+        return {
+            "file_id": file_id,
+            "detected_columns": columns,
+            "row_count": result.get('row_count', 0),
+            "sample_data": sample_data[:5],
+            "suggested_mappings": suggested_mappings,
+            "unmapped_columns": unmapped,
+            "is_valid": is_valid,
+            "validation_warnings": validation_errors,
+            "available_fields": column_mapping_service.get_fields_by_category()
+        }
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to detect mappings: {str(e)}")
+
+
+class CustomMappingImportRequest(BaseModel):
+    """Request body for import with custom mappings"""
+    column_mappings: Dict[str, str]  # source_column -> db_field
+    dry_run: bool = False
+
+
+@router.post("/{file_id}/import-with-mappings", response_model=ImportFileResponse)
+async def import_with_custom_mappings(
+    file_id: int,
+    request: CustomMappingImportRequest,
+    db: Session = Depends(database.get_db)
+):
+    """
+    Import file data using custom column mappings
+
+    This endpoint allows you to specify exactly which columns map to which
+    database fields, overriding the auto-detection.
+
+    Request body:
+    - column_mappings: Dict mapping source column names to database field names
+    - dry_run: If true, validate but don't actually import
+
+    The column_mappings should map your file's column names to the database
+    fields. Get available fields from /mapping/available-fields endpoint.
+
+    Example:
+    {
+        "column_mappings": {
+            "EmpID": "employee_id",
+            "FirstName": "first_name",
+            "LastName": "last_name",
+            "HireDate": "hire_date",
+            "Department": "department"
+        },
+        "dry_run": false
+    }
+    """
+    from app.services.column_mapping_service import column_mapping_service
+    from app.services.data_import_service import DataImportService
+
+    # Get upload record
+    upload = db.query(models.FileUpload).filter(
+        models.FileUpload.id == file_id,
+        models.FileUpload.is_deleted == False
+    ).first()
+
+    if not upload:
+        raise HTTPException(status_code=404, detail=f"Upload {file_id} not found")
+
+    # Validate file type
+    if upload.file_type not in ['csv', 'xlsx', 'xls']:
+        raise HTTPException(
+            status_code=400,
+            detail="Only CSV and Excel files can be imported"
+        )
+
+    # Validate mappings
+    is_valid, errors = column_mapping_service.validate_mappings(request.column_mappings)
+    if not is_valid:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Invalid column mappings: {'; '.join(errors)}"
+        )
+
+    try:
+        # Import with custom mappings
+        result = await DataImportService.import_with_custom_mappings(
+            file_upload_id=file_id,
+            column_mappings=request.column_mappings,
+            db=db,
+            dry_run=request.dry_run
+        )
+        return result
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Import failed: {str(e)}")
+
+
+@router.get("/templates/download")
+async def download_template(
+    template_type: str = Query(..., description="Template type: employee, comprehensive"),
+):
+    """
+    Download file templates for import
+
+    Available templates:
+    - employee: Basic Paylocity employee data template (CSV)
+    - comprehensive: Full employee template with all available fields (CSV)
+    """
+    templates_dir = Path(__file__).parent.parent / "data" / "templates"
+
+    if template_type == "employee":
+        template_path = templates_dir / "paylocity_employee_template.csv"
+        filename = "employee_import_template.csv"
+    elif template_type == "comprehensive":
+        template_path = templates_dir / "comprehensive_employee_template.csv"
+        filename = "comprehensive_employee_template.csv"
+    else:
+        raise HTTPException(status_code=400, detail=f"Unknown template type: {template_type}")
+
+    if not template_path.exists():
+        raise HTTPException(status_code=404, detail="Template not found")
+
+    return FileResponse(
+        path=str(template_path),
+        filename=filename,
+        media_type="text/csv"
+    )

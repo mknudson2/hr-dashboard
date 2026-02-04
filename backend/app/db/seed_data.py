@@ -8,6 +8,7 @@ db = database.SessionLocal()
 
 # Clear existing data
 db.query(models.Employee).delete()
+db.query(models.OnboardingTask).delete()
 db.commit()
 
 # Helper data
@@ -39,7 +40,34 @@ departments = [
     "Customer Service", "Engineering", "Product", "Legal"
 ]
 
-locations = ["Salt Lake City", "Denver", "Remote", "Austin", "Seattle", "Phoenix"]
+locations = ["Salt Lake City, UT", "Denver, CO", "Remote", "Austin, TX", "Seattle, WA", "Phoenix, AZ"]
+
+# Map locations to states (for address_state field)
+location_to_state = {
+    "Salt Lake City, UT": "UT",
+    "Denver, CO": "CO",
+    "Austin, TX": "TX",
+    "Seattle, WA": "WA",
+    "Phoenix, AZ": "AZ",
+    "Remote": None  # Will be assigned random US state
+}
+
+# Remote locations with city and state for proper parsing
+remote_locations = [
+    ("Los Angeles", "CA"), ("San Francisco", "CA"), ("San Diego", "CA"),
+    ("New York", "NY"), ("Brooklyn", "NY"), ("Buffalo", "NY"),
+    ("Miami", "FL"), ("Orlando", "FL"), ("Tampa", "FL"),
+    ("Houston", "TX"), ("Dallas", "TX"), ("San Antonio", "TX"),
+    ("Chicago", "IL"), ("Philadelphia", "PA"), ("Pittsburgh", "PA"),
+    ("Columbus", "OH"), ("Cleveland", "OH"), ("Atlanta", "GA"),
+    ("Charlotte", "NC"), ("Raleigh", "NC"), ("Detroit", "MI"),
+    ("Boston", "MA"), ("Nashville", "TN"), ("Indianapolis", "IN"),
+    ("Portland", "OR"), ("Las Vegas", "NV"), ("Minneapolis", "MN"),
+    ("Milwaukee", "WI"), ("Baltimore", "MD"), ("Kansas City", "MO"),
+]
+
+# US states for address_state field
+us_states = ["CA", "NY", "FL", "TX", "IL", "PA", "OH", "GA", "NC", "MI", "NJ", "VA", "WA", "AZ", "MA", "TN", "IN", "MO", "MD", "WI", "CO", "MN", "SC", "AL", "LA", "KY", "OR", "OK", "CT", "UT", "IA", "NV", "AR", "MS", "KS", "NM", "NE", "ID", "WV", "HI", "NH", "ME", "MT", "RI", "DE", "SD", "ND", "AK", "VT", "WY"]
 
 teams = [
     "Core", "Support", "Infrastructure", "Analytics", "East", "West",
@@ -59,8 +87,8 @@ for i in range(130):
     is_terminated = random.random() < 0.15
     status = "Terminated" if is_terminated else "Active"
 
-    # Random hire date between 2019 and 2025
-    hire_year = random.randint(2019, 2024)
+    # Random hire date between 2020 and 2025
+    hire_year = random.randint(2020, 2025)
     hire_month = random.randint(1, 12)
     hire_day = random.randint(1, 28)
     hire_date = date(hire_year, hire_month, hire_day)
@@ -69,7 +97,7 @@ for i in range(130):
     if is_terminated:
         term_month = random.randint(1, 10)
         term_day = random.randint(1, 28)
-        termination_date = date(2025, term_month, term_day)
+        termination_date = date(2026, term_month, term_day)
         # 60% voluntary, 40% involuntary
         term_type = "Voluntary" if random.random() < 0.6 else "Involuntary"
     else:
@@ -77,13 +105,28 @@ for i in range(130):
         term_type = None
 
     # Calculate tenure years
-    end_date = termination_date if termination_date else date(2025, 10, 28)
+    end_date = termination_date if termination_date else date(2026, 2, 3)
     tenure_years = round((end_date - hire_date).days / 365.25, 1)
 
     # Random department and location
     dept = random.choice(departments)
     loc = random.choice(locations)
     team = random.choice(teams)
+
+    # Determine state based on location
+    if loc == "Remote":
+        # Pick a random remote location (city, state)
+        remote_city, remote_state = random.choice(remote_locations)
+        loc = f"{remote_city}, {remote_state}"
+        state = remote_state
+    else:
+        state = location_to_state.get(loc)
+
+    # Generate birth date (ages 22-65)
+    birth_year = random.randint(1961, 2004)
+    birth_month = random.randint(1, 12)
+    birth_day = random.randint(1, 28)
+    birth_date = date(birth_year, birth_month, birth_day)
 
     # Employee type (90% FT, 10% PT)
     emp_type = "FT" if random.random() < 0.9 else "PT"
@@ -125,6 +168,8 @@ for i in range(130):
         pto_used=pto_used,
         attendance_days=attendance_days,
         expected_days=expected_days,
+        birth_date=birth_date,
+        address_state=state,
     ))
 
 # Congruent employees (30 employees, IDs: C01-C30)
@@ -135,7 +180,7 @@ for i in range(30):
     is_terminated = random.random() < 0.10  # Lower turnover for international
     status = "Terminated" if is_terminated else "Active"
 
-    hire_year = random.randint(2020, 2024)
+    hire_year = random.randint(2021, 2025)
     hire_month = random.randint(1, 12)
     hire_day = random.randint(1, 28)
     hire_date = date(hire_year, hire_month, hire_day)
@@ -143,13 +188,13 @@ for i in range(30):
     if is_terminated:
         term_month = random.randint(1, 10)
         term_day = random.randint(1, 28)
-        termination_date = date(2025, term_month, term_day)
+        termination_date = date(2026, term_month, term_day)
         term_type = "Voluntary" if random.random() < 0.6 else "Involuntary"
     else:
         termination_date = None
         term_type = None
 
-    end_date = termination_date if termination_date else date(2025, 10, 28)
+    end_date = termination_date if termination_date else date(2026, 2, 3)
     tenure_years = round((end_date - hire_date).days / 365.25, 1)
 
     dept = random.choice(departments)
@@ -163,6 +208,12 @@ for i in range(30):
     pto_used = random.randint(15, int(pto_allotted * 0.75))
     expected_days = 240
     attendance_days = random.randint(int(expected_days * 0.88), expected_days)
+
+    # Generate birth date (ages 22-65)
+    birth_year = random.randint(1961, 2004)
+    birth_month = random.randint(1, 12)
+    birth_day = random.randint(1, 28)
+    birth_date = date(birth_year, birth_month, birth_day)
 
     employees.append(models.Employee(
         employee_id=emp_id,
@@ -184,6 +235,7 @@ for i in range(30):
         pto_used=pto_used,
         attendance_days=attendance_days,
         expected_days=expected_days,
+        birth_date=birth_date,
     ))
 
 # Ameripol employees (25 employees, IDs: AM01-AM25)
@@ -194,7 +246,7 @@ for i in range(25):
     is_terminated = random.random() < 0.12
     status = "Terminated" if is_terminated else "Active"
 
-    hire_year = random.randint(2020, 2024)
+    hire_year = random.randint(2021, 2025)
     hire_month = random.randint(1, 12)
     hire_day = random.randint(1, 28)
     hire_date = date(hire_year, hire_month, hire_day)
@@ -202,13 +254,13 @@ for i in range(25):
     if is_terminated:
         term_month = random.randint(1, 10)
         term_day = random.randint(1, 28)
-        termination_date = date(2025, term_month, term_day)
+        termination_date = date(2026, term_month, term_day)
         term_type = "Voluntary" if random.random() < 0.55 else "Involuntary"
     else:
         termination_date = None
         term_type = None
 
-    end_date = termination_date if termination_date else date(2025, 10, 28)
+    end_date = termination_date if termination_date else date(2026, 2, 3)
     tenure_years = round((end_date - hire_date).days / 365.25, 1)
 
     dept = random.choice(departments)
@@ -222,6 +274,12 @@ for i in range(25):
     pto_used = random.randint(15, int(pto_allotted * 0.75))
     expected_days = 240
     attendance_days = random.randint(int(expected_days * 0.87), expected_days)
+
+    # Generate birth date (ages 22-65)
+    birth_year = random.randint(1961, 2004)
+    birth_month = random.randint(1, 12)
+    birth_day = random.randint(1, 28)
+    birth_date = date(birth_year, birth_month, birth_day)
 
     employees.append(models.Employee(
         employee_id=emp_id,
@@ -243,6 +301,7 @@ for i in range(25):
         pto_used=pto_used,
         attendance_days=attendance_days,
         expected_days=expected_days,
+        birth_date=birth_date,
     ))
 
 # Bloom employees (15 employees, IDs: BH01-BH15)
@@ -253,7 +312,7 @@ for i in range(15):
     is_terminated = random.random() < 0.08
     status = "Terminated" if is_terminated else "Active"
 
-    hire_year = random.randint(2021, 2024)
+    hire_year = random.randint(2022, 2025)
     hire_month = random.randint(1, 12)
     hire_day = random.randint(1, 28)
     hire_date = date(hire_year, hire_month, hire_day)
@@ -261,13 +320,13 @@ for i in range(15):
     if is_terminated:
         term_month = random.randint(1, 10)
         term_day = random.randint(1, 28)
-        termination_date = date(2025, term_month, term_day)
+        termination_date = date(2026, term_month, term_day)
         term_type = "Voluntary" if random.random() < 0.6 else "Involuntary"
     else:
         termination_date = None
         term_type = None
 
-    end_date = termination_date if termination_date else date(2025, 10, 28)
+    end_date = termination_date if termination_date else date(2026, 2, 3)
     tenure_years = round((end_date - hire_date).days / 365.25, 1)
 
     dept = random.choice(departments)
@@ -281,6 +340,12 @@ for i in range(15):
     pto_used = random.randint(15, int(pto_allotted * 0.75))
     expected_days = 240
     attendance_days = random.randint(int(expected_days * 0.89), expected_days)
+
+    # Generate birth date (ages 22-65)
+    birth_year = random.randint(1961, 2004)
+    birth_month = random.randint(1, 12)
+    birth_day = random.randint(1, 28)
+    birth_date = date(birth_year, birth_month, birth_day)
 
     employees.append(models.Employee(
         employee_id=emp_id,
@@ -302,6 +367,7 @@ for i in range(15):
         pto_used=pto_used,
         attendance_days=attendance_days,
         expected_days=expected_days,
+        birth_date=birth_date,
     ))
 
 # Add all employees to database

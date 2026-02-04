@@ -13,15 +13,22 @@ sys.path.insert(0, str(Path(__file__).parent))
 from app.services.file_parsers import EmploymentListParser, OTEarningsParser, AutoDetectParser
 from app.services.file_type_configs import get_file_config, FileCategory, detect_file_category
 import pandas as pd
+import pytest
+
+_EMPLOYMENT_LIST = "/Users/michaelknudson/Downloads/Employment List Complete_Example.xlsx"
+_OT_EARNINGS = "/Users/michaelknudson/Downloads/OT Earnings_Example.xlsx"
 
 
 async def test_employment_list():
     """Test Employment List parser"""
+    if not Path(_EMPLOYMENT_LIST).exists():
+        pytest.skip(f"Test file not found: {_EMPLOYMENT_LIST}")
+
     print("\n" + "=" * 80)
     print("TEST 1: Employment List Complete")
     print("=" * 80)
 
-    file_path = "/Users/michaelknudson/Downloads/Employment List Complete_Example.xlsx"
+    file_path = _EMPLOYMENT_LIST
 
     try:
         # Parse the file
@@ -75,7 +82,10 @@ async def test_ot_earnings():
     print("TEST 2: OT Earnings Report")
     print("=" * 80)
 
-    file_path = "/Users/michaelknudson/Downloads/OT Earnings_Example.xlsx"
+    if not Path(_OT_EARNINGS).exists():
+        pytest.skip(f"Test file not found: {_OT_EARNINGS}")
+
+    file_path = _OT_EARNINGS
 
     try:
         # Parse the file
@@ -127,9 +137,13 @@ async def test_auto_detect():
     print("=" * 80)
 
     files = [
-        ("/Users/michaelknudson/Downloads/Employment List Complete_Example.xlsx", "Employment List"),
-        ("/Users/michaelknudson/Downloads/OT Earnings_Example.xlsx", "Overtime"),
+        (_EMPLOYMENT_LIST, "Employment List"),
+        (_OT_EARNINGS, "Overtime"),
     ]
+
+    for fp, _ in files:
+        if not Path(fp).exists():
+            pytest.skip(f"Test file not found: {fp}")
 
     all_passed = True
 
@@ -161,7 +175,9 @@ async def test_full_pipeline():
     print("TEST 4: Full Auto-Detect Pipeline")
     print("=" * 80)
 
-    file_path = "/Users/michaelknudson/Downloads/Employment List Complete_Example.xlsx"
+    file_path = _EMPLOYMENT_LIST
+    if not Path(file_path).exists():
+        pytest.skip(f"Test file not found: {file_path}")
     print(f"\nProcessing: {Path(file_path).name}")
 
     try:

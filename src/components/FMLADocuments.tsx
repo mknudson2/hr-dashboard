@@ -57,13 +57,6 @@ export default function FMLADocuments({ caseId, employeeId, leaveReason, onDocum
 
   const [sendingEmail, setSendingEmail] = useState(false);
 
-  // Debug: Log when documents state changes
-  useEffect(() => {
-    console.log('📄 Documents state changed:', documents);
-    console.log('   → notification.status:', documents.notification.status);
-    console.log('   → Should show buttons?', documents.notification.status === 'created' || documents.notification.status === 'sent');
-  }, [documents]);
-
   // Generate notification document (WH-381)
   const handleGenerateNotification = async () => {
     setDocuments(prev => ({
@@ -81,16 +74,12 @@ export default function FMLADocuments({ caseId, employeeId, leaveReason, onDocum
         throw new Error('Failed to fetch employees');
       }
 
-      const employees = await employeeResponse.json(); // This endpoint returns an array directly
-      console.log('Looking for employeeId:', employeeId, 'in employees:', employees.length);
+      const employees = await employeeResponse.json();
       const employee = employees.find((emp: any) => emp.employee_id === employeeId);
 
       if (!employee) {
-        console.error('Employee not found. Looking for:', employeeId, 'Available IDs:', employees.map((e: any) => e.employee_id));
         throw new Error(`Employee with ID ${employeeId} not found`);
       }
-
-      console.log('Found employee:', employee.employee_id, 'with database ID:', employee.id);
 
       const requestPayload = {
         employee_id: employee.id,  // Use the database ID, not the employee_id string
@@ -100,8 +89,6 @@ export default function FMLADocuments({ caseId, employeeId, leaveReason, onDocum
         certification_required: true,
         generate_notice: true,
       };
-
-      console.log('Sending request payload:', requestPayload);
 
       const response = await fetch('/fmla/create-notice', {
         method: 'POST',
@@ -114,8 +101,6 @@ export default function FMLADocuments({ caseId, employeeId, leaveReason, onDocum
 
       if (response.ok) {
         const data = await response.json();
-        console.log('✅ Success! Received response:', data);
-        console.log('Setting document state to created with file_path:', data.filled_form_path);
 
         setDocuments(prev => ({
           ...prev,
@@ -127,14 +112,8 @@ export default function FMLADocuments({ caseId, employeeId, leaveReason, onDocum
             created_at: new Date().toISOString(),
           }
         }));
-
-        console.log('Document state updated!');
-        // Don't call onDocumentUpdate here as it causes the parent to re-render
-        // and remount this component, losing the state
-        // if (onDocumentUpdate) onDocumentUpdate();
       } else {
         const errorData = await response.json();
-        console.error('Server error response:', errorData);
         throw new Error(`Failed to generate notification: ${JSON.stringify(errorData)}`);
       }
     } catch (error) {

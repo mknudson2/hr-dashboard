@@ -68,6 +68,8 @@ export default function MyCases() {
         return 'bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-400';
       case 'pending':
         return 'bg-yellow-100 dark:bg-yellow-900/30 text-yellow-800 dark:text-yellow-400';
+      case 'pending activation':
+        return 'bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-400';
       case 'closed':
       case 'expired':
         return 'bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-300';
@@ -76,6 +78,36 @@ export default function MyCases() {
       default:
         return 'bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-300';
     }
+  };
+
+  // Check if there's an active case that this pending case is waiting for
+  const getActivationInfo = (pendingCase: Case) => {
+    if (pendingCase.status.toLowerCase() !== 'pending activation') return null;
+
+    // Find active cases that might be blocking this one
+    const activeCase = data?.cases.find(c =>
+      c.status.toLowerCase() === 'active' &&
+      c.id !== pendingCase.id
+    );
+
+    if (activeCase) {
+      const endDateStr = activeCase.end_date
+        ? new Date(activeCase.end_date).toLocaleDateString()
+        : 'the current case ends';
+      return {
+        message: `This case is approved and will become active after ${endDateStr} or when case ${activeCase.case_number} is closed.`,
+        blockedBy: activeCase.case_number
+      };
+    }
+
+    // If no active case found, it will activate on start date
+    const startDateStr = pendingCase.start_date
+      ? new Date(pendingCase.start_date).toLocaleDateString()
+      : 'the scheduled start date';
+    return {
+      message: `This case is approved and will become active on ${startDateStr}.`,
+      blockedBy: null
+    };
   };
 
   if (loading) {
@@ -131,19 +163,19 @@ export default function MyCases() {
       {/* Summary Stats */}
       {data && (
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-          <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-4">
+          <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-300 dark:border-gray-700 p-4">
             <p className="text-sm text-gray-500 dark:text-gray-400">Total Cases</p>
             <p className="text-2xl font-bold text-gray-900 dark:text-white">{data.total_cases}</p>
           </div>
-          <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-4">
+          <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-300 dark:border-gray-700 p-4">
             <p className="text-sm text-gray-500 dark:text-gray-400">Active Cases</p>
             <p className="text-2xl font-bold text-green-600">{data.active_cases}</p>
           </div>
-          <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-4">
+          <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-300 dark:border-gray-700 p-4">
             <p className="text-sm text-gray-500 dark:text-gray-400">Hours Used (12mo)</p>
             <p className="text-2xl font-bold text-gray-900 dark:text-white">{data.rolling_12mo_hours_used.toFixed(1)}</p>
           </div>
-          <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-4">
+          <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-300 dark:border-gray-700 p-4">
             <p className="text-sm text-gray-500 dark:text-gray-400">Hours Available</p>
             <p className="text-2xl font-bold text-blue-600">{data.rolling_12mo_hours_available.toFixed(1)}</p>
           </div>
@@ -152,7 +184,7 @@ export default function MyCases() {
 
       {/* Cases List */}
       {data && data.cases.length === 0 ? (
-        <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-12 text-center">
+        <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-300 dark:border-gray-700 p-12 text-center">
           <FileText className="mx-auto text-gray-400 mb-4" size={48} />
           <h3 className="text-lg font-medium text-gray-900 dark:text-white">No FMLA Cases</h3>
           <p className="text-gray-500 dark:text-gray-400 mt-1">You don't have any FMLA cases on file.</p>
@@ -165,7 +197,7 @@ export default function MyCases() {
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: index * 0.05 }}
-              className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-6 cursor-pointer hover:border-blue-300 dark:hover:border-blue-600 transition-colors"
+              className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-300 dark:border-gray-700 p-6 cursor-pointer hover:border-blue-300 dark:hover:border-blue-600 transition-colors"
               onClick={() => setSelectedCase(selectedCase?.id === c.id ? null : c)}
             >
               <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
@@ -193,6 +225,28 @@ export default function MyCases() {
                         </span>
                       )}
                     </div>
+                    {/* Pending Activation Notice */}
+                    {c.status.toLowerCase() === 'pending activation' && (
+                      <div className="mt-3 p-3 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg">
+                        <div className="flex items-start gap-2">
+                          <AlertCircle className="text-blue-600 dark:text-blue-400 flex-shrink-0 mt-0.5" size={16} />
+                          <p className="text-sm text-blue-700 dark:text-blue-300">
+                            {getActivationInfo(c)?.message}
+                          </p>
+                        </div>
+                      </div>
+                    )}
+                    {/* Hours Exhausted Notice */}
+                    {c.status.toLowerCase() === 'active' && c.hours_remaining <= 0 && (
+                      <div className="mt-3 p-3 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-lg">
+                        <div className="flex items-start gap-2">
+                          <AlertCircle className="text-amber-600 dark:text-amber-400 flex-shrink-0 mt-0.5" size={16} />
+                          <p className="text-sm text-amber-700 dark:text-amber-300">
+                            You have used all approved hours for this case. Contact HR if you need additional leave.
+                          </p>
+                        </div>
+                      </div>
+                    )}
                   </div>
                 </div>
 
@@ -221,7 +275,7 @@ export default function MyCases() {
                 <motion.div
                   initial={{ opacity: 0, height: 0 }}
                   animate={{ opacity: 1, height: 'auto' }}
-                  className="mt-4 pt-4 border-t border-gray-200 dark:border-gray-700"
+                  className="mt-4 pt-4 border-t border-gray-300 dark:border-gray-700"
                 >
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                     <div>

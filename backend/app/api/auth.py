@@ -132,14 +132,23 @@ def create_access_token(data: dict, expires_delta: Optional[timedelta] = None):
 def get_current_user(
     request: Request,
     access_token: Optional[str] = Cookie(None),
+    hr_access_token: Optional[str] = Cookie(None),
+    portal_access_token: Optional[str] = Cookie(None),
     credentials: Optional[HTTPAuthorizationCredentials] = Depends(security),
     db: Session = Depends(get_db)
 ) -> models.User:
     """Get the current authenticated user from JWT token (cookie or header)."""
-    # Try cookie first, then Authorization header for backwards compatibility
+    # Determine which portal-specific cookie to prefer based on request source
+    portal_source = request.headers.get("X-Portal-Source", "")
     token = None
-    if access_token:
-        token = access_token
+    if portal_source == "employee-portal" and portal_access_token:
+        token = portal_access_token
+    elif hr_access_token:
+        token = hr_access_token
+    elif portal_access_token:
+        token = portal_access_token
+    elif access_token:
+        token = access_token  # Legacy fallback
     elif credentials:
         token = credentials.credentials
 
@@ -298,6 +307,16 @@ def login(
             detail="User account is inactive"
         )
 
+    # Check portal access
+    portal_source = request.headers.get("X-Portal-Source", "hr")
+    if portal_source not in user.allowed_portals_list:
+        portal_label = "HR Portal" if portal_source == "hr" else "Employee Portal"
+        audit_service.log_login_failed(db, login_data.username, request, f"Portal access denied: {portal_source}")
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail=f"Your account does not have access to the {portal_label}. Please contact your administrator."
+        )
+
     # Check if 2FA is enabled
     if user.totp_enabled and user.totp_secret:
         # If 2FA code not provided, indicate that 2FA is required
@@ -367,7 +386,8 @@ def login(
             "email": user.email,
             "full_name": user.full_name,
             "role": user.role,
-            "employee_id": user.employee_id
+            "employee_id": user.employee_id,
+            "allowed_portals": user.allowed_portals_list
         },
         "requires_2fa": False,
         "password_must_change": user.password_must_change if hasattr(user, 'password_must_change') else False,
@@ -377,8 +397,13 @@ def login(
     # Set httpOnly cookie for XSS protection
     # secure=True in production (HTTPS), False in development
     is_production = os.getenv("ENVIRONMENT", "development").lower() == "production"
+
+    # Determine cookie name based on portal source header
+    portal_source = request.headers.get("X-Portal-Source", "hr")
+    cookie_name = "portal_access_token" if portal_source == "employee-portal" else "hr_access_token"
+
     response.set_cookie(
-        key="access_token",
+        key=cookie_name,
         value=access_token,
         httponly=True,
         secure=is_production,
@@ -398,14 +423,20 @@ def logout(
     request: Request,
     current_user: models.User = Depends(get_current_user),
     access_token: Optional[str] = Cookie(None),
+    hr_access_token: Optional[str] = Cookie(None),
+    portal_access_token: Optional[str] = Cookie(None),
     credentials: Optional[HTTPAuthorizationCredentials] = Depends(security),
     db: Session = Depends(get_db)
 ):
     """Logout user and invalidate token."""
 
-    # Get token from cookie or header
+    # Get token from portal-specific cookies, legacy cookie, or header
     token = None
-    if access_token:
+    if hr_access_token:
+        token = hr_access_token
+    elif portal_access_token:
+        token = portal_access_token
+    elif access_token:
         token = access_token
     elif credentials:
         token = credentials.credentials
@@ -436,9 +467,12 @@ def logout(
     # Audit log: logout
     audit_service.log_logout(db, current_user, request)
 
-    # Create response and clear the httpOnly cookie
+    # Create response and clear all portal cookies
     response = JSONResponse(content={"message": "Successfully logged out"})
-    response.delete_cookie(key="access_token", path="/")
+    portal_source = request.headers.get("X-Portal-Source", "hr")
+    cookie_name = "portal_access_token" if portal_source == "employee-portal" else "hr_access_token"
+    response.delete_cookie(key=cookie_name, path="/")
+    response.delete_cookie(key="access_token", path="/")  # Clear legacy cookie too
 
     # Clear CSRF token cookie
     csrf_service.clear_csrf_token(response)

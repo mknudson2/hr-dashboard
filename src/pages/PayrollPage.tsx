@@ -72,8 +72,6 @@ export default function PayrollPage() {
   const loadData = async () => {
     setLoading(true);
     try {
-      console.log('🔄 Loading payroll data for year:', selectedYear, 'status:', statusFilter);
-
       const [metricsRes, periodsRes] = await Promise.all([
         fetch(`${BASE_URL}/payroll/dashboard`, { credentials: 'include' }),
         fetch(`${BASE_URL}/payroll/periods?year=${selectedYear}&status=${statusFilter}`, {
@@ -81,26 +79,17 @@ export default function PayrollPage() {
         })
       ]);
 
-      console.log('📊 Metrics response:', metricsRes.status, metricsRes.ok);
-      console.log('📋 Periods response:', periodsRes.status, periodsRes.ok);
-
       if (metricsRes.ok) {
         const data = await metricsRes.json();
-        console.log('✅ Metrics loaded:', data);
         setMetrics(data);
-      } else {
-        console.error('❌ Metrics failed:', await metricsRes.text());
       }
 
       if (periodsRes.ok) {
         const data = await periodsRes.json();
-        console.log('✅ Periods loaded:', data.length, 'periods');
         setPeriods(data);
-      } else {
-        console.error('❌ Periods failed:', await periodsRes.text());
       }
     } catch (error) {
-      console.error('💥 Error loading payroll data:', error);
+      console.error('Error loading payroll data:', error);
     } finally {
       setLoading(false);
     }

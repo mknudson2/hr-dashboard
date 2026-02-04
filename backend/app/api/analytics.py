@@ -835,12 +835,27 @@ def get_location_distribution(db: Session = Depends(get_db)):
 
         location = emp.location
 
-        # Check if international (contains country name)
-        is_international = any(country in location for country in intl_countries)
+        # Check if international (contains country name OR "International -" prefix)
+        is_international = any(country in location for country in intl_countries) or location.startswith("International")
 
         if is_international:
+            # Handle "International - Company" format (e.g., "International - Congruent")
+            if location.startswith("International - "):
+                company = location.replace("International - ", "").strip()
+                country = company  # Use company name as the country/region identifier
+
+                if country not in countries:
+                    countries[country] = {"count": 0, "cities": {}}
+                countries[country]["count"] += 1
+
+                cities.append({
+                    "city": "",
+                    "country": country,
+                    "full_location": location,
+                    "type": "international"
+                })
             # Extract country (everything after last comma)
-            if ", " in location:
+            elif ", " in location:
                 parts = location.split(", ")
                 country = parts[-1].strip()
                 city = parts[0].strip() if len(parts) > 1 else ""

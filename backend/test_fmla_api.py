@@ -21,11 +21,11 @@ USERNAME = os.getenv("TEST_USERNAME")
 PASSWORD = os.getenv("TEST_PASSWORD")
 
 if not USERNAME or not PASSWORD:
-    print("ERROR: Test credentials not set.")
-    print("Please set environment variables:")
-    print("  export TEST_USERNAME=your_username")
-    print("  export TEST_PASSWORD=your_password")
-    exit(1)
+    import pytest
+    pytest.skip(
+        "Test credentials not set. Set TEST_USERNAME and TEST_PASSWORD env vars.",
+        allow_module_level=True,
+    )
 
 
 def test_fmla_api():

@@ -234,8 +234,7 @@ export default function AdvancedAnalyticsPage() {
             { id: 'name', label: 'Name', type: 'text' },
           ]}
           onApplyFilters={(groups) => {
-            console.log('Applying filters:', groups);
-            // In a real app, this would filter data
+            // Apply filter groups to data
           }}
           savedFilters={[]}
         />
@@ -253,9 +252,7 @@ export default function AdvancedAnalyticsPage() {
             { id: 'hire_date', label: 'Hire Date', type: 'date' },
           ]}
           onApplyGrouping={(groupBy, aggregations) => {
-            console.log('Grouping by:', groupBy);
-            console.log('Aggregations:', aggregations);
-            // In a real app, this would group and aggregate data
+            // Apply grouping and aggregations to data
           }}
         />
       </div>

@@ -4,7 +4,10 @@ RBAC Protection: Garnishment data contains sensitive financial and legal informa
 Access is restricted to users with GARNISHMENTS_READ or GARNISHMENTS_WRITE permissions.
 Roles with access: admin, payroll
 """
+import logging
 from datetime import datetime, date, timedelta
+
+logger = logging.getLogger(__name__)
 from typing import Optional, List
 from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Request
 from fastapi.responses import StreamingResponse
@@ -17,6 +20,7 @@ from app.api.auth import get_current_user
 from app.services.audit_service import audit_service
 from app.services.rbac_service import require_permission, Permissions
 from app.services.pdf_service import pdf_service
+from app.services.notification_service import notification_service
 import os
 import shutil
 
@@ -404,7 +408,8 @@ def update_garnishment(
     if not garnishment:
         raise HTTPException(status_code=404, detail="Garnishment not found")
 
-    # Capture old values for audit log
+    # Capture old values for audit log and notification
+    old_status = garnishment.status
     old_values = {
         "status": garnishment.status,
         "total_amount": garnishment.total_amount,
@@ -446,6 +451,19 @@ def update_garnishment(
         db, current_user, request, "garnishment", garnishment_id,
         old_data=old_values, new_data=new_values
     )
+
+    # Send notification if status changed
+    if updates.status and updates.status != old_status:
+        employee = db.query(models.Employee).filter(
+            models.Employee.employee_id == garnishment.employee_id
+        ).first()
+        if employee:
+            try:
+                notification_service.notify_garnishment_status_changed(
+                    db, garnishment, employee, old_status, updates.status
+                )
+            except Exception as e:
+                logger.warning(f"Failed to send status change notification: {e}")
 
     return {"message": "Garnishment updated successfully", "garnishment_id": garnishment.id}
 
@@ -498,6 +516,18 @@ def add_payment(payment_data: GarnishmentPaymentCreate, db: Session = Depends(ge
     db.commit()
     db.refresh(new_payment)
     db.refresh(garnishment)
+
+    # Send notification to employee
+    employee = db.query(models.Employee).filter(
+        models.Employee.employee_id == garnishment.employee_id
+    ).first()
+    if employee:
+        try:
+            notification_service.notify_garnishment_payment_recorded(
+                db, garnishment, new_payment, employee
+            )
+        except Exception as e:
+            logger.warning(f"Failed to send payment notification: {e}")
 
     return {
         "message": "Payment added successfully",
@@ -608,6 +638,18 @@ async def upload_document(
     db.add(new_document)
     db.commit()
     db.refresh(new_document)
+
+    # Send notification to employee
+    employee = db.query(models.Employee).filter(
+        models.Employee.employee_id == garnishment.employee_id
+    ).first()
+    if employee:
+        try:
+            notification_service.notify_garnishment_document_uploaded(
+                db, garnishment, new_document, employee
+            )
+        except Exception as e:
+            logger.warning(f"Failed to send document upload notification: {e}")
 
     return {
         "message": "Document uploaded successfully",

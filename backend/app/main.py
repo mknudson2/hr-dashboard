@@ -8,7 +8,7 @@ from slowapi.util import get_remote_address
 from slowapi.errors import RateLimitExceeded
 from slowapi.middleware import SlowAPIMiddleware
 from app.db import models, database, crud
-from app.api import analytics, employees, notifications, fmla, garnishments, turnover, events, compensation, market_data, performance, onboarding, offboarding, equipment, contribution_limits, pto, auth, users, aca, eeo, settings, emails, email_templates, file_uploads, sftp, payroll, capitalized_labor, capitalized_labor_admin, roles, fmla_portal
+from app.api import analytics, employees, notifications, fmla, garnishments, turnover, events, compensation, market_data, performance, onboarding, offboarding, equipment, contribution_limits, pto, auth, users, aca, eeo, settings, emails, email_templates, file_uploads, sftp, payroll, capitalized_labor, capitalized_labor_admin, roles, fmla_portal, garnishment_portal, employee_portal, pto_portal, resources_portal, team_portal, portal_features, hr_admin, in_app_notifications
 from app.services.scheduler import start_scheduler, stop_scheduler
 from app.services.scheduler_service import scheduler as sftp_scheduler
 from app.services.csrf_service import csrf_service, should_validate_csrf
@@ -281,3 +281,15 @@ app.include_router(capitalized_labor.router)
 app.include_router(capitalized_labor_admin.router, prefix="/capitalized-labor")
 app.include_router(roles.router)
 app.include_router(fmla_portal.router)
+app.include_router(garnishment_portal.router)
+
+# Employee Portal routers
+app.include_router(employee_portal.router)
+app.include_router(pto_portal.router)
+app.include_router(resources_portal.router)
+app.include_router(team_portal.router)
+app.include_router(portal_features.router)
+
+# HR Admin routers
+app.include_router(hr_admin.router)
+app.include_router(in_app_notifications.router)

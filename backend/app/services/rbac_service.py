@@ -75,6 +75,33 @@ class Permissions(str, Enum):
     GARNISHMENTS_READ = "garnishments:read"
     GARNISHMENTS_WRITE = "garnishments:write"
 
+    # Garnishment Self-Service Portal
+    GARNISHMENT_PORTAL_EMPLOYEE = "garnishment_portal:employee"  # Self-service access (view own garnishments)
+
+    # Employee Portal - Core Access
+    EMPLOYEE_PORTAL_ACCESS = "employee_portal:access"  # Base portal access
+
+    # My HR Section
+    EMPLOYEE_PROFILE_READ = "employee_portal:profile:read"
+    EMPLOYEE_PROFILE_WRITE = "employee_portal:profile:write"  # Limited fields (emergency contact, etc.)
+    EMPLOYEE_COMPENSATION_VIEW = "employee_portal:compensation:read"
+    EMPLOYEE_BENEFITS_VIEW = "employee_portal:benefits:read"
+    EMPLOYEE_DOCUMENTS_VIEW = "employee_portal:documents:read"
+
+    # PTO Portal
+    PTO_PORTAL_EMPLOYEE = "pto_portal:employee"      # View own, submit requests
+    PTO_PORTAL_SUPERVISOR = "pto_portal:supervisor"  # Approve team PTO
+
+    # Performance Portal
+    PERFORMANCE_PORTAL_EMPLOYEE = "performance_portal:employee"    # View own reviews, goals
+    PERFORMANCE_PORTAL_SUPERVISOR = "performance_portal:supervisor"  # Manage team performance
+
+    # Personnel Actions (PARs)
+    PAR_PORTAL_SUPERVISOR = "par_portal:supervisor"  # Submit PARs for direct reports
+
+    # Resources
+    RESOURCES_VIEW = "employee_portal:resources:read"
+
     # Onboarding/Offboarding
     ONBOARDING_READ = "onboarding:read"
     ONBOARDING_WRITE = "onboarding:write"
@@ -171,7 +198,9 @@ class RBACService:
             models.User.id == user.id
         ).first()
 
-        if user_with_roles and user_with_roles.assigned_roles:
+        # Check if user has assigned roles - must explicitly check length
+        # because SQLAlchemy relationships return empty list [] which is truthy
+        if user_with_roles and len(list(user_with_roles.assigned_roles)) > 0:
             # Get permissions from database-assigned roles
             permissions = set()
             for role in user_with_roles.assigned_roles:
@@ -179,7 +208,8 @@ class RBACService:
                     for perm in role.permissions:
                         if perm.is_active:
                             permissions.add(perm.name)
-            return permissions
+            if permissions:  # Only return if we got permissions, else fall through to legacy
+                return permissions
 
         # Fallback: Use the legacy role column if no database roles assigned
         legacy_role = user.role.lower() if user.role else "employee"

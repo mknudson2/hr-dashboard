@@ -31,14 +31,14 @@ def create_review_cycles(db: Session):
 
     cycles = [
         {
-            "name": "2024 Annual Performance Review",
+            "name": "2025 Annual Performance Review",
             "cycle_type": "Annual",
-            "fiscal_year": 2024,
+            "fiscal_year": 2025,
             "quarter": None,
-            "start_date": datetime(2024, 1, 1),
-            "end_date": datetime(2024, 12, 31),
-            "review_window_start": datetime(2024, 12, 1),
-            "review_window_end": datetime(2024, 12, 31),
+            "start_date": datetime(2025, 1, 1),
+            "end_date": datetime(2025, 12, 31),
+            "review_window_start": datetime(2025, 12, 1),
+            "review_window_end": datetime(2025, 12, 31),
             "status": "Active",
             "requires_self_review": True,
             "requires_manager_review": True,
@@ -48,14 +48,14 @@ def create_review_cycles(db: Session):
             "completion_percentage": 58.0,
         },
         {
-            "name": "2024 Q3 Review",
+            "name": "2025 Q3 Review",
             "cycle_type": "Quarterly",
-            "fiscal_year": 2024,
+            "fiscal_year": 2025,
             "quarter": 3,
-            "start_date": datetime(2024, 7, 1),
-            "end_date": datetime(2024, 9, 30),
-            "review_window_start": datetime(2024, 9, 15),
-            "review_window_end": datetime(2024, 10, 15),
+            "start_date": datetime(2025, 7, 1),
+            "end_date": datetime(2025, 9, 30),
+            "review_window_start": datetime(2025, 9, 15),
+            "review_window_end": datetime(2025, 10, 15),
             "status": "Closed",
             "requires_self_review": True,
             "requires_manager_review": True,
@@ -65,14 +65,14 @@ def create_review_cycles(db: Session):
             "completion_percentage": 100.0,
         },
         {
-            "name": "2024 Mid-Year Review",
+            "name": "2025 Mid-Year Review",
             "cycle_type": "Semi-Annual",
-            "fiscal_year": 2024,
+            "fiscal_year": 2025,
             "quarter": None,
-            "start_date": datetime(2024, 1, 1),
-            "end_date": datetime(2024, 6, 30),
-            "review_window_start": datetime(2024, 6, 15),
-            "review_window_end": datetime(2024, 7, 15),
+            "start_date": datetime(2025, 1, 1),
+            "end_date": datetime(2025, 6, 30),
+            "review_window_start": datetime(2025, 6, 15),
+            "review_window_end": datetime(2025, 7, 15),
             "status": "Closed",
             "requires_self_review": True,
             "requires_manager_review": True,
@@ -82,14 +82,14 @@ def create_review_cycles(db: Session):
             "completion_percentage": 98.7,
         },
         {
-            "name": "2025 Q1 Review",
+            "name": "2026 Q1 Review",
             "cycle_type": "Quarterly",
-            "fiscal_year": 2025,
+            "fiscal_year": 2026,
             "quarter": 1,
-            "start_date": datetime(2025, 1, 1),
-            "end_date": datetime(2025, 3, 31),
-            "review_window_start": datetime(2025, 3, 15),
-            "review_window_end": datetime(2025, 4, 15),
+            "start_date": datetime(2026, 1, 1),
+            "end_date": datetime(2026, 3, 31),
+            "review_window_start": datetime(2026, 3, 15),
+            "review_window_end": datetime(2026, 4, 15),
             "status": "Planned",
             "requires_self_review": True,
             "requires_manager_review": True,
@@ -155,15 +155,15 @@ def create_performance_reviews(db: Session, cycles, employees):
             status = "Pending"
 
         # Create manager review
-        review_id = f"REV-2024-{str(i+1).zfill(4)}"
+        review_id = f"REV-2025-{str(i+1).zfill(4)}"
         manager_review = PerformanceReview(
             review_id=review_id,
             employee_id=employee.employee_id,
             cycle_id=active_cycle.id,
             reviewer_id=f"MGR-{random.randint(1000, 9999)}",
             review_type="Annual",
-            review_period_start=datetime(2024, 1, 1),
-            review_period_end=datetime(2024, 12, 31),
+            review_period_start=datetime(2025, 1, 1),
+            review_period_end=datetime(2025, 12, 31),
             status=status,
             submitted_date=datetime.now() - timedelta(days=random.randint(1, 30)) if status in ["Completed", "Submitted"] else None,
             overall_rating=round(random.uniform(3.0, 5.0), 1) if status == "Completed" else None,
@@ -184,7 +184,7 @@ def create_performance_reviews(db: Session, cycles, employees):
 
         # Create self review for some employees
         if i < 20:
-            self_review_id = f"REV-2024-S{str(i+1).zfill(4)}"
+            self_review_id = f"REV-2025-S{str(i+1).zfill(4)}"
             self_status = "Completed" if i < 15 else "Not Started"
             self_review = PerformanceReview(
                 review_id=self_review_id,
@@ -192,8 +192,8 @@ def create_performance_reviews(db: Session, cycles, employees):
                 cycle_id=active_cycle.id,
                 reviewer_id=employee.employee_id,
                 review_type="Annual",
-                review_period_start=datetime(2024, 1, 1),
-                review_period_end=datetime(2024, 12, 31),
+                review_period_start=datetime(2025, 1, 1),
+                review_period_end=datetime(2025, 12, 31),
                 status=self_status,
                 submitted_date=datetime.now() - timedelta(days=random.randint(1, 30)) if i < 15 else None,
                 overall_rating=round(random.uniform(3.5, 5.0), 1) if i < 15 else None,
@@ -289,11 +289,11 @@ def create_goals(db: Session, cycles, employees):
                 "Completed": 100,
             }
 
-            start_date = datetime(2024, 1, 1)
+            start_date = datetime(2025, 1, 1)
             target_date_days = datetime.now() + timedelta(days=random.randint(30, 180))
 
             goal = PerformanceGoal(
-                goal_id=f"GOAL-2024-{str(goal_counter).zfill(4)}",
+                goal_id=f"GOAL-2025-{str(goal_counter).zfill(4)}",
                 employee_id=employee.employee_id,
                 cycle_id=active_cycle.id,
                 goal_type=goal_template["type"],
@@ -413,7 +413,7 @@ def create_pips(db: Session, employees):
         end_date = start_date + timedelta(days=random.choice([30, 60, 90]))
 
         pip = PerformanceImprovementPlan(
-            pip_id=f"PIP-2024-{str(len(pips)+1).zfill(3)}",
+            pip_id=f"PIP-2025-{str(len(pips)+1).zfill(3)}",
             employee_id=employee.employee_id,
             manager_id=f"MGR-{random.randint(1000, 9999)}",
             title=f"Performance Improvement Plan - {employee.first_name} {employee.last_name}",

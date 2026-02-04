@@ -65,7 +65,8 @@
       "Bash(source:*)",
       "Bash(. venv/bin/activate)",
       "Bash(ENVIRONMENT=production CORS_ORIGINS=\"https://hr.example.com,https://hr2.example.com\" python3:*)",
-      "Bash(/usr/bin/sqlite3:*)"
+      "Bash(/usr/bin/sqlite3:*)",
+      "Bash(xargs -I {} sh -c 'echo \"\"\"\"=== {} ===\"\"\"\" && grep \"\"\"\"{{ *[a-z_]* *}}\"\"\"\" {} | head -5')"
     ],
     "deny": [],
     "ask": []

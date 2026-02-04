@@ -91,7 +91,7 @@
 <h3>Questions?</h3>
 <p>If you have any questions or concerns, please contact:</p>
 <ul>
-    <li><strong>HR Contact:</strong> {{ hr_contact|default('HR Department') }} - {{ hr_email|default('{{ support_email }}') }}</li>
+    <li><strong>HR Contact:</strong> {{ hr_contact|default('HR Department') }} - {{ support_email }}</li>
     <li><strong>Your Manager:</strong> {{ manager_name }}{% if manager_email %} - {{ manager_email }}{% endif %}</li>
 </ul>
 

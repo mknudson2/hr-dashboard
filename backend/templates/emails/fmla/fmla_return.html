@@ -108,7 +108,7 @@
 <p>As you transition back to work, remember these resources are available:</p>
 <ul>
     <li><strong>Your Manager:</strong> {{ manager_name }}{% if manager_email %} - <a href="mailto:{{ manager_email }}">{{ manager_email }}</a>{% endif %}</li>
-    <li><strong>HR Support:</strong> {{ hr_contact|default('HR Department') }} - {{ hr_email|default('{{ support_email }}') }}</li>
+    <li><strong>HR Support:</strong> {{ hr_contact|default('HR Department') }} - {{ support_email }}</li>
     <li><strong>Employee Assistance Program (EAP):</strong> {{ eap_contact|default('Available 24/7') }}</li>
     {% if it_contact %}<li><strong>IT Support:</strong> {{ it_contact }}</li>{% endif %}
 </ul>

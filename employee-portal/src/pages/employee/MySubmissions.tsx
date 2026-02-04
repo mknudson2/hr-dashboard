@@ -152,21 +152,21 @@ export default function MySubmissions() {
       {/* Stats */}
       {data && (
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-4">
+          <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-300 dark:border-gray-700 p-4">
             <p className="text-sm text-gray-500 dark:text-gray-400">Total Submissions</p>
             <p className="text-2xl font-bold text-gray-900 dark:text-white">{data.total}</p>
           </div>
-          <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-4">
+          <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-300 dark:border-gray-700 p-4">
             <p className="text-sm text-gray-500 dark:text-gray-400">Pending</p>
             <p className="text-2xl font-bold text-yellow-600">{data.pending_count}</p>
           </div>
-          <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-4">
+          <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-300 dark:border-gray-700 p-4">
             <p className="text-sm text-gray-500 dark:text-gray-400">Approved</p>
             <p className="text-2xl font-bold text-green-600">
               {data.submissions.filter(s => s.status === 'approved').length}
             </p>
           </div>
-          <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-4">
+          <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-300 dark:border-gray-700 p-4">
             <p className="text-sm text-gray-500 dark:text-gray-400">Rejected</p>
             <p className="text-2xl font-bold text-red-600">
               {data.submissions.filter(s => s.status === 'rejected').length}
@@ -194,7 +194,7 @@ export default function MySubmissions() {
 
       {/* Submissions List */}
       {filteredSubmissions.length === 0 ? (
-        <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-12 text-center">
+        <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-300 dark:border-gray-700 p-12 text-center">
           <Clock className="mx-auto text-gray-400 mb-4" size={48} />
           <h3 className="text-lg font-medium text-gray-900 dark:text-white">No Submissions</h3>
           <p className="text-gray-500 dark:text-gray-400 mt-1">
@@ -211,10 +211,10 @@ export default function MySubmissions() {
           </Link>
         </div>
       ) : (
-        <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden">
+        <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-300 dark:border-gray-700 overflow-hidden">
           <div className="overflow-x-auto">
             <table className="w-full">
-              <thead className="bg-gray-50 dark:bg-gray-900 border-b border-gray-200 dark:border-gray-700">
+              <thead className="bg-gray-50 dark:bg-gray-900 border-b border-gray-300 dark:border-gray-700">
                 <tr>
                   <th className="px-6 py-3 text-left text-xs font-semibold text-gray-600 dark:text-gray-400 uppercase tracking-wider">
                     Date

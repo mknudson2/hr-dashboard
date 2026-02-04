@@ -620,6 +620,50 @@ class AuditService:
         )
 
     # =========================================================================
+    # GENERIC EVENT LOGGING
+    # =========================================================================
+
+    def log_event(
+        self,
+        db: Session,
+        event_type: str,
+        event_category: str,
+        severity: str,
+        user_id: Optional[int] = None,
+        username: Optional[str] = None,
+        resource_type: Optional[str] = None,
+        resource_id: Optional[str] = None,
+        action: Optional[str] = None,
+        request: Optional[Request] = None,
+        description: Optional[str] = None,
+        old_value: Optional[Dict] = None,
+        new_value: Optional[Dict] = None,
+        success: bool = True
+    ) -> models.SecurityAuditLog:
+        """
+        Generic event logging method for custom audit events.
+
+        This method provides a flexible way to log events that don't fit
+        the predefined event types.
+        """
+        return self._create_log_entry(
+            db=db,
+            event_type=event_type,
+            event_category=event_category,
+            action=action or event_type,
+            user_id=user_id,
+            username=username,
+            request=request,
+            resource_type=resource_type,
+            resource_id=resource_id,
+            description=description,
+            old_value=old_value,
+            new_value=new_value,
+            success=success,
+            severity=severity
+        )
+
+    # =========================================================================
     # SECURITY EVENTS
     # =========================================================================
 

@@ -450,6 +450,45 @@ def get_review(review_id: int, db: Session = Depends(get_db)):
     }
 
 
+@router.get("/reviews/{review_id}/self-review")
+def get_self_review(review_id: int, db: Session = Depends(get_db)):
+    """
+    Get the self-review feedback for a performance review
+    """
+    # Verify the review exists
+    review = db.query(models.PerformanceReview).filter(
+        models.PerformanceReview.id == review_id
+    ).first()
+
+    if not review:
+        raise HTTPException(status_code=404, detail="Review not found")
+
+    # Get self-review feedback
+    self_review = db.query(models.ReviewFeedback).filter(
+        models.ReviewFeedback.review_id == review_id,
+        models.ReviewFeedback.feedback_type == "Self"
+    ).first()
+
+    if not self_review:
+        return None
+
+    return {
+        "id": self_review.id,
+        "reviewer_name": self_review.reviewer_name,
+        "submitted_date": self_review.submitted_date,
+        "overall_rating": self_review.overall_rating,
+        "quality_of_work": self_review.quality_of_work,
+        "collaboration": self_review.collaboration,
+        "communication": self_review.communication,
+        "leadership": self_review.leadership,
+        "technical_skills": self_review.technical_skills,
+        "strengths": self_review.strengths,
+        "areas_for_improvement": self_review.areas_for_improvement,
+        "specific_examples": self_review.specific_examples,
+        "additional_comments": self_review.additional_comments
+    }
+
+
 @router.post("/reviews")
 def create_performance_review(review_data: PerformanceReviewCreate, db: Session = Depends(get_db)):
     """
@@ -676,11 +715,27 @@ def create_performance_goal(goal_data: PerformanceGoalCreate, db: Session = Depe
     # Create initial milestones if provided
     if goal_data.milestones and goal_data.tracking_type == "milestone":
         for idx, milestone_data in enumerate(goal_data.milestones):
+            # Handle empty strings for optional fields
+            description = milestone_data.get("description")
+            if description == "":
+                description = None
+            due_date_str = milestone_data.get("due_date")
+            due_date = None
+            if due_date_str and due_date_str != "":
+                # Convert string to date if needed
+                if isinstance(due_date_str, str):
+                    try:
+                        due_date = date.fromisoformat(due_date_str)
+                    except ValueError:
+                        due_date = None
+                else:
+                    due_date = due_date_str
+
             milestone = models.GoalMilestone(
                 goal_id=new_goal.id,
                 title=milestone_data.get("title", f"Milestone {idx + 1}"),
-                description=milestone_data.get("description"),
-                due_date=milestone_data.get("due_date"),
+                description=description,
+                due_date=due_date,
                 weight=milestone_data.get("weight", 1.0),
                 sequence_order=idx,
                 status="pending"
@@ -773,6 +828,16 @@ def update_goal_progress_simple(
 
     previous_progress = goal.progress_percentage or 0
     new_progress = min(100, max(0, progress_data.progress_percentage))
+
+    # For target_percentage goals, calculate progress from current_value vs target_value
+    if goal.tracking_type == "target_percentage" and progress_data.current_value is not None:
+        try:
+            current_val = float(progress_data.current_value)
+            target_val = float(goal.target_value) if goal.target_value else 0
+            if target_val > 0:
+                new_progress = round(min(100, (current_val / target_val) * 100), 1)
+        except (ValueError, TypeError):
+            pass  # Use the provided progress_percentage if conversion fails
 
     goal.progress_percentage = new_progress
     if progress_data.current_value is not None:
@@ -873,40 +938,68 @@ async def create_progress_entry(
     new_progress = previous_progress
 
     # Handle progress update based on tracking type
-    if goal.tracking_type == "percentage" or goal.tracking_type == "target_percentage":
+    if goal.tracking_type == "percentage":
         if progress_percentage is not None:
             new_progress = min(100, max(0, progress_percentage))
             goal.progress_percentage = new_progress
         if current_value is not None:
             goal.current_value = current_value
 
+    elif goal.tracking_type == "target_percentage":
+        if current_value is not None:
+            goal.current_value = current_value
+            # Calculate progress based on current vs target
+            try:
+                current_val = float(current_value)
+                target_val = float(goal.target_value) if goal.target_value else 0
+                if target_val > 0:
+                    new_progress = min(100, (current_val / target_val) * 100)
+                    goal.progress_percentage = new_progress
+            except (ValueError, TypeError):
+                # If conversion fails, use the provided progress_percentage
+                if progress_percentage is not None:
+                    new_progress = min(100, max(0, progress_percentage))
+                    goal.progress_percentage = new_progress
+        elif progress_percentage is not None:
+            new_progress = min(100, max(0, progress_percentage))
+            goal.progress_percentage = new_progress
+
     elif goal.tracking_type == "counter":
         if value is not None:
             goal.counter_current = (goal.counter_current or 0) + int(value)
         if goal.counter_target and goal.counter_target > 0:
-            new_progress = min(100, (goal.counter_current or 0) / goal.counter_target * 100)
+            new_progress = round(min(100, (goal.counter_current or 0) / goal.counter_target * 100), 1)
             goal.progress_percentage = new_progress
 
     elif goal.tracking_type == "average":
         if value is not None:
-            avg_values = goal.average_values or []
-            avg_values.append({
+            # Create a NEW list to ensure SQLAlchemy detects the change
+            # (SQLAlchemy doesn't detect in-place mutations of JSON columns)
+            existing_values = list(goal.average_values) if goal.average_values else []
+            existing_values.append({
                 "value": value,
                 "date": datetime.now().isoformat(),
                 "notes": notes
             })
-            goal.average_values = avg_values
+            goal.average_values = existing_values  # Assign new list
             # Calculate running average
-            if avg_values:
-                avg = sum(v["value"] for v in avg_values) / len(avg_values)
+            if existing_values:
+                avg = sum(v["value"] for v in existing_values) / len(existing_values)
                 if goal.average_target and goal.average_target > 0:
-                    new_progress = min(100, avg / goal.average_target * 100)
+                    new_progress = round(min(100, avg / goal.average_target * 100), 1)
                     goal.progress_percentage = new_progress
-                goal.current_value = str(round(avg, 2))
+                goal.current_value = str(round(avg, 1))
 
-    # Update status if provided
+    # Update status if provided, otherwise auto-update based on progress
     if status:
         goal.status = status
+    else:
+        # Auto-update status based on progress
+        if new_progress >= 100:
+            goal.status = "Completed"
+            goal.completed_date = date.today()
+        elif new_progress > 0 and goal.status == "Not Started":
+            goal.status = "On Track"
 
     goal.last_update_notes = notes
     goal.updated_at = datetime.now()
