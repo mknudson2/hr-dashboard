@@ -196,10 +196,10 @@ export default function PayrollDrawer({ open, onClose, period: initialPeriod }: 
         setTimeout(() => setPeriodNotesSaved(false), 3000);
       } else {
         const errorText = await response.text();
-        console.error('❌ Error response:', errorText);
+        console.error('Error response:', errorText);
       }
     } catch (error) {
-      console.error('💥 Error saving period notes:', error);
+      console.error('Error saving period notes:', error);
     } finally {
       setSavingPeriodNotes(false);
     }

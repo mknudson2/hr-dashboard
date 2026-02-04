@@ -168,10 +168,10 @@ class EmailService:
             # Send email
             await self.fastmail.send_message(message)
 
-            print(f"✅ Email sent to {to_emails}: {subject}")
+            print(f"Email sent to {to_emails}: {subject}")
 
         except Exception as e:
-            print(f"❌ Error sending email to {to_emails}: {str(e)}")
+            print(f"Error sending email to {to_emails}: {str(e)}")
             raise
 
     # ==========================================================================
@@ -995,11 +995,11 @@ class EmailService:
         # Log attachment info
         attachment_count = len(attachments)
         if attachments:
-            print(f"📎 Attaching {attachment_count} document(s) for {employee_name}:")
+            print(f"Attaching {attachment_count} document(s) for {employee_name}:")
             for att in attachments:
                 print(f"   - {os.path.basename(att)}")
         else:
-            print(f"⚠️ No exit documents found for {employee_name}")
+            print(f"Warning: No exit documents found for {employee_name}")
 
         # Run async send in sync context
         async def _send():
@@ -1045,7 +1045,7 @@ class EmailService:
         storage_path = Path(__file__).parent.parent / "storage" / "filled_forms"
 
         if not storage_path.exists():
-            print(f"⚠️ Storage path does not exist: {storage_path}")
+            print(f"Warning: Storage path does not exist: {storage_path}")
             return attachments
 
         # Parse employee name - handle "FirstName LastName" format
