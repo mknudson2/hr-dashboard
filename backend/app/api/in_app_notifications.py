@@ -20,6 +20,17 @@ from app.api.auth import get_current_user
 router = APIRouter(prefix="/in-app-notifications", tags=["In-App Notifications"])
 
 
+def _notification_visibility_filter(current_user: models.User):
+    """Return filter: user's own notifications + broadcasts if admin/manager."""
+    if current_user.role in ("admin", "manager"):
+        return or_(
+            models.InAppNotification.user_id == current_user.id,
+            models.InAppNotification.user_id.is_(None)
+        )
+    else:
+        return models.InAppNotification.user_id == current_user.id
+
+
 # ============================================================================
 # Pydantic Schemas
 # ============================================================================
@@ -101,10 +112,7 @@ def get_notifications(
     """Get notifications for the current user."""
     # Get notifications targeted at this user OR broadcast to all (user_id = None)
     query = db.query(models.InAppNotification).filter(
-        or_(
-            models.InAppNotification.user_id == current_user.id,
-            models.InAppNotification.user_id.is_(None)
-        ),
+        _notification_visibility_filter(current_user),
         models.InAppNotification.is_dismissed == False
     )
 
@@ -122,10 +130,7 @@ def get_notifications(
 
     # Get unread count
     unread_count = db.query(models.InAppNotification).filter(
-        or_(
-            models.InAppNotification.user_id == current_user.id,
-            models.InAppNotification.user_id.is_(None)
-        ),
+        _notification_visibility_filter(current_user),
         models.InAppNotification.is_dismissed == False,
         models.InAppNotification.is_read == False
     ).count()
@@ -159,10 +164,7 @@ def get_unread_count(
 ):
     """Get count of unread notifications."""
     count = db.query(models.InAppNotification).filter(
-        or_(
-            models.InAppNotification.user_id == current_user.id,
-            models.InAppNotification.user_id.is_(None)
-        ),
+        _notification_visibility_filter(current_user),
         models.InAppNotification.is_dismissed == False,
         models.InAppNotification.is_read == False
     ).count()
@@ -180,10 +182,7 @@ def mark_notifications_read(
     now = datetime.now()
     updated = db.query(models.InAppNotification).filter(
         models.InAppNotification.id.in_(request.notification_ids),
-        or_(
-            models.InAppNotification.user_id == current_user.id,
-            models.InAppNotification.user_id.is_(None)
-        )
+        _notification_visibility_filter(current_user)
     ).update({
         "is_read": True,
         "read_at": now
@@ -201,10 +200,7 @@ def mark_all_notifications_read(
     """Mark all notifications as read for the current user."""
     now = datetime.now()
     updated = db.query(models.InAppNotification).filter(
-        or_(
-            models.InAppNotification.user_id == current_user.id,
-            models.InAppNotification.user_id.is_(None)
-        ),
+        _notification_visibility_filter(current_user),
         models.InAppNotification.is_read == False
     ).update({
         "is_read": True,
@@ -224,10 +220,7 @@ def dismiss_notification(
     """Dismiss a notification (hide it permanently)."""
     notification = db.query(models.InAppNotification).filter(
         models.InAppNotification.id == notification_id,
-        or_(
-            models.InAppNotification.user_id == current_user.id,
-            models.InAppNotification.user_id.is_(None)
-        )
+        _notification_visibility_filter(current_user)
     ).first()
 
     if not notification:
@@ -279,10 +272,7 @@ def get_notification_summary(
 
     # Get unread notification count
     unread_notifications = db.query(models.InAppNotification).filter(
-        or_(
-            models.InAppNotification.user_id == current_user.id,
-            models.InAppNotification.user_id.is_(None)
-        ),
+        _notification_visibility_filter(current_user),
         models.InAppNotification.is_dismissed == False,
         models.InAppNotification.is_read == False
     ).count()

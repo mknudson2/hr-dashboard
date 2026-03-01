@@ -102,7 +102,7 @@ export default function ModernDashboard() {
               type: 'fmla',
               title: 'Pending FMLA Submissions',
               description: `You have ${empData.pending_submissions.length} submission(s) awaiting review`,
-              link: '/requests/fmla',
+              link: '/requests/fmla/submissions',
               icon: Briefcase,
             });
           }
