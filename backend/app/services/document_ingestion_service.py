@@ -277,11 +277,11 @@ def ingest_document(
     }
 
 
-def search_documents(query: str, top_k: int = 5, min_similarity: float = 0.65) -> list[dict]:
+def search_documents(query: str, top_k: int = 6) -> list[dict]:
     """
     Search the Mímir knowledge base using semantic similarity.
 
-    Returns list of {text, metadata} dicts matching the query.
+    Returns list of {text, metadata} dicts matching the query (no similarity cutoff).
     """
     collection = _get_chroma_collection()
     if collection is None:
@@ -313,21 +313,18 @@ def search_documents(query: str, top_k: int = 5, min_similarity: float = 0.65) -
                 include=["documents", "metadatas", "distances"],
             )
 
-        # Process results
+        # Process results — return all top_k chunks, no similarity cutoff
         chunks = []
         if results and results["documents"] and results["documents"][0]:
             for i, doc_text in enumerate(results["documents"][0]):
                 distance = results["distances"][0][i] if results["distances"] else 0
-                # ChromaDB returns cosine distance; convert to similarity
                 similarity = 1 - distance
-
-                if similarity >= min_similarity:
-                    metadata = results["metadatas"][0][i] if results["metadatas"] else {}
-                    chunks.append({
-                        "text": doc_text,
-                        "metadata": metadata,
-                        "similarity": similarity,
-                    })
+                metadata = results["metadatas"][0][i] if results["metadatas"] else {}
+                chunks.append({
+                    "text": doc_text,
+                    "metadata": metadata,
+                    "similarity": similarity,
+                })
 
         return chunks
 

@@ -184,7 +184,7 @@ def chat(
         }
 
     # Retrieve relevant context from knowledge base
-    context_chunks = search_documents(user_message, top_k=5, min_similarity=0.4)
+    context_chunks = search_documents(user_message, top_k=6)
 
     if not context_chunks:
         # No documents ingested or no relevant matches
