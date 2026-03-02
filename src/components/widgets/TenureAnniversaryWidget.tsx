@@ -89,10 +89,10 @@ export default function TenureAnniversaryWidget() {
     };
 
     const getYearsBadgeColor = (years: number) => {
-        if (years >= 20) return "bg-bifrost-violet/10 text-bifrost-violet dark:bg-bifrost-violet/15 dark:text-bifrost-violet-light";
-        if (years >= 10) return "bg-bifrost-violet/8 text-bifrost-violet dark:bg-bifrost-violet/12 dark:text-bifrost-violet-light";
-        if (years >= 5) return "bg-aurora-teal/8 text-aurora-teal-dark dark:bg-aurora-teal/12 dark:text-aurora-teal";
-        return "bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300";
+        if (years >= 20) return "bg-bifrost-violet/15 text-bifrost-violet dark:bg-bifrost-violet/30 dark:text-bifrost-violet-light border border-bifrost-violet/20 dark:border-bifrost-violet-light/30";
+        if (years >= 10) return "bg-bifrost-violet/10 text-bifrost-violet dark:bg-bifrost-violet/25 dark:text-bifrost-violet-light border border-bifrost-violet/15 dark:border-bifrost-violet-light/25";
+        if (years >= 5) return "bg-aurora-teal/10 text-aurora-teal-dark dark:bg-aurora-teal/25 dark:text-aurora-teal border border-aurora-teal/15 dark:border-aurora-teal/30";
+        return "bg-gray-100 text-gray-700 dark:bg-white/10 dark:text-gray-200 border border-gray-200 dark:border-white/15";
     };
 
     return (
