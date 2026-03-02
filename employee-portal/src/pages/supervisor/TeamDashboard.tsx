@@ -206,7 +206,7 @@ export default function TeamDashboard() {
 
       {/* Stats Cards */}
       {data && (
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-flow-col lg:auto-cols-fr gap-4">
           {/* Team Size - Always visible */}
           <Link to="/team/reports">
             <motion.div
@@ -516,13 +516,13 @@ export default function TeamDashboard() {
               </Link>
             </div>
             <div className="grid grid-cols-2 gap-4">
-              <div className="p-4 bg-indigo-50 dark:bg-indigo-900/20 rounded-lg">
+              <div className="p-4 bg-indigo-50 dark:bg-indigo-900/20 rounded-lg shadow-[0_4px_14px_-2px_rgba(99,102,241,0.4)]">
                 <p className="text-2xl font-bold text-indigo-600 dark:text-indigo-400">
                   {data.performance_snapshot.reviews_completed}
                 </p>
                 <p className="text-sm text-gray-600 dark:text-gray-400">Reviews Completed</p>
               </div>
-              <div className="p-4 bg-yellow-50 dark:bg-yellow-900/20 rounded-lg">
+              <div className="p-4 bg-yellow-50 dark:bg-yellow-900/20 rounded-lg shadow-[0_4px_14px_-2px_rgba(234,179,8,0.45)]">
                 <p className="text-2xl font-bold text-yellow-600 dark:text-yellow-400">
                   {data.performance_snapshot.reviews_pending}
                 </p>
@@ -548,7 +548,7 @@ export default function TeamDashboard() {
               {data.who_is_out.map((person) => (
                 <div
                   key={person.employee_id}
-                  className="flex items-center justify-between p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg"
+                  className="flex items-center justify-between p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg shadow-[0_4px_14px_-2px_rgba(59,130,246,0.4)]"
                 >
                   <div className="flex items-center gap-3">
                     <div className="w-10 h-10 bg-blue-200 dark:bg-blue-800 rounded-full flex items-center justify-center">

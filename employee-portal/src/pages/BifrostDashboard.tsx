@@ -112,6 +112,7 @@ export default function BifrostDashboard() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [actionItems, setActionItems] = useState<ActionItem[]>([]);
+  const [totalAttentionCount, setTotalAttentionCount] = useState(0);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -119,6 +120,7 @@ export default function BifrostDashboard() {
         setLoading(true);
         setError(null);
         const items: ActionItem[] = [];
+        let attentionCount = 0;
 
         // Fetch employee dashboard data
         try {
@@ -126,6 +128,7 @@ export default function BifrostDashboard() {
           setEmployeeData(empData);
 
           if (empData.pending_submissions.length > 0) {
+            attentionCount += empData.pending_submissions.length;
             items.push({
               id: 'fmla-pending',
               type: 'fmla',
@@ -165,6 +168,7 @@ export default function BifrostDashboard() {
             setSupervisorData(supData);
 
             if (supData.pending_submissions > 0) {
+              attentionCount += supData.pending_submissions;
               items.push({
                 id: 'sup-approvals',
                 type: 'approval',
@@ -180,6 +184,7 @@ export default function BifrostDashboard() {
         }
 
         setActionItems(items);
+        setTotalAttentionCount(attentionCount);
       } catch (err) {
         setError(err instanceof Error ? err.message : 'Failed to load dashboard');
       } finally {
@@ -287,7 +292,7 @@ export default function BifrostDashboard() {
         value: 'Active',
         subtitle: 'view coverage',
         icon: Heart,
-        accent: 'gold',
+        accent: 'teal',
         link: '/my-hr/benefits',
       });
     }
@@ -304,7 +309,9 @@ export default function BifrostDashboard() {
       });
     }
 
-    return cards.slice(0, 3);
+    // Assign accents by position: violet, teal, gold
+    const positionalAccents: AccentColor[] = ['violet', 'teal', 'gold'];
+    return cards.slice(0, 3).map((card, i) => ({ ...card, accent: positionalAccents[i] }));
   };
 
   const statCards = getStatCards();
@@ -325,7 +332,7 @@ export default function BifrostDashboard() {
   return (
     <div className="space-y-7">
       {/* Aurora Hero */}
-      <AuroraHero actionItemCount={actionItems.length} />
+      <AuroraHero actionItemCount={totalAttentionCount} />
 
       {/* Action Items */}
       {actionItems.length > 0 && (

@@ -178,7 +178,7 @@ export default function Benefits() {
           <div className="flex items-center gap-3">
             <DollarSign size={24} />
             <div>
-              <p className="text-sm text-blue-100">Your Monthly Premium</p>
+              <p className="text-sm text-white/70">Your Monthly Premium</p>
               <p className="text-3xl font-bold">{formatCurrency(data?.total_monthly_employee_cost || 0)}</p>
             </div>
           </div>
@@ -192,7 +192,7 @@ export default function Benefits() {
           <div className="flex items-center gap-3">
             <Heart size={24} />
             <div>
-              <p className="text-sm text-green-100">Employer Contribution</p>
+              <p className="text-sm text-white/70">Employer Contribution</p>
               <p className="text-3xl font-bold">{formatCurrency(data?.total_monthly_employer_cost || 0)}</p>
             </div>
           </div>
