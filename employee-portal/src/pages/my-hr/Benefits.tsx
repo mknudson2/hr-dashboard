@@ -4,6 +4,7 @@ import { Heart, Shield, Stethoscope, Eye, Umbrella, DollarSign, AlertCircle, Pig
 import { motion } from 'framer-motion';
 import { useEmployeeFeatures } from '@/contexts/EmployeeFeaturesContext';
 import MimirCTA from '@/components/bifrost/MimirCTA';
+import AuroraPageHeader from '@/components/bifrost/AuroraPageHeader';
 
 interface BenefitPlan {
   plan_name: string | null;
@@ -161,12 +162,19 @@ export default function Benefits() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div>
-        <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Benefits</h1>
-        <p className="text-gray-600 dark:text-gray-400 mt-1">
-          View your current benefits enrollment and coverage details
-        </p>
-      </div>
+      {viewMode === 'bifrost' ? (
+        <AuroraPageHeader
+          title="Benefits"
+          subtitle="View your current benefits enrollment and coverage details"
+        />
+      ) : (
+        <div>
+          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Benefits</h1>
+          <p className="text-gray-600 dark:text-gray-400 mt-1">
+            View your current benefits enrollment and coverage details
+          </p>
+        </div>
+      )}
 
       {/* Summary Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">

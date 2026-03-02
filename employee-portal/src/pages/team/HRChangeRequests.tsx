@@ -3,6 +3,8 @@ import { apiGet, apiPost } from '@/utils/api';
 import { FileEdit, DollarSign, Briefcase, ArrowUpRight, AlertCircle, Plus, Clock, CheckCircle, XCircle, Users, UsersRound } from 'lucide-react';
 import { motion } from 'framer-motion';
 import MassSupervisorChangeModal from '@/components/hr/MassSupervisorChangeModal';
+import { useEmployeeFeatures } from '@/contexts/EmployeeFeaturesContext';
+import AuroraPageHeader from '@/components/bifrost/AuroraPageHeader';
 
 interface HRChangeRequest {
   id: number;
@@ -31,6 +33,7 @@ interface HRChangeRequestsData {
 }
 
 export default function HRChangeRequests() {
+  const { viewMode } = useEmployeeFeatures();
   const [data, setData] = useState<HRChangeRequestsData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -176,21 +179,37 @@ export default function HRChangeRequests() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">HR Change Requests</h1>
-          <p className="text-gray-600 dark:text-gray-400 mt-1">
-            Submit and track personnel changes for your team
-          </p>
+      {viewMode === 'bifrost' ? (
+        <AuroraPageHeader
+          title="HR Change Requests"
+          subtitle="Submit and track personnel changes for your team"
+          rightContent={
+            <button
+              onClick={() => setShowForm(!showForm)}
+              className="flex items-center gap-2 px-3 py-2 bg-white/10 border border-white/20 text-white hover:bg-white/20 rounded-lg transition-colors text-sm"
+            >
+              <Plus size={16} />
+              New Request
+            </button>
+          }
+        />
+      ) : (
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-2xl font-bold text-gray-900 dark:text-white">HR Change Requests</h1>
+            <p className="text-gray-600 dark:text-gray-400 mt-1">
+              Submit and track personnel changes for your team
+            </p>
+          </div>
+          <button
+            onClick={() => setShowForm(!showForm)}
+            className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+          >
+            <Plus size={20} />
+            New Request
+          </button>
         </div>
-        <button
-          onClick={() => setShowForm(!showForm)}
-          className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
-        >
-          <Plus size={20} />
-          New Request
-        </button>
-      </div>
+      )}
 
       {/* Summary Cards */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">

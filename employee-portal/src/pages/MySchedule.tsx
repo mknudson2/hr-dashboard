@@ -1,6 +1,8 @@
 import { useState, useMemo } from 'react';
 import { Calendar, Clock, ChevronLeft, ChevronRight, MapPin, Video, Users, Coffee, Briefcase } from 'lucide-react';
 import { motion } from 'framer-motion';
+import { useEmployeeFeatures } from '@/contexts/EmployeeFeaturesContext';
+import AuroraPageHeader from '@/components/bifrost/AuroraPageHeader';
 
 type EventType = 'meeting' | 'focus' | 'pto' | 'holiday' | 'training';
 type ViewMode = 'week' | 'day';
@@ -160,6 +162,7 @@ function getWeekDays(startDate: Date): Date[] {
 }
 
 export default function MySchedule() {
+  const { viewMode: portalViewMode } = useEmployeeFeatures();
   const [currentDate, setCurrentDate] = useState(new Date());
   const [viewMode, setViewMode] = useState<ViewMode>('week');
   const [selectedEvent, setSelectedEvent] = useState<ScheduleEvent | null>(null);
@@ -200,41 +203,73 @@ export default function MySchedule() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900 dark:text-white flex items-center gap-3">
-            <Calendar className="text-blue-600 dark:text-blue-400" />
-            My Schedule
-          </h1>
-          <p className="text-gray-600 dark:text-gray-400 mt-1">
-            View your work schedule and upcoming events
-          </p>
-        </div>
-        <div className="flex items-center gap-2">
-          <div className="flex items-center bg-gray-100 dark:bg-gray-700 rounded-lg p-1">
-            <button
-              onClick={() => setViewMode('day')}
-              className={`px-3 py-1.5 text-sm font-medium rounded transition-colors ${
-                viewMode === 'day'
-                  ? 'bg-white dark:bg-gray-600 text-blue-600 dark:text-blue-400 shadow-sm'
-                  : 'text-gray-600 dark:text-gray-400'
-              }`}
-            >
-              Day
-            </button>
-            <button
-              onClick={() => setViewMode('week')}
-              className={`px-3 py-1.5 text-sm font-medium rounded transition-colors ${
-                viewMode === 'week'
-                  ? 'bg-white dark:bg-gray-600 text-blue-600 dark:text-blue-400 shadow-sm'
-                  : 'text-gray-600 dark:text-gray-400'
-              }`}
-            >
-              Week
-            </button>
+      {portalViewMode === 'bifrost' ? (
+        <AuroraPageHeader
+          title="My Schedule"
+          subtitle="View your work schedule and upcoming events"
+          icon={Calendar}
+          rightContent={
+            <div className="flex items-center bg-white/10 rounded-lg p-1">
+              <button
+                onClick={() => setViewMode('day')}
+                className={`px-3 py-1.5 text-sm font-medium rounded transition-colors ${
+                  viewMode === 'day'
+                    ? 'bg-white/20 text-white'
+                    : 'text-white/60 hover:text-white'
+                }`}
+              >
+                Day
+              </button>
+              <button
+                onClick={() => setViewMode('week')}
+                className={`px-3 py-1.5 text-sm font-medium rounded transition-colors ${
+                  viewMode === 'week'
+                    ? 'bg-white/20 text-white'
+                    : 'text-white/60 hover:text-white'
+                }`}
+              >
+                Week
+              </button>
+            </div>
+          }
+        />
+      ) : (
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+          <div>
+            <h1 className="text-2xl font-bold text-gray-900 dark:text-white flex items-center gap-3">
+              <Calendar className="text-blue-600 dark:text-blue-400" />
+              My Schedule
+            </h1>
+            <p className="text-gray-600 dark:text-gray-400 mt-1">
+              View your work schedule and upcoming events
+            </p>
+          </div>
+          <div className="flex items-center gap-2">
+            <div className="flex items-center bg-gray-100 dark:bg-gray-700 rounded-lg p-1">
+              <button
+                onClick={() => setViewMode('day')}
+                className={`px-3 py-1.5 text-sm font-medium rounded transition-colors ${
+                  viewMode === 'day'
+                    ? 'bg-white dark:bg-gray-600 text-blue-600 dark:text-blue-400 shadow-sm'
+                    : 'text-gray-600 dark:text-gray-400'
+                }`}
+              >
+                Day
+              </button>
+              <button
+                onClick={() => setViewMode('week')}
+                className={`px-3 py-1.5 text-sm font-medium rounded transition-colors ${
+                  viewMode === 'week'
+                    ? 'bg-white dark:bg-gray-600 text-blue-600 dark:text-blue-400 shadow-sm'
+                    : 'text-gray-600 dark:text-gray-400'
+                }`}
+              >
+                Week
+              </button>
+            </div>
           </div>
         </div>
-      </div>
+      )}
 
       {/* Stats Cards */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">

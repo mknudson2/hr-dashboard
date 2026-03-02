@@ -1,6 +1,8 @@
 import { useState, useMemo } from 'react';
 import { Users, Search, Mail, Phone, Building, MapPin, Filter, Grid, List, ChevronDown } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useEmployeeFeatures } from '@/contexts/EmployeeFeaturesContext';
+import AuroraPageHeader from '@/components/bifrost/AuroraPageHeader';
 
 interface Employee {
   id: string;
@@ -194,6 +196,7 @@ export default function EmployeeDirectory() {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedDepartment, setSelectedDepartment] = useState('All Departments');
   const [selectedLocation, setSelectedLocation] = useState('All Locations');
+  const { viewMode: portalViewMode } = useEmployeeFeatures();
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
   const [showFilters, setShowFilters] = useState(false);
 
@@ -227,15 +230,23 @@ export default function EmployeeDirectory() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div>
-        <h1 className="text-2xl font-bold text-gray-900 dark:text-white flex items-center gap-3">
-          <Users className="text-blue-600 dark:text-blue-400" />
-          Employee Directory
-        </h1>
-        <p className="text-gray-600 dark:text-gray-400 mt-1">
-          Find and connect with colleagues across the organization
-        </p>
-      </div>
+      {portalViewMode === 'bifrost' ? (
+        <AuroraPageHeader
+          title="Employee Directory"
+          subtitle="Find and connect with colleagues across the organization"
+          icon={Users}
+        />
+      ) : (
+        <div>
+          <h1 className="text-2xl font-bold text-gray-900 dark:text-white flex items-center gap-3">
+            <Users className="text-blue-600 dark:text-blue-400" />
+            Employee Directory
+          </h1>
+          <p className="text-gray-600 dark:text-gray-400 mt-1">
+            Find and connect with colleagues across the organization
+          </p>
+        </div>
+      )}
 
       {/* Search and Filters */}
       <div className="bg-white dark:bg-gray-800 rounded-xl shadow-md shadow-gray-200/60 dark:shadow-none border border-gray-300 dark:border-gray-700 p-4">

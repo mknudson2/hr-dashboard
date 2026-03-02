@@ -3,6 +3,8 @@ import { Link } from 'react-router-dom';
 import { apiGet } from '@/utils/api';
 import { Users, Mail, Phone, Calendar, Briefcase, AlertCircle, Search, ChevronRight } from 'lucide-react';
 import { motion } from 'framer-motion';
+import { useEmployeeFeatures } from '@/contexts/EmployeeFeaturesContext';
+import AuroraPageHeader from '@/components/bifrost/AuroraPageHeader';
 
 interface DirectReport {
   id: number;
@@ -25,6 +27,7 @@ interface DirectReportsData {
 }
 
 export default function DirectReports() {
+  const { viewMode } = useEmployeeFeatures();
   const [data, setData] = useState<DirectReportsData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -87,14 +90,21 @@ export default function DirectReports() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Direct Reports</h1>
-          <p className="text-gray-600 dark:text-gray-400 mt-1">
-            {data?.total_count} team members
-          </p>
+      {viewMode === 'bifrost' ? (
+        <AuroraPageHeader
+          title="Direct Reports"
+          subtitle={`${data?.total_count} team members`}
+        />
+      ) : (
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Direct Reports</h1>
+            <p className="text-gray-600 dark:text-gray-400 mt-1">
+              {data?.total_count} team members
+            </p>
+          </div>
         </div>
-      </div>
+      )}
 
       {/* Search */}
       <div className="relative">

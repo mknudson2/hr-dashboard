@@ -18,6 +18,8 @@ import {
   Building2,
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useEmployeeFeatures } from '@/contexts/EmployeeFeaturesContext';
+import AuroraPageHeader from '@/components/bifrost/AuroraPageHeader';
 
 interface PAR {
   id: number;
@@ -49,6 +51,7 @@ interface PARListResponse {
 
 export default function PARApprovals() {
   const [data, setData] = useState<PARListResponse | null>(null);
+  const { viewMode } = useEmployeeFeatures();
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [statusFilter, setStatusFilter] = useState<string>('pending');
@@ -194,16 +197,23 @@ export default function PARApprovals() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
-            Personnel Action Requests
-          </h1>
-          <p className="text-gray-600 dark:text-gray-400 mt-1">
-            Review and approve supervisor-submitted HR changes
-          </p>
+      {viewMode === 'bifrost' ? (
+        <AuroraPageHeader
+          title="Personnel Action Requests"
+          subtitle="Review and approve supervisor-submitted HR changes"
+        />
+      ) : (
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
+              Personnel Action Requests
+            </h1>
+            <p className="text-gray-600 dark:text-gray-400 mt-1">
+              Review and approve supervisor-submitted HR changes
+            </p>
+          </div>
         </div>
-      </div>
+      )}
 
       {/* Summary Cards */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">

@@ -2,6 +2,8 @@ import { useEffect, useState } from 'react';
 import { apiGet } from '@/utils/api';
 import { Heart, Shield, PiggyBank, Umbrella, AlertCircle, ExternalLink, ChevronDown, ChevronUp } from 'lucide-react';
 import { motion } from 'framer-motion';
+import { useEmployeeFeatures } from '@/contexts/EmployeeFeaturesContext';
+import AuroraPageHeader from '@/components/bifrost/AuroraPageHeader';
 
 interface BenefitPlan {
   id: number;
@@ -43,6 +45,7 @@ const iconMap: Record<string, React.ElementType> = {
 };
 
 export default function BenefitsGuide() {
+  const { viewMode } = useEmployeeFeatures();
   const [data, setData] = useState<BenefitsGuideData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -98,12 +101,19 @@ export default function BenefitsGuide() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div>
-        <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Benefits Guide</h1>
-        <p className="text-gray-600 dark:text-gray-400 mt-1">
-          Learn about your benefits options and enrollment information
-        </p>
-      </div>
+      {viewMode === 'bifrost' ? (
+        <AuroraPageHeader
+          title="Benefits Guide"
+          subtitle="Learn about your benefits options and enrollment information"
+        />
+      ) : (
+        <div>
+          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Benefits Guide</h1>
+          <p className="text-gray-600 dark:text-gray-400 mt-1">
+            Learn about your benefits options and enrollment information
+          </p>
+        </div>
+      )}
 
       {/* Enrollment Period Notice */}
       {data?.enrollment_period.open && (

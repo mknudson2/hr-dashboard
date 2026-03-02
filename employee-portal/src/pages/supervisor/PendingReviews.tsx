@@ -2,6 +2,8 @@ import { useEffect, useState } from 'react';
 import { apiGet, apiPost } from '@/utils/api';
 import { ClipboardCheck, AlertCircle, CheckCircle, XCircle, Edit3, X, CheckSquare, Square, Minus } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useEmployeeFeatures } from '@/contexts/EmployeeFeaturesContext';
+import AuroraPageHeader from '@/components/bifrost/AuroraPageHeader';
 
 interface Submission {
   id: number;
@@ -444,6 +446,7 @@ function BatchReviewModal({ submissions, action, onClose, onReviewComplete }: Ba
 
 export default function PendingReviews() {
   const [data, setData] = useState<TeamSubmissionsData | null>(null);
+  const { viewMode } = useEmployeeFeatures();
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [selectedSubmission, setSelectedSubmission] = useState<Submission | null>(null);
@@ -530,10 +533,17 @@ export default function PendingReviews() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div>
-        <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Pending Reviews</h1>
-        <p className="text-gray-600 dark:text-gray-400 mt-1">Review and approve time submissions from your team</p>
-      </div>
+      {viewMode === 'bifrost' ? (
+        <AuroraPageHeader
+          title="Pending Reviews"
+          subtitle="Review and approve time submissions from your team"
+        />
+      ) : (
+        <div>
+          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Pending Reviews</h1>
+          <p className="text-gray-600 dark:text-gray-400 mt-1">Review and approve time submissions from your team</p>
+        </div>
+      )}
 
       {/* Stats */}
       {data && (

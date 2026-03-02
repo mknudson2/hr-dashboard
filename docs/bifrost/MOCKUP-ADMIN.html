@@ -1,0 +1,573 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Bifröst HR Hub — Admin Dashboard (Dark + Light)</title>
+<link href="https://fonts.googleapis.com/css2?family=Jost:wght@300;400;500;600;700&family=DM+Sans:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400&display=swap" rel="stylesheet">
+<style>
+:root {
+  --violet: #6C3FA0;
+  --violet-light: #8B5FC4;
+  --violet-dark: #5A2E8A;
+  --teal: #2ABFBF;
+  --teal-dark: #1F9E9E;
+  --gold: #E8B84B;
+  --gold-dark: #D4A030;
+  --realm-white: #F8F7F4;
+  --frost: #EEF2F7;
+  --deep-night: #1A1A2E;
+  --night-mid: #20203A;
+  --night-card: #252545;
+  --night-border: rgba(255,255,255,0.06);
+  --mimir-blue: #1B3A5C;
+  --well-silver: #B8C4D0;
+}
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { font-family: 'DM Sans', system-ui, sans-serif; background: #0C0C16; overflow-x: hidden; }
+
+/* ===== MODE SELECTOR ===== */
+.mode-bar {
+  position: fixed; top: 0; left: 0; right: 0; z-index: 9999;
+  background: rgba(12,12,22,0.95); backdrop-filter: blur(16px);
+  border-bottom: 1px solid rgba(108,63,160,0.2);
+  padding: 9px 20px; display: flex; align-items: center; gap: 14px;
+}
+.mode-label { font-family: 'Jost'; font-size: 11px; font-weight: 500; color: var(--well-silver); letter-spacing: 2px; text-transform: uppercase; white-space: nowrap; }
+.mode-tabs { display: flex; gap: 3px; background: rgba(255,255,255,0.04); border-radius: 9px; padding: 3px; }
+.mode-tab {
+  padding: 6px 16px; border-radius: 7px; border: none; background: transparent;
+  color: var(--well-silver); font-family: 'DM Sans'; font-size: 12px; font-weight: 500;
+  cursor: pointer; transition: all 0.2s;
+}
+.mode-tab:hover { background: rgba(255,255,255,0.06); color: #fff; }
+.mode-tab.active { background: var(--violet); color: #fff; box-shadow: 0 2px 8px rgba(108,63,160,0.35); }
+
+/* ===== FRAME ===== */
+.frame-wrap { margin-top: 52px; padding: 20px; display: flex; justify-content: center; }
+.frame {
+  width: 1320px; max-width: 100%; border-radius: 14px; overflow: hidden;
+  box-shadow: 0 0 0 1px rgba(108,63,160,0.12), 0 20px 60px rgba(0,0,0,0.5);
+}
+.chrome { background: #1C1C2C; padding: 8px 14px; display: flex; align-items: center; gap: 10px; }
+.dots { display: flex; gap: 5px; }
+.dots span { width: 9px; height: 9px; border-radius: 50%; }
+.dots span:nth-child(1) { background: #FF5F57; }
+.dots span:nth-child(2) { background: #FEBC2E; }
+.dots span:nth-child(3) { background: #28C840; }
+.url-bar { flex: 1; background: rgba(255,255,255,0.05); border-radius: 5px; padding: 5px 12px; font-size: 11px; color: var(--well-silver); }
+
+.screen { display: none; }
+.screen.active { display: flex; }
+
+/* Shimmer */
+.shimmer-v { width: 3px; min-height: 100%; background: linear-gradient(180deg, var(--violet), var(--teal), var(--gold), var(--teal), var(--violet)); background-size: 100% 300%; animation: shimV 6s ease infinite; flex-shrink: 0; }
+@keyframes shimV { 0% { background-position: 50% 0%; } 50% { background-position: 50% 100%; } 100% { background-position: 50% 0%; } }
+.shimmer-h { height: 3px; width: 100%; background: linear-gradient(90deg, var(--violet), var(--teal), var(--gold), var(--teal), var(--violet)); background-size: 300% 100%; animation: shimH 6s ease infinite; }
+@keyframes shimH { 0% { background-position: 0% 50%; } 50% { background-position: 100% 50%; } 100% { background-position: 0% 50%; } }
+
+/* ===========================
+   DARK MODE
+   =========================== */
+.dark-mode { display: flex; min-height: 620px; }
+.dark-sidebar {
+  width: 230px; background: var(--deep-night);
+  display: flex; flex-direction: column; flex-shrink: 0;
+  border-right: 1px solid var(--night-border);
+}
+.dark-sidebar-header { padding: 20px 18px 16px; display: flex; align-items: center; gap: 10px; }
+.dark-sidebar-header svg { width: 28px; height: 28px; }
+.dark-sidebar-brand { font-family: 'Jost'; font-size: 13px; font-weight: 600; color: #fff; letter-spacing: 2px; }
+.dark-sidebar-sub { font-size: 9.5px; color: rgba(255,255,255,0.25); letter-spacing: 0.5px; margin-top: 1px; }
+.dark-nav { flex: 1; overflow-y: auto; padding: 0 10px; }
+.dark-nav-item {
+  display: flex; align-items: center; gap: 10px; padding: 8px 12px; border-radius: 8px;
+  font-size: 13px; color: var(--well-silver); cursor: pointer; transition: all 0.15s; margin-bottom: 1px;
+}
+.dark-nav-item:hover { background: rgba(255,255,255,0.04); color: #fff; }
+.dark-nav-item.active {
+  background: linear-gradient(135deg, rgba(108,63,160,0.2), rgba(108,63,160,0.1));
+  color: #fff; font-weight: 500;
+  border-left: 3px solid var(--violet-light); margin-left: -3px;
+}
+.dark-nav-icon { width: 16px; text-align: center; font-size: 13px; opacity: 0.6; }
+.dark-nav-item.active .dark-nav-icon { opacity: 1; }
+.dark-sidebar-footer {
+  padding: 14px; border-top: 1px solid var(--night-border);
+  display: flex; flex-direction: column; gap: 10px;
+}
+.dark-user {
+  display: flex; align-items: center; gap: 10px; padding: 8px 10px;
+  background: rgba(255,255,255,0.03); border-radius: 10px;
+}
+.dark-user-avatar {
+  width: 32px; height: 32px; border-radius: 50%;
+  background: linear-gradient(135deg, var(--violet), var(--teal));
+  display: flex; align-items: center; justify-content: center;
+  color: #fff; font-size: 11px; font-weight: 600; flex-shrink: 0;
+}
+.dark-user-name { font-size: 12px; font-weight: 500; color: #fff; }
+.dark-user-role { font-size: 10px; color: var(--well-silver); margin-top: 1px; }
+.dark-date { font-size: 10px; color: rgba(255,255,255,0.25); display: flex; align-items: center; gap: 5px; padding: 0 10px; }
+.dark-copy { font-size: 9px; color: rgba(255,255,255,0.15); text-align: center; }
+
+.dark-main {
+  flex: 1; background: var(--night-mid);
+  padding: 24px 28px; overflow-y: auto;
+}
+.dark-header {
+  display: flex; align-items: center; justify-content: space-between; margin-bottom: 22px;
+}
+.dark-title {
+  font-family: 'Jost'; font-size: 22px; font-weight: 500; color: #fff;
+  display: flex; align-items: center; gap: 10px;
+}
+.dark-title-icon { font-size: 18px; opacity: 0.5; }
+.dark-updated {
+  display: flex; align-items: center; gap: 6px; padding: 6px 14px;
+  background: rgba(255,255,255,0.04); border-radius: 8px; border: 1px solid var(--night-border);
+  font-size: 11.5px; color: var(--well-silver);
+}
+
+/* Dark stat cards */
+.dark-stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; margin-bottom: 14px; }
+.dark-stat {
+  background: var(--night-card); border-radius: 14px; padding: 20px;
+  border: 1px solid var(--night-border); position: relative; overflow: hidden;
+  transition: all 0.2s;
+}
+.dark-stat:hover { border-color: rgba(108,63,160,0.15); transform: translateY(-1px); }
+.dark-stat::before { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 2px; }
+.dark-stat.s1::before { background: linear-gradient(90deg, var(--violet), var(--violet-light)); }
+.dark-stat.s2::before { background: linear-gradient(90deg, var(--teal-dark), var(--teal)); }
+.dark-stat.s3::before { background: linear-gradient(90deg, var(--gold-dark), var(--gold)); }
+.dark-stat.s4::before { background: linear-gradient(90deg, #E05C8A, #F47BA0); }
+.dark-stat.s5::before { background: linear-gradient(90deg, var(--mimir-blue), #2A5580); }
+.dark-stat.s6::before { background: linear-gradient(90deg, #EF4444, #F97316); }
+.dark-stat-label {
+  font-size: 12px; color: var(--well-silver); margin-bottom: 8px;
+  display: flex; align-items: center; gap: 6px;
+}
+.dark-stat-icon { font-size: 14px; }
+.dark-stat-value { font-family: 'Jost'; font-size: 30px; font-weight: 600; color: #fff; line-height: 1; }
+.dark-stat-sub { font-size: 11px; color: rgba(255,255,255,0.35); margin-top: 4px; }
+.dark-stat-badge {
+  display: inline-block; padding: 2px 8px; border-radius: 5px; font-size: 10px; font-weight: 600; margin-top: 6px;
+}
+.dark-stat-badge.green { background: rgba(42,191,191,0.12); color: var(--teal); }
+.dark-stat-badge.amber { background: rgba(232,184,75,0.12); color: var(--gold); }
+
+/* Dark donut placeholder */
+.dark-donut-wrap {
+  display: flex; align-items: center; justify-content: center;
+  gap: 16px; margin-top: 12px;
+}
+.dark-donut {
+  width: 90px; height: 90px; border-radius: 50%; position: relative;
+  background: conic-gradient(#3B6FD4 0% 44%, var(--teal) 44% 72%, var(--gold) 72% 100%);
+}
+.dark-donut-inner {
+  position: absolute; inset: 16px; border-radius: 50%; background: var(--night-card);
+  display: flex; align-items: center; justify-content: center;
+  font-family: 'Jost'; font-size: 16px; font-weight: 600; color: #fff;
+}
+.dark-donut-legend { font-size: 10.5px; color: var(--well-silver); line-height: 1.8; }
+.dark-donut-dot { display: inline-block; width: 8px; height: 8px; border-radius: 2px; margin-right: 5px; }
+
+/* Bottom row */
+.dark-bottom { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+.dark-widget {
+  background: var(--night-card); border-radius: 14px; padding: 20px;
+  border: 1px solid var(--night-border);
+}
+.dark-widget-header {
+  display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px;
+}
+.dark-widget-title { font-family: 'Jost'; font-size: 15px; font-weight: 500; color: #fff; display: flex; align-items: center; gap: 8px; }
+.dark-widget-title span { font-size: 15px; }
+.dark-pdf-btn {
+  padding: 4px 12px; border-radius: 6px; border: none;
+  background: rgba(239,68,68,0.12); color: #EF4444; font-size: 11px; font-weight: 600;
+  cursor: pointer; display: flex; align-items: center; gap: 4px;
+}
+.dark-widget-sub { font-size: 11.5px; color: var(--well-silver); margin-top: 2px; }
+.dark-list-item {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 10px 0; border-bottom: 1px solid var(--night-border);
+}
+.dark-list-item:last-child { border-bottom: none; }
+.dark-list-left { display: flex; align-items: center; gap: 10px; }
+.dark-list-date {
+  width: 32px; height: 32px; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  font-family: 'Jost'; font-size: 12px; font-weight: 600;
+}
+.dark-list-date.violet { background: rgba(108,63,160,0.15); color: var(--violet-light); }
+.dark-list-date.teal { background: rgba(42,191,191,0.15); color: var(--teal); }
+.dark-list-name { font-size: 13px; font-weight: 500; color: #fff; }
+.dark-list-dept { font-size: 11px; color: var(--well-silver); margin-top: 1px; }
+.dark-list-right { display: flex; align-items: center; gap: 8px; }
+.dark-tenure-badge {
+  padding: 3px 10px; border-radius: 5px;
+  background: rgba(108,63,160,0.12); color: var(--violet-light);
+  font-size: 10.5px; font-weight: 600;
+}
+.dark-cal-icon { color: rgba(255,255,255,0.15); font-size: 14px; cursor: pointer; }
+
+/* ===========================
+   LIGHT MODE
+   =========================== */
+.light-mode { display: flex; min-height: 620px; }
+.light-sidebar {
+  width: 230px; background: #fff;
+  display: flex; flex-direction: column; flex-shrink: 0;
+  border-right: 1px solid rgba(0,0,0,0.06);
+}
+.light-sidebar-header { padding: 20px 18px 16px; display: flex; align-items: center; gap: 10px; }
+.light-sidebar-brand { font-family: 'Jost'; font-size: 13px; font-weight: 600; color: var(--deep-night); letter-spacing: 2px; }
+.light-sidebar-sub { font-size: 9.5px; color: rgba(0,0,0,0.3); letter-spacing: 0.5px; margin-top: 1px; }
+.light-nav { flex: 1; overflow-y: auto; padding: 0 10px; }
+.light-nav-item {
+  display: flex; align-items: center; gap: 10px; padding: 8px 12px; border-radius: 8px;
+  font-size: 13px; color: #6B6B80; cursor: pointer; transition: all 0.15s; margin-bottom: 1px;
+}
+.light-nav-item:hover { background: rgba(108,63,160,0.04); color: var(--violet); }
+.light-nav-item.active {
+  background: linear-gradient(135deg, rgba(108,63,160,0.08), rgba(108,63,160,0.04));
+  color: var(--violet); font-weight: 600;
+  border-left: 3px solid var(--violet); margin-left: -3px;
+}
+.light-nav-icon { width: 16px; text-align: center; font-size: 13px; opacity: 0.5; }
+.light-nav-item.active .light-nav-icon { opacity: 0.9; }
+.light-sidebar-footer {
+  padding: 14px; border-top: 1px solid rgba(0,0,0,0.06);
+  display: flex; flex-direction: column; gap: 10px;
+}
+.light-user {
+  display: flex; align-items: center; gap: 10px; padding: 8px 10px;
+  background: var(--frost); border-radius: 10px;
+}
+.light-user-avatar {
+  width: 32px; height: 32px; border-radius: 50%;
+  background: linear-gradient(135deg, var(--violet), var(--teal));
+  display: flex; align-items: center; justify-content: center;
+  color: #fff; font-size: 11px; font-weight: 600; flex-shrink: 0;
+}
+.light-user-name { font-size: 12px; font-weight: 500; color: var(--deep-night); }
+.light-user-role { font-size: 10px; color: #8E8E9E; margin-top: 1px; }
+.light-date { font-size: 10px; color: rgba(0,0,0,0.3); display: flex; align-items: center; gap: 5px; padding: 0 10px; }
+.light-copy { font-size: 9px; color: rgba(0,0,0,0.2); text-align: center; }
+
+.light-main { flex: 1; background: var(--realm-white); padding: 24px 28px; overflow-y: auto; }
+.light-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 22px; }
+.light-title { font-family: 'Jost'; font-size: 22px; font-weight: 500; color: var(--deep-night); display: flex; align-items: center; gap: 10px; }
+.light-title-icon { font-size: 18px; opacity: 0.4; }
+.light-updated {
+  display: flex; align-items: center; gap: 6px; padding: 6px 14px;
+  background: #fff; border-radius: 8px; border: 1px solid rgba(0,0,0,0.06);
+  font-size: 11.5px; color: #8E8E9E; box-shadow: 0 1px 3px rgba(0,0,0,0.03);
+}
+
+/* Light stat cards */
+.light-stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; margin-bottom: 14px; }
+.light-stat {
+  background: #fff; border-radius: 14px; padding: 20px;
+  border: 1px solid rgba(108,63,160,0.06); position: relative; overflow: hidden;
+  box-shadow: 0 1px 3px rgba(26,26,46,0.04), 0 4px 14px rgba(26,26,46,0.02);
+  transition: all 0.2s;
+}
+.light-stat:hover { box-shadow: 0 4px 20px rgba(108,63,160,0.08); transform: translateY(-1px); }
+.light-stat::before { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 2px; }
+.light-stat.s1::before { background: linear-gradient(90deg, var(--violet), var(--violet-light)); }
+.light-stat.s2::before { background: linear-gradient(90deg, var(--teal-dark), var(--teal)); }
+.light-stat.s3::before { background: linear-gradient(90deg, var(--gold-dark), var(--gold)); }
+.light-stat.s4::before { background: linear-gradient(90deg, #E05C8A, #F47BA0); }
+.light-stat.s5::before { background: linear-gradient(90deg, var(--mimir-blue), #2A5580); }
+.light-stat.s6::before { background: linear-gradient(90deg, #EF4444, #F97316); }
+.light-stat-label { font-size: 12px; color: #8E8E9E; margin-bottom: 8px; display: flex; align-items: center; gap: 6px; }
+.light-stat-icon { font-size: 14px; }
+.light-stat-value { font-family: 'Jost'; font-size: 30px; font-weight: 600; color: var(--deep-night); line-height: 1; }
+.light-stat-sub { font-size: 11px; color: #A0A0B0; margin-top: 4px; }
+.light-stat-badge { display: inline-block; padding: 2px 8px; border-radius: 5px; font-size: 10px; font-weight: 600; margin-top: 6px; }
+.light-stat-badge.green { background: rgba(42,191,191,0.08); color: var(--teal-dark); }
+.light-stat-badge.amber { background: rgba(232,184,75,0.08); color: var(--gold-dark); }
+
+/* Light donut */
+.light-donut-wrap { display: flex; align-items: center; justify-content: center; gap: 16px; margin-top: 12px; }
+.light-donut {
+  width: 90px; height: 90px; border-radius: 50%; position: relative;
+  background: conic-gradient(var(--violet) 0% 44%, var(--teal) 44% 72%, var(--gold) 72% 100%);
+}
+.light-donut-inner {
+  position: absolute; inset: 16px; border-radius: 50%; background: #fff;
+  display: flex; align-items: center; justify-content: center;
+  font-family: 'Jost'; font-size: 16px; font-weight: 600; color: var(--deep-night);
+}
+.light-donut-legend { font-size: 10.5px; color: #8E8E9E; line-height: 1.8; }
+.light-donut-dot { display: inline-block; width: 8px; height: 8px; border-radius: 2px; margin-right: 5px; }
+
+/* Light bottom */
+.light-bottom { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+.light-widget {
+  background: #fff; border-radius: 14px; padding: 20px;
+  border: 1px solid rgba(108,63,160,0.06);
+  box-shadow: 0 1px 3px rgba(26,26,46,0.04), 0 4px 14px rgba(26,26,46,0.02);
+}
+.light-widget-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px; }
+.light-widget-title { font-family: 'Jost'; font-size: 15px; font-weight: 500; color: var(--deep-night); display: flex; align-items: center; gap: 8px; }
+.light-pdf-btn {
+  padding: 4px 12px; border-radius: 6px; border: none;
+  background: rgba(239,68,68,0.06); color: #EF4444; font-size: 11px; font-weight: 600;
+  cursor: pointer; display: flex; align-items: center; gap: 4px;
+}
+.light-widget-sub { font-size: 11.5px; color: #8E8E9E; margin-top: 2px; }
+.light-list-item {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 10px 0; border-bottom: 1px solid rgba(0,0,0,0.04);
+}
+.light-list-item:last-child { border-bottom: none; }
+.light-list-left { display: flex; align-items: center; gap: 10px; }
+.light-list-date {
+  width: 32px; height: 32px; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  font-family: 'Jost'; font-size: 12px; font-weight: 600;
+}
+.light-list-date.violet { background: rgba(108,63,160,0.08); color: var(--violet); }
+.light-list-date.teal { background: rgba(42,191,191,0.08); color: var(--teal-dark); }
+.light-list-name { font-size: 13px; font-weight: 500; color: var(--deep-night); }
+.light-list-dept { font-size: 11px; color: #8E8E9E; margin-top: 1px; }
+.light-list-right { display: flex; align-items: center; gap: 8px; }
+.light-tenure-badge {
+  padding: 3px 10px; border-radius: 5px;
+  background: rgba(108,63,160,0.06); color: var(--violet);
+  font-size: 10.5px; font-weight: 600;
+}
+.light-cal-icon { color: rgba(0,0,0,0.12); font-size: 14px; cursor: pointer; }
+</style>
+</head>
+<body>
+
+<div class="mode-bar">
+  <div class="mode-label">Bifröst HR Hub — Admin</div>
+  <div class="mode-tabs">
+    <button class="mode-tab active" onclick="show('dark',this)">🌙 Dark Mode</button>
+    <button class="mode-tab" onclick="show('light',this)">☀️ Light Mode</button>
+  </div>
+</div>
+
+<div class="frame-wrap">
+<div class="frame">
+<div class="chrome">
+  <div class="dots"><span></span><span></span><span></span></div>
+  <div class="url-bar">bifrost.nbs.com/admin/dashboard</div>
+</div>
+
+<!-- ===== DARK MODE ===== -->
+<div class="screen active" id="s-dark">
+  <div class="shimmer-v"></div>
+  <div class="dark-sidebar">
+    <div class="dark-sidebar-header">
+      <svg viewBox="0 0 36 36" xmlns="http://www.w3.org/2000/svg">
+        <path d="M 4 24 Q 18 2 32 24" fill="none" stroke="#6C3FA0" stroke-width="2.5" stroke-linecap="round"/>
+        <path d="M 7 24 Q 18 5 29 24" fill="none" stroke="#2ABFBF" stroke-width="2.5" stroke-linecap="round"/>
+        <path d="M 10 24 Q 18 8 26 24" fill="none" stroke="#E8B84B" stroke-width="2.5" stroke-linecap="round"/>
+        <line x1="4" y1="24" x2="4" y2="29" stroke="#6C3FA0" stroke-width="2" stroke-linecap="round"/>
+        <line x1="32" y1="24" x2="32" y2="29" stroke="#6C3FA0" stroke-width="2" stroke-linecap="round"/>
+      </svg>
+      <div>
+        <div class="dark-sidebar-brand">BIFRÖST</div>
+        <div class="dark-sidebar-sub">HR Hub · Admin</div>
+      </div>
+    </div>
+    <div class="dark-nav">
+      <div class="dark-nav-item active"><span class="dark-nav-icon">📊</span> Dashboard</div>
+      <div class="dark-nav-item"><span class="dark-nav-icon">👥</span> Employees</div>
+      <div class="dark-nav-item"><span class="dark-nav-icon">➡️</span> Onboarding</div>
+      <div class="dark-nav-item"><span class="dark-nav-icon">⬅️</span> Offboarding</div>
+      <div class="dark-nav-item"><span class="dark-nav-icon">💰</span> Payroll</div>
+      <div class="dark-nav-item"><span class="dark-nav-icon">📦</span> Equipment</div>
+      <div class="dark-nav-item"><span class="dark-nav-icon">❤️</span> FMLA</div>
+      <div class="dark-nav-item"><span class="dark-nav-icon">⚖️</span> Garnishments</div>
+      <div class="dark-nav-item"><span class="dark-nav-icon">📉</span> Turnover</div>
+      <div class="dark-nav-item"><span class="dark-nav-icon">📅</span> Events</div>
+      <div class="dark-nav-item"><span class="dark-nav-icon">🏦</span> Contributions</div>
+      <div class="dark-nav-item"><span class="dark-nav-icon">⏰</span> Overtime</div>
+      <div class="dark-nav-item"><span class="dark-nav-icon">💼</span> Compensation</div>
+      <div class="dark-nav-item"><span class="dark-nav-icon">🏆</span> Performance</div>
+      <div class="dark-nav-item"><span class="dark-nav-icon">📋</span> Reports</div>
+      <div class="dark-nav-item"><span class="dark-nav-icon">⚙️</span> Settings</div>
+    </div>
+    <div class="dark-sidebar-footer">
+      <div class="dark-user">
+        <div class="dark-user-avatar">MK</div>
+        <div><div class="dark-user-name">Michael Knudson</div><div class="dark-user-role">Admin</div></div>
+      </div>
+      <div class="dark-date">☀️ Mon 03/02/2026</div>
+      <div class="dark-copy">© Bifr&ouml;stin — HR Hub</div>
+    </div>
+  </div>
+  <div class="dark-main">
+    <div class="dark-header">
+      <div class="dark-title"><span class="dark-title-icon">📊</span> HR Dashboard Overview</div>
+      <div class="dark-updated">🕐 Last Updated: Mar 2, 2026 at 9:27 AM &nbsp;🔄</div>
+    </div>
+    <!-- Row 1 -->
+    <div class="dark-stats">
+      <div class="dark-stat s1"><div class="dark-stat-label"><span class="dark-stat-icon">👥</span> Total Employees</div><div class="dark-stat-value">194</div></div>
+      <div class="dark-stat s6"><div class="dark-stat-label"><span class="dark-stat-icon">📤</span> YTD Terminations</div><div class="dark-stat-value">53</div><div class="dark-stat-sub">37 voluntary, 16 involuntary</div></div>
+      <div class="dark-stat s3"><div class="dark-stat-label"><span class="dark-stat-icon">📈</span> Turnover Rate</div><div class="dark-stat-value">27.41%</div></div>
+    </div>
+    <!-- Row 2 -->
+    <div class="dark-stats">
+      <div class="dark-stat s2" style="grid-column: span 1;">
+        <div class="dark-stat-label"><span class="dark-stat-icon">🌍</span> International Employees</div>
+        <div class="dark-stat-value">68</div>
+        <div class="dark-donut-wrap">
+          <div class="dark-donut"><div class="dark-donut-inner">68</div></div>
+          <div class="dark-donut-legend">
+            <span class="dark-donut-dot" style="background:var(--violet);"></span>Congruent<br>
+            <span class="dark-donut-dot" style="background:var(--teal);"></span>Ameripol<br>
+            <span class="dark-donut-dot" style="background:var(--gold);"></span>Bloom
+          </div>
+        </div>
+      </div>
+      <div class="dark-stat s5"><div class="dark-stat-label"><span class="dark-stat-icon">📊</span> YTD Avg Headcount</div><div class="dark-stat-value">193.33</div><div class="dark-stat-sub">Current: 194</div><div class="dark-stat-badge green">Growing</div></div>
+      <div class="dark-stat s4"><div class="dark-stat-label"><span class="dark-stat-icon">🔻</span> Regrettable Turnover</div><div class="dark-stat-value">30.19%</div><div class="dark-stat-sub">16 of 53 terms</div><div class="dark-stat-badge amber">Moderate</div></div>
+    </div>
+    <!-- Bottom widgets -->
+    <div class="dark-bottom">
+      <div class="dark-widget">
+        <div class="dark-widget-header">
+          <div><div class="dark-widget-title"><span>🎂</span> March Birthdays</div><div class="dark-widget-sub">8 birthdays this month</div></div>
+          <div class="dark-pdf-btn">📄 PDF</div>
+        </div>
+        <div class="dark-list-item"><div class="dark-list-left"><div class="dark-list-date violet">9</div><div><div class="dark-list-name">Charles Turner</div><div class="dark-list-dept">Finance · March 9</div></div></div><div class="dark-cal-icon">📅</div></div>
+        <div class="dark-list-item"><div class="dark-list-left"><div class="dark-list-date violet">10</div><div><div class="dark-list-name">Elizabeth Walker</div><div class="dark-list-dept">Engineering · March 10</div></div></div><div class="dark-cal-icon">📅</div></div>
+        <div class="dark-list-item"><div class="dark-list-left"><div class="dark-list-date violet">18</div><div><div class="dark-list-name">Amanda Gonzalez</div><div class="dark-list-dept">Marketing · March 18</div></div></div><div class="dark-cal-icon">📅</div></div>
+        <div class="dark-list-item"><div class="dark-list-left"><div class="dark-list-date violet">20</div><div><div class="dark-list-name">Andrew Hernandez</div><div class="dark-list-dept">Sales · March 20</div></div></div><div class="dark-cal-icon">📅</div></div>
+      </div>
+      <div class="dark-widget">
+        <div class="dark-widget-header">
+          <div><div class="dark-widget-title"><span>🏆</span> March Anniversaries</div><div class="dark-widget-sub">9 work anniversaries this month</div></div>
+          <div class="dark-pdf-btn">📄 PDF</div>
+        </div>
+        <div class="dark-list-item"><div class="dark-list-left"><div class="dark-list-date teal">2</div><div><div class="dark-list-name">James Morales</div><div class="dark-list-dept">IT · March 2</div></div></div><div class="dark-tenure-badge">2 years</div></div>
+        <div class="dark-list-item"><div class="dark-list-left"><div class="dark-list-date teal">4</div><div><div class="dark-list-name">Sharon Edwards</div><div class="dark-list-dept">Sales · March 4</div></div></div><div class="dark-tenure-badge">4 years</div></div>
+        <div class="dark-list-item"><div class="dark-list-left"><div class="dark-list-date teal">10</div><div><div class="dark-list-name">Lisa Jones</div><div class="dark-list-dept">Marketing · March 10</div></div></div><div class="dark-tenure-badge">4 years</div></div>
+        <div class="dark-list-item"><div class="dark-list-left"><div class="dark-list-date teal">17</div><div><div class="dark-list-name">Ashley Rodriguez</div><div class="dark-list-dept">Sales · March 17</div></div></div><div class="dark-tenure-badge">2 years</div></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ===== LIGHT MODE ===== -->
+<div class="screen" id="s-light">
+  <div class="shimmer-v"></div>
+  <div class="light-sidebar">
+    <div class="light-sidebar-header">
+      <svg viewBox="0 0 36 36" width="28" height="28" xmlns="http://www.w3.org/2000/svg">
+        <path d="M 4 24 Q 18 2 32 24" fill="none" stroke="#6C3FA0" stroke-width="2.5" stroke-linecap="round"/>
+        <path d="M 7 24 Q 18 5 29 24" fill="none" stroke="#2ABFBF" stroke-width="2.5" stroke-linecap="round"/>
+        <path d="M 10 24 Q 18 8 26 24" fill="none" stroke="#E8B84B" stroke-width="2.5" stroke-linecap="round"/>
+        <line x1="4" y1="24" x2="4" y2="29" stroke="#6C3FA0" stroke-width="2" stroke-linecap="round"/>
+        <line x1="32" y1="24" x2="32" y2="29" stroke="#6C3FA0" stroke-width="2" stroke-linecap="round"/>
+      </svg>
+      <div>
+        <div class="light-sidebar-brand">BIFRÖST</div>
+        <div class="light-sidebar-sub">HR Hub · Admin</div>
+      </div>
+    </div>
+    <div class="light-nav">
+      <div class="light-nav-item active"><span class="light-nav-icon">📊</span> Dashboard</div>
+      <div class="light-nav-item"><span class="light-nav-icon">👥</span> Employees</div>
+      <div class="light-nav-item"><span class="light-nav-icon">➡️</span> Onboarding</div>
+      <div class="light-nav-item"><span class="light-nav-icon">⬅️</span> Offboarding</div>
+      <div class="light-nav-item"><span class="light-nav-icon">💰</span> Payroll</div>
+      <div class="light-nav-item"><span class="light-nav-icon">📦</span> Equipment</div>
+      <div class="light-nav-item"><span class="light-nav-icon">❤️</span> FMLA</div>
+      <div class="light-nav-item"><span class="light-nav-icon">⚖️</span> Garnishments</div>
+      <div class="light-nav-item"><span class="light-nav-icon">📉</span> Turnover</div>
+      <div class="light-nav-item"><span class="light-nav-icon">📅</span> Events</div>
+      <div class="light-nav-item"><span class="light-nav-icon">🏦</span> Contributions</div>
+      <div class="light-nav-item"><span class="light-nav-icon">⏰</span> Overtime</div>
+      <div class="light-nav-item"><span class="light-nav-icon">💼</span> Compensation</div>
+      <div class="light-nav-item"><span class="light-nav-icon">🏆</span> Performance</div>
+      <div class="light-nav-item"><span class="light-nav-icon">📋</span> Reports</div>
+      <div class="light-nav-item"><span class="light-nav-icon">⚙️</span> Settings</div>
+    </div>
+    <div class="light-sidebar-footer">
+      <div class="light-user">
+        <div class="light-user-avatar">MK</div>
+        <div><div class="light-user-name">Michael Knudson</div><div class="light-user-role">Admin</div></div>
+      </div>
+      <div class="light-date">☀️ Mon 03/02/2026</div>
+      <div class="light-copy">© Bifr&ouml;stin — HR Hub</div>
+    </div>
+  </div>
+  <div class="light-main">
+    <div class="light-header">
+      <div class="light-title"><span class="light-title-icon">📊</span> HR Dashboard Overview</div>
+      <div class="light-updated">🕐 Last Updated: Mar 2, 2026 at 9:27 AM &nbsp;🔄</div>
+    </div>
+    <!-- Row 1 -->
+    <div class="light-stats">
+      <div class="light-stat s1"><div class="light-stat-label"><span class="light-stat-icon">👥</span> Total Employees</div><div class="light-stat-value">194</div></div>
+      <div class="light-stat s6"><div class="light-stat-label"><span class="light-stat-icon">📤</span> YTD Terminations</div><div class="light-stat-value">53</div><div class="light-stat-sub">37 voluntary, 16 involuntary</div></div>
+      <div class="light-stat s3"><div class="light-stat-label"><span class="light-stat-icon">📈</span> Turnover Rate</div><div class="light-stat-value">27.41%</div></div>
+    </div>
+    <!-- Row 2 -->
+    <div class="light-stats">
+      <div class="light-stat s2">
+        <div class="light-stat-label"><span class="light-stat-icon">🌍</span> International Employees</div>
+        <div class="light-stat-value">68</div>
+        <div class="light-donut-wrap">
+          <div class="light-donut"><div class="light-donut-inner">68</div></div>
+          <div class="light-donut-legend">
+            <span class="light-donut-dot" style="background:var(--violet);"></span>Congruent<br>
+            <span class="light-donut-dot" style="background:var(--teal);"></span>Ameripol<br>
+            <span class="light-donut-dot" style="background:var(--gold);"></span>Bloom
+          </div>
+        </div>
+      </div>
+      <div class="light-stat s5"><div class="light-stat-label"><span class="light-stat-icon">📊</span> YTD Avg Headcount</div><div class="light-stat-value">193.33</div><div class="light-stat-sub">Current: 194</div><div class="light-stat-badge green">Growing</div></div>
+      <div class="light-stat s4"><div class="light-stat-label"><span class="light-stat-icon">🔻</span> Regrettable Turnover</div><div class="light-stat-value">30.19%</div><div class="light-stat-sub">16 of 53 terms</div><div class="light-stat-badge amber">Moderate</div></div>
+    </div>
+    <!-- Bottom widgets -->
+    <div class="light-bottom">
+      <div class="light-widget">
+        <div class="light-widget-header">
+          <div><div class="light-widget-title"><span>🎂</span> March Birthdays</div><div class="light-widget-sub">8 birthdays this month</div></div>
+          <div class="light-pdf-btn">📄 PDF</div>
+        </div>
+        <div class="light-list-item"><div class="light-list-left"><div class="light-list-date violet">9</div><div><div class="light-list-name">Charles Turner</div><div class="light-list-dept">Finance · March 9</div></div></div><div class="light-cal-icon">📅</div></div>
+        <div class="light-list-item"><div class="light-list-left"><div class="light-list-date violet">10</div><div><div class="light-list-name">Elizabeth Walker</div><div class="light-list-dept">Engineering · March 10</div></div></div><div class="light-cal-icon">📅</div></div>
+        <div class="light-list-item"><div class="light-list-left"><div class="light-list-date violet">18</div><div><div class="light-list-name">Amanda Gonzalez</div><div class="light-list-dept">Marketing · March 18</div></div></div><div class="light-cal-icon">📅</div></div>
+        <div class="light-list-item"><div class="light-list-left"><div class="light-list-date violet">20</div><div><div class="light-list-name">Andrew Hernandez</div><div class="light-list-dept">Sales · March 20</div></div></div><div class="light-cal-icon">📅</div></div>
+      </div>
+      <div class="light-widget">
+        <div class="light-widget-header">
+          <div><div class="light-widget-title"><span>🏆</span> March Anniversaries</div><div class="light-widget-sub">9 work anniversaries this month</div></div>
+          <div class="light-pdf-btn">📄 PDF</div>
+        </div>
+        <div class="light-list-item"><div class="light-list-left"><div class="light-list-date teal">2</div><div><div class="light-list-name">James Morales</div><div class="light-list-dept">IT · March 2</div></div></div><div class="light-tenure-badge">2 years</div></div>
+        <div class="light-list-item"><div class="light-list-left"><div class="light-list-date teal">4</div><div><div class="light-list-name">Sharon Edwards</div><div class="light-list-dept">Sales · March 4</div></div></div><div class="light-tenure-badge">4 years</div></div>
+        <div class="light-list-item"><div class="light-list-left"><div class="light-list-date teal">10</div><div><div class="light-list-name">Lisa Jones</div><div class="light-list-dept">Marketing · March 10</div></div></div><div class="light-tenure-badge">4 years</div></div>
+        <div class="light-list-item"><div class="light-list-left"><div class="light-list-date teal">17</div><div><div class="light-list-name">Ashley Rodriguez</div><div class="light-list-dept">Sales · March 17</div></div></div><div class="light-tenure-badge">2 years</div></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+</div>
+</div>
+
+<script>
+function show(mode, btn) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.getElementById('s-' + mode).classList.add('active');
+  document.querySelectorAll('.mode-tab').forEach(t => t.classList.remove('active'));
+  if (btn) btn.classList.add('active');
+}
+</script>
+</body>
+</html>

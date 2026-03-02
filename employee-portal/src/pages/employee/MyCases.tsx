@@ -4,6 +4,8 @@ import { useAuth } from '@/contexts/AuthContext';
 import { apiGet } from '@/utils/api';
 import { FileText, Calendar, AlertCircle, Users } from 'lucide-react';
 import { motion } from 'framer-motion';
+import { useEmployeeFeatures } from '@/contexts/EmployeeFeaturesContext';
+import AuroraPageHeader from '@/components/bifrost/AuroraPageHeader';
 
 interface Case {
   id: number;
@@ -33,6 +35,7 @@ interface MyCasesData {
 
 export default function MyCases() {
   const { isSupervisor } = useAuth();
+  const { viewMode } = useEmployeeFeatures();
   const [data, setData] = useState<MyCasesData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -155,10 +158,17 @@ export default function MyCases() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div>
-        <h1 className="text-2xl font-bold text-gray-900 dark:text-white">My FMLA Cases</h1>
-        <p className="text-gray-600 dark:text-gray-400 mt-1">View and track your FMLA leave cases</p>
-      </div>
+      {viewMode === 'bifrost' ? (
+        <AuroraPageHeader
+          title="My FMLA Cases"
+          subtitle="View and track your FMLA leave cases"
+        />
+      ) : (
+        <div>
+          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">My FMLA Cases</h1>
+          <p className="text-gray-600 dark:text-gray-400 mt-1">View and track your FMLA leave cases</p>
+        </div>
+      )}
 
       {/* Summary Stats */}
       {data && (

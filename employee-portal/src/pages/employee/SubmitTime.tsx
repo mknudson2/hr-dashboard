@@ -4,6 +4,8 @@ import { useAuth } from '@/contexts/AuthContext';
 import { apiGet, apiPost } from '@/utils/api';
 import { Clock, CheckCircle, AlertCircle, FileText, Users } from 'lucide-react';
 import { motion } from 'framer-motion';
+import { useEmployeeFeatures } from '@/contexts/EmployeeFeaturesContext';
+import AuroraPageHeader from '@/components/bifrost/AuroraPageHeader';
 
 interface Case {
   id: number;
@@ -29,6 +31,7 @@ interface PendingCase {
 
 export default function SubmitTime() {
   const navigate = useNavigate();
+  const { viewMode } = useEmployeeFeatures();
   const { isSupervisor } = useAuth();
   const [cases, setCases] = useState<Case[]>([]);
   const [pendingCases, setPendingCases] = useState<PendingCase[]>([]);
@@ -170,8 +173,8 @@ export default function SubmitTime() {
     return (
       <div className="space-y-6">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Submit Time Entry</h1>
-          <p className="text-gray-600 dark:text-gray-400 mt-1">Log your FMLA time for supervisor approval</p>
+          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Log FMLA Time</h1>
+          <p className="text-gray-600 dark:text-gray-400 mt-1">Log FMLA hours used for supervisor approval</p>
         </div>
         <div className="flex items-center justify-center h-48">
           <div className="text-center max-w-md">
@@ -199,8 +202,8 @@ export default function SubmitTime() {
     return (
       <div className="space-y-6">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Submit Time Entry</h1>
-          <p className="text-gray-600 dark:text-gray-400 mt-1">Log your FMLA time for supervisor approval</p>
+          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Log FMLA Time</h1>
+          <p className="text-gray-600 dark:text-gray-400 mt-1">Log FMLA hours used for supervisor approval</p>
         </div>
 
         <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-300 dark:border-gray-700 p-12 text-center">
@@ -217,10 +220,17 @@ export default function SubmitTime() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div>
-        <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Submit Time Entry</h1>
-        <p className="text-gray-600 dark:text-gray-400 mt-1">Log your FMLA time for supervisor approval</p>
-      </div>
+      {viewMode === 'bifrost' ? (
+        <AuroraPageHeader
+          title="Log FMLA Time"
+          subtitle="Log FMLA hours used for supervisor approval"
+        />
+      ) : (
+        <div>
+          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Log FMLA Time</h1>
+          <p className="text-gray-600 dark:text-gray-400 mt-1">Log FMLA hours used for supervisor approval</p>
+        </div>
+      )}
 
       {/* Form */}
       <motion.div
@@ -416,7 +426,7 @@ export default function SubmitTime() {
               ) : (
                 <>
                   <Clock size={20} />
-                  Submit Time Entry
+                  Log FMLA Time
                 </>
               )}
             </button>

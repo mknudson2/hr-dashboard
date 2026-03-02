@@ -3,6 +3,8 @@ import { useNavigate } from 'react-router-dom';
 import { apiGet, apiPost } from '@/utils/api';
 import { TrendingUp, User, AlertCircle, Star, Clock, CheckCircle, FileText, Loader2 } from 'lucide-react';
 import { motion } from 'framer-motion';
+import { useEmployeeFeatures } from '@/contexts/EmployeeFeaturesContext';
+import AuroraPageHeader from '@/components/bifrost/AuroraPageHeader';
 
 interface ReviewCycle {
   id: number;
@@ -35,6 +37,7 @@ interface PerformanceData {
 }
 
 export default function PerformanceReviews() {
+  const { viewMode } = useEmployeeFeatures();
   const navigate = useNavigate();
   const [data, setData] = useState<PerformanceData | null>(null);
   const [loading, setLoading] = useState(true);
@@ -160,12 +163,19 @@ export default function PerformanceReviews() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div>
-        <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Performance Reviews</h1>
-        <p className="text-gray-600 dark:text-gray-400 mt-1">
-          Manage your team's performance reviews
-        </p>
-      </div>
+      {viewMode === 'bifrost' ? (
+        <AuroraPageHeader
+          title="Performance Reviews"
+          subtitle="Manage your team's performance reviews"
+        />
+      ) : (
+        <div>
+          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Performance Reviews</h1>
+          <p className="text-gray-600 dark:text-gray-400 mt-1">
+            Manage your team's performance reviews
+          </p>
+        </div>
+      )}
 
       {/* Current Cycle Banner */}
       {data?.current_cycle && (

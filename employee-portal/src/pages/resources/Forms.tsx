@@ -2,6 +2,8 @@ import { useEffect, useState } from 'react';
 import { apiGet } from '@/utils/api';
 import { FileText, Download, Search, Filter, AlertCircle, ExternalLink, Calendar } from 'lucide-react';
 import { motion } from 'framer-motion';
+import { useEmployeeFeatures } from '@/contexts/EmployeeFeaturesContext';
+import AuroraPageHeader from '@/components/bifrost/AuroraPageHeader';
 
 interface Form {
   id: number;
@@ -21,6 +23,7 @@ interface FormsData {
 }
 
 export default function Forms() {
+  const { viewMode } = useEmployeeFeatures();
   const [data, setData] = useState<FormsData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -97,12 +100,19 @@ export default function Forms() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div>
-        <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Forms & Documents</h1>
-        <p className="text-gray-600 dark:text-gray-400 mt-1">
-          Download HR forms and documents
-        </p>
-      </div>
+      {viewMode === 'bifrost' ? (
+        <AuroraPageHeader
+          title="Forms & Documents"
+          subtitle="Download HR forms and documents"
+        />
+      ) : (
+        <div>
+          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Forms & Documents</h1>
+          <p className="text-gray-600 dark:text-gray-400 mt-1">
+            Download HR forms and documents
+          </p>
+        </div>
+      )}
 
       {/* Search and Filter */}
       <div className="flex flex-col sm:flex-row gap-4">

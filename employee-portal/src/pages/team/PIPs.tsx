@@ -2,6 +2,8 @@ import { useEffect, useState } from 'react';
 import { apiGet } from '@/utils/api';
 import { AlertTriangle, Calendar, User, AlertCircle, Clock, CheckCircle, XCircle, FileText } from 'lucide-react';
 import { motion } from 'framer-motion';
+import { useEmployeeFeatures } from '@/contexts/EmployeeFeaturesContext';
+import AuroraPageHeader from '@/components/bifrost/AuroraPageHeader';
 
 interface PIPMilestone {
   id: number;
@@ -36,6 +38,7 @@ interface PIPsData {
 }
 
 export default function PIPs() {
+  const { viewMode } = useEmployeeFeatures();
   const [data, setData] = useState<PIPsData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -117,12 +120,19 @@ export default function PIPs() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div>
-        <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Performance Improvement Plans</h1>
-        <p className="text-gray-600 dark:text-gray-400 mt-1">
-          Manage and track PIPs for your team members
-        </p>
-      </div>
+      {viewMode === 'bifrost' ? (
+        <AuroraPageHeader
+          title="Performance Improvement Plans"
+          subtitle="Manage and track PIPs for your team members"
+        />
+      ) : (
+        <div>
+          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Performance Improvement Plans</h1>
+          <p className="text-gray-600 dark:text-gray-400 mt-1">
+            Manage and track PIPs for your team members
+          </p>
+        </div>
+      )}
 
       {/* Summary Cards */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">

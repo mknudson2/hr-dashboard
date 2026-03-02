@@ -1,6 +1,8 @@
 import { useState, useMemo } from 'react';
 import { Megaphone, Calendar, User, Tag, ChevronRight, Pin, Star, Filter } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useEmployeeFeatures } from '@/contexts/EmployeeFeaturesContext';
+import AuroraPageHeader from '@/components/bifrost/AuroraPageHeader';
 
 type AnnouncementCategory = 'all' | 'company' | 'hr' | 'benefits' | 'events' | 'policy';
 type AnnouncementPriority = 'normal' | 'important' | 'urgent';
@@ -202,6 +204,7 @@ function formatDate(date: Date): string {
 }
 
 export default function Announcements() {
+  const { viewMode } = useEmployeeFeatures();
   const [selectedCategory, setSelectedCategory] = useState<AnnouncementCategory>('all');
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [showFilters, setShowFilters] = useState(false);
@@ -237,15 +240,23 @@ export default function Announcements() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div>
-        <h1 className="text-2xl font-bold text-gray-900 dark:text-white flex items-center gap-3">
-          <Megaphone className="text-blue-600 dark:text-blue-400" />
-          Company Announcements
-        </h1>
-        <p className="text-gray-600 dark:text-gray-400 mt-1">
-          Stay informed about company news, policies, and events
-        </p>
-      </div>
+      {viewMode === 'bifrost' ? (
+        <AuroraPageHeader
+          title="Company Announcements"
+          subtitle="Stay informed about company news, policies, and events"
+          icon={Megaphone}
+        />
+      ) : (
+        <div>
+          <h1 className="text-2xl font-bold text-gray-900 dark:text-white flex items-center gap-3">
+            <Megaphone className="text-blue-600 dark:text-blue-400" />
+            Company Announcements
+          </h1>
+          <p className="text-gray-600 dark:text-gray-400 mt-1">
+            Stay informed about company news, policies, and events
+          </p>
+        </div>
+      )}
 
       {/* Category Filter */}
       <div className="bg-white dark:bg-gray-800 rounded-xl shadow-md shadow-gray-200/60 dark:shadow-none border border-gray-300 dark:border-gray-700 p-4">

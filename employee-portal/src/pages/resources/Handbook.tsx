@@ -5,6 +5,7 @@ import { motion } from 'framer-motion';
 import DOMPurify from 'dompurify';
 import { useEmployeeFeatures } from '@/contexts/EmployeeFeaturesContext';
 import MimirCTA from '@/components/bifrost/MimirCTA';
+import AuroraPageHeader from '@/components/bifrost/AuroraPageHeader';
 
 interface HandbookSection {
   id: number;
@@ -109,25 +110,45 @@ export default function Handbook() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Employee Handbook</h1>
-          <p className="text-gray-600 dark:text-gray-400 mt-1">
-            Version {data?.version} • Last updated {data?.last_updated && formatDate(data.last_updated)}
-          </p>
+      {viewMode === 'bifrost' ? (
+        <AuroraPageHeader
+          title="Employee Handbook"
+          subtitle={`Version ${data?.version ?? ''} • Last updated ${data?.last_updated ? formatDate(data.last_updated) : ''}`}
+          rightContent={
+            data?.download_url ? (
+              <a
+                href={data.download_url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center gap-2 px-3 py-2 bg-white/10 border border-white/20 text-white hover:bg-white/20 rounded-lg transition-colors text-sm"
+              >
+                <Download size={16} />
+                Download PDF
+              </a>
+            ) : undefined
+          }
+        />
+      ) : (
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Employee Handbook</h1>
+            <p className="text-gray-600 dark:text-gray-400 mt-1">
+              Version {data?.version} • Last updated {data?.last_updated && formatDate(data.last_updated)}
+            </p>
+          </div>
+          {data?.download_url && (
+            <a
+              href={data.download_url}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+            >
+              <Download size={18} />
+              Download PDF
+            </a>
+          )}
         </div>
-        {data?.download_url && (
-          <a
-            href={data.download_url}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
-          >
-            <Download size={18} />
-            Download PDF
-          </a>
-        )}
-      </div>
+      )}
 
       {/* Search */}
       <div className="relative">

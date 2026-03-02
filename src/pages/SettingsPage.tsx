@@ -61,6 +61,11 @@ export default function SettingsPage() {
         defaultView: "dashboard",
     });
 
+    const [shimmerAnimated, setShimmerAnimated] = useState(() => {
+        const stored = localStorage.getItem('bifrost_shimmer_animated');
+        return stored !== 'false';
+    });
+
     const [pageVisibility, setPageVisibility] = useState({
         dashboard: true,
         employees: true,
@@ -497,6 +502,28 @@ export default function SettingsPage() {
                                 className="sr-only peer"
                             />
                             <div className="w-11 h-6 bg-gray-300 rounded-full peer dark:bg-gray-600 peer-focus:outline-none peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all after:shadow-sm dark:border-gray-600 transition-colors duration-200" style={toggleTrackStyle(displaySettings.animationsEnabled)}></div>
+                        </label>
+                    </div>
+
+                    {/* Sidebar Shimmer Animation */}
+                    <div className="flex items-center justify-between py-3 border-t border-gray-200 dark:border-gray-700">
+                        <div>
+                            <span className="text-gray-900 dark:text-gray-100 font-medium">Sidebar Shimmer Animation</span>
+                            <p className="text-sm text-gray-600 dark:text-gray-400">Animate the gradient bar on the sidebar edge, or keep it static</p>
+                        </div>
+                        <label className="relative inline-flex items-center cursor-pointer">
+                            <input
+                                type="checkbox"
+                                checked={shimmerAnimated}
+                                onChange={(e) => {
+                                    const newVal = e.target.checked;
+                                    setShimmerAnimated(newVal);
+                                    localStorage.setItem('bifrost_shimmer_animated', String(newVal));
+                                    window.dispatchEvent(new Event('shimmerSettingChanged'));
+                                }}
+                                className="sr-only peer"
+                            />
+                            <div className="w-11 h-6 bg-gray-300 rounded-full peer dark:bg-gray-600 peer-focus:outline-none peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all after:shadow-sm dark:border-gray-600 transition-colors duration-200" style={toggleTrackStyle(shimmerAnimated)}></div>
                         </label>
                     </div>
 

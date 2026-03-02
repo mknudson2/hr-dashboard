@@ -11,6 +11,8 @@ import {
   Paperclip,
 } from 'lucide-react';
 import { motion } from 'framer-motion';
+import { useEmployeeFeatures } from '@/contexts/EmployeeFeaturesContext';
+import AuroraPageHeader from '@/components/bifrost/AuroraPageHeader';
 
 interface OtherRequestFormData {
   category: string;
@@ -40,6 +42,7 @@ const urgencyLevels = [
 
 export default function OtherRequest() {
   const navigate = useNavigate();
+  const { viewMode } = useEmployeeFeatures();
   const [submitting, setSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -147,20 +150,36 @@ export default function OtherRequest() {
   return (
     <div className="max-w-3xl mx-auto space-y-6">
       {/* Header */}
-      <div className="flex items-center gap-4">
-        <button
-          onClick={() => navigate('/requests/new')}
-          className="p-2 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
-        >
-          <ArrowLeft size={20} />
-        </button>
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Other HR Request</h1>
-          <p className="text-gray-600 dark:text-gray-400 mt-1">
-            Submit a general HR request or question
-          </p>
+      {viewMode === 'bifrost' ? (
+        <AuroraPageHeader
+          title="Other HR Request"
+          subtitle="Submit a general HR request or question"
+          rightContent={
+            <button
+              onClick={() => navigate('/requests/new')}
+              className="flex items-center gap-1.5 px-3 py-2 bg-white/10 border border-white/20 text-white hover:bg-white/20 rounded-lg transition-colors text-sm"
+            >
+              <ArrowLeft size={16} />
+              Back
+            </button>
+          }
+        />
+      ) : (
+        <div className="flex items-center gap-4">
+          <button
+            onClick={() => navigate('/requests/new')}
+            className="p-2 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
+          >
+            <ArrowLeft size={20} />
+          </button>
+          <div>
+            <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Other HR Request</h1>
+            <p className="text-gray-600 dark:text-gray-400 mt-1">
+              Submit a general HR request or question
+            </p>
+          </div>
         </div>
-      </div>
+      )}
 
       {error && (
         <motion.div

@@ -17,31 +17,36 @@ export default function MimirCTA({ title, description, buttonText = 'Ask Mímir'
       initial={{ opacity: 0, y: 16 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ delay: 0.2 }}
-      className="relative overflow-hidden rounded-xl border border-aurora-teal/20 bg-gradient-to-r from-mimir-blue/5 via-aurora-teal/8 to-bifrost-violet/5 p-5"
+      className="bifrost-aurora bifrost-aurora-overlay relative overflow-hidden rounded-xl p-5 text-white"
     >
-      <div className="flex items-start gap-4">
-        <div className="flex-shrink-0 mt-0.5 rounded-lg bg-aurora-teal/10 p-2.5">
+      <div className="relative z-10 flex items-start gap-4">
+        <div className="flex-shrink-0 mt-0.5 rounded-lg bg-white/10 p-2.5">
           <MimirLogo size={22} />
         </div>
         <div className="flex-1 min-w-0">
-          <h4 className="font-display text-sm font-semibold text-deep-night tracking-wide">
+          <h4 className="font-display text-sm font-semibold tracking-wide">
             {title}
           </h4>
-          <p className="mt-1 text-sm text-deep-night/60 leading-relaxed">
+          <p className="mt-1 text-sm text-white/60 leading-relaxed">
             {description}
           </p>
           <button
             type="button"
             onClick={openMimir}
-            className="mt-3 inline-flex items-center gap-1.5 rounded-full bg-aurora-teal/10 px-4 py-1.5 text-sm font-medium text-aurora-teal-dark hover:bg-aurora-teal/20 transition-colors"
+            className="mt-3 inline-flex items-center gap-1.5 rounded-full bg-white/10 border border-white/20 px-4 py-1.5 text-sm font-medium text-white hover:bg-white/20 transition-colors"
           >
             <Sparkles size={14} />
             {buttonText}
           </button>
         </div>
       </div>
-      {/* Decorative gradient accent */}
-      <div className="absolute top-0 right-0 w-24 h-24 bg-gradient-to-bl from-aurora-teal/6 to-transparent rounded-bl-full pointer-events-none" />
+
+      {/* Tri-color bottom strip */}
+      <div
+        className="absolute bottom-0 left-0 right-0 h-[3px] opacity-60"
+        style={{ background: 'linear-gradient(90deg, #6C3FA0, #2ABFBF, #E8B84B)' }}
+        aria-hidden="true"
+      />
     </motion.div>
   );
 }

@@ -1,8 +1,9 @@
-import { LayoutDashboard, Users, FileBarChart, Settings, Heart, Scale, TrendingDown, Calendar, PiggyBank, BarChart3, DollarSign, Award, UserPlus, UserMinus, Package, Clock, LogOut, User, Shield, UserCheck, Mail, Upload, ClipboardList, CheckSquare } from "lucide-react";
+import { LayoutDashboard, Users, FileBarChart, Settings, Heart, Scale, TrendingDown, Calendar, PiggyBank, BarChart3, DollarSign, Award, UserPlus, UserMinus, Package, Clock, LogOut, User, Shield, UserCheck, Mail, Upload, ClipboardList, CheckSquare, FileEdit } from "lucide-react";
 import { NavLink, Outlet, useNavigate } from "react-router-dom";
 import { useState, useEffect } from "react";
 import DarkModeToggle from "@/components/DarkModeToggle";
 import NotificationBell from "@/components/NotificationBell";
+import BifrostAdminLogo from "@/components/BifrostAdminLogo";
 import { useAuth } from "@/contexts/AuthContext";
 
 interface NavigationLink {
@@ -34,6 +35,7 @@ const links: NavigationLink[] = [
     { to: "/advanced-analytics", text: "Advanced Analytics", icon: BarChart3 },
     { to: "/emails", text: "Email Management", icon: Mail },
     { to: "/file-uploads", text: "File Uploads", icon: Upload },
+    { to: "/content-management", text: "Content Management", icon: FileEdit, adminOnly: true },
     { to: "/users", text: "User Management", icon: Users, adminOnly: true },
     { to: "/roles", text: "Role Management", icon: Shield, adminOnly: true },
     { to: "/par-approvals", text: "HR Request Approvals", icon: ClipboardList, adminOnly: true },
@@ -45,6 +47,10 @@ export default function MainLayout() {
     const navigate = useNavigate();
     const [showUserMenu, setShowUserMenu] = useState(false);
     const [pageVisibility, setPageVisibility] = useState<Record<string, boolean>>({});
+    const [shimmerAnimated, setShimmerAnimated] = useState(() => {
+        const stored = localStorage.getItem('bifrost_shimmer_animated');
+        return stored !== 'false';
+    });
 
     // Load page visibility settings from localStorage
     useEffect(() => {
@@ -70,6 +76,16 @@ export default function MainLayout() {
         };
     }, []);
 
+    // Listen for shimmer setting changes from SettingsPage
+    useEffect(() => {
+        const handleShimmerChange = () => {
+            const stored = localStorage.getItem('bifrost_shimmer_animated');
+            setShimmerAnimated(stored !== 'false');
+        };
+        window.addEventListener('shimmerSettingChanged', handleShimmerChange);
+        return () => window.removeEventListener('shimmerSettingChanged', handleShimmerChange);
+    }, []);
+
     // Convert route path to page key (e.g., "/dashboard" -> "dashboard")
     const getPageKey = (path: string) => {
         return path.replace('/', '') || 'dashboard';
@@ -82,95 +98,102 @@ export default function MainLayout() {
 
     return (
         <div className="flex h-screen bg-gray-100 dark:bg-gray-900 text-gray-900 dark:text-gray-100">
-            {/* Sidebar */}
-            <aside className="w-64 bg-white dark:bg-gray-800 shadow-md fixed left-0 top-0 h-full flex flex-col">
-                {/* Header - Fixed */}
-                <div className="p-6 flex-shrink-0">
-                    <div className="flex items-center justify-between">
-                        <h1 className="text-2xl font-bold text-gray-900 dark:text-white">HR Hub</h1>
-                        <NotificationBell />
+            {/* Sidebar with shimmer bar */}
+            <aside className="w-[233px] fixed left-0 top-0 h-full flex">
+                {/* Vertical shimmer bar */}
+                <div className={`w-[3px] h-full bifrost-shimmer-v ${shimmerAnimated ? '' : 'static'} flex-shrink-0`} />
+                {/* Sidebar content */}
+                <div className="flex-1 bg-white dark:bg-gray-800 shadow-md flex flex-col">
+                    {/* Header - Fixed */}
+                    <div className="p-5 flex-shrink-0">
+                        <div className="flex items-center justify-between">
+                            <BifrostAdminLogo />
+                            <NotificationBell />
+                        </div>
                     </div>
-                </div>
 
-                {/* Navigation - Scrollable */}
-                <nav className="flex-1 overflow-y-auto px-6 pb-4">
-                    <div className="flex flex-col gap-2">
-                        {links
-                            .filter(link => {
-                                // Filter by admin role
-                                if (link.adminOnly && user?.role !== 'admin') return false;
+                    {/* Navigation - Scrollable */}
+                    <nav className="flex-1 overflow-y-auto px-3 pb-4">
+                        <div className="flex flex-col gap-1">
+                            {links
+                                .filter(link => {
+                                    // Filter by admin role
+                                    if (link.adminOnly && user?.role !== 'admin') return false;
 
-                                // Filter by page visibility settings (if loaded)
-                                const pageKey = getPageKey(link.to);
-                                if (Object.keys(pageVisibility).length > 0) {
-                                    return pageVisibility[pageKey] !== false;
-                                }
+                                    // Filter by page visibility settings (if loaded)
+                                    const pageKey = getPageKey(link.to);
+                                    if (Object.keys(pageVisibility).length > 0) {
+                                        return pageVisibility[pageKey] !== false;
+                                    }
 
-                                return true;
-                            })
-                            .map(({ to, text, icon: Icon }) => (
-                            <NavLink
-                                key={to}
-                                to={to}
-                                className={({ isActive }) =>
-                                    `flex items-center gap-3 px-4 py-2 rounded-md font-medium transition ${isActive
-                                        ? "bg-blue-600 text-white"
-                                        : "text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700"
-                                    }`
-                                }
-                            >
-                                <Icon size={18} />
-                                {text}
-                            </NavLink>
-                        ))}
-                    </div>
-                </nav>
-
-                {/* Footer - Fixed */}
-                <div className="p-6 flex-shrink-0 flex flex-col gap-3 border-t border-gray-200 dark:border-gray-700">
-                    {/* User Menu */}
-                    <div className="relative">
-                        <button
-                            onClick={() => setShowUserMenu(!showUserMenu)}
-                            className="w-full flex items-center gap-3 px-4 py-3 rounded-lg bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
-                        >
-                            <div className="w-8 h-8 rounded-full bg-blue-600 flex items-center justify-center text-white font-semibold">
-                                {user?.full_name?.charAt(0) || 'U'}
-                            </div>
-                            <div className="flex-1 text-left">
-                                <p className="text-sm font-medium text-gray-900 dark:text-white truncate">
-                                    {user?.full_name}
-                                </p>
-                                <p className="text-xs text-gray-500 dark:text-gray-400 truncate">
-                                    {user?.role}
-                                </p>
-                            </div>
-                        </button>
-
-                        {/* Dropdown Menu */}
-                        {showUserMenu && (
-                            <div className="absolute bottom-full left-0 right-0 mb-2 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 py-2">
-                                <button
-                                    onClick={handleLogout}
-                                    className="w-full flex items-center gap-3 px-4 py-2 text-left text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors"
+                                    return true;
+                                })
+                                .map(({ to, text, icon: Icon }) => (
+                                <NavLink
+                                    key={to}
+                                    to={to}
+                                    className={({ isActive }) =>
+                                        `flex items-center gap-3 px-3 py-2 rounded-lg text-[13px] font-medium transition ${isActive
+                                            ? "bg-bifrost-violet/10 dark:bg-bifrost-violet/15 text-bifrost-violet dark:text-white font-semibold border-l-[3px] border-bifrost-violet -ml-[3px]"
+                                            : "text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700"
+                                        }`
+                                    }
                                 >
-                                    <LogOut className="w-4 h-4" />
-                                    <span className="text-sm font-medium">Logout</span>
-                                </button>
-                            </div>
-                        )}
-                    </div>
+                                    <Icon size={16} />
+                                    {text}
+                                </NavLink>
+                            ))}
+                        </div>
+                    </nav>
 
-                    <DarkModeToggle />
-                    <div className="text-xs text-gray-400 dark:text-gray-500 text-center">
-                        © Bifröstin - HR Hub
+                    {/* Footer - Fixed */}
+                    <div className="p-4 flex-shrink-0 flex flex-col gap-3 border-t border-gray-200 dark:border-gray-700">
+                        {/* User Menu */}
+                        <div className="relative">
+                            <button
+                                onClick={() => setShowUserMenu(!showUserMenu)}
+                                className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg bg-gray-50 dark:bg-gray-700/50 hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors"
+                            >
+                                <div className="w-8 h-8 rounded-full bg-gradient-to-br from-bifrost-violet to-aurora-teal flex items-center justify-center text-white text-[11px] font-semibold flex-shrink-0">
+                                    {user?.full_name?.charAt(0) || 'U'}
+                                </div>
+                                <div className="flex-1 text-left">
+                                    <p className="text-[12px] font-medium text-gray-900 dark:text-white truncate">
+                                        {user?.full_name}
+                                    </p>
+                                    <p className="text-[10px] text-gray-500 dark:text-gray-400 truncate">
+                                        {user?.role}
+                                    </p>
+                                </div>
+                            </button>
+
+                            {/* Dropdown Menu */}
+                            {showUserMenu && (
+                                <div className="absolute bottom-full left-0 right-0 mb-2 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 py-2">
+                                    <button
+                                        onClick={handleLogout}
+                                        className="w-full flex items-center gap-3 px-4 py-2 text-left text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors"
+                                    >
+                                        <LogOut className="w-4 h-4" />
+                                        <span className="text-sm font-medium">Logout</span>
+                                    </button>
+                                </div>
+                            )}
+                        </div>
+
+                        <DarkModeToggle />
+                        <div className="text-[9px] text-gray-400 dark:text-gray-500 text-center">
+                            © Bifröstin — HR Hub
+                        </div>
                     </div>
                 </div>
             </aside>
 
             {/* Main Content */}
-            <main className="flex-1 ml-64 p-8 overflow-y-auto bg-gray-100 dark:bg-gray-900">
-                <Outlet />
+            <main className="flex-1 ml-[233px] p-8 overflow-y-auto bifrost-aurora bifrost-aurora-overlay relative">
+                <div className="relative z-10">
+                    <Outlet />
+                </div>
             </main>
         </div>
     );

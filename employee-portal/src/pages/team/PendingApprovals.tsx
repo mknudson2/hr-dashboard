@@ -1,8 +1,10 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { apiGet, apiPost } from '@/utils/api';
-import { CheckSquare, Clock, Calendar, Briefcase, AlertCircle, Check, X, ChevronRight, Filter, User, FileText, CheckCircle, XCircle, Edit3 } from 'lucide-react';
+import { CheckSquare, Clock, Calendar, Briefcase, AlertCircle, X, ChevronRight, Filter, CheckCircle, XCircle, Edit3 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useEmployeeFeatures } from '@/contexts/EmployeeFeaturesContext';
+import AuroraPageHeader from '@/components/bifrost/AuroraPageHeader';
 
 interface ApprovalItem {
   id: number;
@@ -37,7 +39,7 @@ function ReviewModal({
 }: {
   item: ApprovalItem;
   onClose: () => void;
-  onSubmit: (id: number, action: 'approve' | 'deny', notes: string) => void;
+  onSubmit: (id: number, action: 'approve' | 'deny' | 'revise', notes: string, itemType: string, approvedHours?: string) => void;
   processing: boolean;
 }) {
   const [action, setAction] = useState<'approve' | 'deny' | 'revise'>('approve');
@@ -45,6 +47,8 @@ function ReviewModal({
   const [approvedHours, setApprovedHours] = useState(item.hours?.toString() || '');
   const [notes, setNotes] = useState('');
   const [error, setError] = useState<string | null>(null);
+
+  const isFmla = item.type === 'fmla';
 
   const getTypeLabel = (type: string) => {
     switch (type) {
@@ -59,13 +63,20 @@ function ReviewModal({
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
-    const finalAction = action === 'revise' ? 'approve' : action;
     const combinedNotes = [
       reason,
-      action === 'revise' && approvedHours ? `Revised hours: ${approvedHours}` : '',
       notes,
     ].filter(Boolean).join(' | ');
-    onSubmit(item.id, finalAction, combinedNotes);
+    onSubmit(item.id, action, combinedNotes, item.type, action === 'revise' ? approvedHours : undefined);
+  };
+
+  const getApproveLabel = () => isFmla ? 'Acknowledge' : 'Approve';
+  const getDenyLabel = () => isFmla ? 'Cancel' : 'Reject';
+  const getSubmitLabel = () => {
+    if (isFmla) return 'Submit';
+    if (action === 'approve') return 'Submit Approved';
+    if (action === 'deny') return 'Submit Rejected';
+    return 'Submit Revised';
   };
 
   return (
@@ -78,7 +89,7 @@ function ReviewModal({
       >
         <div className="p-6 border-b border-gray-300 dark:border-gray-700">
           <div className="flex items-center justify-between">
-            <h2 className="text-lg font-semibold text-gray-900 dark:text-white">Review Request</h2>
+            <h2 className="text-lg font-semibold text-gray-900 dark:text-white">{isFmla ? 'Review FMLA Time Entry' : 'Review Request'}</h2>
             <button onClick={onClose} className="p-2 text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300" aria-label="Close">
               <X size={20} />
             </button>
@@ -155,7 +166,7 @@ function ReviewModal({
                 >
                   <CheckCircle className={action === 'approve' ? 'text-green-600 dark:text-green-400' : 'text-gray-400 dark:text-gray-500'} size={24} />
                   <span className={`text-sm font-medium ${action === 'approve' ? 'text-green-700 dark:text-green-400' : 'text-gray-600 dark:text-gray-400'}`}>
-                    Approve
+                    {getApproveLabel()}
                   </span>
                 </button>
                 <button
@@ -169,7 +180,7 @@ function ReviewModal({
                 >
                   <XCircle className={action === 'deny' ? 'text-red-600 dark:text-red-400' : 'text-gray-400 dark:text-gray-500'} size={24} />
                   <span className={`text-sm font-medium ${action === 'deny' ? 'text-red-700 dark:text-red-400' : 'text-gray-600 dark:text-gray-400'}`}>
-                    Reject
+                    {getDenyLabel()}
                   </span>
                 </button>
                 <button
@@ -267,7 +278,7 @@ function ReviewModal({
                       : 'bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400'
                 }`}
               >
-                {processing ? 'Processing...' : `Submit ${action === 'approve' ? 'Approved' : action === 'deny' ? 'Rejected' : 'Revised'}`}
+                {processing ? 'Processing...' : getSubmitLabel()}
               </button>
             </div>
           </form>
@@ -278,6 +289,7 @@ function ReviewModal({
 }
 
 export default function PendingApprovals() {
+  const { viewMode } = useEmployeeFeatures();
   const [data, setData] = useState<PendingApprovalsData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -301,14 +313,25 @@ export default function PendingApprovals() {
     }
   };
 
-  const handleApproval = async (id: number, action: 'approve' | 'deny', _notes?: string) => {
+  const handleApproval = async (id: number, action: 'approve' | 'deny' | 'revise', notes: string, itemType?: string, approvedHours?: string) => {
     try {
       setProcessingId(id);
-      await apiPost(`/portal/team/approvals/${id}/${action}`, {});
+      if (itemType === 'fmla') {
+        const apiAction = action === 'approve' ? 'approved' : action === 'deny' ? 'rejected' : 'revised';
+        await apiPost(`/portal/review-submission/${id}`, {
+          action: apiAction,
+          reason_for_change: notes,
+          ...(approvedHours ? { approved_hours: parseFloat(approvedHours) } : {}),
+          reviewer_notes: notes,
+        });
+      } else {
+        const finalAction = action === 'revise' ? 'approve' : action;
+        await apiPost(`/portal/team/approvals/${id}/${finalAction}`, {});
+      }
       setReviewItem(null);
       await fetchApprovals();
     } catch (err) {
-      setError(err instanceof Error ? err.message : `Failed to ${action} request`);
+      setError(err instanceof Error ? err.message : 'Failed to process request');
     } finally {
       setProcessingId(null);
     }
@@ -385,12 +408,19 @@ export default function PendingApprovals() {
       </AnimatePresence>
 
       {/* Header */}
-      <div>
-        <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Pending Approvals</h1>
-        <p className="text-gray-600 dark:text-gray-400 mt-1">
-          {data?.counts.total || 0} items awaiting your review
-        </p>
-      </div>
+      {viewMode === 'bifrost' ? (
+        <AuroraPageHeader
+          title="Pending Approvals"
+          subtitle={`${data?.counts.total || 0} items awaiting your review`}
+        />
+      ) : (
+        <div>
+          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Pending Approvals</h1>
+          <p className="text-gray-600 dark:text-gray-400 mt-1">
+            {data?.counts.total || 0} items awaiting your review
+          </p>
+        </div>
+      )}
 
       {/* Summary Cards */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
@@ -527,30 +557,15 @@ export default function PendingApprovals() {
                       </div>
                     </div>
                   </div>
-                  <div className="flex items-center gap-2">
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleApproval(item.id, 'approve');
-                      }}
-                      disabled={processingId === item.id}
-                      className="flex items-center gap-1 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors disabled:opacity-50"
-                    >
-                      <Check size={18} />
-                      Approve
-                    </button>
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleApproval(item.id, 'deny');
-                      }}
-                      disabled={processingId === item.id}
-                      className="flex items-center gap-1 px-4 py-2 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/30 rounded-lg transition-colors disabled:opacity-50"
-                    >
-                      <X size={18} />
-                      Deny
-                    </button>
-                  </div>
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setReviewItem(item);
+                    }}
+                    className="flex items-center gap-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                  >
+                    Review
+                  </button>
                 </div>
               </motion.div>
             );
@@ -578,14 +593,6 @@ export default function PendingApprovals() {
       >
         <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Quick Links</h3>
         <div className="flex flex-wrap gap-3">
-          <Link
-            to="/team/fmla-reviews"
-            className="flex items-center gap-2 px-4 py-2 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-lg hover:border-blue-300 dark:hover:border-blue-600 transition-colors"
-          >
-            <Briefcase size={18} className="text-yellow-600 dark:text-yellow-400" />
-            <span className="text-gray-700 dark:text-gray-300">FMLA Reviews</span>
-            <ChevronRight size={16} className="text-gray-400" />
-          </Link>
           <Link
             to="/team"
             className="flex items-center gap-2 px-4 py-2 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-lg hover:border-blue-300 dark:hover:border-blue-600 transition-colors"

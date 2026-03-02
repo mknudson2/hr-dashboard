@@ -89,9 +89,9 @@ export default function TenureAnniversaryWidget() {
     };
 
     const getYearsBadgeColor = (years: number) => {
-        if (years >= 20) return "bg-purple-100 text-purple-700 dark:bg-purple-900 dark:text-purple-300";
-        if (years >= 10) return "bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300";
-        if (years >= 5) return "bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300";
+        if (years >= 20) return "bg-bifrost-violet/10 text-bifrost-violet dark:bg-bifrost-violet/15 dark:text-bifrost-violet-light";
+        if (years >= 10) return "bg-bifrost-violet/8 text-bifrost-violet dark:bg-bifrost-violet/12 dark:text-bifrost-violet-light";
+        if (years >= 5) return "bg-aurora-teal/8 text-aurora-teal-dark dark:bg-aurora-teal/12 dark:text-aurora-teal";
         return "bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300";
     };
 
@@ -105,8 +105,8 @@ export default function TenureAnniversaryWidget() {
             {/* Header */}
             <div className="flex items-center justify-between mb-4">
                 <div className="flex items-center gap-3">
-                    <div className="p-2 rounded-lg bg-blue-100 dark:bg-blue-900/30">
-                        <Award className="w-5 h-5 text-blue-600 dark:text-blue-400" />
+                    <div className="p-2 rounded-lg bg-aurora-teal/8 dark:bg-aurora-teal/15">
+                        <Award className="w-5 h-5 text-aurora-teal-dark dark:text-aurora-teal" />
                     </div>
                     <div>
                         <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
@@ -145,7 +145,7 @@ export default function TenureAnniversaryWidget() {
                             className="flex items-center justify-between p-3 rounded-lg bg-gray-50 dark:bg-gray-700/50 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
                         >
                             <div className="flex items-center gap-3 flex-1">
-                                <div className="flex items-center justify-center w-10 h-10 rounded-full bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 font-semibold">
+                                <div className="flex items-center justify-center w-10 h-10 rounded-full bg-aurora-teal/8 dark:bg-aurora-teal/15 text-aurora-teal-dark dark:text-aurora-teal font-display font-semibold">
                                     {anniversary.show_exact_dates && anniversary.hire_day
                                         ? anniversary.hire_day
                                         : <Award className="w-5 h-5" />}

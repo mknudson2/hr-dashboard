@@ -93,11 +93,7 @@ const accentShadows: Record<AccentColor, string> = {
   gold: 'shadow-bridge-gold/25',
 };
 
-const accentTopBorder: Record<AccentColor, string> = {
-  violet: 'from-bifrost-violet to-bifrost-violet-light',
-  teal: 'from-aurora-teal to-aurora-teal-light',
-  gold: 'from-bridge-gold to-bridge-gold-light',
-};
+const auroraStripGradient = 'linear-gradient(90deg, #6C3FA0, #2ABFBF, #E8B84B)';
 
 // ---- Component ----
 
@@ -381,12 +377,20 @@ export default function BifrostDashboard() {
         transition={{ delay: 0.2 }}
         className="grid grid-cols-1 md:grid-cols-3 gap-[14px]"
       >
-        {statCards.map((card) => {
+        {statCards.map((card, index) => {
           const Icon = card.icon;
+          const stripPosition = index === 0 ? '0%' : index === 1 ? '50%' : '100%';
           const content = (
             <div className="relative overflow-hidden bg-white rounded-2xl p-5 border border-[rgba(108,63,160,0.06)] shadow-[0_1px_3px_rgba(26,26,46,0.04),0_4px_14px_rgba(26,26,46,0.03)] hover:shadow-[0_4px_20px_rgba(108,63,160,0.1),0_8px_30px_rgba(26,26,46,0.06)] hover:-translate-y-[2px] transition-all cursor-pointer">
-              {/* Accent gradient strip at top */}
-              <div className={`absolute top-0 left-0 right-0 h-[3px] bg-gradient-to-r ${accentTopBorder[card.accent]}`} />
+              {/* Aurora tri-color gradient strip — positioned to form one continuous bar across all cards */}
+              <div
+                className="absolute top-0 left-0 right-0 h-[3px]"
+                style={{
+                  background: auroraStripGradient,
+                  backgroundSize: '300% 100%',
+                  backgroundPosition: `${stripPosition} 0%`,
+                }}
+              />
 
               <div className="flex items-start justify-between">
                 <div>

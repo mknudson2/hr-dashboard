@@ -3,6 +3,8 @@ import { apiGet, apiPost } from '@/utils/api';
 import { TrendingUp, AlertCircle, Star, Clock, CheckCircle, FileText, Send, Award, Target, AlertTriangle, ChevronDown, ChevronUp } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { RatingCategory } from '@/components/performance';
+import { useEmployeeFeatures } from '@/contexts/EmployeeFeaturesContext';
+import AuroraPageHeader from '@/components/bifrost/AuroraPageHeader';
 
 interface SelfReview {
   id: number;
@@ -200,6 +202,7 @@ interface PIPsData {
 }
 
 export default function MyPerformance() {
+  const { viewMode } = useEmployeeFeatures();
   const [data, setData] = useState<MyPerformanceData | null>(null);
   const [goalsData, setGoalsData] = useState<GoalsData | null>(null);
   const [pipsData, setPipsData] = useState<PIPsData | null>(null);
@@ -384,12 +387,19 @@ export default function MyPerformance() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div>
-        <h1 className="text-2xl font-bold text-gray-900 dark:text-white">My Performance</h1>
-        <p className="text-gray-600 dark:text-gray-400 mt-1">
-          View and manage your performance reviews
-        </p>
-      </div>
+      {viewMode === 'bifrost' ? (
+        <AuroraPageHeader
+          title="My Performance"
+          subtitle="View and manage your performance reviews"
+        />
+      ) : (
+        <div>
+          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">My Performance</h1>
+          <p className="text-gray-600 dark:text-gray-400 mt-1">
+            View and manage your performance reviews
+          </p>
+        </div>
+      )}
 
       {/* Tabs */}
       <div className="flex gap-2 border-b border-gray-300 dark:border-gray-700">
@@ -454,13 +464,16 @@ export default function MyPerformance() {
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
-              className="bg-gradient-to-r from-blue-500 to-blue-600 rounded-xl shadow-sm p-6 text-white"
+              className={viewMode === 'bifrost'
+                ? "bifrost-aurora bifrost-aurora-overlay relative rounded-xl shadow-sm p-6 text-white overflow-hidden"
+                : "bg-gradient-to-r from-blue-500 to-blue-600 rounded-xl shadow-sm p-6 text-white"
+              }
             >
-              <div className="flex items-center justify-between">
+              <div className="relative z-10 flex items-center justify-between">
                 <div>
-                  <p className="text-sm text-blue-100">Current Review Cycle</p>
+                  <p className={viewMode === 'bifrost' ? "text-sm text-white/60" : "text-sm text-blue-100"}>Current Review Cycle</p>
                   <h2 className="text-xl font-bold mt-1">{data.current_cycle.name}</h2>
-                  <p className="text-sm text-blue-100 mt-2">
+                  <p className={viewMode === 'bifrost' ? "text-sm text-white/60 mt-2" : "text-sm text-blue-100 mt-2"}>
                     Review Period: {formatDate(data.current_cycle.start_date)} - {formatDate(data.current_cycle.end_date)}
                   </p>
                 </div>
@@ -470,6 +483,13 @@ export default function MyPerformance() {
                   </span>
                 </div>
               </div>
+              {viewMode === 'bifrost' && (
+                <div
+                  className="absolute bottom-0 left-0 right-0 h-[2px] opacity-60"
+                  style={{ background: 'linear-gradient(90deg, #6C3FA0, #2ABFBF, #E8B84B)' }}
+                  aria-hidden="true"
+                />
+              )}
             </motion.div>
           )}
 

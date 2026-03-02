@@ -22,6 +22,8 @@ import {
   EyeOff,
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+import AuroraPageHeader from '@/components/bifrost/AuroraPageHeader';
+import AuroraSectionHeader from '@/components/bifrost/AuroraSectionHeader';
 
 interface TeamMemberEvent {
   employee_id: string;
@@ -191,21 +193,38 @@ export default function TeamDashboard() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Team Dashboard</h1>
-          <p className="text-gray-600 dark:text-gray-400 mt-1">
-            Overview of your team's status and upcoming events
-          </p>
+      {isBifrost ? (
+        <AuroraPageHeader
+          title="Team Dashboard"
+          subtitle="Overview of your team's status and upcoming events"
+          icon={Users}
+          rightContent={
+            <button
+              onClick={() => setShowSettings(true)}
+              className="flex items-center gap-2 px-3 py-2 bg-white/10 border border-white/20 text-white hover:bg-white/20 rounded-lg transition-colors text-sm"
+            >
+              <Settings size={16} />
+              Customize
+            </button>
+          }
+        />
+      ) : (
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Team Dashboard</h1>
+            <p className="text-gray-600 dark:text-gray-400 mt-1">
+              Overview of your team's status and upcoming events
+            </p>
+          </div>
+          <button
+            onClick={() => setShowSettings(true)}
+            className="flex items-center gap-2 px-3 py-2 text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
+          >
+            <Settings size={18} />
+            <span className="text-sm">Customize</span>
+          </button>
         </div>
-        <button
-          onClick={() => setShowSettings(true)}
-          className="flex items-center gap-2 px-3 py-2 text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
-        >
-          <Settings size={18} />
-          <span className="text-sm">Customize</span>
-        </button>
-      </div>
+      )}
 
       {/* Stats Cards */}
       {data && (
@@ -504,20 +523,37 @@ export default function TeamDashboard() {
             transition={{ delay: 0.45 }}
             className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-300 dark:border-gray-700 p-6"
           >
-            <div className="flex items-center justify-between mb-4">
-              <div className="flex items-center gap-2">
-                <TrendingUp className="text-indigo-500" size={20} />
-                <h2 className="text-lg font-semibold text-gray-900 dark:text-white">
-                  Performance Snapshot
-                </h2>
+            {isBifrost ? (
+              <div className="mb-4">
+                <AuroraSectionHeader
+                  title="Performance Snapshot"
+                  icon={TrendingUp}
+                  rightContent={
+                    <Link
+                      to="/team/performance"
+                      className="text-xs text-white/70 hover:text-white flex items-center gap-1 transition-colors"
+                    >
+                      View all <ArrowRight size={14} />
+                    </Link>
+                  }
+                />
               </div>
-              <Link
-                to="/team/performance"
-                className="text-sm text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 flex items-center gap-1"
-              >
-                View all <ArrowRight size={16} />
-              </Link>
-            </div>
+            ) : (
+              <div className="flex items-center justify-between mb-4">
+                <div className="flex items-center gap-2">
+                  <TrendingUp className="text-indigo-500" size={20} />
+                  <h2 className="text-lg font-semibold text-gray-900 dark:text-white">
+                    Performance Snapshot
+                  </h2>
+                </div>
+                <Link
+                  to="/team/performance"
+                  className="text-sm text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 flex items-center gap-1"
+                >
+                  View all <ArrowRight size={16} />
+                </Link>
+              </div>
+            )}
             <div className="grid grid-cols-2 gap-4">
               <div className={`p-4 rounded-lg ${
                 isBifrost
@@ -551,10 +587,16 @@ export default function TeamDashboard() {
             transition={{ delay: 0.5 }}
             className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-300 dark:border-gray-700 p-6"
           >
-            <div className="flex items-center gap-2 mb-4">
-              <Briefcase className="text-blue-500" size={20} />
-              <h2 className="text-lg font-semibold text-gray-900 dark:text-white">Currently Out</h2>
-            </div>
+            {isBifrost ? (
+              <div className="mb-4">
+                <AuroraSectionHeader title="Currently Out" icon={Briefcase} />
+              </div>
+            ) : (
+              <div className="flex items-center gap-2 mb-4">
+                <Briefcase className="text-blue-500" size={20} />
+                <h2 className="text-lg font-semibold text-gray-900 dark:text-white">Currently Out</h2>
+              </div>
+            )}
             <div className="space-y-3">
               {data.who_is_out.map((person) => (
                 <div
@@ -601,20 +643,37 @@ export default function TeamDashboard() {
           transition={{ delay: 0.55 }}
           className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-300 dark:border-gray-700 p-6"
         >
-          <div className="flex items-center justify-between mb-4">
-            <div className="flex items-center gap-2">
-              <Clock className="text-green-500" size={20} />
-              <h2 className="text-lg font-semibold text-gray-900 dark:text-white">
-                Team FMLA Cases
-              </h2>
+          {isBifrost ? (
+            <div className="mb-4">
+              <AuroraSectionHeader
+                title="Team FMLA Cases"
+                icon={Clock}
+                rightContent={
+                  <Link
+                    to="/team/fmla-reviews"
+                    className="text-xs text-white/70 hover:text-white flex items-center gap-1 transition-colors"
+                  >
+                    View all <ArrowRight size={14} />
+                  </Link>
+                }
+              />
             </div>
-            <Link
-              to="/team/fmla-reviews"
-              className="text-sm text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 flex items-center gap-1"
-            >
-              View all <ArrowRight size={16} />
-            </Link>
-          </div>
+          ) : (
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center gap-2">
+                <Clock className="text-green-500" size={20} />
+                <h2 className="text-lg font-semibold text-gray-900 dark:text-white">
+                  Team FMLA Cases
+                </h2>
+              </div>
+              <Link
+                to="/team/fmla-reviews"
+                className="text-sm text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 flex items-center gap-1"
+              >
+                View all <ArrowRight size={16} />
+              </Link>
+            </div>
+          )}
           <div className="overflow-x-auto">
             <table className="w-full">
               <thead>

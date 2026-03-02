@@ -3,6 +3,8 @@ import { useAuth } from '@/contexts/AuthContext';
 import { apiGet, apiPut } from '@/utils/api';
 import { User, Mail, Phone, Building2, Calendar, MapPin, AlertCircle, Save, Edit2, X } from 'lucide-react';
 import { motion } from 'framer-motion';
+import { useEmployeeFeatures } from '@/contexts/EmployeeFeaturesContext';
+import AuroraPageHeader from '@/components/bifrost/AuroraPageHeader';
 
 interface EmployeeProfile {
   employee_id: string;
@@ -33,6 +35,7 @@ interface EmergencyContact {
 
 export default function Profile() {
   const { user } = useAuth();
+  const { viewMode } = useEmployeeFeatures();
   const [profile, setProfile] = useState<EmployeeProfile | null>(null);
   const [emergencyContact, setEmergencyContact] = useState<EmergencyContact>({
     name: '',
@@ -111,12 +114,19 @@ export default function Profile() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div>
-        <h1 className="text-2xl font-bold text-gray-900 dark:text-white">My Profile</h1>
-        <p className="text-gray-600 dark:text-gray-400 mt-1">
-          View your personal information and update emergency contacts
-        </p>
-      </div>
+      {viewMode === 'bifrost' ? (
+        <AuroraPageHeader
+          title="My Profile"
+          subtitle="View your personal information and update emergency contacts"
+        />
+      ) : (
+        <div>
+          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">My Profile</h1>
+          <p className="text-gray-600 dark:text-gray-400 mt-1">
+            View your personal information and update emergency contacts
+          </p>
+        </div>
+      )}
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Profile Summary Card */}

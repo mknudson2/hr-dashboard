@@ -7,3 +7,134 @@ body,
 #root {
   height: 100%;
 }
+
+/* ===== BIFRÖST ADMIN TOKENS ===== */
+:root {
+  --bifrost-violet: #6C3FA0;
+  --bifrost-violet-light: #8B5FC4;
+  --bifrost-violet-dark: #5A2E8A;
+  --aurora-teal: #2ABFBF;
+  --aurora-teal-dark: #1F9E9E;
+  --bridge-gold: #E8B84B;
+  --bridge-gold-dark: #D4A030;
+  --realm-white: #F8F7F4;
+  --frost: #EEF2F7;
+  --deep-night: #1A1A2E;
+  --night-mid: #20203A;
+  --night-card: #252545;
+  --mimir-blue: #1B3A5C;
+  --well-silver: #B8C4D0;
+}
+
+@theme {
+  --color-bifrost-violet: #6C3FA0;
+  --color-bifrost-violet-light: #8B5FC4;
+  --color-bifrost-violet-dark: #5A2E8A;
+  --color-aurora-teal: #2ABFBF;
+  --color-aurora-teal-dark: #1F9E9E;
+  --color-bridge-gold: #E8B84B;
+  --color-bridge-gold-dark: #D4A030;
+  --color-realm-white: #F8F7F4;
+  --color-frost: #EEF2F7;
+  --color-deep-night: #1A1A2E;
+  --color-night-mid: #20203A;
+  --color-night-card: #252545;
+  --color-mimir-blue: #1B3A5C;
+  --color-well-silver: #B8C4D0;
+  --font-display: 'Jost', 'Montserrat', sans-serif;
+  --font-body: 'DM Sans', system-ui, sans-serif;
+}
+
+/* Vertical shimmer bar for sidebar */
+.bifrost-shimmer-v {
+  background: linear-gradient(180deg, var(--bifrost-violet), var(--aurora-teal), var(--bridge-gold), var(--aurora-teal), var(--bifrost-violet));
+  background-size: 100% 300%;
+  animation: shimmerV 6s ease infinite;
+}
+.bifrost-shimmer-v.static {
+  animation: none;
+  background: linear-gradient(180deg, var(--bifrost-violet), var(--aurora-teal), var(--bridge-gold));
+  background-size: 100% 100%;
+}
+
+@keyframes shimmerV {
+  0% { background-position: 50% 0%; }
+  50% { background-position: 50% 100%; }
+  100% { background-position: 50% 0%; }
+}
+
+/* Aurora gradient background */
+.bifrost-aurora {
+  background:
+    radial-gradient(ellipse at 20% 80%, rgba(42, 191, 191, 0.35) 0%, transparent 50%),
+    radial-gradient(ellipse at 80% 20%, rgba(232, 184, 75, 0.2) 0%, transparent 50%),
+    radial-gradient(ellipse at 50% 50%, rgba(108, 63, 160, 0.4) 0%, transparent 70%),
+    linear-gradient(135deg, #1A1A2E 0%, #2A1B4E 40%, #1B3A5C 100%);
+}
+
+/* Aurora animated overlay */
+.bifrost-aurora-overlay::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background:
+    radial-gradient(circle at 75% 30%, rgba(42, 191, 191, 0.15), transparent 40%),
+    radial-gradient(circle at 25% 70%, rgba(232, 184, 75, 0.1), transparent 40%);
+  animation: auroraShift 12s ease-in-out infinite alternate;
+}
+
+@keyframes auroraShift {
+  0% { opacity: 0.4; transform: scale(1); }
+  50% { opacity: 1; transform: scale(1.05); }
+  100% { opacity: 0.4; transform: scale(1); }
+}
+
+/* ===== Glassmorphic overrides for dark mode ===== */
+/* Target both bare classes AND dark: variant classes */
+/* Bare bg-gray-800 (used on elements like sidebar that are always dark) */
+:is(.dark *).bg-gray-800,
+.dark\:bg-gray-800:is(.dark *) {
+  background-color: rgba(30, 30, 55, 0.55) !important;
+  backdrop-filter: blur(16px) saturate(1.4) !important;
+  -webkit-backdrop-filter: blur(16px) saturate(1.4) !important;
+}
+:is(.dark *).bg-gray-700,
+.dark\:bg-gray-700:is(.dark *) {
+  background-color: rgba(40, 40, 70, 0.45) !important;
+  backdrop-filter: blur(12px) saturate(1.3) !important;
+  -webkit-backdrop-filter: blur(12px) saturate(1.3) !important;
+}
+.dark\:bg-gray-700\/50:is(.dark *) {
+  background-color: rgba(40, 40, 70, 0.3) !important;
+}
+:is(.dark *).bg-gray-900,
+.dark\:bg-gray-900:is(.dark *) {
+  background-color: rgba(15, 15, 30, 0.5) !important;
+  backdrop-filter: blur(12px) !important;
+  -webkit-backdrop-filter: blur(12px) !important;
+}
+/* Subtle glass borders */
+:is(.dark *).border-gray-700,
+.dark\:border-gray-700:is(.dark *) {
+  border-color: rgba(255, 255, 255, 0.08) !important;
+}
+:is(.dark *).border-gray-600,
+.dark\:border-gray-600:is(.dark *) {
+  border-color: rgba(255, 255, 255, 0.1) !important;
+}
+
+/* ===== Bifröst admin global overrides — blue → violet ===== */
+.bg-blue-600 { background-color: var(--bifrost-violet) !important; }
+.bg-blue-500 { background-color: var(--bifrost-violet) !important; }
+.hover\:bg-blue-700:hover { background-color: var(--bifrost-violet-dark) !important; }
+.text-blue-600 { color: var(--bifrost-violet) !important; }
+.text-blue-500 { color: var(--bifrost-violet) !important; }
+.border-blue-600 { border-color: var(--bifrost-violet) !important; }
+.ring-blue-500 { --tw-ring-color: var(--bifrost-violet) !important; }
+.focus\:ring-blue-500:focus { --tw-ring-color: var(--bifrost-violet) !important; }
+
+/* Dark mode blue overrides */
+.dark .bg-blue-600 { background-color: var(--bifrost-violet) !important; }
+.dark .text-blue-400 { color: var(--bifrost-violet-light) !important; }
+.dark .text-blue-500 { color: var(--bifrost-violet-light) !important; }

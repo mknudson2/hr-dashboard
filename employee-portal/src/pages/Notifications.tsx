@@ -1,8 +1,10 @@
 import { useState, useEffect, useCallback } from 'react';
-import { Bell, Check, Trash2, Clock, AlertCircle, Info, CheckCircle, Filter, MailOpen, Mail, Loader2 } from 'lucide-react';
+import { Bell, Check, Clock, AlertCircle, Info, CheckCircle, Filter, MailOpen, Mail, Loader2 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import { apiGet, apiPost } from '@/utils/api';
+import { useEmployeeFeatures } from '@/contexts/EmployeeFeaturesContext';
+import AuroraPageHeader from '@/components/bifrost/AuroraPageHeader';
 
 // Valid employee portal route prefixes for action_url links
 const PORTAL_ROUTE_PREFIXES = [
@@ -99,6 +101,7 @@ function getTypeBadgeColor(type: NotificationType): string {
 }
 
 export default function Notifications() {
+  const { viewMode } = useEmployeeFeatures();
   const [notifications, setNotifications] = useState<BackendNotification[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
   const [total, setTotal] = useState(0);
@@ -193,28 +196,47 @@ export default function Notifications() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900 dark:text-white flex items-center gap-3">
-            <Bell className="text-blue-600 dark:text-blue-400" />
-            Notifications
-          </h1>
-          <p className="text-gray-600 dark:text-gray-400 mt-1">
-            {unreadCount > 0 ? `You have ${unreadCount} unread notification${unreadCount !== 1 ? 's' : ''}` : 'All caught up!'}
-          </p>
+      {viewMode === 'bifrost' ? (
+        <AuroraPageHeader
+          title="Notifications"
+          subtitle={unreadCount > 0 ? `You have ${unreadCount} unread notification${unreadCount !== 1 ? 's' : ''}` : 'All caught up!'}
+          icon={Bell}
+          rightContent={
+            unreadCount > 0 ? (
+              <button
+                onClick={markAllAsRead}
+                className="flex items-center gap-2 px-3 py-2 bg-white/10 border border-white/20 text-white hover:bg-white/20 rounded-lg transition-colors text-sm"
+              >
+                <Check size={16} />
+                Mark all read
+              </button>
+            ) : undefined
+          }
+        />
+      ) : (
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+          <div>
+            <h1 className="text-2xl font-bold text-gray-900 dark:text-white flex items-center gap-3">
+              <Bell className="text-blue-600 dark:text-blue-400" />
+              Notifications
+            </h1>
+            <p className="text-gray-600 dark:text-gray-400 mt-1">
+              {unreadCount > 0 ? `You have ${unreadCount} unread notification${unreadCount !== 1 ? 's' : ''}` : 'All caught up!'}
+            </p>
+          </div>
+          <div className="flex items-center gap-2">
+            {unreadCount > 0 && (
+              <button
+                onClick={markAllAsRead}
+                className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/30 rounded-lg hover:bg-blue-100 dark:hover:bg-blue-900/50 transition-colors"
+              >
+                <Check size={16} />
+                Mark all read
+              </button>
+            )}
+          </div>
         </div>
-        <div className="flex items-center gap-2">
-          {unreadCount > 0 && (
-            <button
-              onClick={markAllAsRead}
-              className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/30 rounded-lg hover:bg-blue-100 dark:hover:bg-blue-900/50 transition-colors"
-            >
-              <Check size={16} />
-              Mark all read
-            </button>
-          )}
-        </div>
-      </div>
+      )}
 
       {/* Stats Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">

@@ -36,14 +36,14 @@ export default function InternationalDonutChart({
       {
         data: [data.congruent, data.ameripol, data.bloom],
         backgroundColor: [
-          "rgba(59, 130, 246, 0.8)", // blue
-          "rgba(16, 185, 129, 0.8)", // green
-          "rgba(251, 146, 60, 0.8)", // orange
+          "rgba(108, 63, 160, 0.85)", // Bifröst violet
+          "rgba(42, 191, 191, 0.85)", // Aurora teal
+          "rgba(232, 184, 75, 0.85)", // Bridge gold
         ],
         borderColor: [
-          "rgb(59, 130, 246)",
-          "rgb(16, 185, 129)",
-          "rgb(251, 146, 60)",
+          "#6C3FA0",
+          "#2ABFBF",
+          "#E8B84B",
         ],
         borderWidth: 2,
       },

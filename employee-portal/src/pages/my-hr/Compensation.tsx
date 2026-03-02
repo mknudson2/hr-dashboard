@@ -2,6 +2,8 @@ import { useEffect, useState } from 'react';
 import { apiGet } from '@/utils/api';
 import { DollarSign, TrendingUp, Clock, Award, AlertCircle, ChevronDown, ChevronUp, Info } from 'lucide-react';
 import { motion } from 'framer-motion';
+import { useEmployeeFeatures } from '@/contexts/EmployeeFeaturesContext';
+import AuroraPageHeader from '@/components/bifrost/AuroraPageHeader';
 
 interface SalaryInfo {
   current_salary: number;
@@ -81,6 +83,7 @@ interface CompensationData {
 }
 
 export default function Compensation() {
+  const { viewMode } = useEmployeeFeatures();
   const [data, setData] = useState<CompensationData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -153,12 +156,19 @@ export default function Compensation() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div>
-        <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Compensation</h1>
-        <p className="text-gray-600 dark:text-gray-400 mt-1">
-          View your salary, bonuses, and overtime information
-        </p>
-      </div>
+      {viewMode === 'bifrost' ? (
+        <AuroraPageHeader
+          title="Compensation"
+          subtitle="View your salary, bonuses, and overtime information"
+        />
+      ) : (
+        <div>
+          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Compensation</h1>
+          <p className="text-gray-600 dark:text-gray-400 mt-1">
+            View your salary, bonuses, and overtime information
+          </p>
+        </div>
+      )}
 
       {/* Summary Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">

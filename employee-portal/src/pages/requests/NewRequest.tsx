@@ -2,6 +2,8 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Briefcase, Calendar, Shield, FileText, ArrowRight } from 'lucide-react';
 import { motion } from 'framer-motion';
+import { useEmployeeFeatures } from '@/contexts/EmployeeFeaturesContext';
+import AuroraPageHeader from '@/components/bifrost/AuroraPageHeader';
 
 interface RequestType {
   id: string;
@@ -15,7 +17,7 @@ interface RequestType {
 const requestTypes: RequestType[] = [
   {
     id: 'fmla',
-    title: 'FMLA Leave',
+    title: 'FMLA Leave Request',
     description: 'Request leave under the Family and Medical Leave Act for qualifying medical or family reasons.',
     icon: Briefcase,
     color: 'bg-blue-500',
@@ -23,7 +25,7 @@ const requestTypes: RequestType[] = [
   },
   {
     id: 'pto',
-    title: 'PTO / Time Off',
+    title: 'Time Off Request',
     description: 'Request vacation, sick leave, or personal time off.',
     icon: Calendar,
     color: 'bg-green-500',
@@ -49,6 +51,7 @@ const requestTypes: RequestType[] = [
 
 export default function NewRequest() {
   const navigate = useNavigate();
+  const { viewMode } = useEmployeeFeatures();
   const [hoveredCard, setHoveredCard] = useState<string | null>(null);
 
   const handleSelectType = (type: RequestType) => {
@@ -60,12 +63,19 @@ export default function NewRequest() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div>
-        <h1 className="text-2xl font-bold text-gray-900 dark:text-white">New Request</h1>
-        <p className="text-gray-600 dark:text-gray-400 mt-1">
-          Select the type of request you'd like to submit
-        </p>
-      </div>
+      {viewMode === 'bifrost' ? (
+        <AuroraPageHeader
+          title="New Request"
+          subtitle="Select the type of request you'd like to submit"
+        />
+      ) : (
+        <div>
+          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">New Request</h1>
+          <p className="text-gray-600 dark:text-gray-400 mt-1">
+            Select the type of request you'd like to submit
+          </p>
+        </div>
+      )}
 
       {/* Request Type Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">

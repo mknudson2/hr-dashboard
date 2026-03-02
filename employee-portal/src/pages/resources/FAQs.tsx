@@ -5,6 +5,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import DOMPurify from 'dompurify';
 import { useEmployeeFeatures } from '@/contexts/EmployeeFeaturesContext';
 import MimirCTA from '@/components/bifrost/MimirCTA';
+import AuroraPageHeader from '@/components/bifrost/AuroraPageHeader';
 
 interface FAQ {
   id: number;
@@ -76,12 +77,19 @@ export default function FAQs() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div>
-        <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Frequently Asked Questions</h1>
-        <p className="text-gray-600 dark:text-gray-400 mt-1">
-          Find answers to common HR questions
-        </p>
-      </div>
+      {viewMode === 'bifrost' ? (
+        <AuroraPageHeader
+          title="Frequently Asked Questions"
+          subtitle="Find answers to common HR questions"
+        />
+      ) : (
+        <div>
+          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Frequently Asked Questions</h1>
+          <p className="text-gray-600 dark:text-gray-400 mt-1">
+            Find answers to common HR questions
+          </p>
+        </div>
+      )}
 
       {/* Search and Filter */}
       <div className="flex flex-col sm:flex-row gap-4">

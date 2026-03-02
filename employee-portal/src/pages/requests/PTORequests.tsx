@@ -2,6 +2,8 @@ import { useEffect, useState } from 'react';
 import { apiGet, apiPost } from '@/utils/api';
 import { Calendar, Clock, Plus, AlertCircle, Check, X, Send } from 'lucide-react';
 import { motion } from 'framer-motion';
+import { useEmployeeFeatures } from '@/contexts/EmployeeFeaturesContext';
+import AuroraPageHeader from '@/components/bifrost/AuroraPageHeader';
 
 interface PTOBalance {
   vacation_available: number;
@@ -28,6 +30,7 @@ interface PTOData {
 }
 
 export default function PTORequests() {
+  const { viewMode } = useEmployeeFeatures();
   const [data, setData] = useState<PTOData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -115,19 +118,35 @@ export default function PTORequests() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">PTO Requests</h1>
-          <p className="text-gray-600 dark:text-gray-400 mt-1">Submit and track your time off requests</p>
+      {viewMode === 'bifrost' ? (
+        <AuroraPageHeader
+          title="Request Time Off"
+          subtitle="Submit and track your PTO requests"
+          rightContent={
+            <button
+              onClick={() => setShowForm(!showForm)}
+              className="flex items-center gap-2 px-3 py-2 bg-white/10 border border-white/20 text-white hover:bg-white/20 rounded-lg transition-colors text-sm"
+            >
+              <Plus size={16} />
+              New Request
+            </button>
+          }
+        />
+      ) : (
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Request Time Off</h1>
+            <p className="text-gray-600 dark:text-gray-400 mt-1">Submit and track your PTO requests</p>
+          </div>
+          <button
+            onClick={() => setShowForm(!showForm)}
+            className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+          >
+            <Plus size={20} />
+            New Request
+          </button>
         </div>
-        <button
-          onClick={() => setShowForm(!showForm)}
-          className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
-        >
-          <Plus size={20} />
-          New Request
-        </button>
-      </div>
+      )}
 
       {/* Balance Cards */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">

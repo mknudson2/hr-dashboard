@@ -4,6 +4,8 @@ import { useAuth } from '@/contexts/AuthContext';
 import { apiGet } from '@/utils/api';
 import { Banknote, AlertCircle, Users, TrendingUp, ChevronRight } from 'lucide-react';
 import { motion } from 'framer-motion';
+import { useEmployeeFeatures } from '@/contexts/EmployeeFeaturesContext';
+import AuroraPageHeader from '@/components/bifrost/AuroraPageHeader';
 
 interface GarnishmentSummary {
   id: number;
@@ -30,6 +32,7 @@ interface MyGarnishmentsData {
 
 export default function MyGarnishments() {
   const { isSupervisor } = useAuth();
+  const { viewMode } = useEmployeeFeatures();
   const [data, setData] = useState<MyGarnishmentsData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -137,10 +140,17 @@ export default function MyGarnishments() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div>
-        <h1 className="text-2xl font-bold text-gray-900 dark:text-white">My Garnishments</h1>
-        <p className="text-gray-600 dark:text-gray-400 mt-1">View and track your garnishment deductions</p>
-      </div>
+      {viewMode === 'bifrost' ? (
+        <AuroraPageHeader
+          title="My Garnishments"
+          subtitle="View and track your garnishment deductions"
+        />
+      ) : (
+        <div>
+          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">My Garnishments</h1>
+          <p className="text-gray-600 dark:text-gray-400 mt-1">View and track your garnishment deductions</p>
+        </div>
+      )}
 
       {/* Summary Stats */}
       {data && (

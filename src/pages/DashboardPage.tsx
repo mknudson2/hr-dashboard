@@ -159,42 +159,56 @@ export default function DashboardPage() {
   }
 
   // ---------------------- KPI Data ---------------------- //
+  // Bifröst accent strip gradients by category
+  const accentStrips: Record<string, string> = {
+    violet: 'linear-gradient(90deg, #6C3FA0, #8B5FC4)',
+    teal: 'linear-gradient(90deg, #1F9E9E, #2ABFBF)',
+    gold: 'linear-gradient(90deg, #D4A030, #E8B84B)',
+    pink: 'linear-gradient(90deg, #E05C8A, #F47BA0)',
+    navy: 'linear-gradient(90deg, #1B3A5C, #2A5580)',
+    red: 'linear-gradient(90deg, #EF4444, #F97316)',
+  };
+
   const kpis = [
     {
       title: "Total Employees",
       value: data.active_employees,
-      icon: <Users className="w-6 h-6 text-blue-600 dark:text-blue-400" />,
+      icon: <Users className="w-5 h-5 text-bifrost-violet dark:text-bifrost-violet-light" />,
+      accent: 'violet',
     },
     {
       title: "YTD Terminations",
       value: data.ytd_terminations?.total ?? 0,
-      icon: <Activity className="w-6 h-6 text-red-600 dark:text-red-400" />,
+      icon: <Activity className="w-5 h-5 text-red-600 dark:text-red-400" />,
       subtitle:
         data.ytd_terminations?.voluntary !== undefined &&
           data.ytd_terminations?.involuntary !== undefined
           ? `${data.ytd_terminations.voluntary} voluntary, ${data.ytd_terminations.involuntary} involuntary`
           : undefined,
+      accent: 'red',
     },
     {
       title: "Turnover Rate",
       value: `${data.turnover_rate}%`,
       icon: (
-        <TrendingUp className="w-6 h-6 text-orange-600 dark:text-orange-400" />
+        <TrendingUp className="w-5 h-5 text-bridge-gold dark:text-bridge-gold" />
       ),
+      accent: 'gold',
     },
     {
       title: "International Employees",
       value: data.international_breakdown?.total ?? 0,
       icon: (
-        <Users className="w-6 h-6 text-purple-600 dark:text-purple-400" />
+        <Users className="w-5 h-5 text-aurora-teal dark:text-aurora-teal" />
       ),
       showDonut: true,
       donutData: data.international_breakdown,
+      accent: 'teal',
     },
     {
       title: "YTD Avg Headcount",
       value: (data as any).ytd_avg_headcount ?? "-",
-      icon: <BarChart className="w-6 h-6 text-green-600 dark:text-green-400" />,
+      icon: <BarChart className="w-5 h-5 text-mimir-blue dark:text-well-silver" />,
       subtitle: `Current: ${data.active_employees}`,
       badge:
         (data as any).ytd_avg_headcount &&
@@ -212,6 +226,7 @@ export default function DashboardPage() {
             data.active_employees < (data as any).ytd_avg_headcount
             ? "red"
             : "blue",
+      accent: 'navy',
     },
     {
       title: "Regrettable Turnover",
@@ -219,7 +234,7 @@ export default function DashboardPage() {
         (data as any).regrettable_turnover_pct !== undefined
           ? `${(data as any).regrettable_turnover_pct}%`
           : "-",
-      icon: <TrendingUp className="w-6 h-6 text-red-600 dark:text-red-400" />,
+      icon: <TrendingUp className="w-5 h-5 text-pink-600 dark:text-pink-400" />,
       subtitle:
         data.ytd_terminations?.involuntary !== undefined
           ? `${data.ytd_terminations.involuntary} of ${data.ytd_terminations?.total ?? 0} terms`
@@ -240,6 +255,7 @@ export default function DashboardPage() {
               ? "yellow"
               : "green"
           : "blue",
+      accent: 'pink',
     },
   ];
 
@@ -249,8 +265,8 @@ export default function DashboardPage() {
       {/* Header with Last Updated */}
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-4">
         <div className="flex items-center gap-3 mb-2 sm:mb-0">
-          <BarChart className="w-6 h-6 text-blue-600 dark:text-blue-400" />
-          <h2 className="text-2xl font-semibold text-gray-900 dark:text-white">
+          <BarChart className="w-5 h-5 text-gray-400" />
+          <h2 className="font-display text-xl font-medium text-gray-900 dark:text-white">
             HR Dashboard Overview
           </h2>
         </div>
@@ -275,16 +291,19 @@ export default function DashboardPage() {
       </div>
 
       {/* KPI Cards Grid */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
         {kpis.map((kpi, idx) => (
           <motion.div
             key={idx}
-            className="flex flex-col items-center justify-center bg-white dark:bg-gray-800 p-6 rounded-2xl shadow-md border border-gray-200 dark:border-gray-700 hover:shadow-lg transition-all duration-300"
-            whileHover={{ scale: 1.02 }}
+            className="relative overflow-hidden flex flex-col items-center justify-center bg-white dark:bg-gray-800 p-6 rounded-2xl shadow-sm border border-gray-200 dark:border-gray-700 hover:shadow-md transition-all duration-300"
+            whileHover={{ scale: 1.01, y: -1 }}
           >
-            <div className="flex items-center gap-3 mb-3">
+            {/* Accent strip */}
+            <div className="absolute top-0 left-0 right-0 h-[2px]" style={{ background: accentStrips[(kpi as any).accent] || accentStrips.violet }} />
+
+            <div className="flex items-center gap-2.5 mb-3">
               {kpi.icon}
-              <span className="text-gray-700 dark:text-gray-300 font-medium text-lg">
+              <span className="font-body text-xs text-gray-500 dark:text-well-silver">
                 {kpi.title}
               </span>
             </div>
@@ -292,7 +311,7 @@ export default function DashboardPage() {
             {"showDonut" in kpi && (kpi as any).showDonut ? (
               <div className="w-full">
                 <div className="text-center mb-2">
-                  <span className="text-3xl font-semibold text-gray-900 dark:text-white">
+                  <span className="font-display text-3xl font-semibold text-gray-900 dark:text-white">
                     {kpi.value}
                   </span>
                 </div>
@@ -300,23 +319,23 @@ export default function DashboardPage() {
               </div>
             ) : (
               <div className="flex flex-col items-center w-full">
-                <span className="text-3xl font-semibold text-gray-900 dark:text-white">
+                <span className="font-display text-3xl font-semibold text-gray-900 dark:text-white">
                   {kpi.value}
                 </span>
                 {"subtitle" in kpi && (kpi as any).subtitle && (
-                  <p className="text-xs text-gray-500 dark:text-gray-400 mt-2 text-center">
+                  <p className="text-[11px] text-gray-400 dark:text-gray-500 mt-2 text-center">
                     {(kpi as any).subtitle}
                   </p>
                 )}
                 {"badge" in kpi && (kpi as any).badge && (
                   <span
-                    className={`mt-3 px-3 py-1 rounded-full text-xs font-medium ${(kpi as any).badgeColor === "green"
-                        ? "bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300"
+                    className={`mt-3 px-3 py-1 rounded-md text-[10px] font-semibold ${(kpi as any).badgeColor === "green"
+                        ? "bg-aurora-teal/12 text-aurora-teal dark:bg-aurora-teal/12 dark:text-aurora-teal"
                         : (kpi as any).badgeColor === "red"
                           ? "bg-red-100 text-red-700 dark:bg-red-900 dark:text-red-300"
                           : (kpi as any).badgeColor === "yellow"
-                            ? "bg-yellow-100 text-yellow-700 dark:bg-yellow-900 dark:text-yellow-300"
-                            : "bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300"
+                            ? "bg-bridge-gold/12 text-bridge-gold-dark dark:bg-bridge-gold/12 dark:text-bridge-gold"
+                            : "bg-bifrost-violet/8 text-bifrost-violet dark:bg-bifrost-violet/12 dark:text-bifrost-violet-light"
                       }`}
                   >
                     {(kpi as any).badge}

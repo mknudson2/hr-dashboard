@@ -1,6 +1,8 @@
 import { useState } from 'react';
 import { FileBarChart, Download, AlertCircle, Calendar, Users, Clock, Briefcase, TrendingUp } from 'lucide-react';
 import { motion } from 'framer-motion';
+import { useEmployeeFeatures } from '@/contexts/EmployeeFeaturesContext';
+import AuroraPageHeader from '@/components/bifrost/AuroraPageHeader';
 
 type ReportType = 'fmla_time' | 'pto_usage' | 'team_attendance' | 'performance_summary';
 
@@ -50,6 +52,7 @@ const reportOptions: ReportOption[] = [
 
 export default function Reports() {
   const [selectedReport, setSelectedReport] = useState<ReportType>('fmla_time');
+  const { viewMode } = useEmployeeFeatures();
   const [dateFrom, setDateFrom] = useState('');
   const [dateTo, setDateTo] = useState('');
   const [loading, setLoading] = useState(false);
@@ -126,10 +129,17 @@ export default function Reports() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div>
-        <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Team Reports</h1>
-        <p className="text-gray-600 dark:text-gray-400 mt-1">Generate and export reports for your team</p>
-      </div>
+      {viewMode === 'bifrost' ? (
+        <AuroraPageHeader
+          title="Team Reports"
+          subtitle="Generate and export reports for your team"
+        />
+      ) : (
+        <div>
+          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Team Reports</h1>
+          <p className="text-gray-600 dark:text-gray-400 mt-1">Generate and export reports for your team</p>
+        </div>
+      )}
 
       {/* Report Type Selection */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">

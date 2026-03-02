@@ -3,6 +3,8 @@ import { useNavigate } from 'react-router-dom';
 import { apiPost } from '@/utils/api';
 import { ArrowLeft, Send, AlertCircle, CheckCircle, Info } from 'lucide-react';
 import { motion } from 'framer-motion';
+import { useEmployeeFeatures } from '@/contexts/EmployeeFeaturesContext';
+import AuroraPageHeader from '@/components/bifrost/AuroraPageHeader';
 
 interface AccommodationFormData {
   accommodation_type: string;
@@ -34,6 +36,7 @@ const durationOptions = [
 
 export default function AccommodationRequest() {
   const navigate = useNavigate();
+  const { viewMode } = useEmployeeFeatures();
   const [currentStep, setCurrentStep] = useState(1);
   const [submitting, setSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
@@ -120,20 +123,36 @@ export default function AccommodationRequest() {
   return (
     <div className="max-w-3xl mx-auto space-y-6">
       {/* Header */}
-      <div className="flex items-center gap-4">
-        <button
-          onClick={() => navigate('/requests/new')}
-          className="p-2 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
-        >
-          <ArrowLeft size={20} />
-        </button>
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Workplace Accommodation Request</h1>
-          <p className="text-gray-600 dark:text-gray-400 mt-1">
-            Request a workplace accommodation under the ADA or for other qualifying needs
-          </p>
+      {viewMode === 'bifrost' ? (
+        <AuroraPageHeader
+          title="Workplace Accommodation Request"
+          subtitle="Request a workplace accommodation under the ADA or for other qualifying needs"
+          rightContent={
+            <button
+              onClick={() => navigate('/requests/new')}
+              className="flex items-center gap-1.5 px-3 py-2 bg-white/10 border border-white/20 text-white hover:bg-white/20 rounded-lg transition-colors text-sm"
+            >
+              <ArrowLeft size={16} />
+              Back
+            </button>
+          }
+        />
+      ) : (
+        <div className="flex items-center gap-4">
+          <button
+            onClick={() => navigate('/requests/new')}
+            className="p-2 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
+          >
+            <ArrowLeft size={20} />
+          </button>
+          <div>
+            <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Workplace Accommodation Request</h1>
+            <p className="text-gray-600 dark:text-gray-400 mt-1">
+              Request a workplace accommodation under the ADA or for other qualifying needs
+            </p>
+          </div>
         </div>
-      </div>
+      )}
 
       {/* Progress Steps */}
       <div className="flex items-center justify-center gap-2">

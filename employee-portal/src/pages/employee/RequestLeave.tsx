@@ -4,6 +4,8 @@ import { useAuth } from '@/contexts/AuthContext';
 import { apiPost } from '@/utils/api';
 import { Send, CheckCircle, AlertCircle, Users } from 'lucide-react';
 import { motion } from 'framer-motion';
+import { useEmployeeFeatures } from '@/contexts/EmployeeFeaturesContext';
+import AuroraPageHeader from '@/components/bifrost/AuroraPageHeader';
 
 const LEAVE_TYPES = [
   { value: 'Employee Medical', label: 'Employee Medical', description: 'For your own serious health condition' },
@@ -14,6 +16,7 @@ const LEAVE_TYPES = [
 
 export default function RequestLeave() {
   const navigate = useNavigate();
+  const { viewMode } = useEmployeeFeatures();
   const { isEmployee, isSupervisor } = useAuth();
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -111,10 +114,17 @@ export default function RequestLeave() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div>
-        <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Request FMLA Leave</h1>
-        <p className="text-gray-600 dark:text-gray-400 mt-1">Submit a new FMLA leave request for HR review</p>
-      </div>
+      {viewMode === 'bifrost' ? (
+        <AuroraPageHeader
+          title="Request FMLA Leave"
+          subtitle="Submit a new FMLA leave request for HR review"
+        />
+      ) : (
+        <div>
+          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Request FMLA Leave</h1>
+          <p className="text-gray-600 dark:text-gray-400 mt-1">Submit a new FMLA leave request for HR review</p>
+        </div>
+      )}
 
       {/* Info Banner */}
       <div className="bg-blue-50 dark:bg-blue-900/30 border border-blue-200 dark:border-blue-800 rounded-lg p-4">

@@ -2,6 +2,8 @@ import { useEffect, useState } from 'react';
 import { apiGet } from '@/utils/api';
 import { FileText, Download, Calendar, Search, Filter, AlertCircle, FolderOpen } from 'lucide-react';
 import { motion } from 'framer-motion';
+import { useEmployeeFeatures } from '@/contexts/EmployeeFeaturesContext';
+import AuroraPageHeader from '@/components/bifrost/AuroraPageHeader';
 
 interface Document {
   id: number;
@@ -19,6 +21,7 @@ interface DocumentsData {
 }
 
 export default function Documents() {
+  const { viewMode } = useEmployeeFeatures();
   const [data, setData] = useState<DocumentsData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -107,12 +110,19 @@ export default function Documents() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div>
-        <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Documents</h1>
-        <p className="text-gray-600 dark:text-gray-400 mt-1">
-          Access your pay stubs, tax forms, and other HR documents
-        </p>
-      </div>
+      {viewMode === 'bifrost' ? (
+        <AuroraPageHeader
+          title="Documents"
+          subtitle="Access your pay stubs, tax forms, and other HR documents"
+        />
+      ) : (
+        <div>
+          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Documents</h1>
+          <p className="text-gray-600 dark:text-gray-400 mt-1">
+            Access your pay stubs, tax forms, and other HR documents
+          </p>
+        </div>
+      )}
 
       {/* Search and Filter */}
       <div className="flex flex-col sm:flex-row gap-4">

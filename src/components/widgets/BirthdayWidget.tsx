@@ -92,8 +92,8 @@ export default function BirthdayWidget() {
             {/* Header */}
             <div className="flex items-center justify-between mb-4">
                 <div className="flex items-center gap-3">
-                    <div className="p-2 rounded-lg bg-pink-100 dark:bg-pink-900/30">
-                        <Cake className="w-5 h-5 text-pink-600 dark:text-pink-400" />
+                    <div className="p-2 rounded-lg bg-bifrost-violet/8 dark:bg-bifrost-violet/15">
+                        <Cake className="w-5 h-5 text-bifrost-violet dark:text-bifrost-violet-light" />
                     </div>
                     <div>
                         <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
@@ -108,7 +108,7 @@ export default function BirthdayWidget() {
                 <button
                     onClick={handleExportPDF}
                     disabled={exporting}
-                    className="flex items-center gap-2 px-3 py-2 text-sm rounded-lg bg-pink-600 hover:bg-pink-700 disabled:bg-pink-400 text-white transition-colors"
+                    className="flex items-center gap-2 px-3 py-2 text-sm rounded-lg bg-red-500/12 hover:bg-red-500/20 text-red-600 dark:text-red-400 font-semibold transition-colors"
                     title="Export to PDF"
                 >
                     <FileText className="w-4 h-4" />
@@ -132,7 +132,7 @@ export default function BirthdayWidget() {
                             className="flex items-center justify-between p-3 rounded-lg bg-gray-50 dark:bg-gray-700/50 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
                         >
                             <div className="flex items-center gap-3">
-                                <div className="flex items-center justify-center w-10 h-10 rounded-full bg-pink-100 dark:bg-pink-900/30 text-pink-600 dark:text-pink-400 font-semibold">
+                                <div className="flex items-center justify-center w-10 h-10 rounded-full bg-bifrost-violet/8 dark:bg-bifrost-violet/15 text-bifrost-violet dark:text-bifrost-violet-light font-display font-semibold">
                                     {birthday.show_exact_dates && birthday.birth_day
                                         ? birthday.birth_day
                                         : <Cake className="w-5 h-5" />}
