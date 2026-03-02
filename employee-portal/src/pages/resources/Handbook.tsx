@@ -3,6 +3,8 @@ import { apiGet } from '@/utils/api';
 import { BookOpen, ChevronRight, Search, AlertCircle, Download } from 'lucide-react';
 import { motion } from 'framer-motion';
 import DOMPurify from 'dompurify';
+import { useEmployeeFeatures } from '@/contexts/EmployeeFeaturesContext';
+import MimirCTA from '@/components/bifrost/MimirCTA';
 
 interface HandbookSection {
   id: number;
@@ -27,6 +29,7 @@ interface HandbookData {
 }
 
 export default function Handbook() {
+  const { viewMode } = useEmployeeFeatures();
   const [data, setData] = useState<HandbookData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -141,6 +144,15 @@ export default function Handbook() {
         />
       </div>
 
+      {/* Mímir CTA */}
+      {viewMode === 'bifrost' && (
+        <MimirCTA
+          title="Can't find what you need?"
+          description="Ask Mímir to search the handbook for you — get instant answers about policies, procedures, and guidelines."
+          buttonText="Ask Mímir about Policies"
+        />
+      )}
+
       {/* Content */}
       <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
         {/* Table of Contents */}
@@ -213,7 +225,7 @@ export default function Handbook() {
                 <h2 className="text-2xl font-bold text-gray-900 dark:text-white">{currentSection.title}</h2>
               </div>
               <div
-                className="prose dark:prose-invert max-w-none"
+                className="prose dark:prose-invert max-w-none prose-p:my-0 prose-p:leading-relaxed"
                 dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(currentSection.content) }}
               />
             </div>

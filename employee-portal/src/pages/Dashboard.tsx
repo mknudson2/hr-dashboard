@@ -1,9 +1,10 @@
 import { useEmployeeFeatures } from '@/contexts/EmployeeFeaturesContext';
 import OGDashboard from './OGDashboard';
 import ModernDashboard from './ModernDashboard';
+import BifrostDashboard from './BifrostDashboard';
 
 /**
- * Dashboard - Switches between OG (Classic) and Modern dashboards
+ * Dashboard - Switches between OG (Classic), Modern, and Bifröst dashboards
  * based on user preference stored in EmployeeFeaturesContext.
  */
 export default function Dashboard() {
@@ -18,5 +19,6 @@ export default function Dashboard() {
     );
   }
 
+  if (viewMode === 'bifrost') return <BifrostDashboard />;
   return viewMode === 'modern' ? <ModernDashboard /> : <OGDashboard />;
 }

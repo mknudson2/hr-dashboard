@@ -29,7 +29,7 @@ export interface FeatureFlags {
   pending_approvals_count: number;
 
   // User preferences
-  preferred_view: 'og' | 'modern';
+  preferred_view: 'og' | 'modern' | 'bifrost';
 
   // Action items count
   total_action_items: number;
@@ -39,8 +39,8 @@ interface EmployeeFeaturesContextType {
   features: FeatureFlags | null;
   loading: boolean;
   error: string | null;
-  viewMode: 'og' | 'modern';
-  setViewMode: (mode: 'og' | 'modern') => void;
+  viewMode: 'og' | 'modern' | 'bifrost';
+  setViewMode: (mode: 'og' | 'modern' | 'bifrost') => void;
   refreshFeatures: () => Promise<void>;
 }
 
@@ -83,9 +83,10 @@ export const EmployeeFeaturesProvider = ({ children }: EmployeeFeaturesProviderP
   const [error, setError] = useState<string | null>(null);
 
   // Initialize view mode from localStorage (immediate access) or default
-  const [viewMode, setViewModeState] = useState<'og' | 'modern'>(() => {
+  const [viewMode, setViewModeState] = useState<'og' | 'modern' | 'bifrost'>(() => {
     const stored = localStorage.getItem(VIEW_MODE_KEY);
-    return stored === 'modern' ? 'modern' : 'og';
+    if (stored === 'modern' || stored === 'bifrost') return stored;
+    return 'bifrost';
   });
 
   const fetchFeatures = useCallback(async () => {
@@ -104,7 +105,7 @@ export const EmployeeFeaturesProvider = ({ children }: EmployeeFeaturesProviderP
       // Only sync view mode from server on initial load (when localStorage is empty)
       const storedView = localStorage.getItem(VIEW_MODE_KEY);
       if (!storedView && data.preferred_view) {
-        const serverView = data.preferred_view as 'og' | 'modern';
+        const serverView = data.preferred_view as 'og' | 'modern' | 'bifrost';
         setViewModeState(serverView);
         localStorage.setItem(VIEW_MODE_KEY, serverView);
       }
@@ -118,6 +119,17 @@ export const EmployeeFeaturesProvider = ({ children }: EmployeeFeaturesProviderP
     }
   }, [isAuthenticated]);
 
+  // Re-sync viewMode from localStorage when auth state changes (e.g., after login)
+  // The login page may have updated localStorage while this provider's state was stale
+  useEffect(() => {
+    if (isAuthenticated) {
+      const stored = localStorage.getItem(VIEW_MODE_KEY);
+      if (stored === 'og' || stored === 'modern' || stored === 'bifrost') {
+        setViewModeState(stored);
+      }
+    }
+  }, [isAuthenticated]);
+
   // Fetch features when auth state changes
   useEffect(() => {
     if (!authLoading) {
@@ -125,7 +137,7 @@ export const EmployeeFeaturesProvider = ({ children }: EmployeeFeaturesProviderP
     }
   }, [authLoading, isAuthenticated, fetchFeatures]);
 
-  const setViewMode = useCallback(async (mode: 'og' | 'modern') => {
+  const setViewMode = useCallback(async (mode: 'og' | 'modern' | 'bifrost') => {
     // Immediately update local state for instant UI response
     setViewModeState(mode);
     localStorage.setItem(VIEW_MODE_KEY, mode);

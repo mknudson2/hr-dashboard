@@ -1,4 +1,5 @@
 @import "tailwindcss";
+@plugin "@tailwindcss/typography";
 
 @custom-variant dark (&:is(.dark *));
 
@@ -102,4 +103,190 @@ body {
 
 .label {
   @apply block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1;
+}
+
+/* Rich text content: keep empty paragraphs visible (TipTap outputs <p></p> for blank lines) */
+.prose p:empty {
+  min-height: 1em;
+}
+
+/* ========================================================================
+   Bifröst Design System Tokens
+   ======================================================================== */
+
+:root {
+  /* Bifröst Core Colors */
+  --bifrost-violet: #6C3FA0;
+  --bifrost-violet-light: #8B5FC4;
+  --bifrost-violet-dark: #5A2E8A;
+  --aurora-teal: #2ABFBF;
+  --aurora-teal-light: #4DD4D4;
+  --aurora-teal-dark: #1F9E9E;
+  --bridge-gold: #E8B84B;
+  --bridge-gold-light: #F0CC73;
+  --bridge-gold-dark: #D4A030;
+
+  /* Bifröst Atmospherics */
+  --realm-white: #F8F7F4;
+  --frost: #EEF2F7;
+  --deep-night: #1A1A2E;
+  --deep-night-light: #252540;
+  --mimir-blue: #1B3A5C;
+  --mimir-blue-light: #2A5580;
+  --well-silver: #B8C4D0;
+
+  /* Bifröst Semantic */
+  --bifrost-text-primary: #1A1A2E;
+  --bifrost-text-secondary: #4A4A62;
+  --bifrost-text-muted: #8E8E9E;
+  --bifrost-card-border: rgba(108, 63, 160, 0.06);
+  --bifrost-card-shadow: 0 1px 3px rgba(26, 26, 46, 0.04), 0 4px 14px rgba(26, 26, 46, 0.03);
+  --bifrost-card-shadow-hover: 0 4px 20px rgba(108, 63, 160, 0.1), 0 8px 30px rgba(26, 26, 46, 0.06);
+}
+
+/* Tailwind v4 theme extension for Bifröst */
+@theme {
+  --font-display: 'Jost', 'Montserrat', sans-serif;
+  --font-body: 'DM Sans', system-ui, sans-serif;
+
+  --color-bifrost-violet: #6C3FA0;
+  --color-bifrost-violet-light: #8B5FC4;
+  --color-bifrost-violet-dark: #5A2E8A;
+  --color-aurora-teal: #2ABFBF;
+  --color-aurora-teal-light: #4DD4D4;
+  --color-aurora-teal-dark: #1F9E9E;
+  --color-bridge-gold: #E8B84B;
+  --color-bridge-gold-light: #F0CC73;
+  --color-bridge-gold-dark: #D4A030;
+  --color-realm-white: #F8F7F4;
+  --color-frost: #EEF2F7;
+  --color-deep-night: #1A1A2E;
+  --color-deep-night-light: #252540;
+  --color-mimir-blue: #1B3A5C;
+  --color-mimir-blue-light: #2A5580;
+  --color-well-silver: #B8C4D0;
+}
+
+/* ========================================================================
+   Bifröst Animations
+   ======================================================================== */
+
+@keyframes shimmerSlide {
+  0% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+
+@keyframes auroraShift {
+  0% { opacity: 0.6; transform: translateX(0) scale(1); }
+  100% { opacity: 1; transform: translateX(-20px) scale(1.05); }
+}
+
+@keyframes mimirPulse {
+  0%, 100% { opacity: 0.3; }
+  50% { opacity: 0.7; }
+}
+
+/* ========================================================================
+   Bifröst Utility Classes
+   ======================================================================== */
+
+/* ShimmerBar gradient */
+.bifrost-shimmer {
+  height: 3px;
+  background: linear-gradient(90deg, #6C3FA0, #2ABFBF, #E8B84B, #2ABFBF, #6C3FA0);
+  background-size: 300% 100%;
+  animation: shimmerSlide 6s ease infinite;
+}
+
+/* Aurora hero gradient background */
+.bifrost-aurora {
+  background:
+    radial-gradient(ellipse at 20% 80%, rgba(42, 191, 191, 0.35) 0%, transparent 50%),
+    radial-gradient(ellipse at 80% 20%, rgba(232, 184, 75, 0.2) 0%, transparent 50%),
+    radial-gradient(ellipse at 50% 50%, rgba(108, 63, 160, 0.4) 0%, transparent 70%),
+    linear-gradient(135deg, #1A1A2E 0%, #2A1B4E 40%, #1B3A5C 100%);
+}
+
+/* Aurora animated overlay (applied via ::before) */
+.bifrost-aurora-overlay::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(circle at 75% 30%, rgba(42, 191, 191, 0.15), transparent 40%),
+    radial-gradient(circle at 25% 70%, rgba(232, 184, 75, 0.1), transparent 40%);
+  animation: auroraShift 12s ease-in-out infinite alternate;
+}
+
+/* ========================================================================
+   Bifröst Theme Cascade Overrides
+   Swaps blue → violet for all child content within .bifrost-theme
+   ======================================================================== */
+
+.bifrost-theme .bg-blue-600 { background-color: var(--bifrost-violet) !important; }
+.bifrost-theme .bg-blue-700 { background-color: var(--bifrost-violet-dark) !important; }
+.bifrost-theme .bg-blue-500 { background-color: var(--bifrost-violet-light) !important; }
+.bifrost-theme .bg-blue-50 { background-color: rgba(108, 63, 160, 0.06) !important; }
+.bifrost-theme .bg-blue-100 { background-color: rgba(108, 63, 160, 0.1) !important; }
+
+.bifrost-theme .text-blue-600 { color: var(--bifrost-violet) !important; }
+.bifrost-theme .text-blue-700 { color: var(--bifrost-violet-dark) !important; }
+.bifrost-theme .text-blue-500 { color: var(--bifrost-violet-light) !important; }
+.bifrost-theme .text-blue-800 { color: var(--bifrost-violet-dark) !important; }
+
+.bifrost-theme .border-blue-600 { border-color: var(--bifrost-violet) !important; }
+.bifrost-theme .border-blue-500 { border-color: var(--bifrost-violet-light) !important; }
+.bifrost-theme .border-blue-200 { border-color: rgba(108, 63, 160, 0.2) !important; }
+.bifrost-theme .border-blue-300 { border-color: rgba(108, 63, 160, 0.3) !important; }
+
+.bifrost-theme .hover\:bg-blue-700:hover { background-color: var(--bifrost-violet-dark) !important; }
+.bifrost-theme .hover\:bg-blue-50:hover { background-color: rgba(108, 63, 160, 0.06) !important; }
+.bifrost-theme .hover\:text-blue-700:hover { color: var(--bifrost-violet-dark) !important; }
+.bifrost-theme .hover\:text-blue-600:hover { color: var(--bifrost-violet) !important; }
+
+.bifrost-theme .focus\:ring-blue-500:focus { --tw-ring-color: var(--bifrost-violet) !important; }
+.bifrost-theme .ring-blue-500 { --tw-ring-color: var(--bifrost-violet) !important; }
+
+/* Additional text overrides */
+.bifrost-theme .text-blue-100 { color: rgba(108, 63, 160, 0.25) !important; }
+.bifrost-theme .text-blue-900 { color: var(--bifrost-violet-dark) !important; }
+.bifrost-theme .text-blue-300 { color: var(--bifrost-violet-light) !important; }
+.bifrost-theme .text-blue-400 { color: var(--bifrost-violet) !important; }
+
+/* Indigo overrides */
+.bifrost-theme .bg-indigo-500 { background-color: var(--bifrost-violet) !important; }
+.bifrost-theme .bg-indigo-100 { background-color: rgba(108, 63, 160, 0.1) !important; }
+.bifrost-theme .text-indigo-800 { color: var(--bifrost-violet-dark) !important; }
+.bifrost-theme .text-indigo-500 { color: var(--bifrost-violet) !important; }
+.bifrost-theme .border-indigo-500 { border-color: var(--bifrost-violet) !important; }
+
+/* Additional border overrides */
+.bifrost-theme .border-blue-100 { border-color: rgba(108, 63, 160, 0.1) !important; }
+.bifrost-theme .border-blue-800 { border-color: var(--bifrost-violet-dark) !important; }
+.bifrost-theme .hover\:border-blue-300:hover { border-color: rgba(108, 63, 160, 0.3) !important; }
+
+/* Gradient overrides */
+.bifrost-theme .from-blue-600 { --tw-gradient-from: var(--bifrost-violet) !important; }
+.bifrost-theme .from-blue-500 { --tw-gradient-from: var(--bifrost-violet-light) !important; }
+.bifrost-theme .to-blue-600 { --tw-gradient-to: var(--bifrost-violet) !important; }
+.bifrost-theme .to-blue-700 { --tw-gradient-to: var(--bifrost-violet-dark) !important; }
+.bifrost-theme .to-indigo-700 { --tw-gradient-to: var(--aurora-teal) !important; }
+.bifrost-theme .to-indigo-600 { --tw-gradient-to: var(--aurora-teal) !important; }
+
+/* Badge overrides */
+.bifrost-theme .badge-revised {
+  background-color: rgba(108, 63, 160, 0.1) !important;
+  color: var(--bifrost-violet-dark) !important;
+}
+
+/* Input focus overrides */
+.bifrost-theme .focus\:border-blue-500:focus { border-color: var(--bifrost-violet) !important; }
+
+/* Button overrides */
+.bifrost-theme .btn-primary {
+  background-color: var(--bifrost-violet) !important;
+}
+.bifrost-theme .btn-primary:hover {
+  background-color: var(--bifrost-violet-dark) !important;
 }

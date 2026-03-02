@@ -1,9 +1,10 @@
 import { useEmployeeFeatures } from '@/contexts/EmployeeFeaturesContext';
 import OGLayout from './OGLayout';
 import ModernLayout from './ModernLayout';
+import BifrostLayout from './BifrostLayout';
 
 /**
- * LayoutSwitcher - Switches between OG (Classic) and Modern layouts
+ * LayoutSwitcher - Switches between OG (Classic), Modern, and Bifröst layouts
  * based on user preference stored in EmployeeFeaturesContext.
  */
 export default function LayoutSwitcher() {
@@ -21,6 +22,6 @@ export default function LayoutSwitcher() {
     );
   }
 
-  // Render appropriate layout based on view mode
+  if (viewMode === 'bifrost') return <BifrostLayout />;
   return viewMode === 'modern' ? <ModernLayout /> : <OGLayout />;
 }

@@ -8,7 +8,8 @@ from slowapi.util import get_remote_address
 from slowapi.errors import RateLimitExceeded
 from slowapi.middleware import SlowAPIMiddleware
 from app.db import models, database, crud
-from app.api import analytics, employees, notifications, fmla, garnishments, turnover, events, compensation, market_data, performance, onboarding, offboarding, equipment, contribution_limits, pto, auth, users, aca, eeo, settings, emails, email_templates, file_uploads, sftp, payroll, capitalized_labor, capitalized_labor_admin, roles, fmla_portal, garnishment_portal, employee_portal, pto_portal, resources_portal, team_portal, portal_features, hr_admin, in_app_notifications
+from app.db import mimir_models  # noqa: F401 — ensures Mímir tables are created
+from app.api import analytics, employees, notifications, fmla, garnishments, turnover, events, compensation, market_data, performance, onboarding, offboarding, equipment, contribution_limits, pto, auth, users, aca, eeo, settings, emails, email_templates, file_uploads, sftp, payroll, capitalized_labor, capitalized_labor_admin, roles, fmla_portal, garnishment_portal, employee_portal, pto_portal, resources_portal, team_portal, portal_features, hr_admin, in_app_notifications, content_management, review_templates, recruiting, applicant_portal, internal_jobs, mimir
 from app.services.scheduler import start_scheduler, stop_scheduler
 from app.services.scheduler_service import scheduler as sftp_scheduler
 from app.services.csrf_service import csrf_service, should_validate_csrf
@@ -26,15 +27,18 @@ load_dotenv()
 class RequestSizeLimitMiddleware(BaseHTTPMiddleware):
     """Middleware to limit request body size to prevent DoS attacks."""
 
-    # Default: 10MB for most requests, 50MB for file uploads
-    DEFAULT_MAX_SIZE = 10 * 1024 * 1024  # 10MB
-    FILE_UPLOAD_MAX_SIZE = 50 * 1024 * 1024  # 50MB
+    # Configurable via environment variables (default: 10MB / 50MB)
+    DEFAULT_MAX_SIZE = int(os.getenv("REQUEST_SIZE_LIMIT_MB", "10")) * 1024 * 1024
+    FILE_UPLOAD_MAX_SIZE = int(os.getenv("FILE_UPLOAD_SIZE_LIMIT_MB", "50")) * 1024 * 1024
 
     # Paths that allow larger uploads
     FILE_UPLOAD_PATHS = frozenset({
         "/file-uploads/",
         "/employees/import",
         "/sftp/",
+        "/content-management/documents/upload",
+        "/applicant-portal/apply",
+        "/applicant-portal/my-document-requests/",
     })
 
     async def dispatch(self, request: Request, call_next):
@@ -161,7 +165,9 @@ class CSRFProtectionMiddleware(BaseHTTPMiddleware):
 # RATE LIMITING CONFIGURATION
 # ============================================================================
 # Rate limiter using client IP address as the key
-limiter = Limiter(key_func=get_remote_address, default_limits=["200/minute"])
+# Configurable via environment variable (default: 200 requests/minute)
+_rate_limit = int(os.getenv("RATE_LIMIT_REQUESTS_PER_MINUTE", "200"))
+limiter = Limiter(key_func=get_remote_address, default_limits=[f"{_rate_limit}/minute"])
 
 
 def custom_rate_limit_exceeded_handler(request: Request, exc: RateLimitExceeded):
@@ -205,8 +211,8 @@ if is_production:
     cors_origins = os.getenv("CORS_ORIGINS", "").split(",")
     cors_origins = [origin.strip() for origin in cors_origins if origin.strip()]
 else:
-    # Development: Allow localhost dev servers (HR Hub on 5173, Employee Portal on 5174)
-    cors_origins = ["http://localhost:5173", "http://127.0.0.1:5173", "http://localhost:5174", "http://127.0.0.1:5174"]
+    # Development: Allow localhost dev servers (HR Hub on 5173, Employee Portal on 5174, Applicant Portal on 5175)
+    cors_origins = ["http://localhost:5173", "http://127.0.0.1:5173", "http://localhost:5174", "http://127.0.0.1:5174", "http://localhost:5175", "http://127.0.0.1:5175"]
 
 app.add_middleware(
     CORSMiddleware,
@@ -293,3 +299,15 @@ app.include_router(portal_features.router)
 # HR Admin routers
 app.include_router(hr_admin.router)
 app.include_router(in_app_notifications.router)
+
+# Content Management
+app.include_router(content_management.router)
+app.include_router(review_templates.router)
+
+# Recruiting & Applicant Portal
+app.include_router(recruiting.router)
+app.include_router(applicant_portal.router)
+app.include_router(internal_jobs.router)
+
+# Mímir AI Assistant
+app.include_router(mimir.router)

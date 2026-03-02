@@ -3,6 +3,8 @@ import { apiGet } from '@/utils/api';
 import { HelpCircle, Search, ChevronDown, ChevronUp, AlertCircle, Tag } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import DOMPurify from 'dompurify';
+import { useEmployeeFeatures } from '@/contexts/EmployeeFeaturesContext';
+import MimirCTA from '@/components/bifrost/MimirCTA';
 
 interface FAQ {
   id: number;
@@ -18,6 +20,7 @@ interface FAQsData {
 }
 
 export default function FAQs() {
+  const { viewMode } = useEmployeeFeatures();
   const [data, setData] = useState<FAQsData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -214,6 +217,15 @@ export default function FAQs() {
           )}
         </AnimatePresence>
       </div>
+
+      {/* Mímir CTA */}
+      {viewMode === 'bifrost' && (
+        <MimirCTA
+          title="Have a question not listed here?"
+          description="Mímir can answer HR questions instantly — from leave policies to benefits enrollment and everything in between."
+          buttonText="Ask Mímir a Question"
+        />
+      )}
 
       {/* Contact Section */}
       <motion.div

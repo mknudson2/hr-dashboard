@@ -26,6 +26,13 @@ export default defineConfig({
       "/employees": portalProxy,
       "/performance": portalProxy,
       "/in-app-notifications": portalProxy,
+      "/mimir": {
+        target: "http://localhost:8000",
+        changeOrigin: true,
+        headers: { "X-Portal-Source": "employee-portal" },
+      },
+      "/portal/internal-jobs": portalProxy,
+      "/portal/my-internal-applications": portalProxy,
     },
   },
 });

@@ -2,6 +2,8 @@ import { useEffect, useState } from 'react';
 import { apiGet } from '@/utils/api';
 import { Heart, Shield, Stethoscope, Eye, Umbrella, DollarSign, AlertCircle, PiggyBank } from 'lucide-react';
 import { motion } from 'framer-motion';
+import { useEmployeeFeatures } from '@/contexts/EmployeeFeaturesContext';
+import MimirCTA from '@/components/bifrost/MimirCTA';
 
 interface BenefitPlan {
   plan_name: string | null;
@@ -51,6 +53,7 @@ interface BenefitsData {
 }
 
 export default function Benefits() {
+  const { viewMode } = useEmployeeFeatures();
   const [data, setData] = useState<BenefitsData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -195,6 +198,15 @@ export default function Benefits() {
           </div>
         </motion.div>
       </div>
+
+      {/* Mímir CTA */}
+      {viewMode === 'bifrost' && (
+        <MimirCTA
+          title="Need help understanding your benefits?"
+          description="Ask Mímir about plan comparisons, coverage details, enrollment deadlines, and more."
+          buttonText="Ask Mímir about Benefits"
+        />
+      )}
 
       {/* Health Benefits */}
       <div>
