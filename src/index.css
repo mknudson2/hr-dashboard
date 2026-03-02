@@ -90,6 +90,24 @@ body,
   100% { opacity: 0.4; transform: scale(1); }
 }
 
+/* Aurora main content — dark mode only */
+:is(.dark *).dark-aurora-main {
+  background:
+    radial-gradient(ellipse at 20% 80%, rgba(42, 191, 191, 0.35) 0%, transparent 50%),
+    radial-gradient(ellipse at 80% 20%, rgba(232, 184, 75, 0.2) 0%, transparent 50%),
+    radial-gradient(ellipse at 50% 50%, rgba(108, 63, 160, 0.4) 0%, transparent 70%),
+    linear-gradient(135deg, #1A1A2E 0%, #2A1B4E 40%, #1B3A5C 100%);
+}
+:is(.dark *).dark-aurora-main::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(circle at 75% 30%, rgba(42, 191, 191, 0.15), transparent 40%),
+    radial-gradient(circle at 25% 70%, rgba(232, 184, 75, 0.1), transparent 40%);
+  animation: auroraShift 12s ease-in-out infinite alternate;
+}
+
 /* ===== Glassmorphic overrides for dark mode ===== */
 /* Target both bare classes AND dark: variant classes */
 /* Bare bg-gray-800 (used on elements like sidebar that are always dark) */
