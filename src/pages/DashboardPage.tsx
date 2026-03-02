@@ -292,14 +292,33 @@ export default function DashboardPage() {
 
       {/* KPI Cards Grid */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-        {kpis.map((kpi, idx) => (
+        {kpis.map((kpi, idx) => {
+          // Each card shows its 1/3 slice of the row gradient
+          const colIndex = idx % 3;
+          const rowIndex = Math.floor(idx / 3);
+          // Row 1 colors: violet → violet-light → teal
+          // Row 2 colors: teal → teal-dark → gold
+          const rowColors = rowIndex === 0
+            ? ['#6C3FA0', '#8B5FC4', '#2ABFBF']
+            : ['#2ABFBF', '#1F9E9E', '#E8B84B'];
+          // Card 0 gets color[0]→color[1], card 1 gets color[1]→color[2], card 2 gets color[2]→color[2] (end)
+          // For a smooth 3-card split: card shows from its start color to its end color
+          const cardGradient = colIndex === 0
+            ? `linear-gradient(90deg, ${rowColors[0]}, ${rowColors[1]})`
+            : colIndex === 1
+              ? `linear-gradient(90deg, ${rowColors[1]}, ${rowColors[2]})`
+              : `linear-gradient(90deg, ${rowColors[2]}, ${rowColors[2]})`;
+          return (
           <motion.div
             key={idx}
             className="relative overflow-hidden flex flex-col items-center justify-center bg-white dark:bg-gray-800 p-6 rounded-2xl shadow-sm border border-gray-200 dark:border-gray-700 hover:shadow-md transition-all duration-300"
             whileHover={{ scale: 1.01, y: -1 }}
           >
-            {/* Accent strip */}
-            <div className="absolute top-0 left-0 right-0 h-[2px]" style={{ background: accentStrips[(kpi as any).accent] || accentStrips.violet }} />
+            {/* Continuous gradient strip — different per row */}
+            <div
+              className="absolute top-0 left-0 right-0 h-[2px]"
+              style={{ background: cardGradient }}
+            />
 
             <div className="flex items-center gap-2.5 mb-3">
               {kpi.icon}
@@ -344,7 +363,8 @@ export default function DashboardPage() {
               </div>
             )}
           </motion.div>
-        ))}
+          );
+        })}
       </div>
 
       {/* Birthday and Tenure Anniversary Widgets */}
