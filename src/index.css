@@ -108,37 +108,35 @@ body,
   animation: auroraShift 12s ease-in-out infinite alternate;
 }
 
-/* ===== Glassmorphic overrides for dark mode ===== */
-/* Target both bare classes AND dark: variant classes */
-/* Bare bg-gray-800 (used on elements like sidebar that are always dark) */
-:is(.dark *).bg-gray-800,
-.dark\:bg-gray-800:is(.dark *) {
+/* ===== Glassmorphic overrides — dark mode, main content area only ===== */
+.dark-aurora-main:is(.dark *) .bg-gray-800,
+.dark-aurora-main:is(.dark *) .dark\:bg-gray-800 {
   background-color: rgba(30, 30, 55, 0.55) !important;
   backdrop-filter: blur(16px) saturate(1.4) !important;
   -webkit-backdrop-filter: blur(16px) saturate(1.4) !important;
 }
-:is(.dark *).bg-gray-700,
-.dark\:bg-gray-700:is(.dark *) {
+.dark-aurora-main:is(.dark *) .bg-gray-700,
+.dark-aurora-main:is(.dark *) .dark\:bg-gray-700 {
   background-color: rgba(40, 40, 70, 0.45) !important;
   backdrop-filter: blur(12px) saturate(1.3) !important;
   -webkit-backdrop-filter: blur(12px) saturate(1.3) !important;
 }
-.dark\:bg-gray-700\/50:is(.dark *) {
+.dark-aurora-main:is(.dark *) .dark\:bg-gray-700\/50 {
   background-color: rgba(40, 40, 70, 0.3) !important;
 }
-:is(.dark *).bg-gray-900,
-.dark\:bg-gray-900:is(.dark *) {
+.dark-aurora-main:is(.dark *) .bg-gray-900,
+.dark-aurora-main:is(.dark *) .dark\:bg-gray-900 {
   background-color: rgba(15, 15, 30, 0.5) !important;
   backdrop-filter: blur(12px) !important;
   -webkit-backdrop-filter: blur(12px) !important;
 }
 /* Subtle glass borders */
-:is(.dark *).border-gray-700,
-.dark\:border-gray-700:is(.dark *) {
+.dark-aurora-main:is(.dark *) .border-gray-700,
+.dark-aurora-main:is(.dark *) .dark\:border-gray-700 {
   border-color: rgba(255, 255, 255, 0.08) !important;
 }
-:is(.dark *).border-gray-600,
-.dark\:border-gray-600:is(.dark *) {
+.dark-aurora-main:is(.dark *) .border-gray-600,
+.dark-aurora-main:is(.dark *) .dark\:border-gray-600 {
   border-color: rgba(255, 255, 255, 0.1) !important;
 }
 
