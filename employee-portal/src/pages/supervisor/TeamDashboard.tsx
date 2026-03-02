@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { apiGet, apiPut } from '@/utils/api';
+import { useEmployeeFeatures } from '@/contexts/EmployeeFeaturesContext';
 import {
   Users,
   FileText,
@@ -100,6 +101,8 @@ const CARD_DEFINITIONS = {
 };
 
 export default function TeamDashboard() {
+  const { viewMode } = useEmployeeFeatures();
+  const isBifrost = viewMode === 'bifrost';
   const [data, setData] = useState<EnhancedDashboardData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -516,14 +519,22 @@ export default function TeamDashboard() {
               </Link>
             </div>
             <div className="grid grid-cols-2 gap-4">
-              <div className="p-4 bg-indigo-50 dark:bg-indigo-900/20 rounded-lg shadow-[0_4px_14px_-2px_rgba(99,102,241,0.4)]">
-                <p className="text-2xl font-bold text-indigo-600 dark:text-indigo-400">
+              <div className={`p-4 rounded-lg ${
+                isBifrost
+                  ? 'bg-[rgba(108,63,160,0.15)] shadow-[0_4px_14px_-2px_rgba(108,63,160,0.5)]'
+                  : 'bg-indigo-50 dark:bg-indigo-900/20 shadow-[0_4px_14px_-2px_rgba(99,102,241,0.4)]'
+              }`}>
+                <p className={`text-2xl font-bold ${isBifrost ? 'text-[#6C3FA0]' : 'text-indigo-600 dark:text-indigo-400'}`}>
                   {data.performance_snapshot.reviews_completed}
                 </p>
                 <p className="text-sm text-gray-600 dark:text-gray-400">Reviews Completed</p>
               </div>
-              <div className="p-4 bg-yellow-50 dark:bg-yellow-900/20 rounded-lg shadow-[0_4px_14px_-2px_rgba(234,179,8,0.45)]">
-                <p className="text-2xl font-bold text-yellow-600 dark:text-yellow-400">
+              <div className={`p-4 rounded-lg ${
+                isBifrost
+                  ? 'bg-[rgba(232,184,75,0.18)] shadow-[0_4px_14px_-2px_rgba(232,184,75,0.55)]'
+                  : 'bg-yellow-50 dark:bg-yellow-900/20 shadow-[0_4px_14px_-2px_rgba(234,179,8,0.45)]'
+              }`}>
+                <p className={`text-2xl font-bold ${isBifrost ? 'text-[#C99A2E]' : 'text-yellow-600 dark:text-yellow-400'}`}>
                   {data.performance_snapshot.reviews_pending}
                 </p>
                 <p className="text-sm text-gray-600 dark:text-gray-400">Reviews Pending</p>
@@ -548,11 +559,17 @@ export default function TeamDashboard() {
               {data.who_is_out.map((person) => (
                 <div
                   key={person.employee_id}
-                  className="flex items-center justify-between p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg shadow-[0_4px_14px_-2px_rgba(59,130,246,0.4)]"
+                  className={`flex items-center justify-between p-3 rounded-lg ${
+                    isBifrost
+                      ? 'bg-[rgba(42,191,191,0.15)] shadow-[0_4px_14px_-2px_rgba(42,191,191,0.5)]'
+                      : 'bg-blue-50 dark:bg-blue-900/20 shadow-[0_4px_14px_-2px_rgba(59,130,246,0.4)]'
+                  }`}
                 >
                   <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 bg-blue-200 dark:bg-blue-800 rounded-full flex items-center justify-center">
-                      <span className="text-sm font-bold text-blue-700 dark:text-blue-300">
+                    <div className={`w-10 h-10 rounded-full flex items-center justify-center ${
+                      isBifrost ? 'bg-[rgba(42,191,191,0.3)]' : 'bg-blue-200 dark:bg-blue-800'
+                    }`}>
+                      <span className={`text-sm font-bold ${isBifrost ? 'text-[#1A8F8F]' : 'text-blue-700 dark:text-blue-300'}`}>
                         {person.first_name.charAt(0)}
                         {person.last_name.charAt(0)}
                       </span>
