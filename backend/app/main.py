@@ -9,7 +9,8 @@ from slowapi.errors import RateLimitExceeded
 from slowapi.middleware import SlowAPIMiddleware
 from app.db import models, database, crud
 from app.db import mimir_models  # noqa: F401 — ensures Mímir tables are created
-from app.api import analytics, employees, notifications, fmla, garnishments, turnover, events, compensation, market_data, performance, onboarding, offboarding, equipment, contribution_limits, pto, auth, users, aca, eeo, settings, emails, email_templates, file_uploads, sftp, payroll, capitalized_labor, capitalized_labor_admin, roles, fmla_portal, garnishment_portal, employee_portal, pto_portal, resources_portal, team_portal, portal_features, hr_admin, in_app_notifications, content_management, review_templates, recruiting, applicant_portal, internal_jobs, mimir
+from app.db import pto_calendar_models  # noqa: F401 — ensures PTO calendar tables are created
+from app.api import analytics, employees, notifications, fmla, garnishments, turnover, events, compensation, market_data, performance, onboarding, offboarding, equipment, contribution_limits, pto, auth, users, aca, eeo, settings, emails, email_templates, file_uploads, sftp, payroll, capitalized_labor, capitalized_labor_admin, roles, fmla_portal, garnishment_portal, employee_portal, pto_portal, pto_calendar, resources_portal, team_portal, portal_features, hr_admin, in_app_notifications, content_management, review_templates, recruiting, applicant_portal, internal_jobs, mimir
 from app.services.scheduler import start_scheduler, stop_scheduler
 from app.services.scheduler_service import scheduler as sftp_scheduler
 from app.services.csrf_service import csrf_service, should_validate_csrf
@@ -292,6 +293,7 @@ app.include_router(garnishment_portal.router)
 # Employee Portal routers
 app.include_router(employee_portal.router)
 app.include_router(pto_portal.router)
+app.include_router(pto_calendar.router)
 app.include_router(resources_portal.router)
 app.include_router(team_portal.router)
 app.include_router(portal_features.router)

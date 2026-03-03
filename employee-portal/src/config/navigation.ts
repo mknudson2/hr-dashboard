@@ -22,6 +22,7 @@ import {
   BarChart,
   History,
   Send,
+  CalendarRange,
   type LucideIcon,
 } from 'lucide-react';
 import type { FeatureFlags } from '@/contexts/EmployeeFeaturesContext';
@@ -70,9 +71,9 @@ export const navigationConfig: NavigationConfig = {
         { label: 'Profile', path: '/my-hr/profile', icon: User },
         { label: 'Compensation', path: '/my-hr/compensation', icon: DollarSign },
         { label: 'Benefits', path: '/my-hr/benefits', icon: Heart },
-        { label: 'Time Off', path: '/my-hr/time-off', icon: Calendar },
+        { label: 'Time Off Balances', path: '/my-hr/time-off', icon: Calendar },
         { label: 'Documents', path: '/my-hr/documents', icon: FileText },
-        { label: 'Performance', path: '/my-hr/performance', icon: TrendingUp },
+        { label: 'My Performance', path: '/my-hr/performance', icon: TrendingUp },
       ],
     },
     {
@@ -82,28 +83,28 @@ export const navigationConfig: NavigationConfig = {
       sectionFilter: (flags) => flags.has_any_fmla_cases || flags.is_fmla_eligible,
       items: [
         {
-          label: 'My Cases',
+          label: 'My FMLA Cases',
           path: '/requests/fmla',
           icon: Briefcase,
           // Only show if employee has any FMLA cases
           requiresFeature: 'has_any_fmla_cases',
         },
         {
-          label: 'Submit Time',
+          label: 'Log FMLA Time',
           path: '/requests/fmla/submit-time',
           icon: Clock,
           // Only show if employee has active FMLA cases
           requiresFeature: 'has_active_fmla_cases',
         },
         {
-          label: 'Request Leave',
+          label: 'Request FMLA Leave',
           path: '/requests/fmla/new',
           icon: Send,
           // Show if employee is eligible for FMLA
           requiresFeature: 'is_fmla_eligible',
         },
         {
-          label: 'My Submissions',
+          label: 'FMLA Time History',
           path: '/requests/fmla/submissions',
           icon: History,
           // Only show if employee has any FMLA cases
@@ -128,7 +129,8 @@ export const navigationConfig: NavigationConfig = {
       label: 'Requests',
       requiresEmployee: true,
       items: [
-        { label: 'PTO Requests', path: '/requests/pto', icon: Clock },
+        { label: 'Request Time Off', path: '/requests/pto', icon: Clock },
+        { label: 'Team Calendar', path: '/requests/team-calendar', icon: CalendarRange },
         { label: 'New Request', path: '/requests/new', icon: PlusCircle },
       ],
     },
@@ -148,8 +150,7 @@ export const navigationConfig: NavigationConfig = {
         { label: 'Team Dashboard', path: '/team', icon: Users },
         { label: 'Direct Reports', path: '/team/reports', icon: Users },
         { label: 'Pending Approvals', path: '/team/approvals', icon: CheckSquare },
-        { label: 'Pending FMLA Reviews', path: '/team/fmla-reviews', icon: Briefcase },
-        { label: 'Performance', path: '/team/performance', icon: TrendingUp },
+        { label: 'Team Performance', path: '/team/performance', icon: TrendingUp },
         { label: 'Goals', path: '/team/goals', icon: Target },
         { label: 'PIPs', path: '/team/pips', icon: AlertTriangle },
         { label: 'HR Change Requests', path: '/team/hr-changes', icon: FileEdit },

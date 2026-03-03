@@ -19,6 +19,7 @@ import Documents from '@/pages/my-hr/Documents';
 import MyPerformance from '@/pages/my-hr/MyPerformance';
 // Requests pages
 import PTORequests from '@/pages/requests/PTORequests';
+import TeamCalendar from '@/pages/requests/TeamCalendar';
 import NewRequest from '@/pages/requests/NewRequest';
 import AccommodationRequest from '@/pages/requests/AccommodationRequest';
 import OtherRequest from '@/pages/requests/OtherRequest';
@@ -45,6 +46,9 @@ import Notifications from '@/pages/Notifications';
 import EmployeeDirectory from '@/pages/EmployeeDirectory';
 import Announcements from '@/pages/Announcements';
 import MySchedule from '@/pages/MySchedule';
+import InternalJobsPage from '@/pages/InternalJobsPage';
+import InternalJobDetailPage from '@/pages/InternalJobDetailPage';
+import InternalApplicationsPage from '@/pages/InternalApplicationsPage';
 
 // Protected route wrapper
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
@@ -83,6 +87,7 @@ function SupervisorRoute({ children }: { children: React.ReactNode }) {
 
   return <>{children}</>;
 }
+
 
 function AppRoutes() {
   const { isAuthenticated } = useAuth();
@@ -131,6 +136,7 @@ function AppRoutes() {
 
         {/* Requests & Cases - PTO */}
         <Route path="/requests/pto" element={<PTORequests />} />
+        <Route path="/requests/team-calendar" element={<TeamCalendar />} />
 
         {/* Requests - New Request */}
         <Route path="/requests/new" element={<NewRequest />} />
@@ -142,6 +148,11 @@ function AppRoutes() {
         <Route path="/resources/benefits" element={<BenefitsGuide />} />
         <Route path="/resources/faqs" element={<FAQs />} />
         <Route path="/resources/forms" element={<Forms />} />
+
+        {/* Internal Jobs */}
+        <Route path="/internal-jobs" element={<InternalJobsPage />} />
+        <Route path="/internal-jobs/:jobId" element={<InternalJobDetailPage />} />
+        <Route path="/internal-jobs/my-applications" element={<InternalApplicationsPage />} />
 
         {/* Team Section - Supervisor Only */}
         <Route
