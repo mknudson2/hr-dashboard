@@ -1,5 +1,5 @@
 import { NavLink, useNavigate } from 'react-router-dom';
-import { LogOut, Building2 } from 'lucide-react';
+import { LogOut } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useEmployeeFeatures } from '@/contexts/EmployeeFeaturesContext';
 import { getFilteredNavigation, type NavItem, type NavSection } from '@/config/navigation';
@@ -63,12 +63,10 @@ export default function Sidebar({ onNavigate }: SidebarProps) {
     <div className="flex flex-col h-full bg-white dark:bg-gray-800">
       {/* Logo */}
       <div className="flex items-center gap-3 px-6 py-5 border-b border-gray-300 dark:border-gray-700">
-        <div className="w-10 h-10 bg-blue-600 rounded-lg flex items-center justify-center">
-          <Building2 className="text-white" size={22} />
-        </div>
+        <img src="/bifrost-logo.png" alt="Bifröst" className="w-10 h-10 object-contain" />
         <div>
-          <h1 className="font-semibold text-gray-900 dark:text-white">Employee HR Portal</h1>
-          <p className="text-xs text-gray-500 dark:text-gray-400">Self-Service</p>
+          <h1 className="font-semibold text-gray-900 dark:text-white">BIFRÖST</h1>
+          <p className="text-xs text-gray-500 dark:text-gray-400">Employee Portal</p>
         </div>
       </div>
 

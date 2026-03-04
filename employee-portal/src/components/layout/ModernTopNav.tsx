@@ -2,7 +2,6 @@ import { useState, useRef, useEffect } from 'react';
 import { NavLink, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
-  Building2,
   ChevronDown,
   Search,
   Bell,
@@ -195,11 +194,9 @@ export default function ModernTopNav({ onMobileMenuToggle, mobileMenuOpen }: Mod
         <div className="flex items-center justify-between h-16">
           {/* Logo */}
           <button onClick={() => navigate('/dashboard')} className="flex items-center gap-3 cursor-pointer">
-            <div className="w-9 h-9 bg-gradient-to-br from-blue-600 to-indigo-600 rounded-xl flex items-center justify-center shadow-lg shadow-blue-500/25">
-              <Building2 className="text-white" size={20} />
-            </div>
+            <img src="/bifrost-logo.png" alt="Bifröst" className="w-9 h-9 object-contain" />
             <span className="hidden sm:block font-semibold text-gray-900 dark:text-white">
-              HR Hub
+              BIFRÖST
             </span>
           </button>
 

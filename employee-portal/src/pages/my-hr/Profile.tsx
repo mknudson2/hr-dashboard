@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { apiGet, apiPut } from '@/utils/api';
-import { User, Mail, Phone, Building2, Calendar, MapPin, AlertCircle, Save, Edit2, X } from 'lucide-react';
+import { User, Mail, Phone, Building2, Calendar, MapPin, AlertCircle, Save, Edit2, X, Heart } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { useEmployeeFeatures } from '@/contexts/EmployeeFeaturesContext';
 import AuroraPageHeader from '@/components/bifrost/AuroraPageHeader';
@@ -282,7 +282,7 @@ export default function Profile() {
               {emergencyContact.name ? (
                 <>
                   <InfoRow label="Name" value={emergencyContact.name} icon={User} />
-                  <InfoRow label="Relationship" value={emergencyContact.relationship} />
+                  <InfoRow label="Relationship" value={emergencyContact.relationship} icon={Heart} />
                   <InfoRow label="Phone" value={emergencyContact.phone} icon={Phone} />
                   <InfoRow label="Email" value={emergencyContact.email} icon={Mail} />
                 </>

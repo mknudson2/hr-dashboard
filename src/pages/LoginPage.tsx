@@ -147,12 +147,12 @@ const LoginPage = () => {
             initial={{ scale: 0 }}
             animate={{ scale: 1 }}
             transition={{ delay: 0.2, type: 'spring', stiffness: 200 }}
-            className="inline-block p-4 bg-blue-600 rounded-2xl shadow-lg mb-4"
+            className="inline-block mb-4"
           >
-            <User className="w-12 h-12 text-white" />
+            <img src="/bifrost-logo.png" alt="Bifröst" className="w-16 h-16 object-contain" />
           </motion.div>
           <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-2">
-            HR Dashboard
+            BIFRÖST
           </h1>
           <p className="text-gray-600 dark:text-gray-400">
             Sign in to access your account
