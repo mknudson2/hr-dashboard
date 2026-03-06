@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { apiPost, apiGet } from '@/utils/api';
 import { ArrowLeft, Send, CheckCircle, X, Search } from 'lucide-react';
 import { motion } from 'framer-motion';
@@ -58,6 +58,15 @@ const urgencyOptions = [
 
 export default function NewRequisitionRequestPage() {
   const navigate = useNavigate();
+  const location = useLocation();
+  const cloneData = location.state?.cloneFrom as Record<string, unknown> | undefined;
+
+  const formatNum = (v: unknown): string => {
+    if (v == null) return '';
+    const n = typeof v === 'number' ? v : parseFloat(String(v));
+    if (isNaN(n)) return '';
+    return n.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  };
 
   const [submitting, setSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
@@ -66,7 +75,10 @@ export default function NewRequisitionRequestPage() {
   const [error, setError] = useState<string | null>(null);
 
   // Range method
-  const [rangeMethod, setRangeMethod] = useState<'auto' | 'manual'>('auto');
+  const [rangeMethod, setRangeMethod] = useState<'auto' | 'manual'>(() => {
+    if (cloneData?.salary_min != null || cloneData?.salary_max != null) return 'manual';
+    return 'auto';
+  });
 
   // Skills tag input
   const [skillInput, setSkillInput] = useState('');
@@ -75,7 +87,13 @@ export default function NewRequisitionRequestPage() {
   // Supervisor search
   const [supervisorSearch, setSupervisorSearch] = useState('');
   const [supervisorResults, setSupervisorResults] = useState<TeamMember[]>([]);
-  const [selectedSupervisor, setSelectedSupervisor] = useState<TeamMember | null>(null);
+  const [selectedSupervisor, setSelectedSupervisor] = useState<TeamMember | null>(() => {
+    if (cloneData?.position_supervisor) {
+      const parts = String(cloneData.position_supervisor).split(' ');
+      return { employee_id: '', user_id: null, first_name: parts[0] || '', last_name: parts.slice(1).join(' ') || '', department: '', position: '' };
+    }
+    return null;
+  });
 
   // Cost center dropdown
   const [costCenterOpen, setCostCenterOpen] = useState(false);
@@ -89,29 +107,57 @@ export default function NewRequisitionRequestPage() {
   const [memberResults, setMemberResults] = useState<TeamMember[]>([]);
   const [selectedMembers, setSelectedMembers] = useState<TeamMember[]>([]);
 
-  const [formData, setFormData] = useState<FormData>({
-    title: '',
-    department: '',
-    team: '',
-    cost_center: '',
-    location: '',
-    remote_type: 'On-site',
-    employment_type: 'Full Time',
-    position_type: 'New',
-    position_supervisor: '',
-    posting_channels: [],
-    requires_early_tech_screen: false,
-    target_salary: '',
-    salary_min: '',
-    salary_max: '',
-    wage_type: 'Salary',
-    skills_tags: [],
-    target_start_date: '',
-    urgency: 'Normal',
-    visibility_user_ids: [],
-    description: '',
-    requirements: '',
-    notes: '',
+  const [formData, setFormData] = useState<FormData>(() => {
+    if (cloneData) {
+      return {
+        title: String(cloneData.title || ''),
+        department: String(cloneData.department || ''),
+        team: String(cloneData.team || ''),
+        cost_center: String(cloneData.cost_center || ''),
+        location: String(cloneData.location || ''),
+        remote_type: String(cloneData.remote_type || 'On-site'),
+        employment_type: String(cloneData.employment_type || 'Full Time'),
+        position_type: 'New',
+        position_supervisor: String(cloneData.position_supervisor || ''),
+        posting_channels: Array.isArray(cloneData.posting_channels) ? cloneData.posting_channels as string[] : [],
+        requires_early_tech_screen: Boolean(cloneData.requires_early_tech_screen),
+        target_salary: formatNum(cloneData.target_salary),
+        salary_min: formatNum(cloneData.salary_min),
+        salary_max: formatNum(cloneData.salary_max),
+        wage_type: String(cloneData.wage_type || 'Salary'),
+        skills_tags: Array.isArray(cloneData.skills_tags) ? cloneData.skills_tags as string[] : [],
+        target_start_date: '',
+        urgency: String(cloneData.urgency || 'Normal'),
+        visibility_user_ids: [],
+        description: String(cloneData.description || ''),
+        requirements: String(cloneData.requirements || ''),
+        notes: '',
+      };
+    }
+    return {
+      title: '',
+      department: '',
+      team: '',
+      cost_center: '',
+      location: '',
+      remote_type: 'On-site',
+      employment_type: 'Full Time',
+      position_type: 'New',
+      position_supervisor: '',
+      posting_channels: [],
+      requires_early_tech_screen: false,
+      target_salary: '',
+      salary_min: '',
+      salary_max: '',
+      wage_type: 'Salary',
+      skills_tags: [],
+      target_start_date: '',
+      urgency: 'Normal',
+      visibility_user_ids: [],
+      description: '',
+      requirements: '',
+      notes: '',
+    };
   });
 
   const handleChange = (field: keyof FormData, value: string | boolean | string[] | number[]) => {

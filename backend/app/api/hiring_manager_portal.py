@@ -254,7 +254,10 @@ def list_requisitions(
                 "posting_channels": r.posting_channels,
                 "request_source": r.request_source,
                 "created_at": r.created_at.isoformat() if r.created_at else None,
+                "updated_at": r.updated_at.isoformat() if r.updated_at else None,
                 "target_start_date": r.target_start_date.isoformat() if r.target_start_date else None,
+                "closed_at": r.closed_at.isoformat() if r.closed_at else None,
+                "close_reason": r.close_reason,
             }
             for r in requisitions
         ],
@@ -382,6 +385,61 @@ def get_requisition_detail(
         "hiring_manager_name": (
             req.hiring_manager.full_name if req.hiring_manager else None
         ),
+        "closed_at": req.closed_at.isoformat() if req.closed_at else None,
+        "close_reason": req.close_reason,
+    }
+
+
+class CloseRequisitionRequest(BaseModel):
+    reason: str  # "filled", "rescinded", "cancelled", "budget_cut", "position_eliminated", "other"
+    notes: Optional[str] = None
+
+
+@router.post("/requisitions/{req_id}/close")
+def close_requisition(
+    req_id: int,
+    data: CloseRequisitionRequest,
+    current_user: models.User = Depends(_require_hiring_manager_or_stakeholder),
+    db: Session = Depends(get_db),
+):
+    """Close or cancel a requisition. Only the hiring manager or admin can close."""
+    req = db.query(models.JobRequisition).filter(
+        models.JobRequisition.id == req_id,
+    ).first()
+
+    if not req:
+        raise HTTPException(status_code=404, detail="Requisition not found")
+
+    if not _check_requisition_access(req, current_user):
+        raise HTTPException(status_code=403, detail="Not authorized")
+
+    # Only allow closing active requisitions
+    if req.status in ("Filled", "Cancelled"):
+        raise HTTPException(status_code=400, detail="Requisition is already closed")
+
+    valid_reasons = {"filled", "rescinded", "cancelled", "budget_cut", "position_eliminated", "other"}
+    if data.reason not in valid_reasons:
+        raise HTTPException(status_code=400, detail=f"Invalid reason. Must be one of: {', '.join(valid_reasons)}")
+
+    # Map reason to status
+    new_status = "Filled" if data.reason == "filled" else "Cancelled"
+
+    req.status = new_status
+    req.close_reason = data.reason
+    req.closed_at = func.now()
+    req.closed_by = current_user.id
+    if data.notes:
+        existing_notes = req.notes or ""
+        req.notes = f"{existing_notes}\n\nClosed: {data.notes}".strip()
+
+    db.commit()
+    db.refresh(req)
+
+    return {
+        "id": req.id,
+        "status": req.status,
+        "close_reason": req.close_reason,
+        "closed_at": req.closed_at.isoformat() if req.closed_at else None,
     }
 
 

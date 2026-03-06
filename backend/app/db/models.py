@@ -3740,6 +3740,10 @@ class JobRequisition(Base):
     request_source = Column(String, default="manual")  # "manual", "employee_portal"
     # Early tech screen flag (for Bloom staffing agency)
     requires_early_tech_screen = Column(Boolean, default=False)
+    # Close/cancel tracking
+    closed_at = Column(DateTime, nullable=True)
+    close_reason = Column(String, nullable=True)  # "filled", "rescinded", "cancelled", "budget_cut", "position_eliminated", "other"
+    closed_by = Column(Integer, ForeignKey("users.id"), nullable=True)
 
     # Relationships
     pipeline_template = relationship("PipelineTemplate", back_populates="requisitions")

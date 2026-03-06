@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { apiGet, apiPost, apiPostFormData } from '@/utils/api';
-import { ArrowLeft, Send, FileText, MessageSquare, User, Clock, Building, Upload, Download, Paperclip } from 'lucide-react';
+import { ArrowLeft, Send, FileText, MessageSquare, User, Clock, Building, Upload, Download, Paperclip, XCircle } from 'lucide-react';
 import LifecycleTracker, { type LifecycleStage } from '@/components/recruiting/LifecycleTracker';
 
 interface RequisitionDetail {
@@ -86,6 +86,12 @@ export default function RequisitionTrackerPage() {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [uploadingDoc, setUploadingDoc] = useState(false);
 
+  // Close modal
+  const [showCloseModal, setShowCloseModal] = useState(false);
+  const [closeReason, setCloseReason] = useState('');
+  const [closeNotes, setCloseNotes] = useState('');
+  const [closingReq, setClosingReq] = useState(false);
+
   useEffect(() => {
     if (id) {
       fetchData();
@@ -128,6 +134,26 @@ export default function RequisitionTrackerPage() {
     } catch {
       setStageNotes([]);
       setStageDocs([]);
+    }
+  };
+
+  const handleCloseRequisition = async () => {
+    if (!closeReason || !id) return;
+    try {
+      setClosingReq(true);
+      await apiPost(`/portal/hiring-manager/requisitions/${id}/close`, {
+        reason: closeReason,
+        notes: closeNotes || null,
+      });
+      setShowCloseModal(false);
+      setCloseReason('');
+      setCloseNotes('');
+      // Refresh data
+      fetchData();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to close requisition');
+    } finally {
+      setClosingReq(false);
     }
   };
 
@@ -251,6 +277,15 @@ export default function RequisitionTrackerPage() {
             )}
           </div>
         </div>
+        {requisition.status !== 'Filled' && requisition.status !== 'Cancelled' && (
+          <button
+            onClick={() => setShowCloseModal(true)}
+            className="flex items-center gap-1.5 px-3 py-1.5 text-sm text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors"
+          >
+            <XCircle className="w-4 h-4" />
+            Close Position
+          </button>
+        )}
       </div>
 
       {/* Lifecycle Tracker */}
@@ -508,6 +543,67 @@ export default function RequisitionTrackerPage() {
           )}
         </div>
       </div>
+
+      {/* Close Modal */}
+      {showCloseModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
+          <div className="bg-white dark:bg-gray-800 rounded-xl shadow-xl border border-gray-200 dark:border-gray-700 p-6 w-full max-w-md mx-4">
+            <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Close Position</h3>
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Reason *</label>
+                <div className="grid grid-cols-2 gap-2">
+                  {[
+                    { value: 'filled', label: 'Filled' },
+                    { value: 'rescinded', label: 'Rescinded' },
+                    { value: 'cancelled', label: 'Cancelled' },
+                    { value: 'budget_cut', label: 'Budget Cut' },
+                    { value: 'position_eliminated', label: 'Position Eliminated' },
+                    { value: 'other', label: 'Other' },
+                  ].map(opt => (
+                    <button
+                      key={opt.value}
+                      type="button"
+                      onClick={() => setCloseReason(opt.value)}
+                      className={`px-3 py-2 rounded-lg text-sm font-medium border transition-colors ${
+                        closeReason === opt.value
+                          ? 'bg-red-50 border-red-300 text-red-700 dark:bg-red-900/20 dark:border-red-600 dark:text-red-300'
+                          : 'bg-white border-gray-300 text-gray-700 hover:bg-gray-50 dark:bg-gray-700 dark:border-gray-600 dark:text-gray-300'
+                      }`}
+                    >
+                      {opt.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Notes</label>
+                <textarea
+                  value={closeNotes}
+                  onChange={e => setCloseNotes(e.target.value)}
+                  className="w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-red-500 focus:border-transparent h-20"
+                  placeholder="Optional notes about why this position is being closed..."
+                />
+              </div>
+            </div>
+            <div className="flex justify-end gap-3 mt-6">
+              <button
+                onClick={() => { setShowCloseModal(false); setCloseReason(''); setCloseNotes(''); }}
+                className="px-4 py-2 text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleCloseRequisition}
+                disabled={!closeReason || closingReq}
+                className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {closingReq ? 'Closing...' : 'Close Position'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

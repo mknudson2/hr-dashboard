@@ -59,6 +59,20 @@ def upgrade():
                 conn.commit()
                 print(f"  Added column: job_requisitions.{col_name}")
 
+        # Add close/cancel tracking columns
+        close_migrations = [
+            ("closed_at", "ALTER TABLE job_requisitions ADD COLUMN closed_at DATETIME;"),
+            ("close_reason", "ALTER TABLE job_requisitions ADD COLUMN close_reason VARCHAR;"),
+            ("closed_by", "ALTER TABLE job_requisitions ADD COLUMN closed_by INTEGER REFERENCES users(id);"),
+        ]
+        for col_name, sql in close_migrations:
+            if col_name in existing_cols:
+                print(f"  Skipped (already exists): job_requisitions.{col_name}")
+            else:
+                conn.execute(text(sql))
+                conn.commit()
+                print(f"  Added column: job_requisitions.{col_name}")
+
         # Rename preferred_salary -> target_salary if needed
         if "preferred_salary" in existing_cols and "target_salary" not in existing_cols:
             conn.execute(text("ALTER TABLE job_requisitions RENAME COLUMN preferred_salary TO target_salary"))
