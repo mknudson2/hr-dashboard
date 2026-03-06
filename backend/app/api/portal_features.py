@@ -63,6 +63,9 @@ class EmployeeFeatureFlags(BaseModel):
     # Hiring manager access
     is_hiring_manager: bool = False
 
+    # Recruiting stakeholder (in visibility_user_ids for any requisition)
+    is_recruiting_stakeholder: bool = False
+
     # Action items count
     total_action_items: int = 0
 
@@ -171,7 +174,29 @@ def get_feature_flags(
             if flags.pending_approvals_count > 0:
                 action_items += 1
 
-    # If user doesn't have an employee_id, return supervisor-only flags
+    # Check hiring manager access (works without employee record for admin/manager roles)
+    from app.api.hiring_manager_portal import is_hiring_manager as _is_hm
+    _employee_for_hm = None
+    if current_user.employee_id:
+        _employee_for_hm = db.query(models.Employee).filter(
+            models.Employee.employee_id == current_user.employee_id
+        ).first()
+    flags.is_hiring_manager = _is_hm(current_user, _employee_for_hm, db)
+
+    # Check if user is a recruiting stakeholder (in visibility_user_ids for any requisition)
+    if hasattr(models, 'JobRequisition'):
+        from sqlalchemy import text
+        stakeholder_req = db.execute(
+            text(
+                "SELECT COUNT(*) FROM job_requisitions "
+                "WHERE visibility_user_ids IS NOT NULL "
+                "AND visibility_user_ids LIKE :pattern"
+            ),
+            {"pattern": f"%{current_user.id}%"},
+        ).scalar()
+        flags.is_recruiting_stakeholder = (stakeholder_req or 0) > 0
+
+    # If user doesn't have an employee_id, return flags now
     if not current_user.employee_id:
         flags.total_action_items = action_items
         return flags
@@ -235,10 +260,6 @@ def get_feature_flags(
         flags.preferred_view = current_user.portal_view_preference
     else:
         flags.preferred_view = "og"
-
-    # Check hiring manager access
-    from app.api.hiring_manager_portal import is_hiring_manager
-    flags.is_hiring_manager = is_hiring_manager(current_user, employee, db)
 
     # Calculate total action items
     if flags.has_pending_fmla_submissions:

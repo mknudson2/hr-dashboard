@@ -4,9 +4,13 @@ Endpoints for managing the lifecycle tracker (Dominos-style) for job requisition
 """
 
 from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Form
+from fastapi.responses import FileResponse
 from sqlalchemy.orm import Session
 from pydantic import BaseModel
 from typing import Optional, List
+import uuid
+import os
+from pathlib import Path
 from app.db.database import get_db
 from app.db import models
 from app.api.auth import get_current_user
@@ -106,12 +110,34 @@ def get_lifecycle(
     req = _check_lifecycle_access(db, requisition_id, current_user)
     stages = lifecycle_service.get_lifecycle(db, requisition_id)
 
+    # Get per-user view timestamps for unread badge calculation
+    stage_ids = [s.id for s in stages]
+    user_views = lifecycle_service.get_user_stage_views(db, current_user.id, stage_ids)
+
     return {
         "requisition_id": requisition_id,
         "requisition_title": req.title,
         "requisition_status": req.status,
-        "stages": [lifecycle_service.serialize_stage(s) for s in stages],
+        "stages": [
+            lifecycle_service.serialize_stage(s, last_viewed_at=user_views.get(s.id))
+            for s in stages
+        ],
     }
+
+
+@router.post("/{requisition_id}/stages/{stage_id}/mark-viewed")
+def mark_stage_viewed(
+    requisition_id: int,
+    stage_id: int,
+    current_user: models.User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """Mark a lifecycle stage as viewed by the current user."""
+    _check_lifecycle_access(db, requisition_id, current_user)
+    _get_stage(db, requisition_id, stage_id)
+    lifecycle_service.mark_stage_viewed(db, stage_id, current_user.id)
+    db.commit()
+    return {"success": True}
 
 
 @router.post("/{requisition_id}/stages/{stage_id}/advance")
@@ -322,33 +348,79 @@ def get_notes(
 def add_document(
     requisition_id: int,
     stage_id: int,
-    filename: str = Form(...),
+    file: UploadFile = File(...),
+    filename: Optional[str] = Form(None),
     description: Optional[str] = Form(None),
-    file_path: Optional[str] = Form(None),
-    file_upload_id: Optional[int] = Form(None),
     current_user: models.User = Depends(require_any_permission(
         Permissions.RECRUITING_WRITE, Permissions.RECRUITING_ADMIN
     )),
     db: Session = Depends(get_db),
 ):
-    """Upload/attach a document to a lifecycle stage."""
+    """Upload a document to a lifecycle stage."""
     _check_lifecycle_access(db, requisition_id, current_user)
     _get_stage(db, requisition_id, stage_id)
+
+    # Validate file
+    allowed_extensions = {".pdf", ".doc", ".docx", ".xls", ".xlsx", ".csv", ".png", ".jpg", ".jpeg", ".txt"}
+    ext = os.path.splitext(file.filename or "")[1].lower()
+    if ext not in allowed_extensions:
+        raise HTTPException(status_code=400, detail=f"File type {ext} not allowed")
+
+    # Save file
+    upload_dir = Path("data/uploads/recruiting")
+    upload_dir.mkdir(parents=True, exist_ok=True)
+    safe_filename = f"{uuid.uuid4().hex}{ext}"
+    saved_path = upload_dir / safe_filename
+
+    content = file.file.read()
+    if len(content) > 25 * 1024 * 1024:
+        raise HTTPException(status_code=400, detail="File too large (max 25 MB)")
+
+    with open(saved_path, "wb") as f:
+        f.write(content)
 
     doc = lifecycle_service.add_stage_document(
         db,
         stage_id=stage_id,
         user_id=current_user.id,
-        filename=filename,
-        file_path=file_path,
+        filename=filename or file.filename or safe_filename,
+        file_path=str(saved_path),
         description=description,
-        file_upload_id=file_upload_id,
     )
     db.commit()
     return {
-        "message": "Document added",
+        "message": "Document uploaded",
         "document": lifecycle_service.serialize_document(doc),
     }
+
+
+@router.get("/{requisition_id}/stages/{stage_id}/documents/{doc_id}/download")
+def download_document(
+    requisition_id: int,
+    stage_id: int,
+    doc_id: int,
+    current_user: models.User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """Download a lifecycle stage document."""
+    _check_lifecycle_access(db, requisition_id, current_user)
+    _get_stage(db, requisition_id, stage_id)
+
+    doc = db.query(models.LifecycleStageDocument).filter(
+        models.LifecycleStageDocument.id == doc_id,
+        models.LifecycleStageDocument.lifecycle_stage_id == stage_id,
+    ).first()
+    if not doc:
+        raise HTTPException(status_code=404, detail="Document not found")
+
+    if not doc.file_path or not os.path.exists(doc.file_path):
+        raise HTTPException(status_code=404, detail="File not found on disk")
+
+    return FileResponse(
+        path=doc.file_path,
+        filename=doc.filename,
+        media_type="application/octet-stream",
+    )
 
 
 @router.get("/{requisition_id}/stages/{stage_id}/documents")

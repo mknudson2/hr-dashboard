@@ -19,6 +19,7 @@ export interface LifecycleStage {
   hr_representative_id: number | null;
   notes_count: number;
   documents_count: number;
+  unread_count: number;
   created_at: string | null;
 }
 
@@ -72,7 +73,7 @@ export default function LifecycleTracker({
   stages,
   activeStageId,
   onStageClick,
-  readOnly = true,
+  readOnly: _readOnly = true,
   compact = false,
 }: LifecycleTrackerProps) {
   if (!stages || stages.length === 0) return null;
@@ -86,7 +87,8 @@ export default function LifecycleTracker({
         <div
           className="absolute top-5 left-5 h-0.5 bg-green-400 z-0 transition-all duration-500"
           style={{
-            width: `${Math.max(0, ((stages.filter(s => s.status === 'completed').length - 0.5) / (stages.length - 1)) * 100)}%`,
+            width: `${Math.min(100, Math.max(0, ((stages.filter(s => s.status === 'completed').length - 0.5) / (stages.length - 1)) * 100))}%`,
+            maxWidth: 'calc(100% - 2.5rem)',
           }}
         />
 
@@ -94,6 +96,7 @@ export default function LifecycleTracker({
           const config = statusConfig[stage.status] || statusConfig.pending;
           const Icon = config.icon;
           const isSelected = activeStageId === stage.id;
+          const itemCount = stage.unread_count || 0;
 
           return (
             <button
@@ -104,12 +107,19 @@ export default function LifecycleTracker({
                 onStageClick ? 'cursor-pointer' : 'cursor-default'
               }`}
             >
-              <div
-                className={`w-10 h-10 rounded-full border-2 flex items-center justify-center transition-all ${config.bgColor} ${
-                  isSelected ? 'ring-2 ring-offset-2 ring-blue-500' : ''
-                } ${stage.status === 'active' ? 'animate-pulse' : ''}`}
-              >
-                <Icon className={`w-5 h-5 ${config.color}`} />
+              <div className="relative">
+                <div
+                  className={`w-10 h-10 rounded-full border-2 flex items-center justify-center transition-all ${config.bgColor} ${
+                    isSelected ? 'ring-2 ring-offset-2 ring-blue-500' : ''
+                  } ${stage.status === 'active' ? 'animate-pulse' : ''}`}
+                >
+                  <Icon className={`w-5 h-5 ${config.color}`} />
+                </div>
+                {itemCount > 0 && (
+                  <span className="absolute -top-1.5 -right-1.5 min-w-[18px] h-[18px] flex items-center justify-center px-1 rounded-full bg-blue-600 text-white text-[10px] font-bold leading-none shadow-sm">
+                    {itemCount > 99 ? '99+' : itemCount}
+                  </span>
+                )}
               </div>
               <span
                 className={`mt-2 text-xs text-center max-w-[90px] leading-tight ${
@@ -152,6 +162,7 @@ export default function LifecycleTracker({
           const Icon = config.icon;
           const isLast = idx === stages.length - 1;
           const isSelected = activeStageId === stage.id;
+          const itemCount = stage.unread_count || 0;
 
           return (
             <button
@@ -163,8 +174,15 @@ export default function LifecycleTracker({
               }`}
             >
               <div className="flex flex-col items-center">
-                <div className={`w-8 h-8 rounded-full border-2 flex items-center justify-center shrink-0 ${config.bgColor}`}>
-                  <Icon className={`w-4 h-4 ${config.color}`} />
+                <div className="relative">
+                  <div className={`w-8 h-8 rounded-full border-2 flex items-center justify-center shrink-0 ${config.bgColor}`}>
+                    <Icon className={`w-4 h-4 ${config.color}`} />
+                  </div>
+                  {itemCount > 0 && (
+                    <span className="absolute -top-1 -right-1 min-w-[16px] h-[16px] flex items-center justify-center px-0.5 rounded-full bg-blue-600 text-white text-[9px] font-bold leading-none shadow-sm">
+                      {itemCount > 99 ? '99+' : itemCount}
+                    </span>
+                  )}
                 </div>
                 {!isLast && (
                   <div className={`w-0.5 h-6 mt-1 ${

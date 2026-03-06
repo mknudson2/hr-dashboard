@@ -1,7 +1,7 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { apiGet, apiPost } from '@/utils/api';
-import { ArrowLeft, Send, FileText, MessageSquare, User, Clock, Building } from 'lucide-react';
+import { apiGet, apiPost, apiPostFormData } from '@/utils/api';
+import { ArrowLeft, Send, FileText, MessageSquare, User, Clock, Building, Upload, Download, Paperclip } from 'lucide-react';
 import LifecycleTracker, { type LifecycleStage } from '@/components/recruiting/LifecycleTracker';
 
 interface RequisitionDetail {
@@ -41,6 +41,14 @@ interface StageNote {
   created_at: string | null;
 }
 
+interface StageDocument {
+  id: number;
+  uploaded_by_name: string | null;
+  filename: string;
+  description: string | null;
+  created_at: string | null;
+}
+
 const urgencyColors: Record<string, string> = {
   'Low': 'bg-gray-100 text-gray-600',
   'Normal': 'bg-blue-100 text-blue-600',
@@ -66,12 +74,17 @@ export default function RequisitionTrackerPage() {
   const [stages, setStages] = useState<LifecycleStage[]>([]);
   const [selectedStage, setSelectedStage] = useState<LifecycleStage | null>(null);
   const [stageNotes, setStageNotes] = useState<StageNote[]>([]);
+  const [stageDocs, setStageDocs] = useState<StageDocument[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   // Note form
   const [noteContent, setNoteContent] = useState('');
   const [submittingNote, setSubmittingNote] = useState(false);
+
+  // Document upload
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [uploadingDoc, setUploadingDoc] = useState(false);
 
   useEffect(() => {
     if (id) {
@@ -93,7 +106,9 @@ export default function RequisitionTrackerPage() {
       const active = lifecycleData.stages.find(s => s.status === 'active');
       if (active) {
         setSelectedStage(active);
-        fetchNotes(active.id);
+        fetchStageData(active.id);
+        // Mark as viewed
+        apiPost(`/portal/hiring-manager/requisitions/${id}/stages/${active.id}/mark-viewed`, {}).catch(() => {});
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to load requisition');
@@ -102,20 +117,40 @@ export default function RequisitionTrackerPage() {
     }
   };
 
-  const fetchNotes = async (stageId: number) => {
+  const fetchStageData = async (stageId: number) => {
     try {
-      const data = await apiGet<{ notes: StageNote[] }>(
-        `/recruiting/lifecycle/${id}/stages/${stageId}/notes`
-      );
-      setStageNotes(data.notes);
+      const [notesData, docsData] = await Promise.all([
+        apiGet<{ notes: StageNote[] }>(`/portal/hiring-manager/requisitions/${id}/stages/${stageId}/notes`),
+        apiGet<{ documents: StageDocument[] }>(`/portal/hiring-manager/requisitions/${id}/stages/${stageId}/documents`),
+      ]);
+      setStageNotes(notesData.notes);
+      setStageDocs(docsData.documents);
     } catch {
       setStageNotes([]);
+      setStageDocs([]);
     }
   };
 
-  const handleStageClick = (stage: LifecycleStage) => {
+  const handleStageClick = async (stage: LifecycleStage) => {
     setSelectedStage(stage);
-    fetchNotes(stage.id);
+    fetchStageData(stage.id);
+    // Mark stage as viewed to clear unread badge
+    try {
+      await apiPost(`/portal/hiring-manager/requisitions/${id}/stages/${stage.id}/mark-viewed`, {});
+      refreshLifecycle();
+    } catch { /* ignore */ }
+  };
+
+  const refreshLifecycle = async () => {
+    try {
+      const data = await apiGet<{ stages: LifecycleStage[] }>(`/portal/hiring-manager/requisitions/${id}/lifecycle`);
+      setStages(data.stages);
+    } catch { /* ignore */ }
+  };
+
+  const markViewedAndRefresh = async (stageId: number) => {
+    await apiPost(`/portal/hiring-manager/requisitions/${id}/stages/${stageId}/mark-viewed`, {}).catch(() => {});
+    await refreshLifecycle();
   };
 
   const handleAddNote = async () => {
@@ -127,11 +162,33 @@ export default function RequisitionTrackerPage() {
         content: noteContent,
       });
       setNoteContent('');
-      fetchNotes(selectedStage.id);
-    } catch (err) {
+      await Promise.all([
+        fetchStageData(selectedStage.id),
+        markViewedAndRefresh(selectedStage.id),
+      ]);
+    } catch {
       // silent fail
     } finally {
       setSubmittingNote(false);
+    }
+  };
+
+  const handleUploadDocument = async (file: File) => {
+    if (!selectedStage || !id) return;
+    try {
+      setUploadingDoc(true);
+      const formData = new FormData();
+      formData.append('file', file);
+      await apiPostFormData(`/portal/hiring-manager/requisitions/${id}/stages/${selectedStage.id}/documents`, formData);
+      await Promise.all([
+        fetchStageData(selectedStage.id),
+        markViewedAndRefresh(selectedStage.id),
+      ]);
+    } catch {
+      // silent fail
+    } finally {
+      setUploadingDoc(false);
+      if (fileInputRef.current) fileInputRef.current.value = '';
     }
   };
 
@@ -313,6 +370,65 @@ export default function RequisitionTrackerPage() {
                 className="self-end px-3 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50"
               >
                 <Send className="w-4 h-4" />
+              </button>
+            </div>
+          </div>
+
+          {/* Documents */}
+          <div className="border-t border-gray-200 dark:border-gray-700 pt-4 mt-4">
+            <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300 flex items-center gap-2 mb-3">
+              <Paperclip className="w-4 h-4" />
+              Documents ({stageDocs.length})
+            </h3>
+
+            {stageDocs.length > 0 && (
+              <div className="space-y-2 mb-4">
+                {stageDocs.map(doc => (
+                  <div key={doc.id} className="flex items-center gap-3 bg-gray-50 dark:bg-gray-700/50 rounded-lg p-3">
+                    <FileText className="w-4 h-4 text-blue-500 shrink-0" />
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium text-gray-700 dark:text-gray-300 truncate">
+                        {doc.filename}
+                      </p>
+                      <div className="flex items-center gap-2 text-xs text-gray-400">
+                        {doc.uploaded_by_name && <span>{doc.uploaded_by_name}</span>}
+                        {doc.created_at && <span>{new Date(doc.created_at).toLocaleString()}</span>}
+                      </div>
+                      {doc.description && (
+                        <p className="text-xs text-gray-500 mt-0.5">{doc.description}</p>
+                      )}
+                    </div>
+                    <a
+                      href={`/portal/hiring-manager/documents/${doc.id}/download`}
+                      className="p-1.5 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-500 hover:text-blue-600"
+                      title="Download"
+                    >
+                      <Download className="w-4 h-4" />
+                    </a>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {/* Upload document */}
+            <div className="flex items-center gap-2">
+              <input
+                ref={fileInputRef}
+                type="file"
+                className="hidden"
+                accept=".pdf,.doc,.docx,.xls,.xlsx,.csv,.png,.jpg,.jpeg,.txt"
+                onChange={e => {
+                  const file = e.target.files?.[0];
+                  if (file) handleUploadDocument(file);
+                }}
+              />
+              <button
+                onClick={() => fileInputRef.current?.click()}
+                disabled={uploadingDoc}
+                className="flex items-center gap-2 px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300 disabled:opacity-50"
+              >
+                <Upload className="w-4 h-4" />
+                {uploadingDoc ? 'Uploading...' : 'Attach Document'}
               </button>
             </div>
           </div>

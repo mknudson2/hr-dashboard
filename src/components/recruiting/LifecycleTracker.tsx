@@ -20,6 +20,7 @@ export interface LifecycleStage {
   hr_representative_id: number | null;
   notes_count: number;
   documents_count: number;
+  unread_count: number;
   created_at: string | null;
 }
 
@@ -94,6 +95,7 @@ export default function LifecycleTracker({
           const config = statusConfig[stage.status] || statusConfig.pending;
           const Icon = config.icon;
           const isSelected = activeStageId === stage.id;
+          const itemCount = stage.unread_count || 0;
 
           return (
             <div key={stage.id} className="relative z-10 flex flex-col items-center flex-1">
@@ -101,12 +103,19 @@ export default function LifecycleTracker({
                 onClick={() => onStageClick?.(stage)}
                 className={`group flex flex-col items-center ${onStageClick ? 'cursor-pointer' : 'cursor-default'}`}
               >
-                <div
-                  className={`w-10 h-10 rounded-full border-2 flex items-center justify-center transition-all ${config.bgColor} ${
-                    isSelected ? 'ring-2 ring-offset-2 ring-blue-500 dark:ring-offset-gray-900' : ''
-                  } ${stage.status === 'active' ? 'animate-pulse' : ''}`}
-                >
-                  <Icon className={`w-5 h-5 ${config.color}`} />
+                <div className="relative">
+                  <div
+                    className={`w-10 h-10 rounded-full border-2 flex items-center justify-center transition-all ${config.bgColor} ${
+                      isSelected ? 'ring-2 ring-offset-2 ring-blue-500 dark:ring-offset-gray-900' : ''
+                    } ${stage.status === 'active' ? 'animate-pulse' : ''}`}
+                  >
+                    <Icon className={`w-5 h-5 ${config.color}`} />
+                  </div>
+                  {itemCount > 0 && (
+                    <span className="absolute -top-1.5 -right-1.5 min-w-[18px] h-[18px] flex items-center justify-center px-1 rounded-full bg-blue-600 text-white text-[10px] font-bold leading-none shadow-sm">
+                      {itemCount > 99 ? '99+' : itemCount}
+                    </span>
+                  )}
                 </div>
                 <span className={`mt-2 text-xs text-center max-w-[100px] leading-tight ${
                   stage.status === 'active' ? 'font-semibold text-blue-600 dark:text-blue-400' :
@@ -167,18 +176,26 @@ export default function LifecycleTracker({
           const Icon = config.icon;
           const isLast = idx === stages.length - 1;
           const isSelected = activeStageId === stage.id;
+          const itemCount = stage.unread_count || 0;
 
           return (
             <div key={stage.id} className="flex items-start gap-3">
               <div className="flex flex-col items-center">
-                <button
-                  onClick={() => onStageClick?.(stage)}
-                  className={`w-8 h-8 rounded-full border-2 flex items-center justify-center shrink-0 ${config.bgColor} ${
-                    isSelected ? 'ring-2 ring-offset-1 ring-blue-500' : ''
-                  }`}
-                >
-                  <Icon className={`w-4 h-4 ${config.color}`} />
-                </button>
+                <div className="relative">
+                  <button
+                    onClick={() => onStageClick?.(stage)}
+                    className={`w-8 h-8 rounded-full border-2 flex items-center justify-center shrink-0 ${config.bgColor} ${
+                      isSelected ? 'ring-2 ring-offset-1 ring-blue-500' : ''
+                    }`}
+                  >
+                    <Icon className={`w-4 h-4 ${config.color}`} />
+                  </button>
+                  {itemCount > 0 && (
+                    <span className="absolute -top-1 -right-1 min-w-[16px] h-[16px] flex items-center justify-center px-0.5 rounded-full bg-blue-600 text-white text-[9px] font-bold leading-none shadow-sm">
+                      {itemCount > 99 ? '99+' : itemCount}
+                    </span>
+                  )}
+                </div>
                 {!isLast && (
                   <div className={`w-0.5 h-8 mt-1 ${stage.status === 'completed' ? 'bg-green-400' : 'bg-gray-200 dark:bg-gray-700'}`} />
                 )}

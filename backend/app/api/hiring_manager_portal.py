@@ -3,12 +3,16 @@ Hiring Manager Portal API
 Endpoints for hiring managers to submit and track requisition requests from the Employee Portal.
 """
 
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException, Query, UploadFile, File, Form
+from fastapi.responses import FileResponse
 from sqlalchemy.orm import Session
 from sqlalchemy import or_, func
 from pydantic import BaseModel
 from typing import Optional, List
 from datetime import date, datetime
+import uuid
+import os
+from pathlib import Path
 from app.db.database import get_db
 from app.db import models
 from app.api.auth import get_current_user
@@ -103,6 +107,50 @@ def is_hiring_manager(user: models.User, employee: Optional[models.Employee], db
     return False
 
 
+def _is_recruiting_stakeholder(db: Session, user: models.User) -> bool:
+    """Check if user is listed as a stakeholder on any requisition."""
+    from sqlalchemy import text
+    result = db.execute(
+        text(
+            "SELECT COUNT(*) FROM job_requisitions "
+            "WHERE visibility_user_ids IS NOT NULL "
+            "AND visibility_user_ids LIKE :pattern"
+        ),
+        {"pattern": f"%{user.id}%"},
+    ).scalar()
+    return (result or 0) > 0
+
+
+def _require_hiring_manager_or_stakeholder(
+    current_user: models.User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """Dependency that verifies hiring manager or recruiting stakeholder access."""
+    employee = _get_employee_for_user(db, current_user)
+    if not is_hiring_manager(current_user, employee, db) and not _is_recruiting_stakeholder(db, current_user):
+        raise HTTPException(
+            status_code=403,
+            detail="Hiring manager or stakeholder access required",
+        )
+    return current_user
+
+
+def _check_requisition_access(req: models.JobRequisition, user: models.User) -> bool:
+    """Check if a user has access to a specific requisition.
+    Allows: admin/manager roles, requisition owner, hiring manager, or stakeholders.
+    """
+    # Admin and manager roles always have access
+    if hasattr(user, 'role') and user.role in ("admin", "manager"):
+        return True
+    # Owner or hiring manager
+    if req.requested_by == user.id or req.hiring_manager_id == user.id:
+        return True
+    # Stakeholder
+    if req.visibility_user_ids and user.id in req.visibility_user_ids:
+        return True
+    return False
+
+
 def _require_hiring_manager(
     current_user: models.User = Depends(get_current_user),
     db: Session = Depends(get_db),
@@ -160,14 +208,29 @@ def list_requisitions(
     status: Optional[str] = None,
     skip: int = 0,
     limit: int = 50,
-    current_user: models.User = Depends(_require_hiring_manager),
+    current_user: models.User = Depends(_require_hiring_manager_or_stakeholder),
     db: Session = Depends(get_db),
 ):
-    """List requisitions submitted by the current hiring manager."""
+    """List requisitions where user is hiring manager, requester, or stakeholder."""
+    from sqlalchemy import text
+
+    # Get IDs of requisitions where user is a stakeholder
+    stakeholder_req_ids = [
+        row[0] for row in db.execute(
+            text(
+                "SELECT id FROM job_requisitions "
+                "WHERE visibility_user_ids IS NOT NULL "
+                "AND visibility_user_ids LIKE :pattern"
+            ),
+            {"pattern": f"%{current_user.id}%"},
+        ).fetchall()
+    ]
+
     query = db.query(models.JobRequisition).filter(
         or_(
             models.JobRequisition.requested_by == current_user.id,
             models.JobRequisition.hiring_manager_id == current_user.id,
+            models.JobRequisition.id.in_(stakeholder_req_ids) if stakeholder_req_ids else False,
         )
     )
 
@@ -270,21 +333,19 @@ def create_requisition_request(
 @router.get("/requisitions/{req_id}")
 def get_requisition_detail(
     req_id: int,
-    current_user: models.User = Depends(_require_hiring_manager),
+    current_user: models.User = Depends(_require_hiring_manager_or_stakeholder),
     db: Session = Depends(get_db),
 ):
     """Get detailed requisition info including lifecycle."""
     req = db.query(models.JobRequisition).filter(
         models.JobRequisition.id == req_id,
-        or_(
-            models.JobRequisition.requested_by == current_user.id,
-            models.JobRequisition.hiring_manager_id == current_user.id,
-            # Also allow if user is in visibility list
-        )
     ).first()
 
     if not req:
         raise HTTPException(status_code=404, detail="Requisition not found")
+
+    if not _check_requisition_access(req, current_user):
+        raise HTTPException(status_code=403, detail="Not authorized")
 
     return {
         "id": req.id,
@@ -327,7 +388,7 @@ def get_requisition_detail(
 @router.get("/requisitions/{req_id}/lifecycle")
 def get_requisition_lifecycle(
     req_id: int,
-    current_user: models.User = Depends(_require_hiring_manager),
+    current_user: models.User = Depends(_require_hiring_manager_or_stakeholder),
     db: Session = Depends(get_db),
 ):
     """Get lifecycle stages for a requisition request."""
@@ -337,15 +398,21 @@ def get_requisition_lifecycle(
     if not req:
         raise HTTPException(status_code=404, detail="Requisition not found")
 
-    # Check access
-    if req.requested_by != current_user.id and req.hiring_manager_id != current_user.id:
-        if not (req.visibility_user_ids and current_user.id in req.visibility_user_ids):
-            raise HTTPException(status_code=403, detail="Not authorized")
+    if not _check_requisition_access(req, current_user):
+        raise HTTPException(status_code=403, detail="Not authorized")
 
     stages = lifecycle_service.get_lifecycle(db, req_id)
+
+    # Get per-user view timestamps for unread badge calculation
+    stage_ids = [s.id for s in stages]
+    user_views = lifecycle_service.get_user_stage_views(db, current_user.id, stage_ids)
+
     return {
         "requisition_id": req_id,
-        "stages": [lifecycle_service.serialize_stage(s) for s in stages],
+        "stages": [
+            lifecycle_service.serialize_stage(s, last_viewed_at=user_views.get(s.id))
+            for s in stages
+        ],
     }
 
 
@@ -353,19 +420,18 @@ def get_requisition_lifecycle(
 def add_note_to_stage(
     req_id: int,
     data: AddNoteRequest,
-    current_user: models.User = Depends(_require_hiring_manager),
+    current_user: models.User = Depends(_require_hiring_manager_or_stakeholder),
     db: Session = Depends(get_db),
 ):
     """Add a note to a lifecycle stage."""
     req = db.query(models.JobRequisition).filter(
         models.JobRequisition.id == req_id,
-        or_(
-            models.JobRequisition.requested_by == current_user.id,
-            models.JobRequisition.hiring_manager_id == current_user.id,
-        )
     ).first()
     if not req:
         raise HTTPException(status_code=404, detail="Requisition not found")
+
+    if not _check_requisition_access(req, current_user):
+        raise HTTPException(status_code=403, detail="Not authorized")
 
     # Verify stage belongs to this requisition
     stage = db.query(models.RequisitionLifecycleStage).filter(
@@ -390,6 +456,195 @@ def add_note_to_stage(
         "message": "Note added",
         "note": lifecycle_service.serialize_note(note),
     }
+
+
+@router.post("/requisitions/{req_id}/stages/{stage_id}/mark-viewed")
+def mark_stage_viewed(
+    req_id: int,
+    stage_id: int,
+    current_user: models.User = Depends(_require_hiring_manager_or_stakeholder),
+    db: Session = Depends(get_db),
+):
+    """Mark a lifecycle stage as viewed by the current user (clears unread badge)."""
+    req = db.query(models.JobRequisition).filter(
+        models.JobRequisition.id == req_id,
+    ).first()
+    if not req:
+        raise HTTPException(status_code=404, detail="Requisition not found")
+
+    if not _check_requisition_access(req, current_user):
+        raise HTTPException(status_code=403, detail="Not authorized")
+
+    stage = db.query(models.RequisitionLifecycleStage).filter(
+        models.RequisitionLifecycleStage.id == stage_id,
+        models.RequisitionLifecycleStage.requisition_id == req_id,
+    ).first()
+    if not stage:
+        raise HTTPException(status_code=404, detail="Stage not found")
+
+    lifecycle_service.mark_stage_viewed(db, stage_id, current_user.id)
+    db.commit()
+    return {"success": True}
+
+
+@router.get("/requisitions/{req_id}/stages/{stage_id}/notes")
+def get_stage_notes(
+    req_id: int,
+    stage_id: int,
+    current_user: models.User = Depends(_require_hiring_manager_or_stakeholder),
+    db: Session = Depends(get_db),
+):
+    """Get notes for a lifecycle stage. Accessible to hiring managers and stakeholders."""
+    req = db.query(models.JobRequisition).filter(
+        models.JobRequisition.id == req_id,
+    ).first()
+    if not req:
+        raise HTTPException(status_code=404, detail="Requisition not found")
+
+    if not _check_requisition_access(req, current_user):
+        raise HTTPException(status_code=403, detail="Not authorized")
+
+    # Verify stage belongs to this requisition
+    stage = db.query(models.RequisitionLifecycleStage).filter(
+        models.RequisitionLifecycleStage.id == stage_id,
+        models.RequisitionLifecycleStage.requisition_id == req_id,
+    ).first()
+    if not stage:
+        raise HTTPException(status_code=404, detail="Stage not found")
+
+    notes = lifecycle_service.get_stage_notes(db, stage_id)
+    return {
+        "notes": [lifecycle_service.serialize_note(n) for n in notes],
+    }
+
+
+@router.post("/requisitions/{req_id}/stages/{stage_id}/documents")
+def upload_stage_document(
+    req_id: int,
+    stage_id: int,
+    file: UploadFile = File(...),
+    description: Optional[str] = Form(None),
+    current_user: models.User = Depends(_require_hiring_manager_or_stakeholder),
+    db: Session = Depends(get_db),
+):
+    """Upload a document to a lifecycle stage."""
+    req = db.query(models.JobRequisition).filter(
+        models.JobRequisition.id == req_id,
+    ).first()
+    if not req:
+        raise HTTPException(status_code=404, detail="Requisition not found")
+
+    if not _check_requisition_access(req, current_user):
+        raise HTTPException(status_code=403, detail="Not authorized")
+
+    # Verify stage belongs to this requisition
+    stage = db.query(models.RequisitionLifecycleStage).filter(
+        models.RequisitionLifecycleStage.id == stage_id,
+        models.RequisitionLifecycleStage.requisition_id == req_id,
+    ).first()
+    if not stage:
+        raise HTTPException(status_code=404, detail="Stage not found")
+
+    # Validate file
+    allowed_extensions = {".pdf", ".doc", ".docx", ".xls", ".xlsx", ".csv", ".png", ".jpg", ".jpeg", ".txt"}
+    ext = os.path.splitext(file.filename or "")[1].lower()
+    if ext not in allowed_extensions:
+        raise HTTPException(status_code=400, detail=f"File type {ext} not allowed")
+
+    # Save file to disk
+    upload_dir = Path("data/uploads/recruiting")
+    upload_dir.mkdir(parents=True, exist_ok=True)
+    safe_filename = f"{uuid.uuid4().hex}{ext}"
+    file_path = upload_dir / safe_filename
+
+    content = file.file.read()
+    if len(content) > 25 * 1024 * 1024:  # 25 MB limit
+        raise HTTPException(status_code=400, detail="File too large (max 25 MB)")
+
+    with open(file_path, "wb") as f:
+        f.write(content)
+
+    doc = lifecycle_service.add_stage_document(
+        db,
+        stage_id=stage_id,
+        user_id=current_user.id,
+        filename=file.filename or safe_filename,
+        file_path=str(file_path),
+        description=description,
+    )
+    db.commit()
+
+    return {
+        "message": "Document uploaded",
+        "document": lifecycle_service.serialize_document(doc),
+    }
+
+
+@router.get("/requisitions/{req_id}/stages/{stage_id}/documents")
+def get_stage_documents(
+    req_id: int,
+    stage_id: int,
+    current_user: models.User = Depends(_require_hiring_manager_or_stakeholder),
+    db: Session = Depends(get_db),
+):
+    """Get documents for a lifecycle stage."""
+    req = db.query(models.JobRequisition).filter(
+        models.JobRequisition.id == req_id,
+    ).first()
+    if not req:
+        raise HTTPException(status_code=404, detail="Requisition not found")
+
+    if not _check_requisition_access(req, current_user):
+        raise HTTPException(status_code=403, detail="Not authorized")
+
+    # Verify stage belongs to this requisition
+    stage = db.query(models.RequisitionLifecycleStage).filter(
+        models.RequisitionLifecycleStage.id == stage_id,
+        models.RequisitionLifecycleStage.requisition_id == req_id,
+    ).first()
+    if not stage:
+        raise HTTPException(status_code=404, detail="Stage not found")
+
+    docs = lifecycle_service.get_stage_documents(db, stage_id)
+    return {
+        "documents": [lifecycle_service.serialize_document(d) for d in docs],
+    }
+
+
+@router.get("/documents/{doc_id}/download")
+def download_document(
+    doc_id: int,
+    current_user: models.User = Depends(_require_hiring_manager_or_stakeholder),
+    db: Session = Depends(get_db),
+):
+    """Download a lifecycle stage document."""
+    doc = db.query(models.LifecycleStageDocument).filter(
+        models.LifecycleStageDocument.id == doc_id,
+    ).first()
+    if not doc:
+        raise HTTPException(status_code=404, detail="Document not found")
+
+    # Check requisition access via the stage
+    stage = db.query(models.RequisitionLifecycleStage).filter(
+        models.RequisitionLifecycleStage.id == doc.lifecycle_stage_id,
+    ).first()
+    if not stage:
+        raise HTTPException(status_code=404, detail="Stage not found")
+
+    req = db.query(models.JobRequisition).filter(
+        models.JobRequisition.id == stage.requisition_id,
+    ).first()
+    if not req or not _check_requisition_access(req, current_user):
+        raise HTTPException(status_code=403, detail="Not authorized")
+
+    if not doc.file_path or not os.path.exists(doc.file_path):
+        raise HTTPException(status_code=404, detail="File not found on disk")
+
+    return FileResponse(
+        path=doc.file_path,
+        filename=doc.filename,
+        media_type="application/octet-stream",
+    )
 
 
 @router.get("/team-members")

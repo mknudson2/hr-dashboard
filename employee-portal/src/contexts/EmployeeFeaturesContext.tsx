@@ -31,6 +31,9 @@ export interface FeatureFlags {
   // Hiring manager access
   is_hiring_manager: boolean;
 
+  // Recruiting stakeholder (listed on a requisition's visibility list)
+  is_recruiting_stakeholder: boolean;
+
   // User preferences
   preferred_view: 'og' | 'modern' | 'bifrost';
 
@@ -60,6 +63,7 @@ const defaultFeatures: FeatureFlags = {
   has_direct_reports: false,
   pending_approvals_count: 0,
   is_hiring_manager: false,
+  is_recruiting_stakeholder: false,
   preferred_view: 'og',
   total_action_items: 0,
 };

@@ -326,8 +326,58 @@ class LifecycleService:
 
         return self.advance_stage(db, stage.id, user_id, outcome=outcome)
 
-    def serialize_stage(self, stage: models.RequisitionLifecycleStage) -> dict:
-        """Serialize a lifecycle stage to a dict for API responses."""
+    def mark_stage_viewed(self, db: Session, stage_id: int, user_id: int):
+        """Record that a user has viewed a lifecycle stage (upsert)."""
+        from datetime import datetime
+        existing = db.query(models.UserStageView).filter(
+            models.UserStageView.user_id == user_id,
+            models.UserStageView.lifecycle_stage_id == stage_id,
+        ).first()
+        if existing:
+            existing.last_viewed_at = datetime.utcnow()
+        else:
+            db.add(models.UserStageView(
+                user_id=user_id,
+                lifecycle_stage_id=stage_id,
+                last_viewed_at=datetime.utcnow(),
+            ))
+        db.flush()
+
+    def get_unread_count(
+        self, stage: models.RequisitionLifecycleStage, last_viewed_at
+    ) -> int:
+        """Count notes + documents created after last_viewed_at.
+        If last_viewed_at is None, everything is unread.
+        """
+        unread = 0
+        for note in (stage.notes or []):
+            if last_viewed_at is None or (note.created_at and note.created_at > last_viewed_at):
+                unread += 1
+        for doc in (stage.documents or []):
+            if last_viewed_at is None or (doc.created_at and doc.created_at > last_viewed_at):
+                unread += 1
+        return unread
+
+    def get_user_stage_views(self, db: Session, user_id: int, stage_ids: list[int]) -> dict[int, "datetime"]:
+        """Get last_viewed_at for a batch of stage IDs for a user.
+        Returns {stage_id: last_viewed_at} dict.
+        """
+        if not stage_ids:
+            return {}
+        views = db.query(models.UserStageView).filter(
+            models.UserStageView.user_id == user_id,
+            models.UserStageView.lifecycle_stage_id.in_(stage_ids),
+        ).all()
+        return {v.lifecycle_stage_id: v.last_viewed_at for v in views}
+
+    def serialize_stage(self, stage: models.RequisitionLifecycleStage, last_viewed_at=None) -> dict:
+        """Serialize a lifecycle stage to a dict for API responses.
+        If last_viewed_at is provided, includes unread_count based on items
+        created after that timestamp. If not provided, unread_count equals total count.
+        """
+        notes_count = len(stage.notes) if stage.notes else 0
+        documents_count = len(stage.documents) if stage.documents else 0
+        unread = self.get_unread_count(stage, last_viewed_at)
         return {
             "id": stage.id,
             "requisition_id": stage.requisition_id,
@@ -348,8 +398,9 @@ class LifecycleService:
             "outcome_notes": stage.outcome_notes,
             "hr_representative_present": stage.hr_representative_present,
             "hr_representative_id": stage.hr_representative_id,
-            "notes_count": len(stage.notes) if stage.notes else 0,
-            "documents_count": len(stage.documents) if stage.documents else 0,
+            "notes_count": notes_count,
+            "documents_count": documents_count,
+            "unread_count": unread,
             "created_at": stage.created_at.isoformat() if stage.created_at else None,
         }
 

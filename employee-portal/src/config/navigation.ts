@@ -23,7 +23,6 @@ import {
   History,
   Send,
   CalendarRange,
-  UserPlus,
   type LucideIcon,
 } from 'lucide-react';
 import type { FeatureFlags } from '@/contexts/EmployeeFeaturesContext';
@@ -136,14 +135,6 @@ export const navigationConfig: NavigationConfig = {
       ],
     },
     {
-      label: 'Hiring',
-      sectionFilter: (flags) => flags.is_hiring_manager,
-      items: [
-        { label: 'Request New Position', path: '/hiring/new-request', icon: UserPlus },
-        { label: 'My Requisitions', path: '/hiring/my-requisitions', icon: Briefcase },
-      ],
-    },
-    {
       label: 'Resources',
       items: [
         { label: 'Employee Handbook', path: '/resources/handbook', icon: BookOpen },
@@ -164,6 +155,12 @@ export const navigationConfig: NavigationConfig = {
         { label: 'PIPs', path: '/team/pips', icon: AlertTriangle },
         { label: 'HR Change Requests', path: '/team/hr-changes', icon: FileEdit },
         { label: 'Team Reports', path: '/team/analytics', icon: BarChart },
+        {
+          label: 'Hiring',
+          path: '/hiring/my-requisitions',
+          icon: Briefcase,
+          requiresFeature: (flags) => flags.is_hiring_manager || flags.is_recruiting_stakeholder,
+        },
       ],
     },
   ],
@@ -270,12 +267,6 @@ export function getModernNavigation(
   ];
   if (requestItems.length > 0) {
     dropdowns.push({ label: 'Requests', items: requestItems });
-  }
-
-  // Hiring dropdown (hiring managers)
-  const hiring = filtered.sections.find((s) => s.label === 'Hiring');
-  if (hiring) {
-    dropdowns.push({ label: 'Hiring', items: hiring.items });
   }
 
   // Resources dropdown

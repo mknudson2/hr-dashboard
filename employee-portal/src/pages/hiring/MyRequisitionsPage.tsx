@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { apiGet } from '@/utils/api';
-import { Plus, Briefcase, Clock, CheckCircle, AlertCircle } from 'lucide-react';
+import { Plus, Briefcase, Clock } from 'lucide-react';
+import { useEmployeeFeatures } from '@/contexts/EmployeeFeaturesContext';
 
 interface Requisition {
   id: number;
@@ -36,6 +37,8 @@ const urgencyColors: Record<string, string> = {
 
 export default function MyRequisitionsPage() {
   const navigate = useNavigate();
+  const { features } = useEmployeeFeatures();
+  const isHiringManager = features?.is_hiring_manager ?? false;
   const [requisitions, setRequisitions] = useState<Requisition[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -71,18 +74,24 @@ export default function MyRequisitionsPage() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">My Requisitions</h1>
+          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
+            Hiring
+          </h1>
           <p className="text-sm text-gray-500 dark:text-gray-400">
-            Track the status of your position requests
+            {isHiringManager
+              ? 'Track the status of your position requests'
+              : 'Follow the hiring progress for positions you\'re involved in'}
           </p>
         </div>
-        <button
-          onClick={() => navigate('/hiring/new-request')}
-          className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
-        >
-          <Plus className="w-4 h-4" />
-          New Request
-        </button>
+        {isHiringManager && (
+          <button
+            onClick={() => navigate('/hiring/new-request')}
+            className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+          >
+            <Plus className="w-4 h-4" />
+            New Request
+          </button>
+        )}
       </div>
 
       {error && (
@@ -97,14 +106,18 @@ export default function MyRequisitionsPage() {
           <Briefcase className="w-12 h-12 text-gray-300 mx-auto mb-3" />
           <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-1">No Requisitions Yet</h3>
           <p className="text-gray-500 dark:text-gray-400 mb-4">
-            Submit your first position request to get started.
+            {isHiringManager
+              ? 'Submit your first position request to get started.'
+              : 'You\'ll see requisitions here when you\'re added as a stakeholder.'}
           </p>
-          <button
-            onClick={() => navigate('/hiring/new-request')}
-            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
-          >
-            Request New Position
-          </button>
+          {isHiringManager && (
+            <button
+              onClick={() => navigate('/hiring/new-request')}
+              className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+            >
+              Request New Position
+            </button>
+          )}
         </div>
       ) : (
         <div className="space-y-3">

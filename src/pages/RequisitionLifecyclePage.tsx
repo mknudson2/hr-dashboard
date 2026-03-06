@@ -150,7 +150,12 @@ export default function RequisitionLifecyclePage() {
         const lcData = await lcRes.json();
         setLifecycleData(lcData);
         const active = lcData.stages.find((s: LifecycleStage) => s.status === 'active');
-        if (active && !selectedStage) setSelectedStage(active);
+        if (active && !selectedStage) {
+          setSelectedStage(active);
+          fetch(`/recruiting/lifecycle/${id}/stages/${active.id}/mark-viewed`, {
+            method: 'POST', credentials: 'include',
+          }).catch(() => {});
+        }
       }
 
       if (reqRes.ok) {
@@ -359,7 +364,20 @@ export default function RequisitionLifecyclePage() {
           <LifecycleTracker
             stages={lifecycleData.stages}
             activeStageId={selectedStage?.id}
-            onStageClick={(stage) => { setSelectedStage(stage); setActiveTab('stage'); }}
+            onStageClick={(stage) => {
+              setSelectedStage(stage);
+              setActiveTab('stage');
+              // Mark stage as viewed to clear unread badge
+              fetch(`/recruiting/lifecycle/${id}/stages/${stage.id}/mark-viewed`, {
+                method: 'POST',
+                credentials: 'include',
+              }).then(() => {
+                // Refresh lifecycle to update unread counts
+                fetch(`/recruiting/lifecycle/${id}`, { credentials: 'include' })
+                  .then(r => r.ok ? r.json() : null)
+                  .then(data => { if (data) setLifecycleData(data); });
+              }).catch(() => {});
+            }}
             readOnly={false}
             onAdvance={handleAdvance}
             onSkip={handleSkip}

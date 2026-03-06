@@ -1,5 +1,5 @@
-import { useState, useEffect } from 'react';
-import { MessageSquare, FileText, User, Send, Plus, Upload, ChevronDown, ChevronUp } from 'lucide-react';
+import { useState, useEffect, useRef } from 'react';
+import { MessageSquare, FileText, User, Send, Plus, Upload, Download, ChevronDown, ChevronUp } from 'lucide-react';
 import type { LifecycleStage } from './LifecycleTracker';
 
 interface StageNote {
@@ -51,6 +51,8 @@ export default function StageDetailPanel({
   const [noteRecommendation, setNoteRecommendation] = useState<string>('');
   const [submittingNote, setSubmittingNote] = useState(false);
   const [expandedSection, setExpandedSection] = useState<'notes' | 'documents' | null>('notes');
+  const [uploadingDoc, setUploadingDoc] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     fetchNotes();
@@ -132,6 +134,29 @@ export default function StageDetailPanel({
       }
     } catch {
       // silent
+    }
+  };
+
+  const handleUploadDocument = async (file: File) => {
+    try {
+      setUploadingDoc(true);
+      const formData = new FormData();
+      formData.append('file', file);
+      formData.append('filename', file.name);
+      const res = await fetch(`/recruiting/lifecycle/${requisitionId}/stages/${stage.id}/documents`, {
+        method: 'POST',
+        credentials: 'include',
+        body: formData,
+      });
+      if (res.ok) {
+        fetchDocuments();
+        onStageUpdated?.();
+      }
+    } catch {
+      // silent
+    } finally {
+      setUploadingDoc(false);
+      if (fileInputRef.current) fileInputRef.current.value = '';
     }
   };
 
@@ -361,18 +386,51 @@ export default function StageDetailPanel({
             )}
             {documents.map(doc => (
               <div key={doc.id} className="flex items-center gap-3 bg-gray-50 dark:bg-gray-700/50 rounded-lg p-2.5">
-                <FileText className="w-4 h-4 text-gray-400 shrink-0" />
+                <FileText className="w-4 h-4 text-blue-500 shrink-0" />
                 <div className="flex-1 min-w-0">
                   <p className="text-sm font-medium text-gray-700 dark:text-gray-300 truncate">{doc.filename}</p>
+                  <div className="flex items-center gap-2 text-xs text-gray-400">
+                    {doc.uploaded_by_name && <span>{doc.uploaded_by_name}</span>}
+                    {doc.created_at && <span>{new Date(doc.created_at).toLocaleString()}</span>}
+                  </div>
                   {doc.description && (
-                    <p className="text-xs text-gray-500">{doc.description}</p>
+                    <p className="text-xs text-gray-500 mt-0.5">{doc.description}</p>
                   )}
                 </div>
-                <span className="text-xs text-gray-400 shrink-0">
-                  {doc.uploaded_by_name}
-                </span>
+                {doc.file_path && (
+                  <a
+                    href={`/recruiting/lifecycle/${requisitionId}/stages/${stage.id}/documents/${doc.id}/download`}
+                    className="p-1.5 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-500 hover:text-blue-600"
+                    title="Download"
+                  >
+                    <Download className="w-4 h-4" />
+                  </a>
+                )}
               </div>
             ))}
+
+            {!readOnly && (
+              <div className="pt-1">
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  className="hidden"
+                  accept=".pdf,.doc,.docx,.xls,.xlsx,.csv,.png,.jpg,.jpeg,.txt"
+                  onChange={e => {
+                    const file = e.target.files?.[0];
+                    if (file) handleUploadDocument(file);
+                  }}
+                />
+                <button
+                  onClick={() => fileInputRef.current?.click()}
+                  disabled={uploadingDoc}
+                  className="flex items-center gap-1 text-sm text-blue-600 hover:text-blue-700 disabled:opacity-50"
+                >
+                  <Upload className="w-4 h-4" />
+                  {uploadingDoc ? 'Uploading...' : 'Upload Document'}
+                </button>
+              </div>
+            )}
           </div>
         )}
       </div>

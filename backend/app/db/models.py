@@ -4370,6 +4370,20 @@ class LifecycleStageDocument(Base):
     uploaded_by_user = relationship("User", foreign_keys=[uploaded_by])
 
 
+class UserStageView(Base):
+    """Tracks when a user last viewed a lifecycle stage, for unread badge calculation."""
+    __tablename__ = "user_stage_views"
+
+    id = Column(Integer, primary_key=True, index=True, autoincrement=True)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    lifecycle_stage_id = Column(Integer, ForeignKey("requisition_lifecycle_stages.id"), nullable=False)
+    last_viewed_at = Column(DateTime, nullable=False, server_default=func.now())
+
+    __table_args__ = (
+        Index('ix_user_stage_view_unique', 'user_id', 'lifecycle_stage_id', unique=True),
+    )
+
+
 class InterviewComplianceTip(Base):
     """Knowledge base of interview compliance tips and best practices."""
     __tablename__ = "interview_compliance_tips"
