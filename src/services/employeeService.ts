@@ -15,10 +15,12 @@ export const getAnalytics = async () => {
 
 export async function listEmployees() {
   const res = await fetch("/employees/", { credentials: 'include' });
+  if (!res.ok) throw new Error(`HTTP ${res.status}`);
   return res.json();
 }
 
 export async function getEmployees() {
   const res = await fetch("/employees/", { credentials: 'include' });
+  if (!res.ok) throw new Error(`HTTP ${res.status}`);
   return res.json();
 }

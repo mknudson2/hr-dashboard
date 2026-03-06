@@ -33,6 +33,8 @@ export default defineConfig({
       },
       "/portal/internal-jobs": portalProxy,
       "/portal/my-internal-applications": portalProxy,
+      "/portal/hiring-manager": portalProxy,
+      "/recruiting/lifecycle": portalProxy,
     },
   },
 });

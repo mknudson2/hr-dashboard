@@ -1,5 +1,5 @@
-import { useState, useCallback, useMemo } from 'react';
-import { Plus, Minus, TrendingUp, CheckCircle, Target, AlertCircle } from 'lucide-react';
+import { useState, useCallback } from 'react';
+import { Plus, Minus, TrendingUp, CheckCircle, Target } from 'lucide-react';
 import { motion } from 'framer-motion';
 import FileUpload from '../common/FileUpload';
 import type { TrackingType } from './TrackingTypeSelector';

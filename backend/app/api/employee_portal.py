@@ -9,7 +9,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from sqlalchemy import and_, extract, func
 from typing import Optional, List
-from datetime import date, datetime
+from datetime import date, datetime, timedelta
 from pydantic import BaseModel
 
 from app.db import models
@@ -669,30 +669,27 @@ def get_documents(
     """Get the current user's personal documents (pay stubs, W-2s, etc.)."""
     employee = get_employee_for_user(db, current_user)
 
-    # For now, return placeholder documents
-    # In a real implementation, these would come from a documents table
+    docs_db = db.query(models.EmployeeDocument).filter(
+        models.EmployeeDocument.employee_id == employee.id,
+        models.EmployeeDocument.is_active == True,
+    ).order_by(models.EmployeeDocument.document_date.desc()).all()
+
     documents = [
         Document(
-            id=1,
-            name=f"Pay Stub - December 2025",
-            type="pay_stub",
-            category="Pay Stubs",
-            date=date(2025, 12, 31),
-            size="124 KB",
-            downloadUrl=f"/api/portal/my-hr/documents/1/download"
-        ),
-        Document(
-            id=2,
-            name=f"W-2 Tax Form - 2024",
-            type="w2",
-            category="Tax Forms",
-            date=date(2025, 1, 31),
-            size="89 KB",
-            downloadUrl=f"/api/portal/my-hr/documents/2/download"
-        ),
+            id=d.id,
+            name=d.name,
+            type=d.document_type,
+            category=d.category,
+            date=d.document_date,
+            size=d.file_size or "",
+            downloadUrl=d.download_url or f"/api/portal/my-hr/documents/{d.id}/download",
+        )
+        for d in docs_db
     ]
 
-    categories = ["Pay Stubs", "Tax Forms", "Benefits", "Offer Letters", "Other"]
+    category_set = {d.category for d in docs_db}
+    default_categories = {"Pay Stubs", "Tax Forms", "Benefits", "Offer Letters", "Other"}
+    categories = sorted(category_set | default_categories)
 
     return DocumentsResponse(
         documents=documents,
@@ -1387,3 +1384,25 @@ def acknowledge_pip(
     db.commit()
 
     return {"success": True, "message": "PIP acknowledged successfully"}
+
+
+# ---- Payroll ----
+
+PAYROLL_REFERENCE_DATE = date(2026, 3, 6)  # Known pay date
+PAYROLL_CYCLE_DAYS = 14  # Bi-weekly
+
+
+@router.get("/payroll/next-date")
+def get_next_payroll_date(
+    current_user: models.User = Depends(get_current_user),
+):
+    """Return the next bi-weekly pay date and days until it."""
+    today = date.today()
+    days_since = (today - PAYROLL_REFERENCE_DATE).days
+    days_until = (PAYROLL_CYCLE_DAYS - (days_since % PAYROLL_CYCLE_DAYS)) % PAYROLL_CYCLE_DAYS
+    next_date = today + timedelta(days=days_until)
+
+    return {
+        "next_pay_date": next_date.isoformat(),
+        "days_until": days_until,
+    }

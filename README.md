@@ -133,6 +133,35 @@ hr-dashboard/
 
 Interactive API documentation is available at `/docs` when running the backend server. The API follows RESTful conventions with JSON request/response formats.
 
+## Production Deployment
+
+For production deployment instructions, see the following documentation:
+
+- **[IT Admin Guide](docs/IT_ADMIN_GUIDE.md)** - Complete configuration reference with all 65+ environment variables, security settings, database setup, and email configuration
+- **[Production Checklist](docs/PRODUCTION_CHECKLIST.md)** - Pre-deployment and post-deployment verification checklists
+- **[Database Migration](docs/DATABASE_MIGRATION.md)** - Guide for migrating from SQLite to PostgreSQL
+
+### Quick Production Setup
+
+1. Copy `.env.example` to `.env` and configure all required variables
+2. Generate secure keys for `JWT_SECRET_KEY` and `FIELD_ENCRYPTION_KEY`
+3. Configure `DATABASE_URL` for PostgreSQL
+4. Set `ENVIRONMENT=production`
+5. Configure HTTPS via reverse proxy
+6. See [IT Admin Guide](docs/IT_ADMIN_GUIDE.md) for detailed instructions
+
+## Enterprise Integration
+
+### Microsoft Azure AD / SSO
+
+For organizations using Microsoft 365, the application supports integration with Azure Active Directory for Single Sign-On (SSO).
+
+See **[Azure AD Integration Guide](docs/AZURE_AD_INTEGRATION.md)** for:
+- Azure AD app registration setup
+- User provisioning and role mapping
+- Implementation approach and timeline
+- Configuration reference
+
 ## License
 
 Proprietary - All rights reserved.

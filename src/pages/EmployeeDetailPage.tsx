@@ -15,6 +15,9 @@ import {
   Cake,
   AlertCircle,
   ClipboardList,
+  Tag,
+  Plus,
+  X,
 } from "lucide-react";
 import SalaryHistoryChart from "@/components/compensation/SalaryHistoryChart";
 
@@ -44,6 +47,7 @@ interface EmployeeDetail {
   show_birthday?: boolean;
   show_tenure?: boolean;
   show_exact_dates?: boolean;
+  custom_tags?: string[];
 }
 
 interface WageHistoryRecord {
@@ -61,6 +65,8 @@ export default function EmployeeDetailPage() {
   const [wageHistory, setWageHistory] = useState<WageHistoryRecord[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [tagInput, setTagInput] = useState('');
+  const [savingTags, setSavingTags] = useState(false);
 
   useEffect(() => {
     async function fetchEmployeeData() {
@@ -101,6 +107,37 @@ export default function EmployeeDetailPage() {
       fetchEmployeeData();
     }
   }, [employeeId]);
+
+  const updateTags = async (newTags: string[]) => {
+    if (!employee) return;
+    setSavingTags(true);
+    try {
+      const res = await fetch(`/employees/${employee.employee_id}/custom-tags`, {
+        method: 'PUT',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ tags: newTags }),
+      });
+      if (res.ok) {
+        setEmployee({ ...employee, custom_tags: newTags });
+      }
+    } catch (err) {
+      console.error('Failed to update tags:', err);
+    } finally {
+      setSavingTags(false);
+    }
+  };
+
+  const addTag = (tag: string) => {
+    const trimmed = tag.trim().toLowerCase().replace(/\s+/g, '_');
+    if (!trimmed || (employee?.custom_tags || []).includes(trimmed)) return;
+    updateTags([...(employee?.custom_tags || []), trimmed]);
+    setTagInput('');
+  };
+
+  const removeTag = (tag: string) => {
+    updateTags((employee?.custom_tags || []).filter(t => t !== tag));
+  };
 
   if (loading) {
     return (
@@ -296,6 +333,73 @@ export default function EmployeeDetailPage() {
             value={employee.team}
           />
         </div>
+      </motion.div>
+
+      {/* Custom Tags */}
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.15 }}
+        className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm p-6 border border-gray-200 dark:border-gray-700"
+      >
+        <div className="flex items-center gap-2 mb-4">
+          <Tag className="w-5 h-5 text-blue-600 dark:text-blue-400" />
+          <h2 className="text-xl font-semibold text-gray-900 dark:text-white">
+            Custom Tags
+          </h2>
+        </div>
+        <div className="flex flex-wrap gap-2 mb-3">
+          {(employee.custom_tags || []).map(tag => (
+            <span
+              key={tag}
+              className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-medium ${
+                tag === 'hiring_manager'
+                  ? 'bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-300'
+                  : tag === 'interviewer'
+                  ? 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300'
+                  : 'bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300'
+              }`}
+            >
+              {tag.replace(/_/g, ' ')}
+              <button
+                onClick={() => removeTag(tag)}
+                disabled={savingTags}
+                className="hover:text-red-600 dark:hover:text-red-400 transition-colors"
+              >
+                <X className="w-3.5 h-3.5" />
+              </button>
+            </span>
+          ))}
+          {(employee.custom_tags || []).length === 0 && (
+            <span className="text-sm text-gray-400 dark:text-gray-500">No tags assigned</span>
+          )}
+        </div>
+        <div className="flex gap-2">
+          <input
+            type="text"
+            value={tagInput}
+            onChange={e => setTagInput(e.target.value)}
+            onKeyDown={e => {
+              if (e.key === 'Enter' && tagInput.trim()) {
+                e.preventDefault();
+                addTag(tagInput);
+              }
+            }}
+            className="flex-1 px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            placeholder="Add tag (e.g. hiring_manager, interviewer)"
+          />
+          <button
+            onClick={() => addTag(tagInput)}
+            disabled={!tagInput.trim() || savingTags}
+            className="flex items-center gap-1 px-3 py-2 bg-blue-600 text-white text-sm rounded-lg hover:bg-blue-700 disabled:opacity-50 transition-colors"
+          >
+            <Plus className="w-4 h-4" />
+            Add
+          </button>
+        </div>
+        <p className="text-xs text-gray-400 dark:text-gray-500 mt-2">
+          Tags like "hiring_manager" grant access to the Employee Portal hiring features.
+        </p>
       </motion.div>
 
       {/* Compensation */}

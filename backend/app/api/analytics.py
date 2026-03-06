@@ -334,6 +334,8 @@ def get_employee_details(employee_id: str, db: Session = Depends(get_db)):
         "show_birthday": getattr(employee, 'show_birthday', True),
         "show_tenure": getattr(employee, 'show_tenure', True),
         "show_exact_dates": getattr(employee, 'show_exact_dates', True),
+        # Custom tags (hiring_manager, interviewer, etc.)
+        "custom_tags": getattr(employee, 'custom_tags', None) or [],
         # Benefits data
         "benefits": {
             "medical": {

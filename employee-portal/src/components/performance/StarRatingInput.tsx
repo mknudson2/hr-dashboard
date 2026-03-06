@@ -7,6 +7,8 @@ interface StarRatingInputProps {
   disabled?: boolean;
   size?: 'sm' | 'md' | 'lg';
   showLabel?: boolean;
+  maxStars?: number;
+  labels?: Record<number, string>;
 }
 
 const sizeMap = {
@@ -15,7 +17,7 @@ const sizeMap = {
   lg: 32,
 };
 
-const ratingLabels: Record<number, string> = {
+const defaultLabels: Record<number, string> = {
   1: 'Needs Improvement',
   2: 'Below Expectations',
   3: 'Meets Expectations',
@@ -29,16 +31,20 @@ export default function StarRatingInput({
   disabled = false,
   size = 'md',
   showLabel = false,
+  maxStars = 5,
+  labels,
 }: StarRatingInputProps) {
   const [hover, setHover] = useState(0);
 
   const iconSize = sizeMap[size];
   const displayValue = hover || value;
+  const ratingLabels = labels || defaultLabels;
+  const stars = Array.from({ length: maxStars }, (_, i) => i + 1);
 
   return (
     <div className="flex items-center gap-3">
       <div className="flex items-center">
-        {[1, 2, 3, 4, 5].map((star) => (
+        {stars.map((star) => (
           <button
             key={star}
             type="button"
@@ -66,7 +72,7 @@ export default function StarRatingInput({
       </div>
       {showLabel && (
         <span className="text-sm text-gray-600 dark:text-gray-400 w-36 text-left">
-          {displayValue > 0 ? ratingLabels[displayValue] : '\u00A0'}
+          {displayValue > 0 ? ratingLabels[displayValue] || '' : '\u00A0'}
         </span>
       )}
     </div>

@@ -49,6 +49,10 @@ import MySchedule from '@/pages/MySchedule';
 import InternalJobsPage from '@/pages/InternalJobsPage';
 import InternalJobDetailPage from '@/pages/InternalJobDetailPage';
 import InternalApplicationsPage from '@/pages/InternalApplicationsPage';
+// Hiring Manager pages
+import NewRequisitionRequestPage from '@/pages/hiring/NewRequisitionRequestPage';
+import MyRequisitionsPage from '@/pages/hiring/MyRequisitionsPage';
+import RequisitionTrackerPage from '@/pages/hiring/RequisitionTrackerPage';
 
 // Protected route wrapper
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
@@ -153,6 +157,11 @@ function AppRoutes() {
         <Route path="/internal-jobs" element={<InternalJobsPage />} />
         <Route path="/internal-jobs/:jobId" element={<InternalJobDetailPage />} />
         <Route path="/internal-jobs/my-applications" element={<InternalApplicationsPage />} />
+
+        {/* Hiring Manager */}
+        <Route path="/hiring/new-request" element={<NewRequisitionRequestPage />} />
+        <Route path="/hiring/my-requisitions" element={<MyRequisitionsPage />} />
+        <Route path="/hiring/requisitions/:id" element={<RequisitionTrackerPage />} />
 
         {/* Team Section - Supervisor Only */}
         <Route

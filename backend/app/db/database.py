@@ -7,15 +7,29 @@ BASE_DIR = os.path.dirname(os.path.dirname(
     os.path.dirname(os.path.abspath(__file__)))
 )
 
-# --- Database Path ---
-DB_PATH = os.path.join(BASE_DIR, "data", "hr_dashboard.db")
+# --- Database Configuration ---
+# Support for PostgreSQL (production) or SQLite (development)
+DATABASE_URL = os.getenv("DATABASE_URL")
 
-# --- Connection URL ---
-SQLALCHEMY_DATABASE_URL = f"sqlite:///{DB_PATH}"
+if DATABASE_URL:
+    # Production: Use DATABASE_URL (PostgreSQL, MySQL, etc.)
+    SQLALCHEMY_DATABASE_URL = DATABASE_URL
+else:
+    # Development fallback: SQLite
+    DB_PATH = os.path.join(BASE_DIR, "data", "hr_dashboard.db")
+    SQLALCHEMY_DATABASE_URL = f"sqlite:///{DB_PATH}"
+
+# --- Connection Arguments ---
+# SQLite requires check_same_thread=False for FastAPI
+# PostgreSQL and other databases don't need this
+if SQLALCHEMY_DATABASE_URL.startswith("sqlite"):
+    connect_args = {"check_same_thread": False}
+else:
+    connect_args = {}
 
 # --- Engine Setup ---
 engine = create_engine(
-    SQLALCHEMY_DATABASE_URL, connect_args={"check_same_thread": False}
+    SQLALCHEMY_DATABASE_URL, connect_args=connect_args
 )
 
 # --- Session Factory ---

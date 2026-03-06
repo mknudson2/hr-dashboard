@@ -22,6 +22,7 @@ export default defineConfig({
       "/auth": hrProxy,
       "/analytics/": hrProxy,
       "/employees/": hrProxy,
+      "/recruiting": hrProxy,
       "/notifications": hrProxy,
       "/fmla/": { ...hrProxy, rewrite: (path: string) => path },
       "/garnishments/": hrProxy,
@@ -51,6 +52,14 @@ export default defineConfig({
       "/capitalized-labor": hrProxy,
       "/reports": hrProxy,
       "/in-app-notifications": hrProxy,
+      "/content-management": {
+        ...hrProxy,
+        bypass(req: any) {
+          if (req.headers.accept?.includes("text/html")) {
+            return "/index.html";
+          }
+        },
+      },
     },
   },
 });

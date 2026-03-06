@@ -69,6 +69,7 @@ export default function SettingsPage() {
     const [pageVisibility, setPageVisibility] = useState({
         dashboard: true,
         employees: true,
+        recruiting: true,
         onboarding: true,
         offboarding: true,
         equipment: true,

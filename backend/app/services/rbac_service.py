@@ -163,6 +163,15 @@ class Permissions(str, Enum):
     ROLES_WRITE = "roles:write"
     ROLES_ASSIGN = "roles:assign"
 
+    # Content Management
+    CONTENT_MANAGE = "content_management:write"
+
+    # Recruiting
+    RECRUITING_READ = "recruiting:read"
+    RECRUITING_WRITE = "recruiting:write"
+    RECRUITING_ADMIN = "recruiting:admin"
+    RECRUITING_EEO_READ = "recruiting:eeo:read"
+
 
 # ============================================================================
 # DATABASE SESSION HELPER

@@ -1,17 +1,8 @@
 import { API_URL } from '@/config/api';
 
-// Direct backend URL for routes that don't work through the Vite proxy
-const BACKEND_URL = 'http://localhost:8000';
-
-// Routes that need to use the direct backend URL (Vite proxy workaround)
-const DIRECT_BACKEND_ROUTES = ['/performance'];
-
 // Generic API fetch wrapper with credentials
 export async function apiFetch(endpoint: string, options: RequestInit = {}): Promise<Response> {
-  // Check if this endpoint needs to use the direct backend URL
-  const needsDirectBackend = DIRECT_BACKEND_ROUTES.some(route => endpoint.startsWith(route));
-  const baseUrl = needsDirectBackend ? BACKEND_URL : API_URL;
-  const url = `${baseUrl}${endpoint}`;
+  const url = `${API_URL}${endpoint}`;
 
   return fetch(url, {
     ...options,
@@ -91,10 +82,7 @@ export async function apiDelete<T>(endpoint: string): Promise<T> {
 
 // POST request with FormData (for file uploads)
 export async function apiPostFormData<T>(endpoint: string, formData: FormData): Promise<T> {
-  // Check if this endpoint needs to use the direct backend URL
-  const needsDirectBackend = DIRECT_BACKEND_ROUTES.some(route => endpoint.startsWith(route));
-  const baseUrl = needsDirectBackend ? BACKEND_URL : API_URL;
-  const url = `${baseUrl}${endpoint}`;
+  const url = `${API_URL}${endpoint}`;
 
   const response = await fetch(url, {
     method: 'POST',

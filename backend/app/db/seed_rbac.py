@@ -139,6 +139,15 @@ PERMISSIONS = [
 
     # Personnel Actions
     {"name": "par_portal:supervisor", "display_name": "Personnel Actions", "category": "Personnel Actions", "description": "Submit PARs for direct reports"},
+
+    # Content Management
+    {"name": "content_management:write", "display_name": "Manage Content", "category": "Content Management", "description": "Create, edit, and delete portal content (handbook, benefits, FAQs, forms)"},
+
+    # Recruiting
+    {"name": "recruiting:read", "display_name": "View Recruiting", "category": "Recruiting", "description": "View job requisitions, candidates, and pipeline data"},
+    {"name": "recruiting:write", "display_name": "Manage Recruiting", "category": "Recruiting", "description": "Create and manage requisitions, advance candidates, schedule interviews"},
+    {"name": "recruiting:admin", "display_name": "Recruiting Admin", "category": "Recruiting", "description": "Full recruiting access including pipeline and offer management"},
+    {"name": "recruiting:eeo:read", "display_name": "View Recruiting EEO", "category": "Recruiting", "description": "View EEO demographic data for recruiting analytics"},
 ]
 
 
@@ -186,6 +195,8 @@ ROLES = [
             "pto_portal:employee", "pto_portal:supervisor",
             "performance_portal:employee", "performance_portal:supervisor",
             "par_portal:supervisor",
+            "content_management:write",
+            "recruiting:read", "recruiting:write", "recruiting:admin", "recruiting:eeo:read",
         ],
     },
     {

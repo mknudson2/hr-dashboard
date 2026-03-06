@@ -145,6 +145,9 @@ class Employee(Base):
     eeo_disability_status = Column(String, nullable=True)  # Disability status
     # Categories: "Yes, I Have A Disability", "No, I Don't Have A Disability", "I Don't Wish To Answer"
 
+    # Custom tags for role-based features (e.g., ["hiring_manager", "interviewer"])
+    custom_tags = Column(JSON, nullable=True)
+
     # Relationships
     fmla_leave_requests = relationship("FMLALeaveRequest", back_populates="employee")
     filled_pdf_forms = relationship("FilledPdfForm", back_populates="employee")
@@ -380,6 +383,7 @@ class ReviewCycle(Base):
 
     notes = Column(String, nullable=True)
     created_by = Column(String, nullable=True)
+    template_id = Column(Integer, ForeignKey("review_templates.id"), nullable=True)
     created_at = Column(DateTime, server_default=func.now())
     updated_at = Column(DateTime, onupdate=func.now())
 
@@ -448,11 +452,18 @@ class PerformanceReview(Base):
     employee_signature = Column(String, nullable=True)
     hr_signature = Column(String, nullable=True)
 
+    # Template-driven review support
+    template_id = Column(Integer, ForeignKey("review_templates.id"), nullable=True)
+    dynamic_ratings = Column(String, nullable=True)  # JSON: {"competency_key": rating_value}
+    dynamic_responses = Column(String, nullable=True)  # JSON: {"field_key": "text value"}
+    rating_notes = Column(String, nullable=True)  # JSON: {"rating_key": "note text"}
+
     created_at = Column(DateTime, server_default=func.now())
     updated_at = Column(DateTime, onupdate=func.now())
 
     # Relationships
     employee = relationship("Employee", backref="performance_reviews")
+    template = relationship("ReviewTemplate", backref="reviews")
 
 
 class PerformanceGoal(Base):
@@ -736,6 +747,9 @@ class ReviewTemplate(Base):
     include_self_review = Column(Boolean, default=True)
     include_goal_setting = Column(Boolean, default=True)
     include_development_plan = Column(Boolean, default=True)
+
+    # Text field definitions (JSON)
+    text_fields = Column(String, nullable=True)  # JSON list of text field definitions
 
     created_by = Column(String, nullable=True)
     created_at = Column(DateTime, server_default=func.now())
@@ -3477,17 +3491,20 @@ class PersonnelActionRequest(Base):
 class HRResource(Base):
     """
     HR Resources such as employee handbook, FAQs, policies, and forms.
-    Supports versioning and markdown content.
+    Supports versioning, markdown content, and hierarchical structure.
     """
     __tablename__ = "hr_resources"
 
     id = Column(Integer, primary_key=True, index=True)
-    resource_type = Column(String, nullable=False, index=True)  # handbook, faq, form, policy
+    resource_type = Column(String, nullable=False, index=True)  # handbook_chapter, handbook_section, benefits_category, benefits_plan, benefits_config, faq, form
     title = Column(String, nullable=False)
-    content = Column(Text, nullable=True)  # Markdown content
+    content = Column(Text, nullable=True)  # HTML/Markdown content
+    description = Column(Text, nullable=True)  # Short description
     file_path = Column(String, nullable=True)  # For downloadable files
     category = Column(String, nullable=True, index=True)
     sort_order = Column(Integer, default=0)
+    parent_id = Column(Integer, ForeignKey("hr_resources.id"), nullable=True, index=True)
+    metadata_json = Column(Text, nullable=True)  # JSON for type-specific fields
 
     # Metadata
     version = Column(String, nullable=True)
@@ -3498,6 +3515,37 @@ class HRResource(Base):
 
     # Relationships
     creator = relationship("User", backref="created_resources")
+    parent = relationship("HRResource", remote_side=[id], backref="children")
+
+
+# ============================================================================
+# EMPLOYEE DOCUMENTS (managed via Content Management)
+# ============================================================================
+
+class EmployeeDocument(Base):
+    """
+    Per-employee documents such as pay stubs, W-2s, offer letters, etc.
+    Managed by HR through the Content Management page.
+    """
+    __tablename__ = "employee_documents"
+
+    id = Column(Integer, primary_key=True, index=True)
+    employee_id = Column(Integer, ForeignKey("employees.id"), nullable=False, index=True)
+    name = Column(String, nullable=False)
+    document_type = Column(String, nullable=False)  # pay_stub, w2, offer_letter, benefits_summary, tax_form, other
+    category = Column(String, nullable=False)  # Pay Stubs, Tax Forms, Benefits, Offer Letters, Other
+    document_date = Column(Date, nullable=False)
+    file_size = Column(String, nullable=True)
+    file_path = Column(String, nullable=True)  # Path to uploaded file on disk
+    download_url = Column(String, nullable=True)  # External URL (alternative to file upload)
+    is_active = Column(Boolean, default=True)
+    created_at = Column(DateTime, server_default=func.now())
+    updated_at = Column(DateTime, onupdate=func.now())
+    created_by = Column(Integer, ForeignKey("users.id"), nullable=True)
+
+    # Relationships
+    employee = relationship("Employee", backref="documents")
+    creator = relationship("User", backref="created_employee_documents", foreign_keys=[created_by])
 
 
 # ============================================================================
@@ -3575,3 +3623,762 @@ class InAppNotification(Base):
     # Relationships
     user = relationship("User", foreign_keys=[user_id], backref="notifications")
     created_by = relationship("User", foreign_keys=[created_by_user_id])
+
+
+# ============================================================================
+# RECRUITING & APPLICANT TRACKING MODELS
+# ============================================================================
+
+class PipelineTemplate(Base):
+    """Configurable hiring pipeline template with ordered stages."""
+    __tablename__ = "pipeline_templates"
+
+    id = Column(Integer, primary_key=True, index=True, autoincrement=True)
+    name = Column(String, nullable=False)
+    description = Column(Text, nullable=True)
+    is_default = Column(Boolean, default=False)
+    is_active = Column(Boolean, default=True)
+    created_by = Column(Integer, ForeignKey("users.id"), nullable=True)
+    created_at = Column(DateTime, server_default=func.now())
+    updated_at = Column(DateTime, onupdate=func.now())
+
+    # Relationships
+    stages = relationship("PipelineStage", back_populates="template", order_by="PipelineStage.order_index")
+    requisitions = relationship("JobRequisition", back_populates="pipeline_template")
+
+
+class PipelineStage(Base):
+    """Individual stage within a pipeline template."""
+    __tablename__ = "pipeline_stages"
+
+    id = Column(Integer, primary_key=True, index=True, autoincrement=True)
+    template_id = Column(Integer, ForeignKey("pipeline_templates.id"), nullable=False, index=True)
+    name = Column(String, nullable=False)
+    stage_type = Column(String, nullable=False)  # "application_review", "phone_screen", "interview", "assessment", "reference_check", "offer", "custom"
+    order_index = Column(Integer, nullable=False)
+    is_required = Column(Boolean, default=True)
+    auto_advance = Column(Boolean, default=False)
+    scorecard_template = Column(JSON, nullable=True)  # {"criteria": [{"name": "...", "weight": 1.0}], "recommendation_options": [...]}
+    days_sla = Column(Integer, nullable=True)  # Expected days to complete this stage
+
+    # Relationships
+    template = relationship("PipelineTemplate", back_populates="stages")
+
+    __table_args__ = (
+        Index('ix_pipeline_stage_template_order', 'template_id', 'order_index'),
+    )
+
+
+class JobRequisition(Base):
+    """Internal headcount request — the business case for a hire."""
+    __tablename__ = "job_requisitions"
+
+    id = Column(Integer, primary_key=True, index=True, autoincrement=True)
+    requisition_id = Column(String, unique=True, index=True)  # "REQ-2026-001"
+    title = Column(String, nullable=False)
+    department = Column(String, nullable=True)
+    team = Column(String, nullable=True)
+    cost_center = Column(String, nullable=True)
+    location = Column(String, nullable=True)
+    remote_type = Column(String, default="On-site")  # "On-site", "Remote", "Hybrid"
+    employment_type = Column(String, nullable=True)  # "Full Time", "Part Time", "Contract", "Intern"
+    position_type = Column(String, default="New")  # "New", "Replacement", "Expansion"
+
+    # Compensation
+    salary_min = Column(Float, nullable=True)
+    salary_max = Column(Float, nullable=True)
+    wage_type = Column(String, nullable=True)  # "Salary", "Hourly"
+    show_salary_on_posting = Column(Boolean, default=False)
+
+    # Headcount
+    openings = Column(Integer, default=1)
+    filled_count = Column(Integer, default=0)
+
+    # Workflow
+    status = Column(String, default="Draft")  # "Draft", "Pending Approval", "Approved", "Open", "On Hold", "Filled", "Cancelled"
+    requested_by = Column(Integer, ForeignKey("users.id"), nullable=True)
+    approved_by = Column(Integer, ForeignKey("users.id"), nullable=True)
+    hiring_manager_id = Column(Integer, ForeignKey("users.id"), nullable=True)
+    recruiter_id = Column(Integer, ForeignKey("users.id"), nullable=True)
+
+    # Internal posting settings
+    is_internal_only = Column(Boolean, default=False)
+    internal_visibility = Column(String, default="All")  # "All", "Department Only", "Specific Teams"
+    internal_visibility_teams = Column(JSON, nullable=True)
+
+    # Replacement tracking
+    replacing_employee_id = Column(String, ForeignKey("employees.employee_id"), nullable=True)
+    pipeline_template_id = Column(Integer, ForeignKey("pipeline_templates.id"), nullable=True)
+
+    # Job description
+    description = Column(Text, nullable=True)
+    requirements = Column(Text, nullable=True)
+    preferred_qualifications = Column(Text, nullable=True)
+    responsibilities = Column(Text, nullable=True)
+    benefits_summary = Column(Text, nullable=True)
+
+    # Additional info
+    eeo_job_category = Column(String, nullable=True)
+    target_start_date = Column(Date, nullable=True)
+    target_fill_date = Column(Date, nullable=True)
+    notes = Column(Text, nullable=True)
+    created_at = Column(DateTime, server_default=func.now())
+    updated_at = Column(DateTime, onupdate=func.now())
+
+    # Posting channels (multi-select: "internal", "external", "bloom")
+    posting_channels = Column(JSON, nullable=True)
+    # Skills/requirements tags
+    skills_tags = Column(JSON, nullable=True)
+    # Urgency & timeline
+    urgency = Column(String, nullable=True)  # "Low", "Normal", "High", "Critical"
+    preferred_salary = Column(Float, nullable=True)
+    # Supervisor for the position
+    position_supervisor = Column(String, nullable=True)
+    # Stakeholder visibility — user IDs who should follow the recruiting process
+    visibility_user_ids = Column(JSON, nullable=True)
+    # Source of request
+    request_source = Column(String, default="manual")  # "manual", "employee_portal"
+    # Early tech screen flag (for Bloom staffing agency)
+    requires_early_tech_screen = Column(Boolean, default=False)
+
+    # Relationships
+    pipeline_template = relationship("PipelineTemplate", back_populates="requisitions")
+    postings = relationship("JobPosting", back_populates="requisition")
+    applications = relationship("Application", back_populates="requisition")
+    requested_by_user = relationship("User", foreign_keys=[requested_by])
+    approved_by_user = relationship("User", foreign_keys=[approved_by])
+    hiring_manager = relationship("User", foreign_keys=[hiring_manager_id])
+    recruiter = relationship("User", foreign_keys=[recruiter_id])
+    replacing_employee = relationship("Employee", foreign_keys=[replacing_employee_id])
+    lifecycle_stages = relationship("RequisitionLifecycleStage", back_populates="requisition", order_by="RequisitionLifecycleStage.order_index")
+
+    __table_args__ = (
+        Index('ix_requisition_status', 'status'),
+        Index('ix_requisition_department', 'department'),
+    )
+
+
+class JobPosting(Base):
+    """Public-facing job listing. One requisition can have multiple postings on different channels."""
+    __tablename__ = "job_postings"
+
+    id = Column(Integer, primary_key=True, index=True, autoincrement=True)
+    posting_id = Column(String, unique=True, index=True)  # "POST-2026-001"
+    requisition_id = Column(Integer, ForeignKey("job_requisitions.id"), nullable=False, index=True)
+
+    # Content
+    title = Column(String, nullable=False)
+    description_html = Column(Text, nullable=True)  # Rich text description
+    short_description = Column(Text, nullable=True)
+
+    # Status
+    status = Column(String, default="Draft")  # "Draft", "Published", "Paused", "Closed", "Archived"
+    published_at = Column(DateTime, nullable=True)
+    closes_at = Column(DateTime, nullable=True)
+    closed_at = Column(DateTime, nullable=True)
+
+    # Channel
+    channel = Column(String, default="portal")  # "portal", "indeed", "linkedin", "careers_page", "internal"
+    is_internal = Column(Boolean, default=False)
+
+    # External integration fields
+    external_posting_id = Column(String, nullable=True)
+    external_posting_url = Column(String, nullable=True)
+    external_synced_at = Column(DateTime, nullable=True)
+    external_status = Column(String, nullable=True)
+
+    # Application settings
+    allow_easy_apply = Column(Boolean, default=True)
+    requires_resume = Column(Boolean, default=True)
+    requires_cover_letter = Column(Boolean, default=False)
+    custom_questions = Column(JSON, nullable=True)  # [{"question": "...", "type": "text|select|boolean", "required": true, "options": [...]}]
+
+    # SEO / discovery
+    slug = Column(String, unique=True, index=True)  # URL-friendly slug
+    tags = Column(JSON, nullable=True)  # ["engineering", "senior", "python"]
+
+    # Metrics
+    view_count = Column(Integer, default=0)
+    application_count = Column(Integer, default=0)
+
+    # Metadata
+    created_by = Column(Integer, ForeignKey("users.id"), nullable=True)
+    created_at = Column(DateTime, server_default=func.now())
+    updated_at = Column(DateTime, onupdate=func.now())
+
+    # Relationships
+    requisition = relationship("JobRequisition", back_populates="postings")
+    applications = relationship("Application", back_populates="posting")
+    created_by_user = relationship("User", foreign_keys=[created_by])
+
+    __table_args__ = (
+        Index('ix_posting_status_channel', 'status', 'channel'),
+    )
+
+
+class Applicant(Base):
+    """Person who applies for jobs. Separate from User table."""
+    __tablename__ = "applicants"
+
+    id = Column(Integer, primary_key=True, index=True, autoincrement=True)
+    applicant_id = Column(String, unique=True, index=True)  # "APP-2026-00001"
+
+    # Personal info
+    first_name = Column(String, nullable=False)
+    last_name = Column(String, nullable=False)
+    email = Column(String, nullable=False, index=True)
+    phone = Column(String, nullable=True)
+    address_street = Column(String, nullable=True)
+    address_city = Column(String, nullable=True)
+    address_state = Column(String, nullable=True)
+    address_zip = Column(String, nullable=True)
+    linkedin_url = Column(String, nullable=True)
+    portfolio_url = Column(String, nullable=True)
+
+    # Professional info
+    current_employer = Column(String, nullable=True)
+    current_title = Column(String, nullable=True)
+    years_of_experience = Column(Integer, nullable=True)
+
+    # Internal applicant link
+    is_internal = Column(Boolean, default=False)
+    employee_id = Column(String, ForeignKey("employees.employee_id"), nullable=True)
+
+    # Account (optional applicant login)
+    has_account = Column(Boolean, default=False)
+    password_hash = Column(String, nullable=True)
+    account_created_at = Column(DateTime, nullable=True)
+    last_login = Column(DateTime, nullable=True)
+
+    # Magic link auth
+    magic_link_token = Column(String, nullable=True, index=True)
+    magic_link_expires_at = Column(DateTime, nullable=True)
+
+    # Source tracking
+    source = Column(String, default="portal")  # "portal", "indeed", "linkedin", "referral", "internal", "agency", "other"
+    source_detail = Column(String, nullable=True)
+    referred_by_employee_id = Column(String, ForeignKey("employees.employee_id"), nullable=True)
+
+    # Status
+    global_status = Column(String, default="Active")  # "Active", "Do Not Contact", "Blacklisted"
+    tags = Column(JSON, nullable=True)
+    internal_notes = Column(Text, nullable=True)
+
+    # Resume
+    resume_file_id = Column(Integer, ForeignKey("file_uploads.id"), nullable=True)
+
+    created_at = Column(DateTime, server_default=func.now())
+    updated_at = Column(DateTime, onupdate=func.now())
+
+    # Relationships
+    employee = relationship("Employee", foreign_keys=[employee_id])
+    referred_by = relationship("Employee", foreign_keys=[referred_by_employee_id])
+    resume_file = relationship("FileUpload", foreign_keys=[resume_file_id])
+    applications = relationship("Application", back_populates="applicant")
+    eeo_data = relationship("ApplicantEEO", back_populates="applicant", uselist=False)
+    documents = relationship("ApplicantDocument", back_populates="applicant")
+
+    __table_args__ = (
+        Index('ix_applicant_email', 'email'),
+        Index('ix_applicant_source', 'source'),
+    )
+
+
+class Application(Base):
+    """Specific application from an applicant to a specific job requisition."""
+    __tablename__ = "applications"
+
+    id = Column(Integer, primary_key=True, index=True, autoincrement=True)
+    application_id = Column(String, unique=True, index=True)  # "APPLICATION-2026-00001"
+
+    # References
+    applicant_id = Column(Integer, ForeignKey("applicants.id"), nullable=False, index=True)
+    requisition_id = Column(Integer, ForeignKey("job_requisitions.id"), nullable=False, index=True)
+    posting_id = Column(Integer, ForeignKey("job_postings.id"), nullable=True, index=True)
+    current_stage_id = Column(Integer, ForeignKey("pipeline_stages.id"), nullable=True)
+
+    # Status
+    status = Column(String, default="New")  # "New", "Screening", "Interview", "Offer", "Hired", "Rejected", "Withdrawn"
+    status_changed_at = Column(DateTime, nullable=True)
+    status_changed_by = Column(Integer, ForeignKey("users.id"), nullable=True)
+
+    # Content
+    cover_letter = Column(Text, nullable=True)
+    custom_answers = Column(JSON, nullable=True)  # Answers to custom questions from posting
+    resume_file_id = Column(Integer, ForeignKey("file_uploads.id"), nullable=True)
+
+    # Source
+    source = Column(String, nullable=True)  # Copied from posting channel or applicant source
+    source_detail = Column(String, nullable=True)
+
+    # External integration
+    external_application_id = Column(String, nullable=True)
+    external_source = Column(String, nullable=True)
+    external_synced_at = Column(DateTime, nullable=True)
+    disposition_synced_at = Column(DateTime, nullable=True)
+
+    # Rejection
+    rejection_reason = Column(String, nullable=True)
+    rejection_notes = Column(Text, nullable=True)
+    rejected_at = Column(DateTime, nullable=True)
+    rejected_by = Column(Integer, ForeignKey("users.id"), nullable=True)
+
+    # Offer tracking
+    offer_extended_at = Column(DateTime, nullable=True)
+    offer_accepted_at = Column(DateTime, nullable=True)
+    offer_declined_at = Column(DateTime, nullable=True)
+
+    # Hiring
+    hired_at = Column(DateTime, nullable=True)
+    hired_employee_id = Column(String, ForeignKey("employees.employee_id"), nullable=True)
+
+    # Evaluation
+    overall_rating = Column(Float, nullable=True)  # 1-5
+    is_favorite = Column(Boolean, default=False)
+    is_internal_transfer = Column(Boolean, default=False)
+
+    submitted_at = Column(DateTime, nullable=True)
+    created_at = Column(DateTime, server_default=func.now())
+    updated_at = Column(DateTime, onupdate=func.now())
+
+    # Relationships
+    applicant = relationship("Applicant", back_populates="applications")
+    requisition = relationship("JobRequisition", back_populates="applications")
+    posting = relationship("JobPosting", back_populates="applications")
+    current_stage = relationship("PipelineStage", foreign_keys=[current_stage_id])
+    resume_file = relationship("FileUpload", foreign_keys=[resume_file_id])
+    status_changed_by_user = relationship("User", foreign_keys=[status_changed_by])
+    rejected_by_user = relationship("User", foreign_keys=[rejected_by])
+    hired_employee = relationship("Employee", foreign_keys=[hired_employee_id])
+    activities = relationship("ApplicationActivity", back_populates="application", order_by="ApplicationActivity.created_at.desc()")
+    stage_history = relationship("ApplicationStageHistory", back_populates="application", order_by="ApplicationStageHistory.entered_at")
+    documents = relationship("ApplicantDocument", back_populates="application")
+    scorecards = relationship("InterviewScorecard", back_populates="application")
+    interviews = relationship("Interview", back_populates="application")
+
+    __table_args__ = (
+        Index('ix_application_status', 'status'),
+        Index('ix_application_applicant_req', 'applicant_id', 'requisition_id'),
+    )
+
+
+class ApplicantEEO(Base):
+    """Voluntary EEO self-identification data. Stored separately and never shown to hiring managers."""
+    __tablename__ = "applicant_eeo"
+
+    id = Column(Integer, primary_key=True, index=True, autoincrement=True)
+    applicant_id = Column(Integer, ForeignKey("applicants.id"), unique=True, nullable=False)
+    race_ethnicity = Column(String, nullable=True)
+    gender = Column(String, nullable=True)
+    veteran_status = Column(String, nullable=True)
+    disability_status = Column(String, nullable=True)
+    self_identified_at = Column(DateTime, nullable=True)
+    declined_to_identify = Column(Boolean, default=False)
+    created_at = Column(DateTime, server_default=func.now())
+    updated_at = Column(DateTime, onupdate=func.now())
+
+    # Relationships
+    applicant = relationship("Applicant", back_populates="eeo_data")
+
+
+class ApplicantDocument(Base):
+    """Documents linked to applicants and their applications."""
+    __tablename__ = "applicant_documents"
+
+    id = Column(Integer, primary_key=True, index=True, autoincrement=True)
+    applicant_id = Column(Integer, ForeignKey("applicants.id"), nullable=False, index=True)
+    application_id = Column(Integer, ForeignKey("applications.id"), nullable=True, index=True)
+    file_upload_id = Column(Integer, ForeignKey("file_uploads.id"), nullable=False)
+
+    document_type = Column(String, nullable=False)  # "resume", "cover_letter", "portfolio", "certification", "transcript", "other"
+    label = Column(String, nullable=True)
+    notes = Column(Text, nullable=True)
+    uploaded_at = Column(DateTime, server_default=func.now())
+
+    # Relationships
+    applicant = relationship("Applicant", back_populates="documents")
+    application = relationship("Application", back_populates="documents")
+    file_upload = relationship("FileUpload", foreign_keys=[file_upload_id])
+
+
+class ApplicationActivity(Base):
+    """Timeline/audit log per application."""
+    __tablename__ = "application_activities"
+
+    id = Column(Integer, primary_key=True, index=True, autoincrement=True)
+    application_id = Column(Integer, ForeignKey("applications.id"), nullable=False, index=True)
+    activity_type = Column(String, nullable=False)  # "status_change", "stage_change", "note_added", "email_sent", "interview_scheduled", "scorecard_submitted", "document_uploaded", "offer_extended"
+    description = Column(Text, nullable=True)
+    details = Column(JSON, nullable=True)  # Structured data about the activity
+    performed_by = Column(Integer, ForeignKey("users.id"), nullable=True)
+    is_internal = Column(Boolean, default=True)  # If false, visible to applicant
+    created_at = Column(DateTime, server_default=func.now())
+
+    # Relationships
+    application = relationship("Application", back_populates="activities")
+    performed_by_user = relationship("User", foreign_keys=[performed_by])
+
+    __table_args__ = (
+        Index('ix_activity_application_type', 'application_id', 'activity_type'),
+    )
+
+
+class ApplicationStageHistory(Base):
+    """Tracks movement of an application through pipeline stages."""
+    __tablename__ = "application_stage_history"
+
+    id = Column(Integer, primary_key=True, index=True, autoincrement=True)
+    application_id = Column(Integer, ForeignKey("applications.id"), nullable=False, index=True)
+    stage_id = Column(Integer, ForeignKey("pipeline_stages.id"), nullable=False)
+    entered_at = Column(DateTime, server_default=func.now())
+    exited_at = Column(DateTime, nullable=True)
+    outcome = Column(String, nullable=True)  # "passed", "rejected", "skipped", "withdrawn"
+    moved_by = Column(Integer, ForeignKey("users.id"), nullable=True)
+    notes = Column(Text, nullable=True)
+
+    # Relationships
+    application = relationship("Application", back_populates="stage_history")
+    stage = relationship("PipelineStage", foreign_keys=[stage_id])
+    moved_by_user = relationship("User", foreign_keys=[moved_by])
+
+
+class InterviewScorecard(Base):
+    """Structured feedback from an interviewer for a candidate at a specific pipeline stage."""
+    __tablename__ = "interview_scorecards"
+
+    id = Column(Integer, primary_key=True, index=True, autoincrement=True)
+    application_id = Column(Integer, ForeignKey("applications.id"), nullable=False, index=True)
+    stage_id = Column(Integer, ForeignKey("pipeline_stages.id"), nullable=False, index=True)
+    interviewer_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+
+    # Ratings
+    overall_rating = Column(Float, nullable=True)  # 1-5
+    recommendation = Column(String, nullable=True)  # "Strong Hire", "Hire", "Lean Hire", "Lean No Hire", "No Hire"
+    criteria_ratings = Column(JSON, nullable=True)  # [{"criteria": "...", "rating": 1-5, "notes": "..."}]
+
+    # Feedback
+    strengths = Column(Text, nullable=True)
+    concerns = Column(Text, nullable=True)
+    additional_notes = Column(Text, nullable=True)
+
+    # Workflow
+    status = Column(String, default="Pending")  # "Pending", "In Progress", "Submitted"
+    submitted_at = Column(DateTime, nullable=True)
+    due_date = Column(DateTime, nullable=True)
+
+    created_at = Column(DateTime, server_default=func.now())
+    updated_at = Column(DateTime, onupdate=func.now())
+
+    # Relationships
+    application = relationship("Application", back_populates="scorecards")
+    stage = relationship("PipelineStage", foreign_keys=[stage_id])
+    interviewer = relationship("User", foreign_keys=[interviewer_id])
+
+    __table_args__ = (
+        Index('ix_scorecard_app_stage', 'application_id', 'stage_id'),
+    )
+
+
+class Interview(Base):
+    """Scheduled interview event for a candidate."""
+    __tablename__ = "interviews"
+
+    id = Column(Integer, primary_key=True, index=True, autoincrement=True)
+    interview_id = Column(String, unique=True, index=True)  # "INT-2026-001"
+    application_id = Column(Integer, ForeignKey("applications.id"), nullable=False, index=True)
+    stage_id = Column(Integer, ForeignKey("pipeline_stages.id"), nullable=False)
+
+    # Scheduling
+    scheduled_at = Column(DateTime, nullable=False)
+    duration_minutes = Column(Integer, default=60)
+    time_zone = Column(String, nullable=True)
+    format = Column(String, default="Video")  # "In-Person", "Phone", "Video"
+    location = Column(String, nullable=True)
+    video_link = Column(String, nullable=True)
+
+    # Participants
+    interviewers = Column(JSON, nullable=True)  # [{"user_id": 1, "name": "...", "role": "interviewer|lead"}]
+    organizer_id = Column(Integer, ForeignKey("users.id"), nullable=True)
+
+    # Status
+    status = Column(String, default="Scheduled")  # "Scheduled", "Confirmed", "Completed", "Cancelled", "No Show"
+    cancelled_reason = Column(String, nullable=True)
+
+    # Notifications
+    applicant_notified = Column(Boolean, default=False)
+    applicant_confirmed = Column(Boolean, default=False)
+    reminder_sent = Column(Boolean, default=False)
+
+    created_at = Column(DateTime, server_default=func.now())
+    updated_at = Column(DateTime, onupdate=func.now())
+
+    # Relationships
+    application = relationship("Application", back_populates="interviews")
+    stage = relationship("PipelineStage", foreign_keys=[stage_id])
+    organizer = relationship("User", foreign_keys=[organizer_id])
+
+    __table_args__ = (
+        Index('ix_interview_app_stage', 'application_id', 'stage_id'),
+        Index('ix_interview_scheduled', 'scheduled_at'),
+    )
+
+
+class OfferLetter(Base):
+    """Offer letter details and approval/acceptance workflow."""
+    __tablename__ = "offer_letters"
+
+    id = Column(Integer, primary_key=True, index=True, autoincrement=True)
+    offer_id = Column(String, unique=True, index=True)  # "OFFER-2026-001"
+    application_id = Column(Integer, ForeignKey("applications.id"), nullable=False, index=True)
+
+    # Position details
+    position_title = Column(String, nullable=False)
+    department = Column(String, nullable=True)
+    location = Column(String, nullable=True)
+    employment_type = Column(String, nullable=True)  # "Full Time", "Part Time", etc.
+    start_date = Column(Date, nullable=True)
+    reports_to = Column(String, nullable=True)
+
+    # Compensation
+    salary = Column(Float, nullable=True)
+    wage_type = Column(String, nullable=True)  # "Salary", "Hourly"
+    signing_bonus = Column(Float, nullable=True)
+    equity_details = Column(Text, nullable=True)
+    benefits_summary = Column(Text, nullable=True)
+
+    # Workflow
+    status = Column(String, default="Draft")
+    # Statuses: "Draft", "Pending Approval", "Approved", "Sent", "Accepted", "Declined", "Expired", "Rescinded"
+    created_by = Column(Integer, ForeignKey("users.id"), nullable=True)
+    approved_by = Column(Integer, ForeignKey("users.id"), nullable=True)
+    approved_at = Column(DateTime, nullable=True)
+    sent_at = Column(DateTime, nullable=True)
+    expires_at = Column(DateTime, nullable=True)
+    responded_at = Column(DateTime, nullable=True)
+    response = Column(String, nullable=True)  # "accepted" or "declined"
+    decline_reason = Column(String, nullable=True)
+
+    # Files
+    offer_letter_file_id = Column(Integer, ForeignKey("file_uploads.id"), nullable=True)
+    signed_file_id = Column(Integer, ForeignKey("file_uploads.id"), nullable=True)
+
+    # Counter-offer tracking
+    is_counter_offer = Column(Boolean, default=False)
+    original_offer_id = Column(Integer, ForeignKey("offer_letters.id"), nullable=True)
+    negotiation_notes = Column(Text, nullable=True)
+
+    # Contingencies
+    contingencies = Column(JSON, nullable=True)  # {"background_check": true, "drug_test": false, ...}
+
+    created_at = Column(DateTime, server_default=func.now())
+    updated_at = Column(DateTime, onupdate=func.now())
+
+    # Relationships
+    application = relationship("Application", backref="offers")
+    created_by_user = relationship("User", foreign_keys=[created_by])
+    approved_by_user = relationship("User", foreign_keys=[approved_by])
+    offer_letter_file = relationship("FileUpload", foreign_keys=[offer_letter_file_id])
+    signed_file = relationship("FileUpload", foreign_keys=[signed_file_id])
+    original_offer = relationship("OfferLetter", remote_side="OfferLetter.id", foreign_keys=[original_offer_id])
+
+    __table_args__ = (
+        Index('ix_offer_application', 'application_id'),
+        Index('ix_offer_status', 'status'),
+    )
+
+
+class DocumentRequest(Base):
+    """HR requests specific documents from applicants."""
+    __tablename__ = "document_requests"
+
+    id = Column(Integer, primary_key=True, index=True, autoincrement=True)
+    application_id = Column(Integer, ForeignKey("applications.id"), nullable=False, index=True)
+    applicant_id = Column(Integer, ForeignKey("applicants.id"), nullable=False, index=True)
+
+    # Request details
+    document_type = Column(String, nullable=False)  # "id_verification", "transcript", "certification", "background_consent", "reference_list", "other"
+    description = Column(Text, nullable=True)
+    is_required = Column(Boolean, default=True)
+    due_date = Column(Date, nullable=True)
+
+    # Status
+    status = Column(String, default="Requested")
+    # Statuses: "Requested", "Submitted", "Accepted", "Rejected", "Expired"
+    file_upload_id = Column(Integer, ForeignKey("file_uploads.id"), nullable=True)
+    rejection_reason = Column(String, nullable=True)
+    reminder_count = Column(Integer, default=0)
+    last_reminded_at = Column(DateTime, nullable=True)
+
+    # Metadata
+    requested_by = Column(Integer, ForeignKey("users.id"), nullable=True)
+    reviewed_by = Column(Integer, ForeignKey("users.id"), nullable=True)
+    reviewed_at = Column(DateTime, nullable=True)
+
+    created_at = Column(DateTime, server_default=func.now())
+    updated_at = Column(DateTime, onupdate=func.now())
+
+    # Relationships
+    application = relationship("Application", backref="document_requests")
+    applicant = relationship("Applicant", backref="document_requests")
+    file_upload = relationship("FileUpload", foreign_keys=[file_upload_id])
+    requested_by_user = relationship("User", foreign_keys=[requested_by])
+    reviewed_by_user = relationship("User", foreign_keys=[reviewed_by])
+
+    __table_args__ = (
+        Index('ix_docreq_application', 'application_id'),
+        Index('ix_docreq_status', 'status'),
+    )
+
+
+# ============================================================================
+# HIRE CONVERSION MODEL (Phase 4)
+# ============================================================================
+
+class HireConversion(Base):
+    """Tracks the multi-step conversion from applicant to employee."""
+    __tablename__ = "hire_conversions"
+
+    id = Column(Integer, primary_key=True, index=True, autoincrement=True)
+
+    # Source references
+    application_id = Column(Integer, ForeignKey("applications.id"), nullable=False, unique=True, index=True)
+    applicant_id = Column(Integer, ForeignKey("applicants.id"), nullable=False, index=True)
+    offer_id = Column(Integer, ForeignKey("offer_letters.id"), nullable=False)
+
+    # Created records (populated as conversion progresses)
+    employee_id = Column(String, ForeignKey("employees.employee_id"), nullable=True)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=True)
+    onboarding_template_id = Column(Integer, ForeignKey("onboarding_templates.id"), nullable=True)
+
+    # Status tracking
+    status = Column(String, default="Pending")
+    # Statuses: "Pending", "Employee Created", "User Created", "Onboarding Started", "Completed", "Failed"
+
+    # Hire details
+    hire_date = Column(Date, nullable=True)
+    department = Column(String, nullable=True)
+    position = Column(String, nullable=True)
+    location = Column(String, nullable=True)
+    salary = Column(Float, nullable=True)
+    wage_type = Column(String, nullable=True)
+
+    # Conversion tracking
+    converted_by = Column(Integer, ForeignKey("users.id"), nullable=True)
+    eeo_transferred = Column(Boolean, default=False)
+    error_message = Column(Text, nullable=True)
+
+    # Internal transfer flag
+    is_internal_transfer = Column(Boolean, default=False)
+
+    # Timestamps
+    created_at = Column(DateTime, server_default=func.now())
+    updated_at = Column(DateTime, onupdate=func.now())
+    employee_created_at = Column(DateTime, nullable=True)
+    user_created_at = Column(DateTime, nullable=True)
+    onboarding_started_at = Column(DateTime, nullable=True)
+    completed_at = Column(DateTime, nullable=True)
+
+    # Relationships
+    application = relationship("Application", backref="hire_conversion")
+    applicant = relationship("Applicant", backref="hire_conversions")
+    offer = relationship("OfferLetter", backref="hire_conversion")
+    employee = relationship("Employee", foreign_keys=[employee_id])
+    user = relationship("User", foreign_keys=[user_id])
+    converted_by_user = relationship("User", foreign_keys=[converted_by])
+    onboarding_template = relationship("OnboardingTemplate", foreign_keys=[onboarding_template_id])
+
+
+class RequisitionLifecycleStage(Base):
+    """Tracks progress through the recruiting lifecycle for a requisition (Dominos-style tracker)."""
+    __tablename__ = "requisition_lifecycle_stages"
+
+    id = Column(Integer, primary_key=True, index=True, autoincrement=True)
+    requisition_id = Column(Integer, ForeignKey("job_requisitions.id"), nullable=False, index=True)
+
+    stage_key = Column(String, nullable=False)  # "request_submitted", "position_posted", etc.
+    stage_label = Column(String, nullable=False)  # Display name
+    order_index = Column(Integer, nullable=False)
+    status = Column(String, default="pending")  # "pending", "active", "completed", "skipped", "blocked"
+
+    entered_at = Column(DateTime, nullable=True)
+    completed_at = Column(DateTime, nullable=True)
+    completed_by = Column(Integer, ForeignKey("users.id"), nullable=True)
+    approval_status = Column(String, nullable=True)  # "approved", "rejected", "pending_approval"
+    approval_notes = Column(Text, nullable=True)
+
+    # For decision stages (tech screen pass/fail, offer response)
+    outcome = Column(String, nullable=True)  # "passed", "failed", "negotiating", "accepted", "rejected"
+    outcome_notes = Column(Text, nullable=True)
+
+    # HR presence toggle (for hiring manager interview)
+    hr_representative_present = Column(Boolean, nullable=True)
+    hr_representative_id = Column(Integer, ForeignKey("users.id"), nullable=True)
+
+    created_at = Column(DateTime, server_default=func.now())
+    updated_at = Column(DateTime, onupdate=func.now())
+
+    # Relationships
+    requisition = relationship("JobRequisition", back_populates="lifecycle_stages")
+    completed_by_user = relationship("User", foreign_keys=[completed_by])
+    hr_representative = relationship("User", foreign_keys=[hr_representative_id])
+    notes = relationship("LifecycleStageNote", back_populates="lifecycle_stage", order_by="LifecycleStageNote.created_at")
+    documents = relationship("LifecycleStageDocument", back_populates="lifecycle_stage", order_by="LifecycleStageDocument.created_at")
+
+    __table_args__ = (
+        Index('ix_lifecycle_stage_requisition_order', 'requisition_id', 'order_index'),
+    )
+
+
+class LifecycleStageNote(Base):
+    """Notes from stakeholders at each lifecycle stage. Supports highlights/badges and recommendations."""
+    __tablename__ = "lifecycle_stage_notes"
+
+    id = Column(Integer, primary_key=True, index=True, autoincrement=True)
+    lifecycle_stage_id = Column(Integer, ForeignKey("requisition_lifecycle_stages.id"), nullable=False, index=True)
+    author_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+
+    content = Column(Text, nullable=False)
+    highlights = Column(JSON, nullable=True)  # ["Strong Communicator", "Culture Fit", "Technical Expert"]
+    recommendation = Column(String, nullable=True)  # "approved", "not_approved"
+    recommendation_reason = Column(Text, nullable=True)
+
+    created_at = Column(DateTime, server_default=func.now())
+    updated_at = Column(DateTime, onupdate=func.now())
+
+    # Relationships
+    lifecycle_stage = relationship("RequisitionLifecycleStage", back_populates="notes")
+    author = relationship("User", foreign_keys=[author_id])
+
+
+class LifecycleStageDocument(Base):
+    """Documents uploaded at each lifecycle stage."""
+    __tablename__ = "lifecycle_stage_documents"
+
+    id = Column(Integer, primary_key=True, index=True, autoincrement=True)
+    lifecycle_stage_id = Column(Integer, ForeignKey("requisition_lifecycle_stages.id"), nullable=False, index=True)
+    uploaded_by = Column(Integer, ForeignKey("users.id"), nullable=False)
+    file_upload_id = Column(Integer, ForeignKey("file_uploads.id"), nullable=True)
+
+    filename = Column(String, nullable=False)
+    description = Column(String, nullable=True)
+    file_path = Column(String, nullable=True)
+
+    created_at = Column(DateTime, server_default=func.now())
+
+    # Relationships
+    lifecycle_stage = relationship("RequisitionLifecycleStage", back_populates="documents")
+    uploaded_by_user = relationship("User", foreign_keys=[uploaded_by])
+
+
+class InterviewComplianceTip(Base):
+    """Knowledge base of interview compliance tips and best practices."""
+    __tablename__ = "interview_compliance_tips"
+
+    id = Column(Integer, primary_key=True, index=True, autoincrement=True)
+    category = Column(String, nullable=False)  # "legal", "behavioral", "bias", "documentation", "general"
+    title = Column(String, nullable=False)
+    content = Column(Text, nullable=False)
+    severity = Column(String, default="info")  # "info", "warning", "critical"
+    order_index = Column(Integer, default=0)
+    is_active = Column(Boolean, default=True)
+    created_at = Column(DateTime, server_default=func.now())

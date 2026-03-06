@@ -1,0 +1,265 @@
+import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
+import {
+  Briefcase, Users, FileText, TrendingUp, Plus, Eye, Clock, UserPlus
+} from 'lucide-react';
+
+const BASE_URL = '';
+
+interface DashboardData {
+  open_requisitions: number;
+  active_postings: number;
+  total_applications: number;
+  new_applications: number;
+  applications_by_status: Record<string, number>;
+  recent_applications: {
+    id: number;
+    application_id: string;
+    applicant_name: string;
+    requisition_title: string;
+    status: string;
+    submitted_at: string | null;
+  }[];
+}
+
+interface PortalRequest {
+  id: number;
+  requisition_id: string;
+  title: string;
+  department: string | null;
+  status: string;
+  urgency: string | null;
+  created_at: string | null;
+}
+
+export default function RecruitingPage() {
+  const [data, setData] = useState<DashboardData | null>(null);
+  const [portalRequests, setPortalRequests] = useState<PortalRequest[]>([]);
+  const [loading, setLoading] = useState(true);
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    loadDashboard();
+  }, []);
+
+  const loadDashboard = async () => {
+    try {
+      const [dashRes, reqRes] = await Promise.all([
+        fetch(`${BASE_URL}/recruiting/dashboard`, { credentials: 'include' }),
+        fetch(`${BASE_URL}/recruiting/requisitions?request_source=employee_portal&status=Pending+Approval&limit=5`, { credentials: 'include' }),
+      ]);
+      if (dashRes.ok) {
+        setData(await dashRes.json());
+      }
+      if (reqRes.ok) {
+        const reqData = await reqRes.json();
+        setPortalRequests(reqData.requisitions || []);
+      }
+    } catch (error) {
+      console.error('Failed to load recruiting dashboard:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  if (loading) {
+    return (
+      <div className="p-6">
+        <div className="animate-pulse space-y-4">
+          <div className="h-8 bg-gray-200 dark:bg-gray-700 rounded w-1/4" />
+          <div className="grid grid-cols-4 gap-4">
+            {[1, 2, 3, 4].map(i => <div key={i} className="h-24 bg-gray-200 dark:bg-gray-700 rounded" />)}
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  const statCards = [
+    { label: 'Open Requisitions', value: data?.open_requisitions ?? 0, icon: Briefcase, color: 'bg-blue-50 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400' },
+    { label: 'Active Postings', value: data?.active_postings ?? 0, icon: Eye, color: 'bg-green-50 text-green-600 dark:bg-green-900/30 dark:text-green-400' },
+    { label: 'Total Applications', value: data?.total_applications ?? 0, icon: FileText, color: 'bg-purple-50 text-purple-600 dark:bg-purple-900/30 dark:text-purple-400' },
+    { label: 'New Applications', value: data?.new_applications ?? 0, icon: Clock, color: 'bg-amber-50 text-amber-600 dark:bg-amber-900/30 dark:text-amber-400' },
+  ];
+
+  const statusColors: Record<string, string> = {
+    New: 'bg-blue-100 text-blue-800 dark:bg-blue-900/40 dark:text-blue-300',
+    Screening: 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/40 dark:text-yellow-300',
+    Interview: 'bg-purple-100 text-purple-800 dark:bg-purple-900/40 dark:text-purple-300',
+    Offer: 'bg-green-100 text-green-800 dark:bg-green-900/40 dark:text-green-300',
+    Hired: 'bg-emerald-100 text-emerald-800 dark:bg-emerald-900/40 dark:text-emerald-300',
+    Rejected: 'bg-red-100 text-red-800 dark:bg-red-900/40 dark:text-red-300',
+    Withdrawn: 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300',
+  };
+
+  return (
+    <div className="p-6 space-y-6">
+      {/* Header */}
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Recruiting</h1>
+          <p className="text-gray-500 dark:text-gray-400 mt-1">Manage job requisitions, postings, and applications</p>
+        </div>
+        <button
+          onClick={() => navigate('/recruiting/requisitions')}
+          className="flex items-center gap-2 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors"
+        >
+          <Plus className="w-4 h-4" />
+          New Requisition
+        </button>
+      </div>
+
+      {/* Stats */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        {statCards.map(card => (
+          <div key={card.label} className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-4">
+            <div className="flex items-center gap-3">
+              <div className={`p-2 rounded-lg ${card.color}`}>
+                <card.icon className="w-5 h-5" />
+              </div>
+              <div>
+                <p className="text-sm text-gray-500 dark:text-gray-400">{card.label}</p>
+                <p className="text-2xl font-bold text-gray-900 dark:text-white">{card.value}</p>
+              </div>
+            </div>
+          </div>
+        ))}
+      </div>
+
+      {/* Portal Requests Banner */}
+      {portalRequests.length > 0 && (
+        <div className="bg-purple-50 dark:bg-purple-900/20 border border-purple-200 dark:border-purple-800 rounded-lg p-4">
+          <div className="flex items-center justify-between mb-3">
+            <h2 className="text-sm font-semibold text-purple-800 dark:text-purple-300 flex items-center gap-2">
+              <UserPlus className="w-4 h-4" />
+              New Portal Requests ({portalRequests.length})
+            </h2>
+            <button
+              onClick={() => navigate('/recruiting/requisitions?source=employee_portal')}
+              className="text-xs text-purple-600 hover:text-purple-800 dark:text-purple-400"
+            >
+              View All
+            </button>
+          </div>
+          <div className="space-y-2">
+            {portalRequests.map(req => (
+              <button
+                key={req.id}
+                onClick={() => navigate(`/recruiting/requisitions/${req.id}`)}
+                className="w-full flex items-center justify-between bg-white dark:bg-gray-800 rounded-lg px-3 py-2 text-left hover:bg-gray-50 dark:hover:bg-gray-700 border border-purple-100 dark:border-purple-800"
+              >
+                <div>
+                  <span className="text-sm font-medium text-gray-900 dark:text-white">{req.title}</span>
+                  <span className="text-xs text-gray-500 ml-2">{req.department}</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  {req.urgency && req.urgency !== 'Normal' && (
+                    <span className={`px-1.5 py-0.5 rounded text-xs font-medium ${
+                      req.urgency === 'Critical' ? 'bg-red-100 text-red-700' :
+                      req.urgency === 'High' ? 'bg-orange-100 text-orange-700' : 'bg-gray-100 text-gray-600'
+                    }`}>
+                      {req.urgency}
+                    </span>
+                  )}
+                  <span className="px-1.5 py-0.5 bg-yellow-100 text-yellow-800 rounded text-xs font-medium">
+                    Pending Review
+                  </span>
+                </div>
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Pipeline Overview */}
+      {data?.applications_by_status && Object.keys(data.applications_by_status).length > 0 && (
+        <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-6">
+          <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Pipeline Overview</h2>
+          <div className="flex gap-2 flex-wrap">
+            {Object.entries(data.applications_by_status).map(([status, count]) => (
+              <div key={status} className={`px-3 py-2 rounded-lg text-sm font-medium ${statusColors[status] || 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300'}`}>
+                {status}: {count}
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Recent Applications */}
+      <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700">
+        <div className="p-4 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between">
+          <h2 className="text-lg font-semibold text-gray-900 dark:text-white">Recent Applications</h2>
+          <button
+            onClick={() => navigate('/recruiting/requisitions')}
+            className="text-sm text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300"
+          >
+            View All Requisitions
+          </button>
+        </div>
+        <div className="divide-y divide-gray-200 dark:divide-gray-700">
+          {data?.recent_applications?.length === 0 && (
+            <div className="p-8 text-center text-gray-500 dark:text-gray-400">
+              No applications yet. Create a requisition and publish a job posting to get started.
+            </div>
+          )}
+          {data?.recent_applications?.map(app => (
+            <div key={app.id} className="p-4 flex items-center justify-between hover:bg-gray-50 dark:hover:bg-gray-700/50">
+              <div>
+                <p className="font-medium text-gray-900 dark:text-white">{app.applicant_name}</p>
+                <p className="text-sm text-gray-500 dark:text-gray-400">{app.requisition_title}</p>
+              </div>
+              <div className="flex items-center gap-3">
+                <span className={`px-2 py-1 rounded text-xs font-medium ${statusColors[app.status] || 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300'}`}>
+                  {app.status}
+                </span>
+                {app.submitted_at && (
+                  <span className="text-xs text-gray-400 dark:text-gray-500">
+                    {new Date(app.submitted_at).toLocaleDateString()}
+                  </span>
+                )}
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* Quick Links */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <button
+          onClick={() => navigate('/recruiting/requisitions')}
+          className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-4 hover:bg-gray-50 dark:hover:bg-gray-700 text-left transition-colors"
+        >
+          <Briefcase className="w-6 h-6 text-blue-600 dark:text-blue-400 mb-2" />
+          <h3 className="font-medium text-gray-900 dark:text-white">Requisitions</h3>
+          <p className="text-sm text-gray-500 dark:text-gray-400">Manage open positions</p>
+        </button>
+        <button
+          onClick={() => navigate('/recruiting/pipelines')}
+          className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-4 hover:bg-gray-50 dark:hover:bg-gray-700 text-left transition-colors"
+        >
+          <Users className="w-6 h-6 text-indigo-600 dark:text-indigo-400 mb-2" />
+          <h3 className="font-medium text-gray-900 dark:text-white">Pipeline Templates</h3>
+          <p className="text-sm text-gray-500 dark:text-gray-400">Configure hiring stages</p>
+        </button>
+        <a
+          href="http://localhost:5175/jobs"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-4 hover:bg-gray-50 dark:hover:bg-gray-700 text-left transition-colors block"
+        >
+          <Eye className="w-6 h-6 text-green-600 dark:text-green-400 mb-2" />
+          <h3 className="font-medium text-gray-900 dark:text-white">Applicant Portal</h3>
+          <p className="text-sm text-gray-500 dark:text-gray-400">Preview the public job board</p>
+        </a>
+        <button
+          onClick={() => navigate('/recruiting/analytics')}
+          className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-4 hover:bg-gray-50 dark:hover:bg-gray-700 text-left transition-colors"
+        >
+          <TrendingUp className="w-6 h-6 text-purple-600 dark:text-purple-400 mb-2" />
+          <h3 className="font-medium text-gray-900 dark:text-white">Analytics</h3>
+          <p className="text-sm text-gray-500 dark:text-gray-400">Recruiting metrics & EEO</p>
+        </button>
+      </div>
+    </div>
+  );
+}

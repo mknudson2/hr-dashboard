@@ -536,6 +536,215 @@ def create_performance_review(review_data: PerformanceReviewCreate, db: Session 
     }
 
 
+class PerformanceReviewUpdate(BaseModel):
+    # Legacy rating fields
+    overall_rating: Optional[float] = None
+    quality_of_work: Optional[float] = None
+    productivity: Optional[float] = None
+    communication: Optional[float] = None
+    teamwork: Optional[float] = None
+    initiative: Optional[float] = None
+    leadership: Optional[float] = None
+    problem_solving: Optional[float] = None
+    attendance_punctuality: Optional[float] = None
+
+    # Legacy text fields
+    strengths: Optional[str] = None
+    areas_for_improvement: Optional[str] = None
+    achievements: Optional[str] = None
+    manager_comments: Optional[str] = None
+    employee_comments: Optional[str] = None
+    development_plan: Optional[str] = None
+    goals_for_next_period: Optional[str] = None
+
+    # Template-driven fields
+    dynamic_ratings: Optional[dict] = None
+    dynamic_responses: Optional[dict] = None
+
+    # Rating notes (per-rating justification)
+    rating_notes: Optional[dict] = None
+
+    # Workflow
+    action: Optional[str] = None  # "save_draft" | "submit"
+
+
+@router.put("/reviews/{review_id}")
+def update_performance_review(
+    review_id: int,
+    update_data: PerformanceReviewUpdate,
+    db: Session = Depends(get_db)
+):
+    """
+    Update a performance review — supports both legacy and template-driven fields.
+    Handles save_draft and submit actions for workflow transitions.
+    """
+    review = db.query(models.PerformanceReview).filter(
+        models.PerformanceReview.id == review_id
+    ).first()
+    if not review:
+        raise HTTPException(status_code=404, detail="Review not found")
+
+    # Don't allow editing completed/acknowledged reviews
+    if review.status in ("Completed", "Acknowledged"):
+        raise HTTPException(status_code=400, detail="Cannot edit a completed or acknowledged review")
+
+    # Update legacy rating fields
+    legacy_rating_fields = [
+        "overall_rating", "quality_of_work", "productivity", "communication",
+        "teamwork", "initiative", "leadership", "problem_solving", "attendance_punctuality"
+    ]
+    for field in legacy_rating_fields:
+        value = getattr(update_data, field, None)
+        if value is not None:
+            setattr(review, field, value)
+
+    # Update legacy text fields
+    legacy_text_fields = [
+        "strengths", "areas_for_improvement", "achievements", "manager_comments",
+        "employee_comments", "development_plan", "goals_for_next_period"
+    ]
+    for field in legacy_text_fields:
+        value = getattr(update_data, field, None)
+        if value is not None:
+            setattr(review, field, value)
+
+    # Update dynamic fields (template-driven)
+    if update_data.dynamic_ratings is not None:
+        import json
+        review.dynamic_ratings = json.dumps(update_data.dynamic_ratings)
+    if update_data.dynamic_responses is not None:
+        import json
+        review.dynamic_responses = json.dumps(update_data.dynamic_responses)
+    if update_data.rating_notes is not None:
+        import json
+        review.rating_notes = json.dumps(update_data.rating_notes)
+
+    # Handle workflow action
+    if update_data.action == "submit":
+        review.status = "Completed"
+        review.submitted_date = date.today()
+    elif update_data.action == "save_draft":
+        if review.status == "Not Started":
+            review.status = "Manager Review In Progress"
+
+    review.updated_at = datetime.now()
+    db.commit()
+    db.refresh(review)
+
+    return {
+        "id": review.id,
+        "review_id": review.review_id,
+        "status": review.status,
+        "message": "Review updated successfully"
+    }
+
+
+@router.get("/reviews/{review_id}/employee-context")
+def get_employee_context(review_id: int, db: Session = Depends(get_db)):
+    """
+    Get employee context for a performance review: goals, KPIs, active PIPs, and template.
+    """
+    import json as json_mod
+
+    review = db.query(models.PerformanceReview).filter(
+        models.PerformanceReview.id == review_id
+    ).first()
+    if not review:
+        raise HTTPException(status_code=404, detail="Review not found")
+
+    employee_id = review.employee_id
+
+    # Goals
+    goals = db.query(models.PerformanceGoal).filter(
+        models.PerformanceGoal.employee_id == employee_id
+    ).order_by(models.PerformanceGoal.target_date).all()
+
+    goals_list = [{
+        "id": g.id,
+        "goal_id": g.goal_id,
+        "goal_title": g.goal_title,
+        "goal_description": g.goal_description,
+        "goal_type": g.goal_type,
+        "status": g.status,
+        "progress_percentage": g.progress_percentage,
+        "target_date": g.target_date.isoformat() if g.target_date else None,
+        "start_date": g.start_date.isoformat() if g.start_date else None,
+        "target_value": g.target_value,
+        "current_value": g.current_value,
+        "unit_of_measure": g.unit_of_measure,
+        "is_key_result": g.is_key_result,
+        "priority": g.priority,
+    } for g in goals]
+
+    # KPIs (Key Results)
+    kpis = [g for g in goals_list if g["is_key_result"] or g["goal_type"] == "Key Result"]
+
+    # Active PIPs
+    active_pips = db.query(models.PerformanceImprovementPlan).filter(
+        models.PerformanceImprovementPlan.employee_id == employee_id,
+        models.PerformanceImprovementPlan.status.in_(["Active", "Extended"])
+    ).all()
+
+    pips_list = []
+    for pip in active_pips:
+        milestones = db.query(models.PIPMilestone).filter(
+            models.PIPMilestone.pip_id == pip.id
+        ).order_by(models.PIPMilestone.due_date).all()
+
+        pips_list.append({
+            "id": pip.id,
+            "pip_id": pip.pip_id,
+            "title": pip.title,
+            "reason": pip.reason,
+            "start_date": pip.start_date.isoformat() if pip.start_date else None,
+            "end_date": pip.end_date.isoformat() if pip.end_date else None,
+            "status": pip.status,
+            "milestones": [{
+                "id": m.id,
+                "milestone_title": m.milestone_title,
+                "due_date": m.due_date.isoformat() if m.due_date else None,
+                "status": m.status,
+                "completed_date": m.completed_date.isoformat() if m.completed_date else None,
+            } for m in milestones],
+        })
+
+    # Template
+    template_data = None
+    if review.template_id:
+        t = db.query(models.ReviewTemplate).filter(
+            models.ReviewTemplate.id == review.template_id
+        ).first()
+        if t:
+            def parse_json(val):
+                if val is None:
+                    return None
+                if isinstance(val, (list, dict)):
+                    return val
+                try:
+                    return json_mod.loads(val)
+                except (json_mod.JSONDecodeError, TypeError):
+                    return None
+
+            template_data = {
+                "id": t.id,
+                "name": t.name,
+                "template_type": t.template_type,
+                "competencies": parse_json(t.competencies) or [],
+                "rating_scale": parse_json(t.rating_scale) or {"min": 1, "max": 5, "labels": {}},
+                "text_fields": parse_json(t.text_fields) or [],
+                "include_self_review": t.include_self_review,
+                "include_goal_setting": t.include_goal_setting,
+                "include_development_plan": t.include_development_plan,
+            }
+
+    return {
+        "goals": goals_list,
+        "kpis": kpis,
+        "active_pips": pips_list,
+        "template": template_data,
+    }
+
+
 # ============================================================================
 # GOALS & OKRs
 # ============================================================================

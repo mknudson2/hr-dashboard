@@ -4,6 +4,7 @@ export async function getAnalytics() {
   const res = await fetch(`${API_BASE}/analytics/`, {
     credentials: 'include',
   });
+  if (!res.ok) throw new Error(`HTTP ${res.status}`);
   return res.json();
 }
 
@@ -19,6 +20,7 @@ export async function fetchAverageTenure(): Promise<AvgTenureResponse> {
   const res = await fetch(`${API_BASE}/analytics/average-tenure`, {
     credentials: 'include',
   });
+  if (!res.ok) throw new Error(`HTTP ${res.status}`);
   return res.json();
 }
 
@@ -78,5 +80,6 @@ export async function fetchPtoUtilization(): Promise<PtoUtilResponse> {
   const res = await fetch(`${API_BASE}/analytics/pto-utilization`, {
     credentials: 'include',
   });
+  if (!res.ok) throw new Error(`HTTP ${res.status}`);
   return res.json();
 }

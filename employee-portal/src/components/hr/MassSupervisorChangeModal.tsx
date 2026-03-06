@@ -118,7 +118,7 @@ export default function MassSupervisorChangeModal({
     }
   };
 
-  const fetchDirectReports = async (supervisorId: string) => {
+  const fetchDirectReports = async (_supervisorId: string) => {
     try {
       setLoadingReports(true);
       const response = await apiGet<{ reports: Employee[] }>('/portal/team/reports');

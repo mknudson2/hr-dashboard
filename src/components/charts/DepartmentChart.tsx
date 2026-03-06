@@ -90,7 +90,7 @@ export default function DepartmentChart() {
     };
 
     return (
-        <div className="w-full mt-8 mb-8 bg-white dark:bg-gray-800 rounded-2xl shadow-sm p-6 transition-all duration-300 ease-in-out hover:shadow-lg hover:border-blue-400/60 hover:-translate-y-0.5 border border-transparent">
+        <div className="w-full mt-8 mb-8 bg-white dark:bg-gray-800 rounded-2xl shadow-sm p-6 transition-all duration-300 hover:shadow-md hover:-translate-y-0.5 border border-gray-200 dark:border-gray-700">
             <div className="flex items-center justify-between mb-4 flex-wrap gap-3">
                 <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
                     {filter === "department" ? "Department" : filter === "cost_center" ? "Cost Center" : "Team"} Breakdown — Active vs. YTD Terminations

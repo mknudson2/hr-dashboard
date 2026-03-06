@@ -136,8 +136,8 @@ export default function HeadcountChart({ data }: { data: HeadcountTrend }) {
                 transition={{ duration: 0.4 }}
                 className="
           p-6 mt-6 rounded-2xl border border-gray-200 dark:border-gray-700
-          bg-white dark:bg-gray-800 shadow-sm transition-all duration-300 ease-in-out
-          hover:shadow-lg hover:border-blue-400/60 hover:-translate-y-0.5
+          bg-white dark:bg-gray-800 shadow-sm transition-all duration-300
+          hover:shadow-md hover:-translate-y-0.5
         "
             >
                 <h3 className="text-lg font-semibold mb-4 text-gray-900 dark:text-gray-100">

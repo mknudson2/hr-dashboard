@@ -1,0 +1,1444 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Bifröst Employee Portal — Visual Mockups v2</title>
+<link href="https://fonts.googleapis.com/css2?family=Jost:wght@300;400;500;600;700&family=DM+Sans:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bifrost-violet: #6C3FA0;
+  --bifrost-violet-light: #8B5FC4;
+  --bifrost-violet-dark: #5A2E8A;
+  --bifrost-violet-subtle: rgba(108, 63, 160, 0.08);
+  --aurora-teal: #2ABFBF;
+  --aurora-teal-light: #4DD4D4;
+  --aurora-teal-subtle: rgba(42, 191, 191, 0.08);
+  --bridge-gold: #E8B84B;
+  --bridge-gold-light: #F0CC73;
+  --bridge-gold-subtle: rgba(232, 184, 75, 0.08);
+  --realm-white: #F8F7F4;
+  --deep-night: #1A1A2E;
+  --deep-night-light: #252540;
+  --mimir-blue: #1B3A5C;
+  --mimir-blue-light: #2A5580;
+  --well-silver: #B8C4D0;
+  --text-primary: #1A1A2E;
+  --text-secondary: #5A5A6E;
+  --text-muted: #8E8E9E;
+  --card-shadow: 0 1px 4px rgba(26, 26, 46, 0.04);
+  --card-shadow-hover: 0 4px 16px rgba(26, 26, 46, 0.08);
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+body {
+  font-family: 'DM Sans', system-ui, sans-serif;
+  background: #0E0E18;
+  color: #ccc;
+  overflow-x: hidden;
+}
+
+/* ===== PAGE SELECTOR ===== */
+.page-selector {
+  position: fixed;
+  top: 0; left: 0; right: 0;
+  z-index: 9999;
+  background: rgba(14, 14, 24, 0.95);
+  backdrop-filter: blur(20px);
+  border-bottom: 1px solid rgba(108, 63, 160, 0.25);
+  padding: 10px 24px;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+.page-selector-label {
+  font-family: 'Jost', sans-serif;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--well-silver);
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+.page-selector-tabs {
+  display: flex;
+  gap: 3px;
+  background: rgba(255,255,255,0.04);
+  border-radius: 10px;
+  padding: 3px;
+  flex-wrap: wrap;
+}
+.page-tab {
+  padding: 7px 16px;
+  border-radius: 7px;
+  border: none;
+  background: transparent;
+  color: var(--well-silver);
+  font-family: 'DM Sans', sans-serif;
+  font-size: 12.5px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+}
+.page-tab:hover { background: rgba(255,255,255,0.06); color: #fff; }
+.page-tab.active {
+  background: var(--bifrost-violet);
+  color: #fff;
+  box-shadow: 0 2px 10px rgba(108, 63, 160, 0.35);
+}
+
+/* ===== MOCKUP FRAME ===== */
+.mockup-container {
+  margin-top: 56px;
+  padding: 28px;
+  display: flex;
+  justify-content: center;
+}
+.mockup-frame {
+  width: 1200px;
+  max-width: 100%;
+  border-radius: 14px;
+  overflow: hidden;
+  box-shadow:
+    0 0 0 1px rgba(108, 63, 160, 0.15),
+    0 20px 60px rgba(0,0,0,0.5),
+    0 0 100px rgba(108, 63, 160, 0.06);
+  position: relative;
+}
+
+/* For mobile mockup */
+.mockup-frame.mobile {
+  width: 390px;
+  border-radius: 28px;
+  box-shadow:
+    0 0 0 3px #222,
+    0 0 0 5px #111,
+    0 20px 60px rgba(0,0,0,0.5);
+}
+
+/* Browser chrome */
+.browser-chrome {
+  background: #1C1C2C;
+  padding: 9px 14px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  border-bottom: 1px solid rgba(255,255,255,0.05);
+}
+.browser-dots { display: flex; gap: 5px; }
+.browser-dots span { width: 9px; height: 9px; border-radius: 50%; }
+.browser-dots span:nth-child(1) { background: #FF5F57; }
+.browser-dots span:nth-child(2) { background: #FEBC2E; }
+.browser-dots span:nth-child(3) { background: #28C840; }
+.browser-url {
+  flex: 1;
+  background: rgba(255,255,255,0.05);
+  border-radius: 5px;
+  padding: 5px 12px;
+  font-size: 11.5px;
+  color: var(--well-silver);
+  font-family: 'DM Sans', monospace;
+}
+
+/* Mobile chrome */
+.mobile-chrome {
+  background: var(--realm-white);
+  padding: 8px 20px 4px;
+  display: flex;
+  justify-content: center;
+}
+.mobile-notch {
+  width: 120px;
+  height: 28px;
+  background: #0E0E18;
+  border-radius: 0 0 16px 16px;
+}
+
+.screen { display: none; }
+.screen.active { display: block; }
+
+/* ===== SHIMMER BAR ===== */
+.shimmer-bar {
+  height: 3px;
+  background: linear-gradient(90deg, var(--bifrost-violet), var(--aurora-teal), var(--bridge-gold), var(--aurora-teal), var(--bifrost-violet));
+  background-size: 300% 100%;
+  animation: shimmerSlide 6s ease infinite;
+  flex-shrink: 0;
+}
+@keyframes shimmerSlide {
+  0% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+
+/* ===== LOGIN PAGE ===== */
+.login-screen {
+  background: var(--realm-white);
+  min-height: 580px;
+  display: flex;
+  flex-direction: column;
+}
+.login-content {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 32px;
+}
+.login-card { width: 400px; text-align: center; }
+.login-logo { margin-bottom: 6px; }
+.login-logo svg { width: 210px; margin: 0 auto; display: block; }
+.login-tagline {
+  font-family: 'Jost', sans-serif;
+  font-size: 13.5px;
+  color: var(--text-secondary);
+  margin-bottom: 28px;
+  font-weight: 300;
+  letter-spacing: 0.3px;
+}
+
+/* VIEW TOGGLE ON LOGIN */
+.login-view-toggle {
+  display: inline-flex;
+  gap: 2px;
+  background: rgba(26, 26, 46, 0.06);
+  border-radius: 10px;
+  padding: 3px;
+  margin-bottom: 24px;
+}
+.login-view-btn {
+  padding: 7px 18px;
+  border-radius: 8px;
+  border: none;
+  background: transparent;
+  font-family: 'DM Sans', sans-serif;
+  font-size: 12.5px;
+  font-weight: 500;
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: all 0.25s;
+  position: relative;
+}
+.login-view-btn:hover { color: var(--text-primary); }
+.login-view-btn.active {
+  background: #fff;
+  color: var(--bifrost-violet);
+  box-shadow: 0 1px 6px rgba(26, 26, 46, 0.08);
+  font-weight: 600;
+}
+.login-view-btn.active::after {
+  content: '';
+  position: absolute;
+  bottom: -1px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 16px;
+  height: 2px;
+  border-radius: 1px;
+  background: var(--bifrost-violet);
+}
+
+.login-form {
+  background: #fff;
+  border-radius: 16px;
+  padding: 32px 28px;
+  box-shadow: 0 4px 24px rgba(26, 26, 46, 0.05), 0 1px 3px rgba(26, 26, 46, 0.03);
+}
+.login-field {
+  margin-bottom: 18px;
+  text-align: left;
+}
+.login-field label {
+  display: block;
+  font-size: 12.5px;
+  font-weight: 500;
+  color: var(--text-primary);
+  margin-bottom: 5px;
+}
+.login-field input {
+  width: 100%;
+  padding: 11px 14px;
+  border: 1.5px solid #E0DDD8;
+  border-radius: 10px;
+  font-size: 13.5px;
+  font-family: 'DM Sans', sans-serif;
+  color: var(--text-primary);
+  background: var(--realm-white);
+  transition: all 0.2s;
+  outline: none;
+}
+.login-field input:focus {
+  border-color: var(--bifrost-violet);
+  box-shadow: 0 0 0 3px rgba(108, 63, 160, 0.1);
+}
+.login-field input::placeholder { color: #B5B2AB; }
+.login-btn {
+  width: 100%;
+  padding: 12px;
+  border: none;
+  border-radius: 10px;
+  background: var(--bifrost-violet);
+  color: #fff;
+  font-family: 'Jost', sans-serif;
+  font-size: 14.5px;
+  font-weight: 500;
+  letter-spacing: 0.3px;
+  cursor: pointer;
+  transition: all 0.25s;
+  margin-top: 2px;
+}
+.login-btn:hover {
+  background: var(--bifrost-violet-dark);
+  box-shadow: 0 4px 16px rgba(108, 63, 160, 0.28);
+  transform: translateY(-1px);
+}
+.login-footer {
+  padding: 16px;
+  text-align: center;
+  font-size: 11.5px;
+  color: var(--text-muted);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+}
+.login-footer-brand {
+  font-family: 'Jost', sans-serif;
+  font-weight: 500;
+  letter-spacing: 0.5px;
+  color: var(--text-secondary);
+}
+
+/* ===== DASHBOARD LAYOUT ===== */
+.dashboard-screen {
+  display: flex;
+  height: 580px;
+  position: relative;
+}
+
+/* Sidebar */
+.sidebar {
+  width: 250px;
+  background: var(--deep-night);
+  display: flex;
+  flex-direction: column;
+  flex-shrink: 0;
+  overflow: hidden;
+}
+.sidebar-header {
+  padding: 18px 18px 14px;
+  border-bottom: 1px solid rgba(255,255,255,0.05);
+}
+.sidebar-logo { display: flex; align-items: center; gap: 11px; }
+.sidebar-logo svg { width: 34px; height: 34px; flex-shrink: 0; }
+.sidebar-logo-text {
+  font-family: 'Jost', sans-serif;
+  font-size: 16px;
+  font-weight: 600;
+  color: #fff;
+  letter-spacing: 2.5px;
+}
+.sidebar-logo-sub {
+  font-size: 9.5px;
+  color: rgba(184, 196, 208, 0.6);
+  font-weight: 300;
+  letter-spacing: 0.2px;
+  margin-top: 1px;
+}
+.sidebar-nav {
+  flex: 1;
+  padding: 10px 10px;
+  overflow-y: auto;
+}
+.nav-section-label {
+  font-size: 9.5px;
+  font-weight: 600;
+  color: rgba(184, 196, 208, 0.35);
+  text-transform: uppercase;
+  letter-spacing: 1.5px;
+  padding: 14px 12px 5px;
+}
+.nav-item {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  padding: 8px 12px;
+  border-radius: 7px;
+  color: rgba(184, 196, 208, 0.8);
+  font-size: 13px;
+  font-weight: 400;
+  cursor: pointer;
+  transition: all 0.2s;
+  position: relative;
+  margin-bottom: 1px;
+}
+.nav-item:hover { background: rgba(255,255,255,0.04); color: #fff; }
+.nav-item.active {
+  background: rgba(108, 63, 160, 0.15);
+  color: #fff;
+  font-weight: 500;
+}
+.nav-item.active::before {
+  content: '';
+  position: absolute;
+  left: 0; top: 6px; bottom: 6px;
+  width: 3px;
+  border-radius: 0 2px 2px 0;
+  background: var(--bifrost-violet-light);
+}
+.nav-icon { width: 17px; height: 17px; opacity: 0.65; flex-shrink: 0; }
+.nav-item.active .nav-icon { opacity: 1; }
+
+/* Sidebar footer */
+.sidebar-footer {
+  border-top: 1px solid rgba(255,255,255,0.05);
+}
+.sidebar-user {
+  padding: 12px 14px;
+  display: flex;
+  align-items: center;
+  gap: 9px;
+}
+.sidebar-avatar {
+  width: 32px; height: 32px;
+  border-radius: 50%;
+  background: var(--bifrost-violet);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+  font-size: 12px;
+  font-weight: 600;
+  flex-shrink: 0;
+}
+.sidebar-user-name { font-size: 12.5px; color: #fff; font-weight: 500; }
+.sidebar-user-email { font-size: 10.5px; color: rgba(184, 196, 208, 0.6); }
+.sidebar-copyright {
+  padding: 0 14px 10px;
+  font-size: 10px;
+  color: rgba(184, 196, 208, 0.25);
+  font-family: 'Jost', sans-serif;
+  letter-spacing: 0.3px;
+}
+
+/* ===== MAIN CONTENT ===== */
+.main-content {
+  flex: 1;
+  background: var(--realm-white);
+  overflow-y: auto;
+  padding: 24px 28px;
+}
+
+/* Dashboard Header */
+.dash-header { margin-bottom: 24px; }
+.dash-greeting {
+  font-family: 'Jost', sans-serif;
+  font-size: 24px;
+  font-weight: 300;
+  color: var(--text-primary);
+  line-height: 1.2;
+}
+.dash-greeting strong { font-weight: 600; }
+.dash-date {
+  font-size: 12.5px;
+  color: var(--text-muted);
+  margin-top: 3px;
+}
+
+/* Stat Cards */
+.stat-row {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 14px;
+  margin-bottom: 24px;
+}
+.stat-card {
+  background: #fff;
+  border-radius: 12px;
+  padding: 18px;
+  border-top: 3px solid var(--bifrost-violet);
+  box-shadow: var(--card-shadow);
+  transition: all 0.25s;
+}
+.stat-card:hover {
+  box-shadow: var(--card-shadow-hover);
+  transform: translateY(-2px);
+}
+.stat-card:nth-child(2) { border-top-color: var(--aurora-teal); }
+.stat-card:nth-child(3) { border-top-color: var(--bridge-gold); }
+.stat-top { display: flex; align-items: flex-start; justify-content: space-between; }
+.stat-icon {
+  width: 34px; height: 34px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 15px;
+}
+.stat-card:nth-child(1) .stat-icon { background: var(--bifrost-violet-subtle); }
+.stat-card:nth-child(2) .stat-icon { background: var(--aurora-teal-subtle); }
+.stat-card:nth-child(3) .stat-icon { background: var(--bridge-gold-subtle); }
+.stat-value {
+  font-family: 'Jost', sans-serif;
+  font-size: 26px;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin-top: 12px;
+  line-height: 1;
+}
+.stat-label {
+  font-size: 12.5px;
+  color: var(--text-secondary);
+  margin-top: 3px;
+}
+.stat-sub {
+  font-size: 11px;
+  color: var(--text-muted);
+  margin-top: 5px;
+}
+
+/* Quick Links */
+.quick-links-label {
+  font-family: 'Jost', sans-serif;
+  font-size: 15px;
+  font-weight: 500;
+  color: var(--text-primary);
+  margin-bottom: 12px;
+}
+.quick-links-grid {
+  display: grid;
+  grid-template-columns: repeat(6, 1fr);
+  gap: 10px;
+  margin-bottom: 24px;
+}
+.quick-link {
+  background: #fff;
+  border-radius: 10px;
+  padding: 14px 6px;
+  text-align: center;
+  cursor: pointer;
+  transition: all 0.25s;
+  box-shadow: 0 1px 2px rgba(26, 26, 46, 0.02);
+  border: 1px solid rgba(0,0,0,0.03);
+}
+.quick-link:hover {
+  border-color: rgba(108, 63, 160, 0.2);
+  box-shadow: 0 3px 12px rgba(108, 63, 160, 0.08);
+  transform: translateY(-2px);
+}
+.quick-link-icon {
+  width: 36px; height: 36px;
+  border-radius: 9px;
+  background: var(--realm-white);
+  margin: 0 auto 7px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 16px;
+}
+.quick-link:last-child .quick-link-icon {
+  background: rgba(27, 58, 92, 0.07);
+}
+.quick-link-label {
+  font-size: 11.5px;
+  font-weight: 500;
+  color: var(--text-primary);
+}
+
+/* Content sections */
+.sections-row {
+  display: grid;
+  grid-template-columns: 5fr 3fr;
+  gap: 14px;
+}
+.section-card {
+  background: #fff;
+  border-radius: 12px;
+  padding: 18px;
+  box-shadow: var(--card-shadow);
+}
+.section-card-title {
+  font-family: 'Jost', sans-serif;
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--text-primary);
+  margin-bottom: 12px;
+  display: flex;
+  align-items: center;
+  gap: 7px;
+}
+.section-card-title span { font-size: 14px; }
+.announcement-item {
+  padding: 9px 0;
+  border-bottom: 1px solid rgba(0,0,0,0.03);
+}
+.announcement-item:last-child { border-bottom: none; }
+.announcement-date { font-size: 10.5px; color: var(--text-muted); }
+.announcement-text { font-size: 12.5px; color: var(--text-primary); margin-top: 2px; line-height: 1.4; }
+.birthday-item {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  padding: 7px 0;
+}
+.birthday-avatar {
+  width: 30px; height: 30px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--aurora-teal), var(--bifrost-violet));
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+  font-size: 10.5px;
+  font-weight: 600;
+  flex-shrink: 0;
+}
+.birthday-name { font-size: 12.5px; color: var(--text-primary); }
+.birthday-date-text { font-size: 10.5px; color: var(--text-muted); }
+
+/* ===== BENEFITS PAGE ===== */
+.page-title {
+  font-family: 'Jost', sans-serif;
+  font-size: 22px;
+  font-weight: 500;
+  color: var(--text-primary);
+}
+.page-subtitle {
+  font-size: 12.5px;
+  color: var(--text-muted);
+  margin-top: 2px;
+}
+.benefit-cards {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 14px;
+  margin: 20px 0;
+}
+.benefit-card {
+  background: #fff;
+  border-radius: 12px;
+  padding: 18px;
+  border-left: 4px solid var(--aurora-teal);
+  box-shadow: var(--card-shadow);
+  transition: all 0.2s;
+}
+.benefit-card:hover { box-shadow: var(--card-shadow-hover); }
+.benefit-card:nth-child(2) { border-left-color: var(--bifrost-violet); }
+.benefit-card:nth-child(3) { border-left-color: var(--bridge-gold); }
+.benefit-card:nth-child(4) { border-left-color: var(--mimir-blue); }
+.benefit-name {
+  font-family: 'Jost', sans-serif;
+  font-size: 15px;
+  font-weight: 500;
+  color: var(--text-primary);
+}
+.benefit-type { font-size: 11.5px; color: var(--text-muted); margin-top: 1px; }
+.benefit-grid {
+  margin-top: 12px;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+.benefit-label { font-size: 10px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px; }
+.benefit-value { font-size: 13.5px; color: var(--text-primary); font-weight: 500; }
+.benefit-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 10px;
+  border-radius: 20px;
+  font-size: 10.5px;
+  font-weight: 600;
+  background: rgba(42, 191, 191, 0.08);
+  color: var(--aurora-teal);
+  margin-top: 12px;
+}
+.benefit-badge::before {
+  content: '';
+  width: 5px; height: 5px;
+  border-radius: 50%;
+  background: var(--aurora-teal);
+}
+
+/* Mímir contextual CTA */
+.mimir-cta {
+  background: linear-gradient(135deg, rgba(27, 58, 92, 0.03), rgba(108, 63, 160, 0.03));
+  border: 1.5px dashed rgba(27, 58, 92, 0.15);
+  border-radius: 12px;
+  padding: 14px 18px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  cursor: pointer;
+  transition: all 0.25s;
+}
+.mimir-cta:hover {
+  border-color: var(--mimir-blue);
+  background: linear-gradient(135deg, rgba(27, 58, 92, 0.06), rgba(108, 63, 160, 0.04));
+  transform: translateY(-1px);
+}
+.mimir-cta-icon {
+  width: 38px; height: 38px;
+  border-radius: 50%;
+  background: var(--mimir-blue);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+.mimir-cta-text { font-size: 13.5px; color: var(--text-primary); font-weight: 500; }
+.mimir-cta-sub { font-size: 11.5px; color: var(--text-muted); margin-top: 1px; }
+
+/* ===== MÍMIR FAB ===== */
+.mimir-fab {
+  position: absolute;
+  bottom: 18px; right: 18px;
+  width: 50px; height: 50px;
+  border-radius: 50%;
+  background: var(--mimir-blue);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  box-shadow: 0 4px 18px rgba(27, 58, 92, 0.35);
+  transition: all 0.3s;
+  z-index: 100;
+}
+.mimir-fab:hover {
+  transform: scale(1.08);
+  box-shadow: 0 6px 24px rgba(27, 58, 92, 0.45);
+}
+.mimir-fab::after {
+  content: '';
+  position: absolute;
+  inset: -3px;
+  border-radius: 50%;
+  border: 2px solid rgba(42, 191, 191, 0.25);
+  animation: mimirPulse 3.5s ease-in-out infinite;
+}
+@keyframes mimirPulse {
+  0%, 100% { transform: scale(1); opacity: 0.4; }
+  50% { transform: scale(1.18); opacity: 0; }
+}
+
+/* ===== MÍMIR CHAT PANEL ===== */
+.mimir-panel {
+  position: absolute;
+  bottom: 18px; right: 18px;
+  width: 340px; height: 450px;
+  background: #fff;
+  border-radius: 16px;
+  box-shadow: 0 8px 40px rgba(27, 58, 92, 0.18), 0 0 0 1px rgba(27, 58, 92, 0.06);
+  display: none;
+  flex-direction: column;
+  z-index: 200;
+  overflow: hidden;
+}
+.mimir-panel.open { display: flex; }
+
+.mimir-panel-header {
+  background: var(--mimir-blue);
+  padding: 12px 14px;
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  flex-shrink: 0;
+}
+.mimir-panel-logo { width: 28px; height: 28px; flex-shrink: 0; }
+.mimir-panel-title {
+  flex: 1;
+}
+.mimir-panel-name {
+  font-family: 'Jost', sans-serif;
+  font-size: 14.5px;
+  font-weight: 500;
+  color: #fff;
+}
+.mimir-panel-status {
+  font-size: 10.5px;
+  color: var(--aurora-teal);
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+.mimir-panel-status::before {
+  content: '';
+  width: 5px; height: 5px;
+  border-radius: 50%;
+  background: var(--aurora-teal);
+}
+.mimir-close {
+  background: none;
+  border: none;
+  color: rgba(255,255,255,0.5);
+  cursor: pointer;
+  font-size: 16px;
+  padding: 4px;
+  line-height: 1;
+  transition: color 0.2s;
+}
+.mimir-close:hover { color: #fff; }
+
+.mimir-messages {
+  flex: 1;
+  padding: 14px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.msg {
+  max-width: 85%;
+  padding: 10px 13px;
+  border-radius: 14px;
+  font-size: 12.5px;
+  line-height: 1.55;
+}
+.msg.assistant {
+  align-self: flex-start;
+  background: #F2F1EE;
+  color: var(--text-primary);
+  border-bottom-left-radius: 4px;
+}
+.msg.user {
+  align-self: flex-end;
+  background: var(--bifrost-violet);
+  color: #fff;
+  border-bottom-right-radius: 4px;
+}
+.msg-source {
+  font-size: 10px;
+  color: var(--text-muted);
+  margin-top: 6px;
+  font-style: italic;
+}
+.msg-source a { color: var(--mimir-blue); text-decoration: none; }
+.msg-source a:hover { text-decoration: underline; }
+
+.mimir-input-area {
+  padding: 10px 14px;
+  border-top: 1px solid rgba(0,0,0,0.05);
+  display: flex;
+  gap: 7px;
+  flex-shrink: 0;
+}
+.mimir-input {
+  flex: 1;
+  padding: 9px 12px;
+  border: 1.5px solid #E0DDD8;
+  border-radius: 10px;
+  font-size: 12.5px;
+  font-family: 'DM Sans', sans-serif;
+  outline: none;
+  color: var(--text-primary);
+  background: var(--realm-white);
+}
+.mimir-input:focus { border-color: var(--mimir-blue); }
+.mimir-input::placeholder { color: #B5B2AB; }
+.mimir-send {
+  width: 36px; height: 36px;
+  border-radius: 9px;
+  border: none;
+  background: var(--mimir-blue);
+  color: #fff;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s;
+  flex-shrink: 0;
+}
+.mimir-send:hover { background: var(--mimir-blue-light); }
+
+/* ===== MOBILE MOCKUP ===== */
+.mobile-screen {
+  background: var(--realm-white);
+  min-height: 700px;
+  display: flex;
+  flex-direction: column;
+}
+.mobile-header {
+  background: var(--deep-night);
+  padding: 12px 16px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.mobile-header-logo { display: flex; align-items: center; gap: 8px; }
+.mobile-header-logo svg { width: 24px; height: 24px; }
+.mobile-header-title {
+  font-family: 'Jost', sans-serif;
+  font-size: 15px;
+  font-weight: 600;
+  color: #fff;
+  letter-spacing: 2px;
+}
+.mobile-hamburger {
+  width: 32px; height: 32px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  cursor: pointer;
+}
+.mobile-hamburger span {
+  width: 18px; height: 2px;
+  background: var(--well-silver);
+  border-radius: 1px;
+}
+.mobile-body {
+  flex: 1;
+  padding: 16px;
+  overflow-y: auto;
+}
+.mobile-greeting {
+  font-family: 'Jost', sans-serif;
+  font-size: 20px;
+  font-weight: 300;
+  color: var(--text-primary);
+  margin-bottom: 16px;
+}
+.mobile-greeting strong { font-weight: 600; }
+.mobile-stat-row {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 16px;
+  overflow-x: auto;
+}
+.mobile-stat-card {
+  flex: 0 0 150px;
+  background: #fff;
+  border-radius: 12px;
+  padding: 14px;
+  border-top: 3px solid var(--bifrost-violet);
+  box-shadow: var(--card-shadow);
+}
+.mobile-stat-card:nth-child(2) { border-top-color: var(--aurora-teal); }
+.mobile-stat-card:nth-child(3) { border-top-color: var(--bridge-gold); }
+.mobile-stat-value {
+  font-family: 'Jost', sans-serif;
+  font-size: 22px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+.mobile-stat-label { font-size: 11px; color: var(--text-secondary); margin-top: 2px; }
+.mobile-stat-sub { font-size: 10px; color: var(--text-muted); margin-top: 3px; }
+.mobile-quick-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+  margin-bottom: 16px;
+}
+.mobile-quick-link {
+  background: #fff;
+  border-radius: 10px;
+  padding: 12px 6px;
+  text-align: center;
+  box-shadow: 0 1px 2px rgba(0,0,0,0.02);
+  border: 1px solid rgba(0,0,0,0.03);
+}
+.mobile-quick-icon { font-size: 18px; margin-bottom: 4px; }
+.mobile-quick-label { font-size: 11px; font-weight: 500; color: var(--text-primary); }
+
+/* Bottom Tab Bar */
+.mobile-tab-bar {
+  display: flex;
+  background: #fff;
+  border-top: 1px solid rgba(0,0,0,0.06);
+  padding: 6px 0 10px;
+  flex-shrink: 0;
+}
+.mobile-tab {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  padding: 4px;
+  cursor: pointer;
+}
+.mobile-tab-icon { font-size: 18px; }
+.mobile-tab-label { font-size: 9.5px; color: var(--text-muted); font-weight: 500; }
+.mobile-tab.active .mobile-tab-label { color: var(--bifrost-violet); font-weight: 600; }
+
+/* Mímir mobile FAB */
+.mobile-mimir-fab {
+  position: absolute;
+  bottom: 70px; right: 16px;
+  width: 48px; height: 48px;
+  border-radius: 50%;
+  background: var(--mimir-blue);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 4px 16px rgba(27, 58, 92, 0.35);
+  z-index: 50;
+}
+
+/* ===== NAV HIGHLIGHT STATES ===== */
+.screen-benefits .nav-item.active { background: none; color: rgba(184, 196, 208, 0.8); font-weight: 400; }
+.screen-benefits .nav-item.active::before { display: none; }
+.screen-benefits .nav-item[data-nav="benefits"] {
+  background: rgba(108, 63, 160, 0.15);
+  color: #fff;
+  font-weight: 500;
+}
+.screen-benefits .nav-item[data-nav="benefits"]::before {
+  content: '';
+  position: absolute;
+  left: 0; top: 6px; bottom: 6px;
+  width: 3px;
+  border-radius: 0 2px 2px 0;
+  background: var(--bifrost-violet-light);
+}
+.screen-mimir .nav-item.active { background: rgba(108, 63, 160, 0.15); color: #fff; font-weight: 500; }
+</style>
+</head>
+<body>
+
+<!-- PAGE SELECTOR -->
+<div class="page-selector">
+  <div class="page-selector-label">Bifröst Mockups</div>
+  <div class="page-selector-tabs">
+    <button class="page-tab active" onclick="showScreen('login', this)">Login</button>
+    <button class="page-tab" onclick="showScreen('dashboard', this)">Dashboard</button>
+    <button class="page-tab" onclick="showScreen('benefits', this)">Benefits</button>
+    <button class="page-tab" onclick="showScreen('mimir', this)">Mímir Chat</button>
+    <button class="page-tab" onclick="showScreen('mobile', this)">📱 Mobile</button>
+  </div>
+</div>
+
+<div class="mockup-container" id="mockupContainer">
+<div class="mockup-frame" id="mockupFrame">
+
+<!-- Browser Chrome (desktop) -->
+<div class="browser-chrome" id="browserChrome">
+  <div class="browser-dots"><span></span><span></span><span></span></div>
+  <div class="browser-url" id="urlBar">bifrost.nbs.com/login</div>
+</div>
+
+<!-- Mobile Chrome -->
+<div class="mobile-chrome" id="mobileChrome" style="display:none;">
+  <div class="mobile-notch"></div>
+</div>
+
+<!-- ===== SVG DEFS (reused) ===== -->
+<svg style="display:none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <symbol id="bridge-icon-sm" viewBox="0 0 36 36">
+      <path d="M 4 24 Q 18 2 32 24" fill="none" stroke="#6C3FA0" stroke-width="2.5" stroke-linecap="round"/>
+      <path d="M 7 24 Q 18 5 29 24" fill="none" stroke="#2ABFBF" stroke-width="2.5" stroke-linecap="round"/>
+      <path d="M 10 24 Q 18 8 26 24" fill="none" stroke="#E8B84B" stroke-width="2.5" stroke-linecap="round"/>
+      <line x1="4" y1="24" x2="4" y2="29" stroke="#6C3FA0" stroke-width="2" stroke-linecap="round"/>
+      <line x1="32" y1="24" x2="32" y2="29" stroke="#6C3FA0" stroke-width="2" stroke-linecap="round"/>
+    </symbol>
+    <symbol id="mimir-icon" viewBox="0 0 24 24">
+      <circle cx="12" cy="12" r="9" stroke="#fff" stroke-width="1.5" fill="none" opacity="0.25"/>
+      <circle cx="12" cy="12" r="5.5" stroke="#fff" stroke-width="1.5" fill="none" opacity="0.55"/>
+      <circle cx="12" cy="12" r="2" fill="#2ABFBF"/>
+    </symbol>
+    <symbol id="mimir-icon-lg" viewBox="0 0 30 30">
+      <circle cx="15" cy="15" r="12" stroke="#fff" stroke-width="1.2" fill="none" opacity="0.2"/>
+      <circle cx="15" cy="15" r="7.5" stroke="#fff" stroke-width="1.2" fill="none" opacity="0.5"/>
+      <circle cx="15" cy="15" r="3" fill="#2ABFBF"/>
+    </symbol>
+  </defs>
+</svg>
+
+
+<!-- ===== 1. LOGIN SCREEN ===== -->
+<div class="screen active" id="screen-login">
+  <div class="login-screen">
+    <div class="shimmer-bar"></div>
+    <div class="login-content">
+      <div class="login-card">
+        <div class="login-logo">
+          <svg viewBox="0 0 400 150" xmlns="http://www.w3.org/2000/svg" width="210">
+            <path d="M 130 90 Q 200 12 270 90" fill="none" stroke="#6C3FA0" stroke-width="3" stroke-linecap="round"/>
+            <path d="M 138 90 Q 200 20 262 90" fill="none" stroke="#2ABFBF" stroke-width="3" stroke-linecap="round"/>
+            <path d="M 146 90 Q 200 28 254 90" fill="none" stroke="#E8B84B" stroke-width="3" stroke-linecap="round"/>
+            <line x1="130" y1="90" x2="130" y2="100" stroke="#6C3FA0" stroke-width="2.5" stroke-linecap="round"/>
+            <line x1="138" y1="90" x2="138" y2="100" stroke="#2ABFBF" stroke-width="2.5" stroke-linecap="round"/>
+            <line x1="146" y1="90" x2="146" y2="100" stroke="#E8B84B" stroke-width="2.5" stroke-linecap="round"/>
+            <line x1="270" y1="90" x2="270" y2="100" stroke="#6C3FA0" stroke-width="2.5" stroke-linecap="round"/>
+            <line x1="262" y1="90" x2="262" y2="100" stroke="#2ABFBF" stroke-width="2.5" stroke-linecap="round"/>
+            <line x1="254" y1="90" x2="254" y2="100" stroke="#E8B84B" stroke-width="2.5" stroke-linecap="round"/>
+            <text x="200" y="135" text-anchor="middle" font-family="'Jost', sans-serif" font-size="28" font-weight="500" letter-spacing="6" fill="#1A1A2E">BIFRÖST</text>
+          </svg>
+        </div>
+        <div class="login-tagline">Your bridge to everything NBS</div>
+
+        <!-- View Toggle -->
+        <div class="login-view-toggle">
+          <button class="login-view-btn" onclick="setLoginView(this)">Classic</button>
+          <button class="login-view-btn active" onclick="setLoginView(this)">Bifröst</button>
+          <button class="login-view-btn" onclick="setLoginView(this)">Modern</button>
+        </div>
+
+        <div class="login-form">
+          <div class="login-field">
+            <label>Username</label>
+            <input type="text" placeholder="Enter your username" value="mknudson">
+          </div>
+          <div class="login-field">
+            <label>Password</label>
+            <input type="password" placeholder="Enter your password" value="••••••••••">
+          </div>
+          <button class="login-btn" onclick="showScreen('dashboard', document.querySelectorAll('.page-tab')[1])">Sign In</button>
+        </div>
+      </div>
+    </div>
+    <div class="login-footer">
+      <span class="login-footer-brand">National Benefit Services</span>
+      <span>© Bifr&#246;stin — HR Hub</span>
+    </div>
+  </div>
+</div>
+
+
+<!-- ===== SIDEBAR TEMPLATE (used by dashboard screens) ===== -->
+<template id="sidebar-template">
+  <div class="sidebar-header">
+    <div class="sidebar-logo">
+      <svg><use href="#bridge-icon-sm"/></svg>
+      <div>
+        <div class="sidebar-logo-text">BIFRÖST</div>
+        <div class="sidebar-logo-sub">Your bridge to everything NBS</div>
+      </div>
+    </div>
+  </div>
+  <nav class="sidebar-nav">
+    <div class="nav-item active">
+      <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
+      Dashboard
+    </div>
+    <div class="nav-section-label">My HR</div>
+    <div class="nav-item"><svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg> Profile</div>
+    <div class="nav-item"><svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/></svg> Compensation</div>
+    <div class="nav-item" data-nav="benefits"><svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 00-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 000-7.78z"/></svg> Benefits</div>
+    <div class="nav-item"><svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg> Time Off</div>
+    <div class="nav-item"><svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg> Documents</div>
+    <div class="nav-item"><svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg> Performance</div>
+    <div class="nav-section-label">Requests</div>
+    <div class="nav-item"><svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg> PTO Requests</div>
+    <div class="nav-item"><svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg> New Request</div>
+    <div class="nav-section-label">Resources</div>
+    <div class="nav-item"><svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 19.5A2.5 2.5 0 016.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 014 19.5v-15A2.5 2.5 0 016.5 2z"/></svg> Handbook</div>
+    <div class="nav-item"><svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 015.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg> FAQs</div>
+  </nav>
+  <div class="sidebar-footer">
+    <div class="sidebar-user">
+      <div class="sidebar-avatar">MK</div>
+      <div><div class="sidebar-user-name">Michael Knudson</div><div class="sidebar-user-email">mknudson@nbs.com</div></div>
+    </div>
+    <div class="sidebar-copyright">© Bifr&#246;stin — HR Hub</div>
+  </div>
+</template>
+
+
+<!-- ===== 2. DASHBOARD SCREEN ===== -->
+<div class="screen" id="screen-dashboard">
+  <div class="shimmer-bar"></div>
+  <div class="dashboard-screen">
+    <div class="sidebar" id="sidebar-dashboard"></div>
+    <div class="main-content">
+      <div class="dash-header">
+        <div class="dash-greeting">Welcome back, <strong>Michael</strong></div>
+        <div class="dash-date">Saturday, March 1, 2026</div>
+      </div>
+      <div class="stat-row">
+        <div class="stat-card">
+          <div class="stat-top"><div class="stat-icon">📅</div></div>
+          <div class="stat-value">72.5</div>
+          <div class="stat-label">PTO Hours Available</div>
+          <div class="stat-sub">8 hours pending approval</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-top"><div class="stat-icon">💰</div></div>
+          <div class="stat-value">Mar 14</div>
+          <div class="stat-label">Next Paycheck</div>
+          <div class="stat-sub">Bi-weekly · Direct deposit</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-top"><div class="stat-icon">📋</div></div>
+          <div class="stat-value">2</div>
+          <div class="stat-label">Open Requests</div>
+          <div class="stat-sub">1 PTO · 1 accommodation</div>
+        </div>
+      </div>
+
+      <div class="quick-links-label">Quick Links</div>
+      <div class="quick-links-grid">
+        <div class="quick-link"><div class="quick-link-icon">👤</div><div class="quick-link-label">Profile</div></div>
+        <div class="quick-link"><div class="quick-link-icon">❤️</div><div class="quick-link-label">Benefits</div></div>
+        <div class="quick-link"><div class="quick-link-icon">📅</div><div class="quick-link-label">Time Off</div></div>
+        <div class="quick-link"><div class="quick-link-icon">💰</div><div class="quick-link-label">Pay Stubs</div></div>
+        <div class="quick-link"><div class="quick-link-icon">📖</div><div class="quick-link-label">Handbook</div></div>
+        <div class="quick-link" onclick="showScreen('mimir', document.querySelectorAll('.page-tab')[3])"><div class="quick-link-icon">💬</div><div class="quick-link-label">Ask Mímir</div></div>
+      </div>
+
+      <div class="sections-row">
+        <div class="section-card">
+          <div class="section-card-title"><span>📢</span> Recent Announcements</div>
+          <div class="announcement-item"><div class="announcement-date">Feb 28, 2026</div><div class="announcement-text">Open enrollment for 2026-2027 benefit year begins November 1st</div></div>
+          <div class="announcement-item"><div class="announcement-date">Feb 25, 2026</div><div class="announcement-text">Updated PTO rollover policy — please review the employee handbook</div></div>
+          <div class="announcement-item"><div class="announcement-date">Feb 20, 2026</div><div class="announcement-text">New Bifröst portal is live! Explore your updated employee experience</div></div>
+        </div>
+        <div class="section-card">
+          <div class="section-card-title"><span>🎂</span> Upcoming Birthdays</div>
+          <div class="birthday-item"><div class="birthday-avatar">SJ</div><div><div class="birthday-name">Sarah Johnson</div><div class="birthday-date-text">Mar 3</div></div></div>
+          <div class="birthday-item"><div class="birthday-avatar">TP</div><div><div class="birthday-name">Thomas Park</div><div class="birthday-date-text">Mar 5</div></div></div>
+          <div class="birthday-item"><div class="birthday-avatar">LW</div><div><div class="birthday-name">Lisa Wang</div><div class="birthday-date-text">Mar 8</div></div></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="mimir-fab" onclick="showScreen('mimir', document.querySelectorAll('.page-tab')[3])">
+      <svg width="22" height="22"><use href="#mimir-icon"/></svg>
+    </div>
+  </div>
+</div>
+
+
+<!-- ===== 3. BENEFITS SCREEN ===== -->
+<div class="screen screen-benefits" id="screen-benefits">
+  <div class="shimmer-bar"></div>
+  <div class="dashboard-screen">
+    <div class="sidebar" id="sidebar-benefits"></div>
+    <div class="main-content">
+      <div style="margin-bottom: 20px;">
+        <div class="page-title">Benefits</div>
+        <div class="page-subtitle">Your current benefit plan enrollments and coverage details</div>
+      </div>
+
+      <div class="benefit-cards">
+        <div class="benefit-card">
+          <div class="benefit-name">Medical — PPO Gold</div>
+          <div class="benefit-type">Employee + Spouse</div>
+          <div class="benefit-grid">
+            <div><div class="benefit-label">Premium</div><div class="benefit-value">$342/mo</div></div>
+            <div><div class="benefit-label">Deductible</div><div class="benefit-value">$1,500</div></div>
+            <div><div class="benefit-label">OOP Max</div><div class="benefit-value">$4,000</div></div>
+            <div><div class="benefit-label">Copay</div><div class="benefit-value">$25</div></div>
+          </div>
+          <div class="benefit-badge">Active</div>
+        </div>
+        <div class="benefit-card">
+          <div class="benefit-name">Dental — Standard</div>
+          <div class="benefit-type">Employee + Spouse</div>
+          <div class="benefit-grid">
+            <div><div class="benefit-label">Premium</div><div class="benefit-value">$48/mo</div></div>
+            <div><div class="benefit-label">Annual Max</div><div class="benefit-value">$1,500</div></div>
+            <div><div class="benefit-label">Preventive</div><div class="benefit-value">100%</div></div>
+            <div><div class="benefit-label">Basic</div><div class="benefit-value">80%</div></div>
+          </div>
+          <div class="benefit-badge">Active</div>
+        </div>
+        <div class="benefit-card">
+          <div class="benefit-name">Vision — Premium</div>
+          <div class="benefit-type">Employee Only</div>
+          <div class="benefit-grid">
+            <div><div class="benefit-label">Premium</div><div class="benefit-value">$12/mo</div></div>
+            <div><div class="benefit-label">Exam Copay</div><div class="benefit-value">$10</div></div>
+            <div><div class="benefit-label">Frames</div><div class="benefit-value">$150 allow.</div></div>
+            <div><div class="benefit-label">Contacts</div><div class="benefit-value">$130 allow.</div></div>
+          </div>
+          <div class="benefit-badge">Active</div>
+        </div>
+        <div class="benefit-card">
+          <div class="benefit-name">401(k) — Traditional</div>
+          <div class="benefit-type">Employee Contribution</div>
+          <div class="benefit-grid">
+            <div><div class="benefit-label">Contribution</div><div class="benefit-value">6%</div></div>
+            <div><div class="benefit-label">Match</div><div class="benefit-value">4%</div></div>
+            <div><div class="benefit-label">YTD Balance</div><div class="benefit-value">$43,218</div></div>
+            <div><div class="benefit-label">Vested</div><div class="benefit-value">100%</div></div>
+          </div>
+          <div class="benefit-badge">Active</div>
+        </div>
+      </div>
+
+      <div class="mimir-cta" onclick="showScreen('mimir', document.querySelectorAll('.page-tab')[3])">
+        <div class="mimir-cta-icon"><svg width="18" height="18"><use href="#mimir-icon"/></svg></div>
+        <div><div class="mimir-cta-text">Have questions about your benefits?</div><div class="mimir-cta-sub">Ask Mímir — your AI benefits guide</div></div>
+      </div>
+    </div>
+
+    <div class="mimir-fab" onclick="showScreen('mimir', document.querySelectorAll('.page-tab')[3])">
+      <svg width="22" height="22"><use href="#mimir-icon"/></svg>
+    </div>
+  </div>
+</div>
+
+
+<!-- ===== 4. MÍMIR CHAT SCREEN ===== -->
+<div class="screen screen-mimir" id="screen-mimir">
+  <div class="shimmer-bar"></div>
+  <div class="dashboard-screen">
+    <div class="sidebar" id="sidebar-mimir"></div>
+    <div class="main-content" style="filter: brightness(0.97);">
+      <div class="dash-header">
+        <div class="dash-greeting">Welcome back, <strong>Michael</strong></div>
+        <div class="dash-date">Saturday, March 1, 2026</div>
+      </div>
+      <div class="stat-row">
+        <div class="stat-card"><div class="stat-top"><div class="stat-icon">📅</div></div><div class="stat-value">72.5</div><div class="stat-label">PTO Hours Available</div></div>
+        <div class="stat-card"><div class="stat-top"><div class="stat-icon">💰</div></div><div class="stat-value">Mar 14</div><div class="stat-label">Next Paycheck</div></div>
+        <div class="stat-card"><div class="stat-top"><div class="stat-icon">📋</div></div><div class="stat-value">2</div><div class="stat-label">Open Requests</div></div>
+      </div>
+      <div class="quick-links-label">Quick Links</div>
+      <div class="quick-links-grid">
+        <div class="quick-link"><div class="quick-link-icon">👤</div><div class="quick-link-label">Profile</div></div>
+        <div class="quick-link"><div class="quick-link-icon">❤️</div><div class="quick-link-label">Benefits</div></div>
+        <div class="quick-link"><div class="quick-link-icon">📅</div><div class="quick-link-label">Time Off</div></div>
+        <div class="quick-link"><div class="quick-link-icon">💰</div><div class="quick-link-label">Pay Stubs</div></div>
+        <div class="quick-link"><div class="quick-link-icon">📖</div><div class="quick-link-label">Handbook</div></div>
+        <div class="quick-link"><div class="quick-link-icon">💬</div><div class="quick-link-label">Ask Mímir</div></div>
+      </div>
+    </div>
+
+    <!-- Mímir Chat Panel OPEN -->
+    <div class="mimir-panel open">
+      <div class="mimir-panel-header">
+        <svg class="mimir-panel-logo"><use href="#mimir-icon-lg"/></svg>
+        <div class="mimir-panel-title">
+          <div class="mimir-panel-name">Mímir</div>
+          <div class="mimir-panel-status">Online</div>
+        </div>
+        <button class="mimir-close" onclick="showScreen('dashboard', document.querySelectorAll('.page-tab')[1])">✕</button>
+      </div>
+      <div class="mimir-messages">
+        <div class="msg assistant">Hi Michael! I'm Mímir, your HR knowledge assistant. I can help with questions about benefits, policies, time off, payroll, and more. What can I help with?</div>
+        <div class="msg user">What's my dental coverage for a root canal?</div>
+        <div class="msg assistant">
+          Based on your <strong>Dental — Standard</strong> plan, a root canal falls under "Major Services" which are covered at <strong>50%</strong> after your deductible. Your annual deductible is $50 (individual), and your annual maximum benefit is $1,500.
+          <br><br>
+          If the root canal costs $800, you'd pay approximately $425 after the deductible.
+          <div class="msg-source">📄 <a href="#">Benefits Plan Summary (SPD) — Dental, p. 12</a></div>
+        </div>
+        <div class="msg user">Is there a waiting period for major services?</div>
+        <div class="msg assistant">
+          No waiting period on your plan. Since you enrolled during open enrollment and have been on the plan for over 12 months, all services including major dental work are fully accessible.
+          <div class="msg-source">📄 <a href="#">Benefits Plan Summary (SPD) — Dental, p. 8</a></div>
+        </div>
+      </div>
+      <div class="mimir-input-area">
+        <input class="mimir-input" type="text" placeholder="Ask Mímir anything...">
+        <button class="mimir-send"><svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/></svg></button>
+      </div>
+    </div>
+  </div>
+</div>
+
+
+<!-- ===== 5. MOBILE SCREEN ===== -->
+<div class="screen" id="screen-mobile">
+  <div class="mobile-screen">
+    <div class="shimmer-bar"></div>
+    <div class="mobile-header">
+      <div class="mobile-header-logo">
+        <svg width="24" height="24"><use href="#bridge-icon-sm"/></svg>
+        <div class="mobile-header-title">BIFRÖST</div>
+      </div>
+      <div class="mobile-hamburger"><span></span><span></span><span></span></div>
+    </div>
+
+    <div class="mobile-body">
+      <div class="mobile-greeting">Welcome back, <strong>Michael</strong></div>
+
+      <div class="mobile-stat-row">
+        <div class="mobile-stat-card">
+          <div class="mobile-stat-value">72.5</div>
+          <div class="mobile-stat-label">PTO Hours</div>
+          <div class="mobile-stat-sub">8 pending</div>
+        </div>
+        <div class="mobile-stat-card">
+          <div class="mobile-stat-value">Mar 14</div>
+          <div class="mobile-stat-label">Next Paycheck</div>
+          <div class="mobile-stat-sub">Direct deposit</div>
+        </div>
+        <div class="mobile-stat-card">
+          <div class="mobile-stat-value">2</div>
+          <div class="mobile-stat-label">Open Requests</div>
+          <div class="mobile-stat-sub">1 PTO · 1 other</div>
+        </div>
+      </div>
+
+      <div class="mobile-quick-grid">
+        <div class="mobile-quick-link"><div class="mobile-quick-icon">👤</div><div class="mobile-quick-label">Profile</div></div>
+        <div class="mobile-quick-link"><div class="mobile-quick-icon">❤️</div><div class="mobile-quick-label">Benefits</div></div>
+        <div class="mobile-quick-link"><div class="mobile-quick-icon">📅</div><div class="mobile-quick-label">Time Off</div></div>
+        <div class="mobile-quick-link"><div class="mobile-quick-icon">💰</div><div class="mobile-quick-label">Pay Stubs</div></div>
+        <div class="mobile-quick-link"><div class="mobile-quick-icon">📖</div><div class="mobile-quick-label">Handbook</div></div>
+        <div class="mobile-quick-link"><div class="mobile-quick-icon">💬</div><div class="mobile-quick-label">Ask Mímir</div></div>
+      </div>
+
+      <div class="section-card" style="margin-bottom: 12px;">
+        <div class="section-card-title"><span>📢</span> Announcements</div>
+        <div class="announcement-item"><div class="announcement-date">Feb 28</div><div class="announcement-text">Open enrollment begins November 1st</div></div>
+        <div class="announcement-item"><div class="announcement-date">Feb 25</div><div class="announcement-text">Updated PTO rollover policy</div></div>
+      </div>
+    </div>
+
+    <!-- Mobile Mímir FAB -->
+    <div class="mobile-mimir-fab">
+      <svg width="22" height="22"><use href="#mimir-icon"/></svg>
+    </div>
+
+    <!-- Bottom Tab Bar -->
+    <div class="mobile-tab-bar">
+      <div class="mobile-tab active"><div class="mobile-tab-icon">🏠</div><div class="mobile-tab-label">Home</div></div>
+      <div class="mobile-tab"><div class="mobile-tab-icon">👤</div><div class="mobile-tab-label">My HR</div></div>
+      <div class="mobile-tab"><div class="mobile-tab-icon">📋</div><div class="mobile-tab-label">Requests</div></div>
+      <div class="mobile-tab"><div class="mobile-tab-icon">📖</div><div class="mobile-tab-label">Resources</div></div>
+      <div class="mobile-tab"><div class="mobile-tab-icon">⋯</div><div class="mobile-tab-label">More</div></div>
+    </div>
+  </div>
+</div>
+
+</div>
+</div>
+
+<script>
+// Populate sidebars from template
+document.addEventListener('DOMContentLoaded', () => {
+  const tmpl = document.getElementById('sidebar-template').innerHTML;
+  ['sidebar-dashboard','sidebar-benefits','sidebar-mimir'].forEach(id => {
+    document.getElementById(id).innerHTML = tmpl;
+  });
+});
+
+function showScreen(name, tabEl) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.getElementById('screen-' + name).classList.add('active');
+  document.querySelectorAll('.page-tab').forEach(t => t.classList.remove('active'));
+  if (tabEl) tabEl.classList.add('active');
+
+  const frame = document.getElementById('mockupFrame');
+  const browserChrome = document.getElementById('browserChrome');
+  const mobileChrome = document.getElementById('mobileChrome');
+
+  if (name === 'mobile') {
+    frame.classList.add('mobile');
+    browserChrome.style.display = 'none';
+    mobileChrome.style.display = 'flex';
+  } else {
+    frame.classList.remove('mobile');
+    browserChrome.style.display = 'flex';
+    mobileChrome.style.display = 'none';
+  }
+
+  const urls = { login:'bifrost.nbs.com/login', dashboard:'bifrost.nbs.com/dashboard', benefits:'bifrost.nbs.com/my-hr/benefits', mimir:'bifrost.nbs.com/dashboard', mobile:'' };
+  document.getElementById('urlBar').textContent = urls[name] || '';
+}
+
+function setLoginView(btn) {
+  document.querySelectorAll('.login-view-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+}
+</script>
+</body>
+</html>

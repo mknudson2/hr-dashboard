@@ -42,9 +42,9 @@ if not SECRET_KEY:
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_HOURS = 24
 
-# Account lockout configuration
-MAX_FAILED_LOGIN_ATTEMPTS = 5  # Lock account after 5 failed attempts
-LOCKOUT_DURATION_MINUTES = 15  # Lock account for 15 minutes
+# Account lockout configuration (configurable via environment variables)
+MAX_FAILED_LOGIN_ATTEMPTS = int(os.getenv("MAX_FAILED_LOGIN_ATTEMPTS", "5"))
+LOCKOUT_DURATION_MINUTES = int(os.getenv("ACCOUNT_LOCKOUT_MINUTES", "15"))
 
 
 def get_db():
@@ -373,8 +373,8 @@ def login(
     # Audit log: successful login
     audit_service.log_login_success(db, user, request)
 
-    # Check if user needs to set up 2FA (not enabled yet)
-    requires_2fa_setup = not user.totp_enabled
+    # 2FA setup is optional, not mandatory
+    requires_2fa_setup = False
 
     # Create response with token data
     response = JSONResponse(content={

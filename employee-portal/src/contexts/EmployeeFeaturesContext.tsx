@@ -28,6 +28,9 @@ export interface FeatureFlags {
   has_direct_reports: boolean;
   pending_approvals_count: number;
 
+  // Hiring manager access
+  is_hiring_manager: boolean;
+
   // User preferences
   preferred_view: 'og' | 'modern' | 'bifrost';
 
@@ -56,6 +59,7 @@ const defaultFeatures: FeatureFlags = {
   is_supervisor: false,
   has_direct_reports: false,
   pending_approvals_count: 0,
+  is_hiring_manager: false,
   preferred_view: 'og',
   total_action_items: 0,
 };

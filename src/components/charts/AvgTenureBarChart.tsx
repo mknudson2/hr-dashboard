@@ -8,6 +8,7 @@ import {
     Tooltip,
     Legend,
 } from "chart.js";
+import { useTheme } from "next-themes";
 
 ChartJS.register(CategoryScale, LinearScale, BarElement, Title, Tooltip, Legend);
 
@@ -18,14 +19,20 @@ interface Props {
 }
 
 export default function AvgTenureBarChart({ labels, values, title }: Props) {
+    const { resolvedTheme } = useTheme();
+    const isDark = resolvedTheme === "dark";
+
+    const textColor = isDark ? "#e5e7eb" : "#1f2937";
+    const gridColor = isDark ? "rgba(255,255,255,0.08)" : "#e5e7eb";
+
     const data = {
         labels,
         datasets: [
             {
                 label: "Avg Tenure (Years)",
                 data: values,
-                backgroundColor: "rgba(37, 99, 235, 0.7)", // Tailwind blue-600
-                borderColor: "rgba(37, 99, 235, 1)",
+                backgroundColor: isDark ? "rgba(108, 63, 160, 0.7)" : "rgba(37, 99, 235, 0.7)",
+                borderColor: isDark ? "#8B5FC4" : "rgba(37, 99, 235, 1)",
                 borderWidth: 1,
             },
         ],
@@ -35,15 +42,22 @@ export default function AvgTenureBarChart({ labels, values, title }: Props) {
         responsive: true,
         plugins: {
             legend: { display: false },
-            title: { display: !!title, text: title || "" },
+            title: {
+                display: !!title,
+                text: title || "",
+                color: textColor,
+            },
         },
         scales: {
             y: {
                 beginAtZero: true,
-                title: { display: true, text: "Years" },
+                title: { display: true, text: "Years", color: textColor },
+                ticks: { color: textColor },
+                grid: { color: gridColor },
             },
             x: {
-                ticks: { autoSkip: false, maxRotation: 45, minRotation: 0 },
+                ticks: { autoSkip: false, maxRotation: 45, minRotation: 0, color: textColor },
+                grid: { color: gridColor },
             },
         },
     };

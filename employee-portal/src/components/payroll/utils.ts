@@ -37,7 +37,7 @@ export function collectAllNotes(period: PayrollPeriod): NoteItem[] {
 
   if (period.notes_history?.notes) {
     const periodNotes = period.notes_history.notes.map((entry, idx) => ({
-      id: \`period-\${period.id}-\${idx}-\${entry.timestamp}\`,
+      id: `period-${period.id}-${idx}-${entry.timestamp}`,
       type: 'period' as const,
       title: 'Payroll Period Notes',
       content: entry.new_value,
@@ -50,7 +50,7 @@ export function collectAllNotes(period: PayrollPeriod): NoteItem[] {
   const allTasks = getAllTasks(period);
   const taskNotes = allTasks.flatMap(task =>
     (task.notes_history || []).map((entry, idx) => ({
-      id: \`task-\${task.id}-\${idx}-\${entry.timestamp}\`,
+      id: `task-${task.id}-${idx}-${entry.timestamp}`,
       type: 'task' as const,
       title: task.title,
       content: entry.new_value,

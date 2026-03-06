@@ -6,12 +6,11 @@ import {
   Clock,
   SkipForward,
   Trash2,
-  Edit2,
   X,
   GripVertical,
   AlertCircle,
 } from 'lucide-react';
-import { motion, AnimatePresence, Reorder } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import { apiGet, apiPost, apiDelete } from '@/utils/api';
 
 interface Milestone {
@@ -54,14 +53,14 @@ export default function MilestoneManager({
 
   // Form states
   const [showAddForm, setShowAddForm] = useState(false);
-  const [editingId, setEditingId] = useState<number | null>(null);
+  const [_editingId, setEditingId] = useState<number | null>(null);
   const [newMilestone, setNewMilestone] = useState({
     title: '',
     description: '',
     due_date: '',
     weight: 1,
   });
-  const [completionNotes, setCompletionNotes] = useState('');
+  const [_completionNotes, setCompletionNotes] = useState('');
 
   // Use ref to avoid infinite loop - onProgressUpdate can change without re-fetching
   const onProgressUpdateRef = useRef(onProgressUpdate);

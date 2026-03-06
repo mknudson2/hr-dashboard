@@ -97,6 +97,45 @@ def get_employee(employee_id: int, db: Session = Depends(get_db)):
     }
 
 
+@router.put("/{employee_id}/custom-tags")
+def update_custom_tags(
+    request: Request,
+    employee_id: str,
+    tag_data: dict,
+    current_user: models.User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """Update an employee's custom tags (e.g. hiring_manager, interviewer)."""
+    employee = db.query(models.Employee).filter(
+        models.Employee.employee_id == employee_id
+    ).first()
+    if not employee:
+        raise HTTPException(status_code=404, detail="Employee not found")
+
+    old_tags = getattr(employee, 'custom_tags', None) or []
+    new_tags = tag_data.get("tags", [])
+
+    # Validate tags are strings
+    if not isinstance(new_tags, list) or not all(isinstance(t, str) for t in new_tags):
+        raise HTTPException(status_code=400, detail="Tags must be a list of strings")
+
+    employee.custom_tags = new_tags
+    db.commit()
+    db.refresh(employee)
+
+    # Audit log
+    audit_service.log_data_update(
+        db, current_user, request, "employee_custom_tags", employee_id,
+        old_data={"custom_tags": old_tags}, new_data={"custom_tags": new_tags}
+    )
+
+    return {
+        "message": "Custom tags updated",
+        "employee_id": employee.employee_id,
+        "custom_tags": employee.custom_tags,
+    }
+
+
 @router.put("/{employee_id}/pto")
 def update_pto(employee_id: int, pto_used: float, db: Session = Depends(get_db)):
     """Update an employee’s PTO used amount."""

@@ -60,6 +60,9 @@ class EmployeeFeatureFlags(BaseModel):
     # User preferences
     preferred_view: str = "og"  # "og" or "modern"
 
+    # Hiring manager access
+    is_hiring_manager: bool = False
+
     # Action items count
     total_action_items: int = 0
 
@@ -232,6 +235,10 @@ def get_feature_flags(
         flags.preferred_view = current_user.portal_view_preference
     else:
         flags.preferred_view = "og"
+
+    # Check hiring manager access
+    from app.api.hiring_manager_portal import is_hiring_manager
+    flags.is_hiring_manager = is_hiring_manager(current_user, employee, db)
 
     # Calculate total action items
     if flags.has_pending_fmla_submissions:

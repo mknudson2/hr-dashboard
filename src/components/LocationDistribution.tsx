@@ -163,7 +163,7 @@ const LocationDistribution = () => {
   const COLORS = ['#3B82F6', '#8B5CF6', '#EC4899', '#F59E0B', '#10B981', '#6366F1', '#EF4444', '#14B8A6'];
 
   return (
-    <div id="location-distribution-content" className="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6">
+    <div id="location-distribution-content" className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-gray-700 shadow-sm p-6 hover:shadow-md hover:-translate-y-0.5 transition-all duration-300">
       {/* Header */}
       <div className="flex justify-between items-center mb-6">
         <div>

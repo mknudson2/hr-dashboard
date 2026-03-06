@@ -205,6 +205,9 @@ CSRF_EXEMPT_PATHS = frozenset({
     "/openapi.json",
     "/performance",  # Employee portal goals - protected by auth middleware
     "/portal",  # Employee portal routes - protected by auth middleware
+    "/applicant-portal/apply",  # Public application submission
+    "/applicant-portal/auth",  # Applicant auth (magic link, register, login)
+    "/applicant-portal/eeo",  # EEO self-ID submission
 })
 
 

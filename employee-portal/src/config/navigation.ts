@@ -23,6 +23,7 @@ import {
   History,
   Send,
   CalendarRange,
+  UserPlus,
   type LucideIcon,
 } from 'lucide-react';
 import type { FeatureFlags } from '@/contexts/EmployeeFeaturesContext';
@@ -132,6 +133,14 @@ export const navigationConfig: NavigationConfig = {
         { label: 'Request Time Off', path: '/requests/pto', icon: Clock },
         { label: 'Team Calendar', path: '/requests/team-calendar', icon: CalendarRange },
         { label: 'New Request', path: '/requests/new', icon: PlusCircle },
+      ],
+    },
+    {
+      label: 'Hiring',
+      sectionFilter: (flags) => flags.is_hiring_manager,
+      items: [
+        { label: 'Request New Position', path: '/hiring/new-request', icon: UserPlus },
+        { label: 'My Requisitions', path: '/hiring/my-requisitions', icon: Briefcase },
       ],
     },
     {
@@ -261,6 +270,12 @@ export function getModernNavigation(
   ];
   if (requestItems.length > 0) {
     dropdowns.push({ label: 'Requests', items: requestItems });
+  }
+
+  // Hiring dropdown (hiring managers)
+  const hiring = filtered.sections.find((s) => s.label === 'Hiring');
+  if (hiring) {
+    dropdowns.push({ label: 'Hiring', items: hiring.items });
   }
 
   // Resources dropdown
