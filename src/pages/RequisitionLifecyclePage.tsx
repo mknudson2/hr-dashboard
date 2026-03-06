@@ -58,7 +58,7 @@ interface RequisitionInfo {
   posting_channels: string[] | null;
   skills_tags: string[] | null;
   request_source: string | null;
-  preferred_salary: number | null;
+  target_salary: number | null;
   position_supervisor: string | null;
   visibility_user_ids: number[] | null;
   created_at: string | null;
@@ -469,13 +469,13 @@ export default function RequisitionLifecyclePage() {
                     <p className="text-gray-500 dark:text-gray-400">Wage Type</p>
                     <p className="font-medium text-gray-900 dark:text-white">{requisition.wage_type || '—'}</p>
                   </div>
-                  {requisition.preferred_salary && (
+                  {requisition.target_salary && (
                     <div>
                       <p className="text-gray-500 dark:text-gray-400">
-                        {requisition.wage_type === 'Hourly' ? 'Preferred Rate' : 'Preferred Salary'}
+                        {requisition.wage_type === 'Hourly' ? 'Target Rate' : 'Target Salary'}
                       </p>
                       <p className="font-medium text-gray-900 dark:text-white">
-                        ${requisition.preferred_salary.toLocaleString()}{requisition.wage_type === 'Hourly' ? '/hr' : ''}
+                        ${requisition.target_salary.toLocaleString()}{requisition.wage_type === 'Hourly' ? '/hr' : ''}
                       </p>
                     </div>
                   )}

@@ -45,7 +45,7 @@ def upgrade():
             ("posting_channels", "ALTER TABLE job_requisitions ADD COLUMN posting_channels TEXT;"),
             ("skills_tags", "ALTER TABLE job_requisitions ADD COLUMN skills_tags TEXT;"),
             ("urgency", "ALTER TABLE job_requisitions ADD COLUMN urgency VARCHAR;"),
-            ("preferred_salary", "ALTER TABLE job_requisitions ADD COLUMN preferred_salary FLOAT;"),
+            ("target_salary", "ALTER TABLE job_requisitions ADD COLUMN target_salary FLOAT;"),
             ("position_supervisor", "ALTER TABLE job_requisitions ADD COLUMN position_supervisor VARCHAR;"),
             ("visibility_user_ids", "ALTER TABLE job_requisitions ADD COLUMN visibility_user_ids TEXT;"),
             ("request_source", "ALTER TABLE job_requisitions ADD COLUMN request_source VARCHAR DEFAULT 'manual';"),
@@ -58,6 +58,12 @@ def upgrade():
                 conn.execute(text(sql))
                 conn.commit()
                 print(f"  Added column: job_requisitions.{col_name}")
+
+        # Rename preferred_salary -> target_salary if needed
+        if "preferred_salary" in existing_cols and "target_salary" not in existing_cols:
+            conn.execute(text("ALTER TABLE job_requisitions RENAME COLUMN preferred_salary TO target_salary"))
+            conn.commit()
+            print("  Renamed column: job_requisitions.preferred_salary -> target_salary")
 
         # --- 3. Create requisition_lifecycle_stages table ---
         conn.execute(text("""

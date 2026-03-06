@@ -3731,7 +3731,7 @@ class JobRequisition(Base):
     skills_tags = Column(JSON, nullable=True)
     # Urgency & timeline
     urgency = Column(String, nullable=True)  # "Low", "Normal", "High", "Critical"
-    preferred_salary = Column(Float, nullable=True)
+    target_salary = Column(Float, nullable=True)
     # Supervisor for the position
     position_supervisor = Column(String, nullable=True)
     # Stakeholder visibility — user IDs who should follow the recruiting process

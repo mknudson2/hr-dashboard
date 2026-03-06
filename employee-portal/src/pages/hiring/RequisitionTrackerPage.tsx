@@ -16,7 +16,7 @@ interface RequisitionDetail {
   employment_type: string | null;
   position_supervisor: string | null;
   posting_channels: string[] | null;
-  preferred_salary: number | null;
+  target_salary: number | null;
   salary_min: number | null;
   salary_max: number | null;
   skills_tags: string[] | null;

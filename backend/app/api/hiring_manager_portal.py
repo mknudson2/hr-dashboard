@@ -43,7 +43,7 @@ class RequisitionRequestCreate(BaseModel):
     requires_early_tech_screen: bool = False
 
     # Compensation
-    preferred_salary: Optional[float] = None
+    target_salary: Optional[float] = None
     salary_min: Optional[float] = None
     salary_max: Optional[float] = None
     wage_type: Optional[str] = "Salary"
@@ -296,7 +296,7 @@ def create_requisition_request(
         position_supervisor=data.position_supervisor,
         posting_channels=data.posting_channels,
         requires_early_tech_screen=requires_tech_screen,
-        preferred_salary=data.preferred_salary,
+        target_salary=data.target_salary,
         salary_min=data.salary_min,
         salary_max=data.salary_max,
         wage_type=data.wage_type,
@@ -361,7 +361,7 @@ def get_requisition_detail(
         "position_supervisor": req.position_supervisor,
         "posting_channels": req.posting_channels,
         "requires_early_tech_screen": req.requires_early_tech_screen,
-        "preferred_salary": req.preferred_salary,
+        "target_salary": req.target_salary,
         "salary_min": req.salary_min,
         "salary_max": req.salary_max,
         "wage_type": req.wage_type,

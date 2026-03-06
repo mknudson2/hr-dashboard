@@ -307,7 +307,7 @@ def get_requisition(
         "posting_channels": getattr(req, 'posting_channels', None),
         "skills_tags": getattr(req, 'skills_tags', None),
         "urgency": getattr(req, 'urgency', None),
-        "preferred_salary": getattr(req, 'preferred_salary', None),
+        "target_salary": getattr(req, 'target_salary', None),
         "position_supervisor": getattr(req, 'position_supervisor', None),
         "visibility_user_ids": getattr(req, 'visibility_user_ids', None),
         "request_source": getattr(req, 'request_source', None),
