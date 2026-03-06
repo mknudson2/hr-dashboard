@@ -19,6 +19,7 @@ interface RequisitionDetail {
   target_salary: number | null;
   salary_min: number | null;
   salary_max: number | null;
+  wage_type: string | null;
   skills_tags: string[] | null;
   urgency: string | null;
   description: string | null;
@@ -482,6 +483,9 @@ export default function RequisitionTrackerPage() {
                 <span className="text-gray-700 dark:text-gray-300">{requisition.hiring_manager_name}</span>
               </div>
             )}
+            {requisition.hiring_manager_name && (requisition.recruiter_name || requisition.position_supervisor) && (
+              <hr className="border-gray-200 dark:border-gray-700" />
+            )}
             {requisition.recruiter_name && (
               <div className="flex justify-between">
                 <span className="text-gray-500">Recruiter</span>
@@ -523,7 +527,7 @@ export default function RequisitionTrackerPage() {
             )}
             {(requisition.salary_min || requisition.salary_max) && (
               <div className="flex justify-between">
-                <span className="text-gray-500">Salary Range</span>
+                <span className="text-gray-500">{requisition.wage_type === 'Hourly' ? 'Wage Range' : 'Salary Range'}</span>
                 <span className="text-gray-700 dark:text-gray-300">
                   {requisition.salary_min ? `$${requisition.salary_min.toLocaleString()}` : ''}
                   {requisition.salary_min && requisition.salary_max ? ' - ' : ''}
