@@ -255,7 +255,10 @@ def update_employee(
     # Capture old values for audit log
     old_values = {
         "status": employee.status,
-        "termination_date": employee.termination_date.isoformat() if employee.termination_date else None
+        "termination_date": employee.termination_date.isoformat() if employee.termination_date else None,
+        "show_birthday": employee.show_birthday,
+        "show_tenure": employee.show_tenure,
+        "show_exact_dates": employee.show_exact_dates,
     }
 
     # Check if status is being changed to Terminated OR termination_date is being set
@@ -283,6 +286,12 @@ def update_employee(
     if "termination_date" in update_data:
         from datetime import datetime as dt
         employee.termination_date = dt.strptime(update_data["termination_date"], "%Y-%m-%d").date()
+    if "show_birthday" in update_data:
+        employee.show_birthday = update_data["show_birthday"]
+    if "show_tenure" in update_data:
+        employee.show_tenure = update_data["show_tenure"]
+    if "show_exact_dates" in update_data:
+        employee.show_exact_dates = update_data["show_exact_dates"]
 
     # Auto-set status to Terminated if termination_date is set
     if termination_date_set and employee.status != "Terminated":
@@ -465,7 +474,10 @@ def update_employee(
     # Audit log: employee updated
     new_values = {
         "status": employee.status,
-        "termination_date": employee.termination_date.isoformat() if employee.termination_date else None
+        "termination_date": employee.termination_date.isoformat() if employee.termination_date else None,
+        "show_birthday": employee.show_birthday,
+        "show_tenure": employee.show_tenure,
+        "show_exact_dates": employee.show_exact_dates,
     }
     audit_service.log_data_update(
         db, current_user, request, "employee", employee_id,

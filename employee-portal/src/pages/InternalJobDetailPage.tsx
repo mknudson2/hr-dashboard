@@ -64,8 +64,8 @@ export default function InternalJobDetailPage() {
     return (
       <div className="p-6 max-w-3xl mx-auto">
         <div className="animate-pulse space-y-4">
-          <div className="h-8 bg-gray-200 rounded w-2/3"></div>
-          <div className="h-64 bg-gray-200 rounded"></div>
+          <div className="h-8 bg-gray-200 dark:bg-gray-700 rounded w-2/3"></div>
+          <div className="h-64 bg-gray-200 dark:bg-gray-700 rounded"></div>
         </div>
       </div>
     );
@@ -89,20 +89,20 @@ export default function InternalJobDetailPage() {
       </Link>
 
       {error && (
-        <div className="mb-4 p-3 bg-red-50 border border-red-200 text-red-700 rounded-lg text-sm">{error}</div>
+        <div className="mb-4 p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 text-red-700 dark:text-red-400 rounded-lg text-sm">{error}</div>
       )}
       {success && (
-        <div className="mb-4 p-3 bg-green-50 border border-green-200 text-green-700 rounded-lg text-sm">{success}</div>
+        <div className="mb-4 p-3 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 text-green-700 dark:text-green-400 rounded-lg text-sm">{success}</div>
       )}
 
       {/* Header */}
-      <div className="bg-white border border-gray-200 rounded-lg p-6 mb-6">
-        <h1 className="text-2xl font-bold text-gray-900">{job.title}</h1>
-        <div className="flex flex-wrap gap-3 mt-3 text-sm text-gray-600">
+      <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-6 mb-6">
+        <h1 className="text-2xl font-bold text-gray-900 dark:text-white">{job.title}</h1>
+        <div className="flex flex-wrap gap-3 mt-3 text-sm text-gray-600 dark:text-gray-400">
           {job.department && <span>{job.department}</span>}
           {job.location && <span>{job.location}</span>}
           {job.remote_type && (
-            <span className="px-2 py-0.5 bg-blue-50 text-blue-700 rounded text-xs">{job.remote_type}</span>
+            <span className="px-2 py-0.5 bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 rounded text-xs">{job.remote_type}</span>
           )}
           {job.employment_type && <span>{job.employment_type}</span>}
         </div>
@@ -122,20 +122,20 @@ export default function InternalJobDetailPage() {
 
       {/* Apply Form */}
       {showApplyForm && (
-        <div className="bg-white border border-gray-200 rounded-lg p-6 mb-6">
-          <h2 className="text-lg font-semibold text-gray-900 mb-3">Apply for Transfer</h2>
-          <p className="text-sm text-gray-600 mb-4">
+        <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-6 mb-6">
+          <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-3">Apply for Transfer</h2>
+          <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
             Your profile information will be automatically included with your application.
           </p>
           <div className="mb-4">
-            <label className="block text-sm font-medium text-gray-700 mb-1">
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
               Cover Letter / Statement of Interest (optional)
             </label>
             <textarea
               value={coverLetter}
               onChange={e => setCoverLetter(e.target.value)}
               rows={5}
-              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm"
+              className="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
               placeholder="Why are you interested in this position?"
             />
           </div>
@@ -149,7 +149,7 @@ export default function InternalJobDetailPage() {
             </button>
             <button
               onClick={() => setShowApplyForm(false)}
-              className="px-4 py-2 border border-gray-300 text-gray-700 text-sm font-medium rounded-lg hover:bg-gray-50"
+              className="px-4 py-2 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 text-sm font-medium rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700"
             >
               Cancel
             </button>
@@ -159,30 +159,30 @@ export default function InternalJobDetailPage() {
 
       {/* Job Description */}
       {job.description_html && (
-        <div className="bg-white border border-gray-200 rounded-lg p-6 mb-6">
-          <h2 className="text-lg font-semibold text-gray-900 mb-3">Description</h2>
+        <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-6 mb-6">
+          <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-3">Description</h2>
           <div className="prose prose-sm max-w-none" dangerouslySetInnerHTML={{ __html: job.description_html }} />
         </div>
       )}
 
       {job.responsibilities && (
-        <div className="bg-white border border-gray-200 rounded-lg p-6 mb-6">
-          <h2 className="text-lg font-semibold text-gray-900 mb-3">Responsibilities</h2>
-          <div className="text-sm text-gray-700 whitespace-pre-wrap">{job.responsibilities}</div>
+        <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-6 mb-6">
+          <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-3">Responsibilities</h2>
+          <div className="text-sm text-gray-700 dark:text-gray-300 whitespace-pre-wrap">{job.responsibilities}</div>
         </div>
       )}
 
       {job.requirements && (
-        <div className="bg-white border border-gray-200 rounded-lg p-6 mb-6">
-          <h2 className="text-lg font-semibold text-gray-900 mb-3">Requirements</h2>
-          <div className="text-sm text-gray-700 whitespace-pre-wrap">{job.requirements}</div>
+        <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-6 mb-6">
+          <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-3">Requirements</h2>
+          <div className="text-sm text-gray-700 dark:text-gray-300 whitespace-pre-wrap">{job.requirements}</div>
         </div>
       )}
 
       {job.preferred_qualifications && (
-        <div className="bg-white border border-gray-200 rounded-lg p-6 mb-6">
-          <h2 className="text-lg font-semibold text-gray-900 mb-3">Preferred Qualifications</h2>
-          <div className="text-sm text-gray-700 whitespace-pre-wrap">{job.preferred_qualifications}</div>
+        <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-6 mb-6">
+          <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-3">Preferred Qualifications</h2>
+          <div className="text-sm text-gray-700 dark:text-gray-300 whitespace-pre-wrap">{job.preferred_qualifications}</div>
         </div>
       )}
     </div>

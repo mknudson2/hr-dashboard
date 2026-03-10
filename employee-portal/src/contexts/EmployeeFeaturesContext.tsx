@@ -35,7 +35,7 @@ export interface FeatureFlags {
   is_recruiting_stakeholder: boolean;
 
   // User preferences
-  preferred_view: 'og' | 'modern' | 'bifrost';
+  preferred_view: 'modern' | 'bifrost';
 
   // Action items count
   total_action_items: number;
@@ -45,8 +45,8 @@ interface EmployeeFeaturesContextType {
   features: FeatureFlags | null;
   loading: boolean;
   error: string | null;
-  viewMode: 'og' | 'modern' | 'bifrost';
-  setViewMode: (mode: 'og' | 'modern' | 'bifrost') => void;
+  viewMode: 'modern' | 'bifrost';
+  setViewMode: (mode: 'modern' | 'bifrost') => void;
   refreshFeatures: () => Promise<void>;
 }
 
@@ -64,7 +64,7 @@ const defaultFeatures: FeatureFlags = {
   pending_approvals_count: 0,
   is_hiring_manager: false,
   is_recruiting_stakeholder: false,
-  preferred_view: 'og',
+  preferred_view: 'bifrost',
   total_action_items: 0,
 };
 
@@ -91,7 +91,7 @@ export const EmployeeFeaturesProvider = ({ children }: EmployeeFeaturesProviderP
   const [error, setError] = useState<string | null>(null);
 
   // Initialize view mode from localStorage (immediate access) or default
-  const [viewMode, setViewModeState] = useState<'og' | 'modern' | 'bifrost'>(() => {
+  const [viewMode, setViewModeState] = useState<'modern' | 'bifrost'>(() => {
     const stored = localStorage.getItem(VIEW_MODE_KEY);
     if (stored === 'modern' || stored === 'bifrost') return stored;
     return 'bifrost';
@@ -113,7 +113,9 @@ export const EmployeeFeaturesProvider = ({ children }: EmployeeFeaturesProviderP
       // Only sync view mode from server on initial load (when localStorage is empty)
       const storedView = localStorage.getItem(VIEW_MODE_KEY);
       if (!storedView && data.preferred_view) {
-        const serverView = data.preferred_view as 'og' | 'modern' | 'bifrost';
+        // Server may still return 'og' for legacy users — migrate to 'bifrost'
+        const raw = data.preferred_view as string;
+        const serverView: 'modern' | 'bifrost' = raw === 'modern' ? 'modern' : 'bifrost';
         setViewModeState(serverView);
         localStorage.setItem(VIEW_MODE_KEY, serverView);
       }
@@ -132,8 +134,12 @@ export const EmployeeFeaturesProvider = ({ children }: EmployeeFeaturesProviderP
   useEffect(() => {
     if (isAuthenticated) {
       const stored = localStorage.getItem(VIEW_MODE_KEY);
-      if (stored === 'og' || stored === 'modern' || stored === 'bifrost') {
+      if (stored === 'modern' || stored === 'bifrost') {
         setViewModeState(stored);
+      } else if (stored === 'og') {
+        // Migrate legacy 'og' preference to 'bifrost'
+        setViewModeState('bifrost');
+        localStorage.setItem(VIEW_MODE_KEY, 'bifrost');
       }
     }
   }, [isAuthenticated]);
@@ -145,7 +151,7 @@ export const EmployeeFeaturesProvider = ({ children }: EmployeeFeaturesProviderP
     }
   }, [authLoading, isAuthenticated, fetchFeatures]);
 
-  const setViewMode = useCallback(async (mode: 'og' | 'modern' | 'bifrost') => {
+  const setViewMode = useCallback(async (mode: 'modern' | 'bifrost') => {
     // Immediately update local state for instant UI response
     setViewModeState(mode);
     localStorage.setItem(VIEW_MODE_KEY, mode);

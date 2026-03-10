@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { apiGet, apiPut } from '@/utils/api';
-import { User, Mail, Phone, Building2, Calendar, MapPin, AlertCircle, Save, Edit2, X, Heart } from 'lucide-react';
+import { User, Mail, Phone, Building2, Calendar, MapPin, AlertCircle, Save, Edit2, X, Heart, Shield } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { useEmployeeFeatures } from '@/contexts/EmployeeFeaturesContext';
 import AuroraPageHeader from '@/components/bifrost/AuroraPageHeader';
@@ -33,6 +33,12 @@ interface EmergencyContact {
   email: string | null;
 }
 
+interface PrivacyPreferences {
+  show_birthday: boolean;
+  show_tenure: boolean;
+  show_exact_dates: boolean;
+}
+
 export default function Profile() {
   const { user } = useAuth();
   const { viewMode } = useEmployeeFeatures();
@@ -48,17 +54,27 @@ export default function Profile() {
   const [isEditing, setIsEditing] = useState(false);
   const [saving, setSaving] = useState(false);
   const [editedContact, setEditedContact] = useState<EmergencyContact>(emergencyContact);
+  const [privacyPrefs, setPrivacyPrefs] = useState<PrivacyPreferences>({
+    show_birthday: true,
+    show_tenure: true,
+    show_exact_dates: true,
+  });
+  const [privacySaving, setPrivacySaving] = useState(false);
 
   useEffect(() => {
     const fetchProfile = async () => {
       try {
         setLoading(true);
-        const data = await apiGet<{ profile: EmployeeProfile; emergency_contact: EmergencyContact | null }>('/portal/my-hr/profile');
+        const [data, prefs] = await Promise.all([
+          apiGet<{ profile: EmployeeProfile; emergency_contact: EmergencyContact | null }>('/portal/my-hr/profile'),
+          apiGet<PrivacyPreferences>('/portal/my-hr/privacy-preferences'),
+        ]);
         setProfile(data.profile);
         if (data.emergency_contact) {
           setEmergencyContact(data.emergency_contact);
           setEditedContact(data.emergency_contact);
         }
+        setPrivacyPrefs(prefs);
       } catch (err) {
         setError(err instanceof Error ? err.message : 'Failed to load profile');
       } finally {
@@ -68,6 +84,21 @@ export default function Profile() {
 
     fetchProfile();
   }, []);
+
+  const handlePrivacyToggle = async (field: keyof PrivacyPreferences) => {
+    const newValue = !privacyPrefs[field];
+    const updated = { ...privacyPrefs, [field]: newValue };
+    setPrivacyPrefs(updated);
+    try {
+      setPrivacySaving(true);
+      const result = await apiPut<PrivacyPreferences>('/portal/my-hr/privacy-preferences', { [field]: newValue });
+      setPrivacyPrefs(result);
+    } catch {
+      setPrivacyPrefs(privacyPrefs);
+    } finally {
+      setPrivacySaving(false);
+    }
+  };
 
   const handleSaveEmergencyContact = async () => {
     try {
@@ -293,6 +324,52 @@ export default function Profile() {
               )}
             </div>
           )}
+        </motion.div>
+
+        {/* Privacy Preferences */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.4 }}
+          className="lg:col-span-2 bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-300 dark:border-gray-700 p-6"
+        >
+          <div className="flex items-center gap-2 mb-4">
+            <Shield className="text-blue-600 dark:text-blue-400" size={20} />
+            <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Privacy Preferences</h3>
+          </div>
+          <p className="text-sm text-gray-500 dark:text-gray-400 mb-6">
+            Control what personal information is visible on team dashboards and calendars.
+          </p>
+          <div className="space-y-5">
+            {([
+              { key: 'show_birthday' as const, label: 'Show Birthday', description: 'Include your birthday on the team birthday calendar' },
+              { key: 'show_tenure' as const, label: 'Show Work Anniversary', description: 'Include your work anniversary on the team calendar' },
+              { key: 'show_exact_dates' as const, label: 'Show Exact Dates', description: 'Display exact date vs. month only for birthday and anniversary' },
+            ]).map(({ key, label, description }) => (
+              <div key={key} className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-medium text-gray-900 dark:text-white">{label}</p>
+                  <p className="text-xs text-gray-500 dark:text-gray-400">{description}</p>
+                </div>
+                <button
+                  type="button"
+                  role="switch"
+                  aria-checked={privacyPrefs[key]}
+                  disabled={privacySaving}
+                  onClick={() => handlePrivacyToggle(key)}
+                  className={`relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50 ${
+                    privacyPrefs[key] ? 'bg-blue-600' : 'bg-gray-200 dark:bg-gray-600'
+                  }`}
+                >
+                  <span
+                    className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${
+                      privacyPrefs[key] ? 'translate-x-5' : 'translate-x-0'
+                    }`}
+                  />
+                </button>
+              </div>
+            ))}
+          </div>
         </motion.div>
       </div>
     </div>

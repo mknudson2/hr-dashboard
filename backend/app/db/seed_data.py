@@ -3,6 +3,9 @@ import random
 from datetime import date
 from app.db import database, models
 
+# Fixed seed for deterministic, reproducible demo data
+random.seed(42)
+
 # Create a new session
 db = database.SessionLocal()
 
@@ -83,8 +86,8 @@ for i in range(130):
     employee_count += 1
     emp_id = f"{1000 + i}"
 
-    # Determine status (85% active, 15% terminated)
-    is_terminated = random.random() < 0.15
+    # Determine status (95% active, 5% terminated in Q1 2026)
+    is_terminated = random.random() < 0.05
     status = "Terminated" if is_terminated else "Active"
 
     # Random hire date between 2020 and 2025
@@ -93,9 +96,9 @@ for i in range(130):
     hire_day = random.randint(1, 28)
     hire_date = date(hire_year, hire_month, hire_day)
 
-    # Calculate tenure
+    # Termination dates only in Jan-Feb 2026 (past dates)
     if is_terminated:
-        term_month = random.randint(1, 10)
+        term_month = random.randint(1, 2)
         term_day = random.randint(1, 28)
         termination_date = date(2026, term_month, term_day)
         # 60% voluntary, 40% involuntary
@@ -177,7 +180,7 @@ for i in range(30):
     employee_count += 1
     emp_id = f"C{i + 1:02d}"
 
-    is_terminated = random.random() < 0.10  # Lower turnover for international
+    is_terminated = random.random() < 0.03  # Lower turnover for international
     status = "Terminated" if is_terminated else "Active"
 
     hire_year = random.randint(2021, 2025)
@@ -186,7 +189,7 @@ for i in range(30):
     hire_date = date(hire_year, hire_month, hire_day)
 
     if is_terminated:
-        term_month = random.randint(1, 10)
+        term_month = random.randint(1, 2)
         term_day = random.randint(1, 28)
         termination_date = date(2026, term_month, term_day)
         term_type = "Voluntary" if random.random() < 0.6 else "Involuntary"
@@ -243,7 +246,7 @@ for i in range(25):
     employee_count += 1
     emp_id = f"AM{i + 1:02d}"
 
-    is_terminated = random.random() < 0.12
+    is_terminated = random.random() < 0.04
     status = "Terminated" if is_terminated else "Active"
 
     hire_year = random.randint(2021, 2025)
@@ -252,7 +255,7 @@ for i in range(25):
     hire_date = date(hire_year, hire_month, hire_day)
 
     if is_terminated:
-        term_month = random.randint(1, 10)
+        term_month = random.randint(1, 2)
         term_day = random.randint(1, 28)
         termination_date = date(2026, term_month, term_day)
         term_type = "Voluntary" if random.random() < 0.55 else "Involuntary"
@@ -309,7 +312,7 @@ for i in range(15):
     employee_count += 1
     emp_id = f"BH{i + 1:02d}"
 
-    is_terminated = random.random() < 0.08
+    is_terminated = random.random() < 0.03
     status = "Terminated" if is_terminated else "Active"
 
     hire_year = random.randint(2022, 2025)
@@ -318,7 +321,7 @@ for i in range(15):
     hire_date = date(hire_year, hire_month, hire_day)
 
     if is_terminated:
-        term_month = random.randint(1, 10)
+        term_month = random.randint(1, 2)
         term_day = random.randint(1, 28)
         termination_date = date(2026, term_month, term_day)
         term_type = "Voluntary" if random.random() < 0.6 else "Involuntary"

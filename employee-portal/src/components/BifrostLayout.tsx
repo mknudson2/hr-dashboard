@@ -21,7 +21,7 @@ export default function BifrostLayout() {
 
   return (
     <MimirProvider>
-      <div className="min-h-screen bg-realm-white bifrost-theme">
+      <div className="min-h-screen bg-realm-white dark:bg-gray-900 bifrost-theme">
         {/* Shimmer bar — fixed at very top */}
         <ShimmerBar />
 

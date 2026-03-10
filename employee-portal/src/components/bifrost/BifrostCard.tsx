@@ -18,7 +18,7 @@ export default function BifrostCard({ accent = 'none', children, className = '' 
 
   return (
     <div
-      className={`bg-white rounded-2xl border border-[rgba(108,63,160,0.06)] p-5 transition-all duration-250 hover:shadow-[0_4px_20px_rgba(108,63,160,0.1),0_8px_30px_rgba(26,26,46,0.06)] shadow-[0_1px_3px_rgba(26,26,46,0.04),0_4px_14px_rgba(26,26,46,0.03)] ${borderClass} ${className}`}
+      className={`bg-white dark:bg-gray-800 rounded-2xl border border-[rgba(108,63,160,0.06)] dark:border-gray-700 p-5 transition-all duration-250 hover:shadow-[0_4px_20px_rgba(108,63,160,0.1),0_8px_30px_rgba(26,26,46,0.06)] dark:hover:shadow-none shadow-[0_1px_3px_rgba(26,26,46,0.04),0_4px_14px_rgba(26,26,46,0.03)] dark:shadow-none ${borderClass} ${className}`}
     >
       {children}
     </div>

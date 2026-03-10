@@ -525,10 +525,10 @@ export default function ModernDashboard() {
         className="flex justify-center pt-4 border-t border-gray-100 dark:border-gray-800"
       >
         <button
-          onClick={() => setViewMode('og')}
+          onClick={() => setViewMode('bifrost')}
           className="text-sm text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 transition-colors"
         >
-          Switch to Classic View
+          Switch to Bifröst View
         </button>
       </motion.div>
     </div>

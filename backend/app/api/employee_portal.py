@@ -61,6 +61,18 @@ class ProfileUpdateRequest(BaseModel):
     emergency_contact: Optional[EmergencyContact] = None
 
 
+class PrivacyPreferencesResponse(BaseModel):
+    show_birthday: bool
+    show_tenure: bool
+    show_exact_dates: bool
+
+
+class PrivacyPreferencesUpdate(BaseModel):
+    show_birthday: Optional[bool] = None
+    show_tenure: Optional[bool] = None
+    show_exact_dates: Optional[bool] = None
+
+
 class SalaryInfo(BaseModel):
     current_salary: float
     wage_type: str
@@ -1406,3 +1418,54 @@ def get_next_payroll_date(
         "next_pay_date": next_date.isoformat(),
         "days_until": days_until,
     }
+
+
+# ============================================================================
+# Privacy Preferences Endpoints
+# ============================================================================
+
+@router.get("/privacy-preferences", response_model=PrivacyPreferencesResponse)
+def get_privacy_preferences(
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(require_any_permission(
+        Permissions.EMPLOYEE_PROFILE_READ,
+        Permissions.EMPLOYEE_PORTAL_ACCESS
+    ))
+):
+    """Get the current employee's privacy preference settings."""
+    employee = get_employee_for_user(db, current_user)
+
+    return PrivacyPreferencesResponse(
+        show_birthday=employee.show_birthday if employee.show_birthday is not None else True,
+        show_tenure=employee.show_tenure if employee.show_tenure is not None else True,
+        show_exact_dates=employee.show_exact_dates if employee.show_exact_dates is not None else True,
+    )
+
+
+@router.put("/privacy-preferences", response_model=PrivacyPreferencesResponse)
+def update_privacy_preferences(
+    request: PrivacyPreferencesUpdate,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(require_any_permission(
+        Permissions.EMPLOYEE_PROFILE_WRITE,
+        Permissions.EMPLOYEE_PORTAL_ACCESS
+    ))
+):
+    """Update the current employee's privacy preference settings."""
+    employee = get_employee_for_user(db, current_user)
+
+    if request.show_birthday is not None:
+        employee.show_birthday = request.show_birthday
+    if request.show_tenure is not None:
+        employee.show_tenure = request.show_tenure
+    if request.show_exact_dates is not None:
+        employee.show_exact_dates = request.show_exact_dates
+
+    db.commit()
+    db.refresh(employee)
+
+    return PrivacyPreferencesResponse(
+        show_birthday=employee.show_birthday if employee.show_birthday is not None else True,
+        show_tenure=employee.show_tenure if employee.show_tenure is not None else True,
+        show_exact_dates=employee.show_exact_dates if employee.show_exact_dates is not None else True,
+    )

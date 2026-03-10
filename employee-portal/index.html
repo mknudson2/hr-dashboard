@@ -10,6 +10,17 @@
     <title>HR Hub - Employee Portal</title>
   </head>
   <body>
+    <script>
+      // Prevent FOUC: apply dark class before React renders
+      (function() {
+        try {
+          var theme = localStorage.getItem('fmla-portal-theme');
+          if (theme === 'dark') {
+            document.documentElement.classList.add('dark');
+          }
+        } catch (e) {}
+      })();
+    </script>
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
   </body>

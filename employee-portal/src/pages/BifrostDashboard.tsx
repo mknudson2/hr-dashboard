@@ -196,7 +196,7 @@ export default function BifrostDashboard() {
       <div className="flex items-center justify-center h-64">
         <div className="flex flex-col items-center gap-3">
           <div className="bifrost-shimmer w-10 h-10 rounded-full" />
-          <p className="text-sm text-gray-500">Loading your dashboard...</p>
+          <p className="text-sm text-gray-500 dark:text-gray-400">Loading your dashboard...</p>
         </div>
       </div>
     );
@@ -207,7 +207,7 @@ export default function BifrostDashboard() {
       <div className="flex items-center justify-center h-64">
         <div className="text-center">
           <AlertCircle className="mx-auto text-red-500" size={48} />
-          <p className="text-gray-600 mt-2">{error}</p>
+          <p className="text-gray-600 dark:text-gray-400 mt-2">{error}</p>
         </div>
       </div>
     );
@@ -337,7 +337,7 @@ export default function BifrostDashboard() {
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.1 }}
         >
-          <h2 className="text-[15px] font-semibold text-deep-night mb-3 flex items-center gap-2">
+          <h2 className="text-[15px] font-semibold text-deep-night dark:text-white mb-3 flex items-center gap-2">
             <span className="w-[7px] h-[7px] bg-bridge-gold rounded-full animate-pulse" />
             Action Required
           </h2>
@@ -348,15 +348,15 @@ export default function BifrostDashboard() {
                 <Link
                   key={item.id}
                   to={item.link}
-                  className="flex items-center justify-between p-[14px] px-[18px] bg-white rounded-[14px] border border-[rgba(108,63,160,0.06)] shadow-[0_1px_3px_rgba(26,26,46,0.04),0_4px_14px_rgba(26,26,46,0.03)] hover:shadow-[0_4px_20px_rgba(108,63,160,0.1),0_8px_30px_rgba(26,26,46,0.06)] hover:border-[rgba(232,184,75,0.15)] transition-all group cursor-pointer"
+                  className="flex items-center justify-between p-[14px] px-[18px] bg-white dark:bg-gray-800 rounded-[14px] border border-[rgba(108,63,160,0.06)] dark:border-gray-700 shadow-[0_1px_3px_rgba(26,26,46,0.04),0_4px_14px_rgba(26,26,46,0.03)] dark:shadow-none hover:shadow-[0_4px_20px_rgba(108,63,160,0.1),0_8px_30px_rgba(26,26,46,0.06)] hover:border-[rgba(232,184,75,0.15)] transition-all group cursor-pointer"
                 >
                   <div className="flex items-center gap-3">
                     <div className="w-10 h-10 rounded-[10px] bg-gradient-to-br from-bridge-gold/10 to-bridge-gold/5 flex items-center justify-center">
                       <Icon className="text-bridge-gold-dark" size={18} />
                     </div>
                     <div>
-                      <p className="text-sm font-semibold text-deep-night">{item.title}</p>
-                      <p className="text-xs text-gray-500 mt-0.5">{item.description}</p>
+                      <p className="text-sm font-semibold text-deep-night dark:text-white">{item.title}</p>
+                      <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">{item.description}</p>
                     </div>
                   </div>
                   <ChevronRight
@@ -381,7 +381,7 @@ export default function BifrostDashboard() {
           const Icon = card.icon;
           const stripPosition = index === 0 ? '0%' : index === 1 ? '50%' : '100%';
           const content = (
-            <div className="relative overflow-hidden bg-white rounded-2xl p-5 border border-[rgba(108,63,160,0.06)] shadow-[0_1px_3px_rgba(26,26,46,0.04),0_4px_14px_rgba(26,26,46,0.03)] hover:shadow-[0_4px_20px_rgba(108,63,160,0.1),0_8px_30px_rgba(26,26,46,0.06)] hover:-translate-y-[2px] transition-all cursor-pointer">
+            <div className="relative overflow-hidden bg-white dark:bg-gray-800 rounded-2xl p-5 border border-[rgba(108,63,160,0.06)] dark:border-gray-700 shadow-[0_1px_3px_rgba(26,26,46,0.04),0_4px_14px_rgba(26,26,46,0.03)] dark:shadow-none hover:shadow-[0_4px_20px_rgba(108,63,160,0.1),0_8px_30px_rgba(26,26,46,0.06)] hover:-translate-y-[2px] transition-all cursor-pointer">
               {/* Aurora tri-color gradient strip — positioned to form one continuous bar across all cards */}
               <div
                 className="absolute top-0 left-0 right-0 h-[3px]"
@@ -394,9 +394,9 @@ export default function BifrostDashboard() {
 
               <div className="flex items-start justify-between">
                 <div>
-                  <p className="text-[13px] text-gray-500">{card.title}</p>
-                  <p className="font-display text-[28px] font-semibold text-deep-night mt-3 leading-none">{card.value}</p>
-                  <p className="text-xs text-gray-500 mt-1">{card.subtitle}</p>
+                  <p className="text-[13px] text-gray-500 dark:text-gray-400">{card.title}</p>
+                  <p className="font-display text-[28px] font-semibold text-deep-night dark:text-white mt-3 leading-none">{card.value}</p>
+                  <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">{card.subtitle}</p>
                 </div>
                 <div className={`w-[42px] h-[42px] rounded-xl bg-gradient-to-br ${accentGradients[card.accent]} flex items-center justify-center shadow-lg ${accentShadows[card.accent]}`}>
                   <Icon className="text-white" size={18} />
@@ -420,7 +420,7 @@ export default function BifrostDashboard() {
         transition={{ delay: 0.3 }}
         className="text-center py-2"
       >
-        <p className="text-xs text-gray-400 mb-3.5">Quick Links</p>
+        <p className="text-xs text-gray-400 dark:text-gray-500 mb-3.5">Quick Links</p>
         <div className="flex flex-wrap items-center justify-center gap-[10px]">
           {quickLinks.map((link, index) => (
             <motion.div
@@ -486,10 +486,10 @@ export default function BifrostDashboard() {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.4 }}
-          className="bg-white rounded-2xl border border-[rgba(108,63,160,0.06)] shadow-[0_1px_3px_rgba(26,26,46,0.04),0_4px_14px_rgba(26,26,46,0.03)] p-[22px]"
+          className="bg-white dark:bg-gray-800 rounded-2xl border border-[rgba(108,63,160,0.06)] dark:border-gray-700 shadow-[0_1px_3px_rgba(26,26,46,0.04),0_4px_14px_rgba(26,26,46,0.03)] dark:shadow-none p-[22px]"
         >
           <div className="flex items-center justify-between mb-4">
-            <h3 className="font-display text-base font-medium text-deep-night">Active FMLA Cases</h3>
+            <h3 className="font-display text-base font-medium text-deep-night dark:text-white">Active FMLA Cases</h3>
             <Link
               to="/requests/fmla"
               className="text-[13px] text-bifrost-violet font-medium hover:text-bifrost-violet-dark flex items-center gap-1"
@@ -501,17 +501,17 @@ export default function BifrostDashboard() {
             {employeeData.active_cases.slice(0, 3).map((c) => (
               <div
                 key={c.id}
-                className="flex items-center justify-between p-[14px] px-4 bg-frost rounded-xl"
+                className="flex items-center justify-between p-[14px] px-4 bg-frost dark:bg-gray-700 rounded-xl"
               >
                 <div>
-                  <p className="text-sm font-semibold text-deep-night">{c.case_number}</p>
-                  <p className="text-xs text-gray-500 mt-0.5">{c.leave_type}</p>
+                  <p className="text-sm font-semibold text-deep-night dark:text-white">{c.case_number}</p>
+                  <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">{c.leave_type}</p>
                 </div>
                 <div className="text-right">
-                  <p className="text-sm font-semibold text-deep-night">
+                  <p className="text-sm font-semibold text-deep-night dark:text-white">
                     {c.hours_remaining.toFixed(1)}h left
                   </p>
-                  <div className="w-[100px] h-[5px] bg-black/[0.06] rounded-full mt-1.5">
+                  <div className="w-[100px] h-[5px] bg-black/[0.06] dark:bg-white/[0.1] rounded-full mt-1.5">
                     <div
                       className="h-full rounded-full bg-gradient-to-r from-aurora-teal to-bifrost-violet"
                       style={{
@@ -532,10 +532,10 @@ export default function BifrostDashboard() {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.4 }}
-          className="bg-white rounded-2xl border border-[rgba(108,63,160,0.06)] shadow-[0_1px_3px_rgba(26,26,46,0.04),0_4px_14px_rgba(26,26,46,0.03)] p-[22px]"
+          className="bg-white dark:bg-gray-800 rounded-2xl border border-[rgba(108,63,160,0.06)] dark:border-gray-700 shadow-[0_1px_3px_rgba(26,26,46,0.04),0_4px_14px_rgba(26,26,46,0.03)] dark:shadow-none p-[22px]"
         >
           <div className="flex items-center justify-between mb-4">
-            <h3 className="font-display text-base font-medium text-deep-night">Team Overview</h3>
+            <h3 className="font-display text-base font-medium text-deep-night dark:text-white">Team Overview</h3>
             <Link
               to="/team"
               className="text-[13px] text-bifrost-violet font-medium hover:text-bifrost-violet-dark flex items-center gap-1"
@@ -544,23 +544,23 @@ export default function BifrostDashboard() {
             </Link>
           </div>
           <div className="grid grid-cols-3 gap-4">
-            <div className="text-center p-4 bg-frost rounded-xl">
-              <p className="font-display text-2xl font-semibold text-deep-night">
+            <div className="text-center p-4 bg-frost dark:bg-gray-700 rounded-xl">
+              <p className="font-display text-2xl font-semibold text-deep-night dark:text-white">
                 {supervisorData.team_size}
               </p>
-              <p className="text-xs text-gray-500 mt-1">Team size</p>
+              <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">Team size</p>
             </div>
-            <div className="text-center p-4 bg-frost rounded-xl">
-              <p className="font-display text-2xl font-semibold text-deep-night">
+            <div className="text-center p-4 bg-frost dark:bg-gray-700 rounded-xl">
+              <p className="font-display text-2xl font-semibold text-deep-night dark:text-white">
                 {supervisorData.team_members_on_fmla}
               </p>
-              <p className="text-xs text-gray-500 mt-1">On FMLA</p>
+              <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">On FMLA</p>
             </div>
-            <div className="text-center p-4 bg-frost rounded-xl">
-              <p className="font-display text-2xl font-semibold text-deep-night">
+            <div className="text-center p-4 bg-frost dark:bg-gray-700 rounded-xl">
+              <p className="font-display text-2xl font-semibold text-deep-night dark:text-white">
                 {supervisorData.pending_submissions}
               </p>
-              <p className="text-xs text-gray-500 mt-1">Pending</p>
+              <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">Pending</p>
             </div>
           </div>
         </motion.div>

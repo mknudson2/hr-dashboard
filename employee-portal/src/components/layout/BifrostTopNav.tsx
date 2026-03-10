@@ -7,9 +7,12 @@ import {
   Bell,
   LogOut,
   User,
+  Moon,
+  Sun,
   Menu,
   X,
 } from 'lucide-react';
+import { useTheme } from 'next-themes';
 import { useAuth } from '@/contexts/AuthContext';
 import { useEmployeeFeatures } from '@/contexts/EmployeeFeaturesContext';
 import { getModernNavigation, type NavDropdown, type NavItem } from '@/config/navigation';
@@ -21,17 +24,20 @@ interface BifrostTopNavProps {
   mobileMenuOpen?: boolean;
 }
 
-// View cycle: Classic → Bifröst → Modern → Classic
-const VIEW_CYCLE: Array<'og' | 'modern' | 'bifrost'> = ['og', 'bifrost', 'modern'];
-const VIEW_LABELS: Record<string, string> = { og: 'Classic', modern: 'Modern', bifrost: 'Bifröst' };
+const VIEW_CYCLE: Array<'modern' | 'bifrost'> = ['bifrost', 'modern'];
+const VIEW_LABELS: Record<string, string> = { modern: 'Modern', bifrost: 'Bifröst' };
 
 export default function BifrostTopNav({ onMobileMenuToggle, mobileMenuOpen }: BifrostTopNavProps) {
   const { user, logout, isSupervisor, isEmployee } = useAuth();
   const { features, viewMode, setViewMode } = useEmployeeFeatures();
+  const { theme, setTheme } = useTheme();
   const navigate = useNavigate();
   const [openDropdown, setOpenDropdown] = useState<string | null>(null);
   const [userMenuOpen, setUserMenuOpen] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => { setMounted(true); }, []);
 
   const dropdownRefs = useRef<{ [key: string]: HTMLDivElement | null }>({});
   const userMenuRef = useRef<HTMLDivElement>(null);
@@ -105,7 +111,7 @@ export default function BifrostTopNav({ onMobileMenuToggle, mobileMenuOpen }: Bi
           className={`flex items-center gap-1.5 px-3 py-2 text-sm font-medium rounded-lg transition-colors ${
             isOpen
               ? 'bg-bifrost-violet/8 text-bifrost-violet'
-              : 'text-gray-600 hover:text-bifrost-violet hover:bg-bifrost-violet/4'
+              : 'text-gray-600 dark:text-gray-300 hover:text-bifrost-violet hover:bg-bifrost-violet/4'
           }`}
         >
           {dropdown.label}
@@ -122,7 +128,7 @@ export default function BifrostTopNav({ onMobileMenuToggle, mobileMenuOpen }: Bi
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -10 }}
               transition={{ duration: 0.15 }}
-              className="absolute left-0 mt-2 w-56 bg-white rounded-xl shadow-lg shadow-gray-200/50 border border-gray-100 py-2 z-50"
+              className="absolute left-0 mt-2 w-56 bg-white dark:bg-gray-800 rounded-xl shadow-lg shadow-gray-200/50 dark:shadow-none border border-gray-100 dark:border-gray-700 py-2 z-50"
             >
               {dropdown.items.map((item) => (
                 <DropdownItem key={item.path} item={item} />
@@ -156,11 +162,11 @@ export default function BifrostTopNav({ onMobileMenuToggle, mobileMenuOpen }: Bi
           `flex items-center gap-3 px-4 py-2.5 text-sm transition-colors ${
             isActive
               ? 'bg-bifrost-violet/8 text-bifrost-violet'
-              : 'text-gray-700 hover:bg-gray-50'
+              : 'text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700/50'
           }`
         }
       >
-        <Icon size={18} className="text-gray-400" />
+        <Icon size={18} className="text-gray-400 dark:text-gray-500" />
         {item.label}
       </NavLink>
     );
@@ -168,13 +174,13 @@ export default function BifrostTopNav({ onMobileMenuToggle, mobileMenuOpen }: Bi
 
   return (
     <>
-    <header className="fixed top-[3px] left-0 right-0 z-40 bg-white/90 backdrop-blur-lg border-b border-gray-200/50">
+    <header className="fixed top-[3px] left-0 right-0 z-40 bg-white/90 dark:bg-gray-900/90 backdrop-blur-lg border-b border-gray-200/50 dark:border-gray-800/50">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-16">
           {/* Logo — Bifröst bridge + wordmark */}
           <button onClick={() => navigate('/dashboard')} className="flex items-center gap-2.5 cursor-pointer">
             <BifrostLogo size="sm" />
-            <span className="hidden sm:block font-display font-semibold text-deep-night tracking-[0.12em] text-[15px]">
+            <span className="hidden sm:block font-display font-semibold text-deep-night dark:text-white tracking-[0.12em] text-[15px]">
               BIFRÖST
             </span>
           </button>
@@ -188,7 +194,7 @@ export default function BifrostTopNav({ onMobileMenuToggle, mobileMenuOpen }: Bi
                 `px-3 py-2 text-sm font-medium rounded-lg transition-colors ${
                   isActive
                     ? 'bg-bifrost-violet/8 text-bifrost-violet'
-                    : 'text-gray-600 hover:text-bifrost-violet hover:bg-bifrost-violet/4'
+                    : 'text-gray-600 dark:text-gray-300 hover:text-bifrost-violet hover:bg-bifrost-violet/4'
                 }`
               }
             >
@@ -206,11 +212,11 @@ export default function BifrostTopNav({ onMobileMenuToggle, mobileMenuOpen }: Bi
             {/* Search */}
             <button
               onClick={() => setSearchOpen(true)}
-              className="hidden md:flex items-center gap-2 px-3 py-1.5 text-sm text-gray-500 bg-frost rounded-lg hover:bg-gray-200 transition-colors"
+              className="hidden md:flex items-center gap-2 px-3 py-1.5 text-sm text-gray-500 dark:text-gray-400 bg-frost dark:bg-gray-800 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
             >
               <Search size={16} />
               <span className="hidden lg:inline">Search...</span>
-              <kbd className="hidden lg:inline px-1.5 py-0.5 text-xs bg-gray-200/80 rounded">
+              <kbd className="hidden lg:inline px-1.5 py-0.5 text-xs bg-gray-200/80 dark:bg-gray-700 rounded">
                 /
               </kbd>
             </button>
@@ -218,7 +224,7 @@ export default function BifrostTopNav({ onMobileMenuToggle, mobileMenuOpen }: Bi
             {/* Notifications */}
             <button
               onClick={() => navigate('/notifications')}
-              className="relative p-2 text-gray-500 hover:bg-gray-100 rounded-lg transition-colors"
+              className="relative p-2 text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors"
             >
               <Bell size={20} />
               {features && features.total_action_items > 0 && (
@@ -230,7 +236,7 @@ export default function BifrostTopNav({ onMobileMenuToggle, mobileMenuOpen }: Bi
             <div className="relative" ref={userMenuRef}>
               <button
                 onClick={() => setUserMenuOpen(!userMenuOpen)}
-                className="flex items-center gap-2 p-1.5 hover:bg-gray-100 rounded-lg transition-colors"
+                className="flex items-center gap-2 p-1.5 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors"
               >
                 <div className="w-8 h-8 bg-gradient-to-br from-bifrost-violet to-aurora-teal rounded-lg flex items-center justify-center text-white font-medium text-sm shadow-md shadow-bifrost-violet/25">
                   {user?.full_name?.charAt(0) || 'U'}
@@ -244,14 +250,14 @@ export default function BifrostTopNav({ onMobileMenuToggle, mobileMenuOpen }: Bi
                     animate={{ opacity: 1, y: 0 }}
                     exit={{ opacity: 0, y: -10 }}
                     transition={{ duration: 0.15 }}
-                    className="absolute right-0 mt-2 w-64 bg-white rounded-xl shadow-lg shadow-gray-200/50 border border-gray-100 py-2 z-50"
+                    className="absolute right-0 mt-2 w-64 bg-white dark:bg-gray-800 rounded-xl shadow-lg shadow-gray-200/50 dark:shadow-none border border-gray-100 dark:border-gray-700 py-2 z-50"
                   >
                     {/* User info */}
-                    <div className="px-4 py-3 border-b border-gray-100">
-                      <p className="font-medium text-gray-900">
+                    <div className="px-4 py-3 border-b border-gray-100 dark:border-gray-700">
+                      <p className="font-medium text-gray-900 dark:text-white">
                         {user?.full_name}
                       </p>
-                      <p className="text-sm text-gray-500">{user?.email}</p>
+                      <p className="text-sm text-gray-500 dark:text-gray-400">{user?.email}</p>
                     </div>
 
                     {/* Menu items */}
@@ -259,13 +265,13 @@ export default function BifrostTopNav({ onMobileMenuToggle, mobileMenuOpen }: Bi
                       <NavLink
                         to="/my-hr/profile"
                         onClick={() => setUserMenuOpen(false)}
-                        className="flex items-center gap-3 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
+                        className="flex items-center gap-3 px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors"
                       >
                         <User size={18} className="text-gray-400" />
                         My Profile
                       </NavLink>
 
-                      {/* View toggle — all 3 options */}
+                      {/* View toggle */}
                       <div className="px-4 py-2">
                         <p className="text-xs text-gray-400 mb-1.5">Switch View</p>
                         <div className="flex gap-1">
@@ -279,7 +285,7 @@ export default function BifrostTopNav({ onMobileMenuToggle, mobileMenuOpen }: Bi
                               className={`flex-1 px-2 py-1.5 text-xs font-medium rounded-md transition-colors ${
                                 viewMode === key
                                   ? 'bg-bifrost-violet/10 text-bifrost-violet'
-                                  : 'text-gray-600 hover:bg-gray-100'
+                                  : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700'
                               }`}
                             >
                               {VIEW_LABELS[key]}
@@ -287,13 +293,28 @@ export default function BifrostTopNav({ onMobileMenuToggle, mobileMenuOpen }: Bi
                           ))}
                         </div>
                       </div>
+
+                      {/* Dark mode toggle */}
+                      {mounted && (
+                        <button
+                          onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
+                          className="flex items-center gap-3 px-4 py-2 w-full text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors"
+                        >
+                          {theme === 'dark' ? (
+                            <Sun size={18} className="text-gray-400" />
+                          ) : (
+                            <Moon size={18} className="text-gray-400" />
+                          )}
+                          {theme === 'dark' ? 'Light Mode' : 'Dark Mode'}
+                        </button>
+                      )}
                     </div>
 
                     {/* Sign out */}
-                    <div className="pt-2 border-t border-gray-100">
+                    <div className="pt-2 border-t border-gray-100 dark:border-gray-700">
                       <button
                         onClick={handleLogout}
-                        className="flex items-center gap-3 px-4 py-2 w-full text-sm text-red-600 hover:bg-red-50 transition-colors"
+                        className="flex items-center gap-3 px-4 py-2 w-full text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors"
                       >
                         <LogOut size={18} />
                         Sign out
@@ -307,7 +328,7 @@ export default function BifrostTopNav({ onMobileMenuToggle, mobileMenuOpen }: Bi
             {/* Mobile menu button */}
             <button
               onClick={onMobileMenuToggle}
-              className="lg:hidden p-2 text-gray-500 hover:bg-gray-100 rounded-lg transition-colors"
+              className="lg:hidden p-2 text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors"
             >
               {mobileMenuOpen ? <X size={20} /> : <Menu size={20} />}
             </button>

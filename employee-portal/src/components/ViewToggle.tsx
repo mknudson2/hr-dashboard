@@ -2,16 +2,15 @@ import { motion } from 'framer-motion';
 import { LayoutGrid, Sparkles, Mountain } from 'lucide-react';
 import { useEmployeeFeatures } from '@/contexts/EmployeeFeaturesContext';
 
-type ViewOption = 'og' | 'bifrost' | 'modern';
+type ViewOption = 'bifrost' | 'modern';
 
 const views: { key: ViewOption; label: string; icon: typeof LayoutGrid }[] = [
-  { key: 'og', label: 'Classic', icon: LayoutGrid },
   { key: 'bifrost', label: 'Bifröst', icon: Mountain },
   { key: 'modern', label: 'Modern', icon: Sparkles },
 ];
 
 /**
- * ViewToggle - Animated 3-way toggle between Classic, Bifröst, and Modern views.
+ * ViewToggle - Animated 2-way toggle between Bifröst and Modern views.
  * Uses Framer Motion for smooth sliding indicator.
  */
 export default function ViewToggle() {

@@ -27,8 +27,7 @@ from ..db import models
 def _current_year_range() -> Tuple[date, date]:
     today = date.today()
     start = date(today.year, 1, 1)
-    end = date(today.year, 12, 31)
-    return start, end
+    return start, today
 
 
 def _month_end_dates_ytd() -> List[date]:
@@ -99,16 +98,17 @@ def get_ytd_average_headcount(session: Session) -> float:
 
 
 def get_turnover_rate(session: Session) -> float:
-    """(YTD Terms / YTD Avg Headcount) * 100."""
+    """Annualized turnover: (YTD Terms / YTD Avg Headcount) * (12 / months_elapsed) * 100."""
     terms = get_ytd_terminations(session)
     avg_hc = get_ytd_average_headcount(session)
-    if avg_hc == 0:
+    months_elapsed = date.today().month
+    if avg_hc == 0 or months_elapsed == 0:
         return 0.0
-    return round((terms / avg_hc) * 100.0, 2)
+    return round((terms / avg_hc) * (12 / months_elapsed) * 100.0, 2)
 
 
 def get_regrettable_turnover_pct(session: Session) -> float:
-    """Percentage of YTD terminations that were involuntary."""
+    """Percentage of YTD terminations that were involuntary (firings, layoffs, dismissals)."""
     total_terms = get_ytd_terminations(session)
     if total_terms == 0:
         return 0.0

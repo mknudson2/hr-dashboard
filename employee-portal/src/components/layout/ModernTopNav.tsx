@@ -13,6 +13,7 @@ import {
   Menu,
   X,
 } from 'lucide-react';
+import { useTheme } from 'next-themes';
 import { useAuth } from '@/contexts/AuthContext';
 import { useEmployeeFeatures } from '@/contexts/EmployeeFeaturesContext';
 import { getModernNavigation, type NavDropdown, type NavItem } from '@/config/navigation';
@@ -26,16 +27,14 @@ interface ModernTopNavProps {
 export default function ModernTopNav({ onMobileMenuToggle, mobileMenuOpen }: ModernTopNavProps) {
   const { user, logout, isSupervisor, isEmployee } = useAuth();
   const { features, viewMode, setViewMode } = useEmployeeFeatures();
+  const { theme, setTheme } = useTheme();
   const navigate = useNavigate();
   const [openDropdown, setOpenDropdown] = useState<string | null>(null);
   const [userMenuOpen, setUserMenuOpen] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
-  const [darkMode, setDarkMode] = useState(() => {
-    if (typeof window !== 'undefined') {
-      return document.documentElement.classList.contains('dark');
-    }
-    return false;
-  });
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => { setMounted(true); }, []);
 
   const dropdownRefs = useRef<{ [key: string]: HTMLDivElement | null }>({});
   const userMenuRef = useRef<HTMLDivElement>(null);
@@ -95,18 +94,6 @@ export default function ModernTopNav({ onMobileMenuToggle, mobileMenuOpen }: Mod
   const handleLogout = async () => {
     await logout();
     navigate('/login');
-  };
-
-  const toggleDarkMode = () => {
-    const newMode = !darkMode;
-    setDarkMode(newMode);
-    if (newMode) {
-      document.documentElement.classList.add('dark');
-      localStorage.setItem('theme', 'dark');
-    } else {
-      document.documentElement.classList.remove('dark');
-      localStorage.setItem('theme', 'light');
-    }
   };
 
   const DropdownMenu = ({ dropdown }: { dropdown: NavDropdown }) => {
@@ -286,12 +273,11 @@ export default function ModernTopNav({ onMobileMenuToggle, mobileMenuOpen }: Mod
                         My Profile
                       </NavLink>
 
-                      {/* View toggle — all 3 options */}
+                      {/* View toggle */}
                       <div className="px-4 py-2">
                         <p className="text-xs text-gray-400 mb-1.5">Switch View</p>
                         <div className="flex gap-1">
                           {([
-                            { key: 'og' as const, label: 'Classic', icon: LayoutGrid },
                             { key: 'bifrost' as const, label: 'Bifröst', icon: LayoutGrid },
                             { key: 'modern' as const, label: 'Modern', icon: LayoutGrid },
                           ]).map((view) => (
@@ -314,17 +300,19 @@ export default function ModernTopNav({ onMobileMenuToggle, mobileMenuOpen }: Mod
                       </div>
 
                       {/* Dark mode toggle */}
-                      <button
-                        onClick={toggleDarkMode}
-                        className="flex items-center gap-3 px-4 py-2 w-full text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors"
-                      >
-                        {darkMode ? (
-                          <Sun size={18} className="text-gray-400" />
-                        ) : (
-                          <Moon size={18} className="text-gray-400" />
-                        )}
-                        {darkMode ? 'Light Mode' : 'Dark Mode'}
-                      </button>
+                      {mounted && (
+                        <button
+                          onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
+                          className="flex items-center gap-3 px-4 py-2 w-full text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors"
+                        >
+                          {theme === 'dark' ? (
+                            <Sun size={18} className="text-gray-400" />
+                          ) : (
+                            <Moon size={18} className="text-gray-400" />
+                          )}
+                          {theme === 'dark' ? 'Light Mode' : 'Dark Mode'}
+                        </button>
+                      )}
                     </div>
 
                     {/* Sign out */}

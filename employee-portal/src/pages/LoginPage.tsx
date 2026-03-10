@@ -1,12 +1,12 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
-import { Users, Eye, EyeOff, AlertCircle, LayoutGrid, Sparkles, Mountain } from 'lucide-react';
+import { Users, Eye, EyeOff, AlertCircle, Sparkles, Mountain } from 'lucide-react';
 import { motion } from 'framer-motion';
 import ShimmerBar from '@/components/bifrost/ShimmerBar';
 import BifrostLogo from '@/components/bifrost/BifrostLogo';
 
-type ViewMode = 'og' | 'modern' | 'bifrost';
+type ViewMode = 'modern' | 'bifrost';
 
 const VIEW_MODE_KEY = 'portal_view_mode';
 
@@ -50,7 +50,7 @@ export default function LoginPage() {
   return (
     <div className={`min-h-screen flex items-center justify-center p-4 ${
       isBifrost
-        ? 'bg-realm-white'
+        ? 'bg-realm-white dark:bg-gray-900'
         : 'bg-gradient-to-br from-blue-50 to-indigo-100 dark:from-gray-900 dark:to-gray-800'
     }`}>
       {/* Bifröst shimmer bar */}
@@ -69,8 +69,8 @@ export default function LoginPage() {
               <div className="inline-flex items-center justify-center mb-4">
                 <BifrostLogo size="lg" />
               </div>
-              <h1 className="font-display text-2xl font-semibold text-deep-night tracking-wide">BIFRÖST</h1>
-              <p className="text-gray-500 mt-2">Your self-service portal for HR needs</p>
+              <h1 className="font-display text-2xl font-semibold text-deep-night dark:text-white tracking-wide">BIFRÖST</h1>
+              <p className="text-gray-500 dark:text-gray-400 mt-2">Your self-service portal for HR needs</p>
             </>
           ) : (
             <>
@@ -86,7 +86,7 @@ export default function LoginPage() {
         {/* Login card */}
         <div className={`rounded-2xl shadow-xl p-8 ${
           isBifrost
-            ? 'bg-white border border-[rgba(108,63,160,0.06)]'
+            ? 'bg-white dark:bg-gray-800 border border-[rgba(108,63,160,0.06)] dark:border-gray-700'
             : 'bg-white dark:bg-gray-800'
         }`}>
           <form onSubmit={handleSubmit} className="space-y-6">
@@ -112,10 +112,10 @@ export default function LoginPage() {
                 type="text"
                 value={username}
                 onChange={(e) => setUsername(e.target.value)}
-                className={`w-full px-4 py-3 border rounded-lg bg-white text-gray-900 focus:outline-none focus:ring-2 focus:border-transparent transition-all placeholder-gray-400 ${
+                className={`w-full px-4 py-3 border rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:border-transparent transition-all placeholder-gray-400 dark:placeholder-gray-500 ${
                   isBifrost
-                    ? 'border-gray-200 focus:ring-bifrost-violet'
-                    : 'border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white focus:ring-blue-500 dark:placeholder-gray-500'
+                    ? 'border-gray-200 dark:border-gray-600 focus:ring-bifrost-violet'
+                    : 'border-gray-300 dark:border-gray-600 focus:ring-blue-500'
                 }`}
                 placeholder="Enter your username"
                 required
@@ -134,10 +134,10 @@ export default function LoginPage() {
                   type={showPassword ? 'text' : 'password'}
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  className={`w-full px-4 py-3 border rounded-lg bg-white text-gray-900 focus:outline-none focus:ring-2 focus:border-transparent transition-all pr-12 placeholder-gray-400 ${
+                  className={`w-full px-4 py-3 border rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:border-transparent transition-all pr-12 placeholder-gray-400 dark:placeholder-gray-500 ${
                     isBifrost
-                      ? 'border-gray-200 focus:ring-bifrost-violet'
-                      : 'border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white focus:ring-blue-500 dark:placeholder-gray-500'
+                      ? 'border-gray-200 dark:border-gray-600 focus:ring-bifrost-violet'
+                      : 'border-gray-300 dark:border-gray-600 focus:ring-blue-500'
                   }`}
                   placeholder="Enter your password"
                   required
@@ -189,7 +189,7 @@ export default function LoginPage() {
             </button>
           </form>
 
-          {/* 3-way view toggle */}
+          {/* View toggle */}
           <div className="mt-6 pt-6 border-t border-gray-100 dark:border-gray-700">
             <p className="text-xs text-center text-gray-400 mb-3">Portal Theme</p>
             <div className="relative bg-gray-100 dark:bg-gray-700 rounded-lg p-1 flex">
@@ -197,13 +197,12 @@ export default function LoginPage() {
                 className="absolute inset-y-1 bg-white dark:bg-gray-600 rounded-md shadow-sm"
                 initial={false}
                 animate={{
-                  left: `calc(${(['og', 'bifrost', 'modern'].indexOf(previewView)) * 33.333}% + 4px)`,
-                  right: `calc(${(2 - ['og', 'bifrost', 'modern'].indexOf(previewView)) * 33.333}% + 4px)`,
+                  left: `calc(${(['bifrost', 'modern'].indexOf(previewView)) * 50}% + 4px)`,
+                  right: `calc(${(1 - ['bifrost', 'modern'].indexOf(previewView)) * 50}% + 4px)`,
                 }}
                 transition={{ type: 'spring', stiffness: 500, damping: 30 }}
               />
               {([
-                { key: 'og' as ViewMode, label: 'Classic', icon: LayoutGrid },
                 { key: 'bifrost' as ViewMode, label: 'Bifröst', icon: Mountain },
                 { key: 'modern' as ViewMode, label: 'Modern', icon: Sparkles },
               ]).map((view) => {

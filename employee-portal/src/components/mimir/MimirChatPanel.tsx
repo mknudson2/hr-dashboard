@@ -21,7 +21,7 @@ function MessageBubble({ message }: { message: MimirMessage }) {
           className={`px-3.5 py-2.5 text-sm leading-relaxed ${
             isUser
               ? 'bg-bifrost-violet text-white rounded-2xl rounded-br-md'
-              : 'bg-frost text-deep-night rounded-2xl rounded-bl-md'
+              : 'bg-frost dark:bg-gray-700 text-deep-night dark:text-gray-200 rounded-2xl rounded-bl-md'
           }`}
         >
           <MessageContent content={message.content} />
@@ -77,7 +77,7 @@ function TypingIndicator() {
           <MimirLogo size={14} />
         </div>
       </div>
-      <div className="bg-frost rounded-2xl rounded-bl-md px-4 py-3">
+      <div className="bg-frost dark:bg-gray-700 rounded-2xl rounded-bl-md px-4 py-3">
         <div className="flex gap-1">
           <span className="w-1.5 h-1.5 bg-mimir-blue/40 rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
           <span className="w-1.5 h-1.5 bg-mimir-blue/40 rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
@@ -124,7 +124,7 @@ export default function MimirChatPanel() {
       animate={{ opacity: 1, y: 0, scale: 1 }}
       exit={{ opacity: 0, y: 20, scale: 0.95 }}
       transition={{ duration: 0.2, ease: 'easeOut' }}
-      className="absolute bottom-[68px] right-0 w-[340px] h-[450px] bg-white rounded-2xl shadow-2xl shadow-mimir-blue/20 border border-gray-200 flex flex-col overflow-hidden"
+      className="absolute bottom-[68px] right-0 w-[340px] h-[450px] bg-white dark:bg-gray-800 rounded-2xl shadow-2xl shadow-mimir-blue/20 dark:shadow-none border border-gray-200 dark:border-gray-700 flex flex-col overflow-hidden"
     >
       {/* Header */}
       <div className="bg-mimir-blue px-4 py-3 flex items-center justify-between flex-shrink-0">
@@ -170,7 +170,7 @@ export default function MimirChatPanel() {
       </div>
 
       {/* Input */}
-      <div className="flex-shrink-0 border-t border-gray-100 px-3 py-2.5">
+      <div className="flex-shrink-0 border-t border-gray-100 dark:border-gray-700 px-3 py-2.5">
         <div className="flex items-center gap-2">
           <input
             ref={inputRef}
@@ -179,7 +179,7 @@ export default function MimirChatPanel() {
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={handleKeyDown}
             placeholder="Ask Mímir a question..."
-            className="flex-1 bg-realm-white border border-gray-200 rounded-full px-4 py-2 text-sm text-deep-night placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-mimir-blue/30 focus:border-mimir-blue/40 transition-colors"
+            className="flex-1 bg-realm-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-full px-4 py-2 text-sm text-deep-night dark:text-white placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-mimir-blue/30 focus:border-mimir-blue/40 transition-colors"
             disabled={isTyping}
           />
           <button
