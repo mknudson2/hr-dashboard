@@ -132,7 +132,7 @@ const LocationDistribution = () => {
     return (
       <div className="flex items-center justify-center p-12">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500 mx-auto"></div>
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-bifrost-violet mx-auto"></div>
           <p className="mt-4 text-gray-600 dark:text-gray-400">Loading location data...</p>
         </div>
       </div>
@@ -156,18 +156,20 @@ const LocationDistribution = () => {
     .sort((a, b) => b.employees - a.employees);
 
   const pieData = [
-    { name: 'United States', value: locationData.summary.total_us, color: '#3B82F6' },
-    { name: 'International', value: locationData.summary.total_international, color: '#10B981' },
+    { name: 'United States', value: locationData.summary.total_us, color: '#6C3FA0' },
+    { name: 'International', value: locationData.summary.total_international, color: '#2ABFBF' },
   ];
 
-  const COLORS = ['#3B82F6', '#8B5CF6', '#EC4899', '#F59E0B', '#10B981', '#6366F1', '#EF4444', '#14B8A6'];
+  const COLORS = ['#6C3FA0', '#2ABFBF', '#E8B84B', '#8B5FC4', '#1F9E9E', '#D4A030', '#1B3A5C', '#E05C8A'];
 
   return (
-    <div id="location-distribution-content" className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-gray-700 shadow-sm p-6 hover:shadow-md hover:-translate-y-0.5 transition-all duration-300">
+    <div id="location-distribution-content" className="relative bg-white dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-gray-700 shadow-sm p-6 hover:shadow-md hover:-translate-y-0.5 transition-all duration-300 overflow-hidden">
+      {/* Bifröst gradient strip */}
+      <div className="absolute top-0 left-0 right-0 h-[2px]" style={{ background: 'linear-gradient(90deg, #6C3FA0, #2ABFBF, #E8B84B)' }} />
       {/* Header */}
       <div className="flex justify-between items-center mb-6">
         <div>
-          <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">
+          <h2 className="text-2xl font-display font-bold text-gray-900 dark:text-white mb-2">
             Employee Location Distribution
           </h2>
           <p className="text-gray-600 dark:text-gray-400">
@@ -177,7 +179,7 @@ const LocationDistribution = () => {
         <button
           onClick={exportToPDF}
           data-export-pdf
-          className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+          className="flex items-center gap-2 px-4 py-2 bg-bifrost-violet hover:bg-bifrost-violet-light text-white rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
         >
           <Download className="w-4 h-4" />
           Export PDF
@@ -189,10 +191,10 @@ const LocationDistribution = () => {
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          className="bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-900/30 dark:to-blue-800/30 rounded-lg p-4"
+          className="bg-gradient-to-br from-bifrost-violet/10 to-bifrost-violet/20 dark:from-bifrost-violet/20 dark:to-bifrost-violet/10 rounded-lg p-4"
         >
           <div className="flex items-center gap-3 mb-2">
-            <div className="p-2 bg-blue-600 rounded-lg">
+            <div className="p-2 bg-bifrost-violet rounded-lg">
               <Users className="w-5 h-5 text-white" />
             </div>
             <span className="text-sm font-medium text-gray-600 dark:text-gray-400">Total Employees</span>
@@ -206,10 +208,10 @@ const LocationDistribution = () => {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.1 }}
-          className="bg-gradient-to-br from-purple-50 to-purple-100 dark:from-purple-900/30 dark:to-purple-800/30 rounded-lg p-4"
+          className="bg-gradient-to-br from-aurora-teal/10 to-aurora-teal/20 dark:from-aurora-teal/20 dark:to-aurora-teal/10 rounded-lg p-4"
         >
           <div className="flex items-center gap-3 mb-2">
-            <div className="p-2 bg-purple-600 rounded-lg">
+            <div className="p-2 bg-aurora-teal rounded-lg">
               <MapPin className="w-5 h-5 text-white" />
             </div>
             <span className="text-sm font-medium text-gray-600 dark:text-gray-400">US Employees</span>
@@ -226,10 +228,10 @@ const LocationDistribution = () => {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.2 }}
-          className="bg-gradient-to-br from-green-50 to-green-100 dark:from-green-900/30 dark:to-green-800/30 rounded-lg p-4"
+          className="bg-gradient-to-br from-bridge-gold/10 to-bridge-gold/20 dark:from-bridge-gold/20 dark:to-bridge-gold/10 rounded-lg p-4"
         >
           <div className="flex items-center gap-3 mb-2">
-            <div className="p-2 bg-green-600 rounded-lg">
+            <div className="p-2 bg-bridge-gold rounded-lg">
               <Globe className="w-5 h-5 text-white" />
             </div>
             <span className="text-sm font-medium text-gray-600 dark:text-gray-400">International</span>
@@ -246,10 +248,10 @@ const LocationDistribution = () => {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.3 }}
-          className="bg-gradient-to-br from-orange-50 to-orange-100 dark:from-orange-900/30 dark:to-orange-800/30 rounded-lg p-4"
+          className="bg-gradient-to-br from-bifrost-violet/5 to-aurora-teal/10 dark:from-bifrost-violet/15 dark:to-aurora-teal/10 rounded-lg p-4"
         >
           <div className="flex items-center gap-3 mb-2">
-            <div className="p-2 bg-orange-600 rounded-lg">
+            <div className="p-2 bg-gradient-to-br from-bifrost-violet to-aurora-teal rounded-lg">
               <MapPin className="w-5 h-5 text-white" />
             </div>
             <span className="text-sm font-medium text-gray-600 dark:text-gray-400">Locations</span>
@@ -269,7 +271,7 @@ const LocationDistribution = () => {
           onClick={() => setDisplayMode('map')}
           className={`flex items-center gap-2 px-4 py-2 rounded-lg font-medium transition-colors ${
             displayMode === 'map'
-              ? 'bg-blue-600 text-white'
+              ? 'bg-bifrost-violet text-white'
               : 'bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300'
           }`}
         >
@@ -280,7 +282,7 @@ const LocationDistribution = () => {
           onClick={() => setDisplayMode('charts')}
           className={`flex items-center gap-2 px-4 py-2 rounded-lg font-medium transition-colors ${
             displayMode === 'charts'
-              ? 'bg-blue-600 text-white'
+              ? 'bg-bifrost-violet text-white'
               : 'bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300'
           }`}
         >
@@ -298,11 +300,11 @@ const LocationDistribution = () => {
           <LocationMap locationData={locationData} />
           <div className="mt-4 flex items-center justify-center gap-6 text-sm">
             <div className="flex items-center gap-2">
-              <div className="w-4 h-4 rounded-full bg-blue-500"></div>
+              <div className="w-4 h-4 rounded-full bg-bifrost-violet"></div>
               <span className="text-gray-600 dark:text-gray-400">United States</span>
             </div>
             <div className="flex items-center gap-2">
-              <div className="w-4 h-4 rounded-full bg-green-500"></div>
+              <div className="w-4 h-4 rounded-full bg-aurora-teal"></div>
               <span className="text-gray-600 dark:text-gray-400">International</span>
             </div>
             <span className="text-gray-500 dark:text-gray-500 text-xs">
@@ -350,7 +352,7 @@ const LocationDistribution = () => {
               onClick={() => setView('us')}
               className={`px-4 py-2 rounded-lg font-medium transition-colors ${
                 view === 'us'
-                  ? 'bg-blue-600 text-white'
+                  ? 'bg-bifrost-violet text-white'
                   : 'bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300'
               }`}
             >
@@ -360,7 +362,7 @@ const LocationDistribution = () => {
               onClick={() => setView('international')}
               className={`px-4 py-2 rounded-lg font-medium transition-colors ${
                 view === 'international'
-                  ? 'bg-blue-600 text-white'
+                  ? 'bg-bifrost-violet text-white'
                   : 'bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300'
               }`}
             >
