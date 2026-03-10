@@ -201,6 +201,15 @@ export default function EmployeeBenefitsDrawer({ employeeId, onClose }: Employee
     }, [onClose]);
 
     const isOpen = !!employeeId;
+    const isDark = document.documentElement.classList.contains('dark');
+
+    const drawerStyle = isDark
+        ? { background: 'rgba(255, 255, 255, 0.12)', backdropFilter: 'blur(20px) brightness(1.8) saturate(1.5)', WebkitBackdropFilter: 'blur(20px) brightness(1.8) saturate(1.5)' }
+        : { background: 'rgba(255, 255, 255, 0.45)', backdropFilter: 'blur(24px) saturate(1.3)', WebkitBackdropFilter: 'blur(24px) saturate(1.3)' };
+
+    const headerStyle = isDark
+        ? { background: 'rgba(255, 255, 255, 0.04)' }
+        : { background: 'rgba(255, 255, 255, 0.5)' };
 
     return createPortal(
         <>
@@ -213,12 +222,14 @@ export default function EmployeeBenefitsDrawer({ employeeId, onClose }: Employee
             {/* Drawer — uses CSS right transition instead of transform to preserve backdrop-filter */}
             <div
                 className={`fixed top-0 h-full w-full md:w-2/3 lg:w-1/2 z-50 shadow-2xl transition-[right] duration-300 ease-out ${isOpen ? 'right-0' : '-right-full'}`}
-                style={{ background: 'rgba(255, 255, 255, 0.12)', backdropFilter: 'blur(20px) brightness(1.8) saturate(1.5)', WebkitBackdropFilter: 'blur(20px) brightness(1.8) saturate(1.5)', borderLeft: '1px solid rgba(255, 255, 255, 0.12)' }}
+                style={drawerStyle}
             >
+              {/* Bifröst shimmer edge — mirrors sidebar gradient bar */}
+              <div className="absolute left-0 top-0 bottom-0 w-[3px] bifrost-shimmer-v z-20" />
               <div ref={drawerRef} className="relative h-full overflow-y-auto">
                 {/* Header */}
                 <div className="sticky top-0 border-b border-white/10 p-6 flex items-center justify-between z-10"
-                     style={{ background: 'rgba(255, 255, 255, 0.04)' }}>
+                     style={headerStyle}>
                             <div>
                                 <h2 className="text-2xl font-bold text-gray-900 dark:text-white">
                                     {employee?.full_name || "Loading..."}
@@ -287,7 +298,7 @@ export default function EmployeeBenefitsDrawer({ employeeId, onClose }: Employee
                                         </div>
                                         <div>
                                             <p className="text-sm text-gray-600 dark:text-gray-200">Monthly Benefits (ER)</p>
-                                            <p className="text-2xl font-bold" style={{ color: 'white' }}>
+                                            <p className="text-2xl font-bold text-gray-900 dark:text-white">
                                                 ${costs.erCost.toFixed(2)}
                                             </p>
                                         </div>

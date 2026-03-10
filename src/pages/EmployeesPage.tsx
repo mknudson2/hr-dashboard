@@ -54,7 +54,7 @@ export default function EmployeesPage() {
     const [loading, setLoading] = useState(true);
     const [showFilters, setShowFilters] = useState(false);
     const [viewMode, setViewMode] = useState<"standard" | "compensation">("standard");
-    const [statusToggle, setStatusToggle] = useState<"all" | "active" | "terminated">("all");
+    const [statusToggle, setStatusToggle] = useState<"all" | "active" | "terminated">("active");
     const [dateColumnToggle, setDateColumnToggle] = useState<"hire" | "termination">("termination");
     const [orgToggle, setOrgToggle] = useState<"department" | "team" | "cost_center">("department");
     const [wageTypeFilter, setWageTypeFilter] = useState<"all" | "hourly" | "salary">("all");
@@ -685,9 +685,9 @@ export default function EmployeesPage() {
                                             </td>
                                             <td className="px-6 py-3">
                                                 <span className={`px-2 py-1 rounded text-xs font-medium ${
-                                                    emp.type === "FT"
-                                                        ? "bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300"
-                                                        : "bg-purple-100 text-purple-700 dark:bg-purple-900 dark:text-purple-300"
+                                                    (emp.type || "").toLowerCase().includes("part time") || (emp.type || "").toLowerCase().includes("part-time")
+                                                        ? "bg-amber-100 text-amber-700 dark:bg-amber-900/70 dark:text-amber-200"
+                                                        : "bg-green-100 text-green-700 dark:bg-green-900/70 dark:text-green-200"
                                                 }`}>
                                                     {emp.type || "N/A"}
                                                 </span>
