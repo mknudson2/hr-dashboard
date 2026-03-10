@@ -33,7 +33,7 @@ export default function DepartmentChart() {
     useEffect(() => {
         const dark = resolvedTheme === "dark";
         setIsDark(dark);
-        setChartColor(dark ? "#60a5fa" : "#3b82f6");
+        setChartColor(dark ? "#2ABFBF" : "#1F9E9E");
     }, [resolvedTheme]);
 
     // 📊 Fetch PTO Utilization
@@ -143,14 +143,15 @@ export default function DepartmentChart() {
                 exit={{ opacity: 0, scale: 0.97 }}
                 transition={{ duration: 0.4 }}
                 className="
-          p-6 mt-8 rounded-2xl border border-gray-200 dark:border-gray-700
+          relative overflow-hidden p-6 mt-8 rounded-2xl border border-gray-200 dark:border-gray-700
           bg-white dark:bg-gray-800 shadow-sm transition-all duration-300
           hover:shadow-md hover:-translate-y-0.5
         "
             >
+                <div className="absolute top-0 left-0 right-0 h-[2px]" style={{ background: 'linear-gradient(90deg, #E8B84B, #D4A030)' }} />
                 {/* Header */}
                 <div className="flex items-center justify-between mb-4 flex-wrap gap-3">
-                    <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
+                    <h3 className="text-lg font-display font-semibold text-gray-900 dark:text-gray-100">
                         PTO Utilization by {filter.replace("_", " ")}
                     </h3>
 

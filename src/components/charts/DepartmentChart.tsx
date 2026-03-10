@@ -51,16 +51,16 @@ export default function DepartmentChart() {
             {
                 label: "Active",
                 data: activeCounts,
-                backgroundColor: "rgba(34,197,94,0.6)", // green
-                borderColor: "rgb(34,197,94)",
+                backgroundColor: "rgba(42,191,191,0.6)", // aurora-teal
+                borderColor: "rgb(42,191,191)",
                 borderWidth: 1.5,
                 borderRadius: 6,
             },
             {
                 label: "YTD Terminations",
                 data: termCounts,
-                backgroundColor: "rgba(239,68,68,0.6)", // red
-                borderColor: "rgb(239,68,68)",
+                backgroundColor: "rgba(232,184,75,0.6)", // bridge-gold
+                borderColor: "rgb(232,184,75)",
                 borderWidth: 1.5,
                 borderRadius: 6,
             },
@@ -90,9 +90,10 @@ export default function DepartmentChart() {
     };
 
     return (
-        <div className="w-full mt-8 mb-8 bg-white dark:bg-gray-800 rounded-2xl shadow-sm p-6 transition-all duration-300 hover:shadow-md hover:-translate-y-0.5 border border-gray-200 dark:border-gray-700">
+        <div className="relative overflow-hidden w-full mt-8 mb-8 bg-white dark:bg-gray-800 rounded-2xl shadow-sm p-6 transition-all duration-300 hover:shadow-md hover:-translate-y-0.5 border border-gray-200 dark:border-gray-700">
+            <div className="absolute top-0 left-0 right-0 h-[2px]" style={{ background: 'linear-gradient(90deg, #2ABFBF, #1F9E9E)' }} />
             <div className="flex items-center justify-between mb-4 flex-wrap gap-3">
-                <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
+                <h3 className="text-lg font-display font-semibold text-gray-900 dark:text-white">
                     {filter === "department" ? "Department" : filter === "cost_center" ? "Cost Center" : "Team"} Breakdown — Active vs. YTD Terminations
                 </h3>
 
@@ -110,7 +111,7 @@ export default function DepartmentChart() {
                     <motion.button
                         whileTap={{ scale: 0.95 }}
                         onClick={() => setStacked(!stacked)}
-                        className="px-3 py-1 text-sm rounded-md bg-blue-600 hover:bg-blue-700 text-white transition"
+                        className="px-3 py-1 text-sm rounded-md bg-bifrost-violet hover:bg-bifrost-violet-light text-white transition"
                     >
                         {stacked ? "View Grouped" : "View Stacked"}
                     </motion.button>

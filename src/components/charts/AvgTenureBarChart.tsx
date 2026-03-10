@@ -31,8 +31,8 @@ export default function AvgTenureBarChart({ labels, values, title }: Props) {
             {
                 label: "Avg Tenure (Years)",
                 data: values,
-                backgroundColor: isDark ? "rgba(108, 63, 160, 0.7)" : "rgba(37, 99, 235, 0.7)",
-                borderColor: isDark ? "#8B5FC4" : "rgba(37, 99, 235, 1)",
+                backgroundColor: isDark ? "rgba(108, 63, 160, 0.7)" : "rgba(108, 63, 160, 0.6)",
+                borderColor: isDark ? "#8B5FC4" : "#6C3FA0",
                 borderWidth: 1,
             },
         ],

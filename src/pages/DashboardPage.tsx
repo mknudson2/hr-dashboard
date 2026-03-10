@@ -378,10 +378,11 @@ export default function DashboardPage() {
 
       {/* Average Tenure Section */}
       {avgTenure && (
-        <div className="rounded-2xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-6 shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all duration-300">
+        <div className="relative overflow-hidden rounded-2xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-6 shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all duration-300">
+          <div className="absolute top-0 left-0 right-0 h-[2px]" style={{ background: 'linear-gradient(90deg, #6C3FA0, #2ABFBF)' }} />
           <div className="flex items-center justify-between mb-4 flex-wrap gap-3">
             <div>
-              <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
+              <h3 className="text-lg font-display font-semibold text-gray-900 dark:text-white">
                 Average Tenure by {tenureView.replace("_", " ")}
               </h3>
               <p className="text-sm text-gray-500 dark:text-gray-400">

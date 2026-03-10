@@ -29,7 +29,7 @@ export default function HeadcountChart({ data }: { data: HeadcountTrend }) {
     useEffect(() => {
         const isDarkMode = resolvedTheme === "dark";
         setIsDark(isDarkMode);
-        setChartColor(isDarkMode ? "#60a5fa" : "#2563eb");
+        setChartColor(isDarkMode ? "#8B5FC4" : "#6C3FA0");
     }, [resolvedTheme]);
 
     // 🩵 Animate the glow color
@@ -48,13 +48,13 @@ export default function HeadcountChart({ data }: { data: HeadcountTrend }) {
             if (!ctx || !dataset) return;
 
             const color = isDark
-                ? `rgba(96,165,250,${glowIntensity})`
-                : `rgba(37,99,235,${glowIntensity})`;
+                ? `rgba(139,95,196,${glowIntensity})`
+                : `rgba(108,63,160,${glowIntensity})`;
 
             dataset.borderColor = color;
             dataset.backgroundColor = isDark
-                ? `rgba(96,165,250,0.15)`
-                : `rgba(37,99,235,0.12)`;
+                ? `rgba(139,95,196,0.15)`
+                : `rgba(108,63,160,0.12)`;
 
             ctx.shadowColor = color;
             ctx.shadowBlur = isDark ? 12 : 0;
@@ -135,12 +135,13 @@ export default function HeadcountChart({ data }: { data: HeadcountTrend }) {
                 exit={{ opacity: 0, scale: 0.97 }}
                 transition={{ duration: 0.4 }}
                 className="
-          p-6 mt-6 rounded-2xl border border-gray-200 dark:border-gray-700
+          relative overflow-hidden p-6 mt-6 rounded-2xl border border-gray-200 dark:border-gray-700
           bg-white dark:bg-gray-800 shadow-sm transition-all duration-300
           hover:shadow-md hover:-translate-y-0.5
         "
             >
-                <h3 className="text-lg font-semibold mb-4 text-gray-900 dark:text-gray-100">
+                <div className="absolute top-0 left-0 right-0 h-[2px]" style={{ background: 'linear-gradient(90deg, #6C3FA0, #8B5FC4)' }} />
+                <h3 className="text-lg font-display font-semibold mb-4 text-gray-900 dark:text-gray-100">
                     Headcount Trend (YTD)
                 </h3>
                 <div className="h-80">
