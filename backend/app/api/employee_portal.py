@@ -655,8 +655,22 @@ def get_time_off(
         floating_holiday_used=0
     )
 
-    # For now, return empty history - would need a PTO tracking table
-    history: List[PTOHistoryEntry] = []
+    # Query PTO request history for this employee
+    db_requests = db.query(models.PTORequest).filter(
+        models.PTORequest.employee_id == employee.employee_id
+    ).order_by(models.PTORequest.request_date.desc()).all()
+
+    history: List[PTOHistoryEntry] = [
+        PTOHistoryEntry(
+            id=r.id,
+            date=r.start_date,
+            type=r.pto_type,
+            hours=r.hours_requested,
+            description=r.employee_notes,
+            status=r.status,
+        )
+        for r in db_requests
+    ]
 
     return TimeOffResponse(
         balance=balance,

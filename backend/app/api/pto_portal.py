@@ -153,9 +153,26 @@ def get_pto_requests(
         personal_available=16
     )
 
-    # Query PTORequest table if it exists
-    # For now, return empty list as we haven't created the table yet
-    requests: List[PTORequest] = []
+    # Query PTORequest table for this employee
+    db_requests = db.query(models.PTORequest).filter(
+        models.PTORequest.employee_id == employee.employee_id
+    ).order_by(models.PTORequest.request_date.desc()).all()
+
+    requests: List[PTORequest] = [
+        PTORequest(
+            id=r.id,
+            start_date=r.start_date,
+            end_date=r.end_date,
+            pto_type=r.pto_type,
+            hours=r.hours_requested,
+            status=r.status,
+            notes=r.employee_notes,
+            submitted_at=r.request_date,
+            reviewer_notes=r.reviewer_notes,
+            reviewed_at=r.reviewed_at,
+        )
+        for r in db_requests
+    ]
 
     return PTORequestsResponse(
         balance=balance,
@@ -196,13 +213,24 @@ def submit_pto_request(
             detail=f"Insufficient vacation balance. Available: {vacation_available} hours"
         )
 
-    # In a real implementation, save to PTORequest table
-    # For now, just return success
+    # Create PTO request record
+    pto_request = models.PTORequest(
+        employee_id=employee.employee_id,
+        start_date=request.start_date,
+        end_date=request.end_date,
+        pto_type=request.pto_type,
+        hours_requested=request.hours,
+        employee_notes=request.notes,
+        status="pending",
+    )
+    db.add(pto_request)
+    db.commit()
+    db.refresh(pto_request)
 
     return {
         "success": True,
         "message": "PTO request submitted successfully",
-        "request_id": 1  # Placeholder
+        "request_id": pto_request.id,
     }
 
 
@@ -227,9 +255,37 @@ def get_team_pending_pto(
         if current_user.employee_id:
             direct_reports = get_direct_reports(db, current_user.employee_id)
 
-    # In a real implementation, query PTORequest table
-    # For now, return empty list
-    return []
+    if not direct_reports:
+        return []
+
+    direct_report_ids = [emp.employee_id for emp in direct_reports]
+
+    pending_requests = db.query(models.PTORequest).filter(
+        models.PTORequest.employee_id.in_(direct_report_ids),
+        models.PTORequest.status == "pending",
+    ).order_by(models.PTORequest.request_date.desc()).all()
+
+    # Build a lookup for employee names
+    emp_name_map = {
+        emp.employee_id: f"{emp.first_name} {emp.last_name}"
+        for emp in direct_reports
+    }
+
+    return [
+        TeamPTORequest(
+            id=r.id,
+            employee_id=r.employee_id,
+            employee_name=emp_name_map.get(r.employee_id, "Unknown"),
+            start_date=r.start_date,
+            end_date=r.end_date,
+            pto_type=r.pto_type,
+            hours=r.hours_requested,
+            status=r.status,
+            notes=r.employee_notes,
+            submitted_at=r.request_date,
+        )
+        for r in pending_requests
+    ]
 
 
 @router.post("/team/{request_id}/review")
@@ -249,10 +305,49 @@ def review_pto_request(
             detail="Action must be 'approve' or 'deny'"
         )
 
-    # In a real implementation, update PTORequest record
-    # For now, just return success
+    # Look up the PTO request
+    pto_request = db.query(models.PTORequest).filter(
+        models.PTORequest.id == request_id
+    ).first()
+
+    if not pto_request:
+        raise HTTPException(status_code=404, detail="PTO request not found")
+
+    if pto_request.status != "pending":
+        raise HTTPException(
+            status_code=400,
+            detail=f"Request has already been {pto_request.status}"
+        )
+
+    # Validate reviewer is supervisor of the requesting employee
+    direct_reports = get_direct_reports(db, current_user.full_name)
+    if not direct_reports and current_user.employee_id:
+        direct_reports = get_direct_reports(db, current_user.employee_id)
+
+    direct_report_ids = [emp.employee_id for emp in direct_reports]
+    if pto_request.employee_id not in direct_report_ids:
+        raise HTTPException(
+            status_code=403,
+            detail="You are not authorized to review this request"
+        )
+
+    # Update request status
+    pto_request.status = "approved" if review.action == "approve" else "denied"
+    pto_request.reviewer_id = current_user.id
+    pto_request.reviewer_notes = review.notes
+    pto_request.reviewed_at = datetime.utcnow()
+
+    # On approval of vacation type, increment employee's pto_used
+    if review.action == "approve" and pto_request.pto_type == "vacation":
+        employee = db.query(models.Employee).filter(
+            models.Employee.employee_id == pto_request.employee_id
+        ).first()
+        if employee:
+            employee.pto_used = (employee.pto_used or 0) + pto_request.hours_requested
+
+    db.commit()
 
     return {
         "success": True,
-        "message": f"PTO request {review.action}d successfully"
+        "message": f"PTO request {review.action}d successfully",
     }
