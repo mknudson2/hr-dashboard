@@ -424,6 +424,7 @@ def get_wage_history(employee_id: str, db: Session = Depends(get_db)):
         {
             "effective_date": record.effective_date.isoformat(),
             "wage": record.wage,
+            "annual_salary": record.annual_salary,
             "change_reason": record.change_reason,
             "change_amount": record.change_amount,
             "change_percentage": record.change_percentage,

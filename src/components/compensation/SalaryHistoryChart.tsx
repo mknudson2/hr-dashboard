@@ -6,6 +6,7 @@ interface WageHistoryEntry {
   id: number;
   effective_date: string;
   wage: number;
+  annual_salary?: number | null;
   change_reason?: string;
   change_amount?: number;
   change_percentage?: number;
@@ -15,24 +16,49 @@ interface SalaryHistoryChartProps {
   history: WageHistoryEntry[];
   currentSalary?: number;
   employeeName?: string;
+  employeeType?: string;
+  annualWage?: number;
 }
 
-export default function SalaryHistoryChart({ history, currentSalary, employeeName }: SalaryHistoryChartProps) {
+type ViewMode = 'base_rate' | 'annual';
+
+export default function SalaryHistoryChart({ history, currentSalary, employeeName, employeeType, annualWage }: SalaryHistoryChartProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [hoveredPoint, setHoveredPoint] = useState<number | null>(null);
   const [dimensions, setDimensions] = useState({ width: 800, height: 400 });
+
+  // Default to annual for salaried employees, base rate for hourly
+  const isSalaried = employeeType?.toLowerCase().includes('salary') ||
+    employeeType?.toLowerCase().includes('salaried');
+  const [viewMode, setViewMode] = useState<ViewMode>(isSalaried ? 'annual' : 'base_rate');
 
   // Sort history by date
   const sortedHistory = [...history].sort((a, b) =>
     new Date(a.effective_date).getTime() - new Date(b.effective_date).getTime()
   );
 
-  // Calculate statistics
-  const salaries = sortedHistory.map(h => h.wage);
-  const minSalary = Math.min(...salaries);
-  const maxSalary = Math.max(...salaries);
-  const totalIncrease = maxSalary - minSalary;
-  const percentageIncrease = ((maxSalary - minSalary) / minSalary) * 100;
+  // Compute annual salary for each entry if not provided
+  const isPartTime = (employeeType || '').toLowerCase().includes('part time') ||
+    (employeeType || '').toLowerCase().includes('part-time');
+  const annualMultiplier = isPartTime ? 1040 : 2080;
+
+  const getDisplayValue = (entry: WageHistoryEntry) => {
+    if (viewMode === 'base_rate') return entry.wage;
+    return entry.annual_salary && entry.annual_salary > 0
+      ? entry.annual_salary
+      : Math.round(entry.wage * annualMultiplier);
+  };
+
+  const currentDisplayValue = viewMode === 'base_rate'
+    ? currentSalary
+    : (annualWage || (currentSalary ? Math.round(currentSalary * annualMultiplier) : undefined));
+
+  // Calculate statistics based on view mode
+  const displayValues = sortedHistory.map(h => getDisplayValue(h));
+  const minValue = Math.min(...displayValues);
+  const maxValue = Math.max(...displayValues);
+  const totalIncrease = maxValue - minValue;
+  const percentageIncrease = minValue > 0 ? ((maxValue - minValue) / minValue) * 100 : 0;
   const avgAnnualIncrease = sortedHistory.length > 1
     ? sortedHistory.reduce((sum, entry) => sum + (entry.change_percentage || 0), 0) / (sortedHistory.length - 1)
     : 0;
@@ -79,18 +105,18 @@ export default function SalaryHistoryChart({ history, currentSalary, employeeNam
     const lineColor = '#3b82f6';
     const areaColor = isDark ? 'rgba(59, 130, 246, 0.1)' : 'rgba(59, 130, 246, 0.1)';
 
-    // Calculate scales
-    const salaryRange = maxSalary - minSalary;
-    const salaryPadding = salaryRange * 0.1;
-    const minY = minSalary - salaryPadding;
-    const maxY = maxSalary + salaryPadding;
+    // Calculate scales using display values
+    const valueRange = maxValue - minValue;
+    const valuePadding = valueRange * 0.1 || maxValue * 0.05;
+    const minY = minValue - valuePadding;
+    const maxY = maxValue + valuePadding;
     const rangeY = maxY - minY;
 
     const xStep = chartWidth / Math.max(sortedHistory.length - 1, 1);
 
     // Helper functions
     const getX = (index: number) => padding.left + index * xStep;
-    const getY = (salary: number) => padding.top + chartHeight - ((salary - minY) / rangeY) * chartHeight;
+    const getY = (value: number) => padding.top + chartHeight - ((value - minY) / rangeY) * chartHeight;
 
     // Draw grid
     ctx.strokeStyle = gridColor;
@@ -107,11 +133,11 @@ export default function SalaryHistoryChart({ history, currentSalary, employeeNam
       ctx.stroke();
 
       // Y-axis labels
-      const salary = maxY - (rangeY / ySteps) * i;
+      const value = maxY - (rangeY / ySteps) * i;
       ctx.fillStyle = textColor;
       ctx.font = '12px system-ui';
       ctx.textAlign = 'right';
-      ctx.fillText(`$${Math.round(salary).toLocaleString()}`, padding.left - 10, y + 4);
+      ctx.fillText(`$${Math.round(value).toLocaleString()}`, padding.left - 10, y + 4);
     }
 
     ctx.setLineDash([]);
@@ -120,9 +146,9 @@ export default function SalaryHistoryChart({ history, currentSalary, employeeNam
     if (sortedHistory.length > 1) {
       ctx.fillStyle = areaColor;
       ctx.beginPath();
-      ctx.moveTo(getX(0), getY(sortedHistory[0].wage));
-      sortedHistory.forEach((entry, index) => {
-        ctx.lineTo(getX(index), getY(entry.wage));
+      ctx.moveTo(getX(0), getY(displayValues[0]));
+      displayValues.forEach((val, index) => {
+        ctx.lineTo(getX(index), getY(val));
       });
       ctx.lineTo(getX(sortedHistory.length - 1), padding.top + chartHeight);
       ctx.lineTo(getX(0), padding.top + chartHeight);
@@ -134,9 +160,9 @@ export default function SalaryHistoryChart({ history, currentSalary, employeeNam
     ctx.strokeStyle = lineColor;
     ctx.lineWidth = 3;
     ctx.beginPath();
-    sortedHistory.forEach((entry, index) => {
+    displayValues.forEach((val, index) => {
       const x = getX(index);
-      const y = getY(entry.wage);
+      const y = getY(val);
       if (index === 0) {
         ctx.moveTo(x, y);
       } else {
@@ -148,7 +174,7 @@ export default function SalaryHistoryChart({ history, currentSalary, employeeNam
     // Draw points
     sortedHistory.forEach((entry, index) => {
       const x = getX(index);
-      const y = getY(entry.wage);
+      const y = getY(displayValues[index]);
 
       // Point
       ctx.fillStyle = lineColor;
@@ -176,9 +202,10 @@ export default function SalaryHistoryChart({ history, currentSalary, employeeNam
     ctx.fillStyle = textColor;
     ctx.font = 'bold 16px system-ui';
     ctx.textAlign = 'left';
-    ctx.fillText('Salary History Over Time', padding.left, 25);
+    const titleLabel = viewMode === 'annual' ? 'Annual Salary Over Time' : 'Base Rate Over Time';
+    ctx.fillText(titleLabel, padding.left, 25);
 
-  }, [sortedHistory, dimensions, hoveredPoint, minSalary, maxSalary]);
+  }, [sortedHistory, displayValues, dimensions, hoveredPoint, viewMode, minValue, maxValue]);
 
   const handleMouseMove = (e: React.MouseEvent<HTMLCanvasElement>) => {
     const canvas = canvasRef.current;
@@ -186,7 +213,6 @@ export default function SalaryHistoryChart({ history, currentSalary, employeeNam
 
     const rect = canvas.getBoundingClientRect();
     const x = e.clientX - rect.left;
-    const y = e.clientY - rect.top;
 
     const padding = { top: 40, right: 40, bottom: 60, left: 80 };
     const chartWidth = dimensions.width - padding.left - padding.right;
@@ -212,6 +238,13 @@ export default function SalaryHistoryChart({ history, currentSalary, employeeNam
     setHoveredPoint(null);
   };
 
+  const formatValue = (val: number) => {
+    if (viewMode === 'annual') {
+      return `$${val.toLocaleString(undefined, { maximumFractionDigits: 0 })}`;
+    }
+    return `$${val.toLocaleString()}`;
+  };
+
   return (
     <motion.div
       initial={{ opacity: 0, y: 20 }}
@@ -230,14 +263,42 @@ export default function SalaryHistoryChart({ history, currentSalary, employeeNam
             Historical salary progression and increases
           </p>
         </div>
-        {currentSalary && (
-          <div className="text-right">
-            <div className="text-sm text-gray-600 dark:text-gray-400">Current Salary</div>
-            <div className="text-2xl font-bold text-green-600 dark:text-green-400">
-              ${currentSalary.toLocaleString()}
-            </div>
+        <div className="flex items-center gap-4">
+          {/* View Mode Toggle */}
+          <div className="flex rounded-lg border border-gray-200 dark:border-gray-600 overflow-hidden">
+            <button
+              onClick={() => setViewMode('base_rate')}
+              className={`px-3 py-1.5 text-xs font-medium transition-colors ${
+                viewMode === 'base_rate'
+                  ? 'bg-bifrost-violet text-white'
+                  : 'bg-white dark:bg-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-600'
+              }`}
+            >
+              Base Rate
+            </button>
+            <button
+              onClick={() => setViewMode('annual')}
+              className={`px-3 py-1.5 text-xs font-medium transition-colors ${
+                viewMode === 'annual'
+                  ? 'bg-bifrost-violet text-white'
+                  : 'bg-white dark:bg-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-600'
+              }`}
+            >
+              Annual Salary
+            </button>
           </div>
-        )}
+          {currentDisplayValue && (
+            <div className="text-right">
+              <div className="text-sm text-gray-600 dark:text-gray-400">
+                {viewMode === 'annual' ? 'Current Annual' : 'Current Rate'}
+              </div>
+              <div className="text-2xl font-bold text-green-600 dark:text-green-400">
+                {formatValue(currentDisplayValue)}
+                {viewMode === 'base_rate' && <span className="text-sm font-normal">/hr</span>}
+              </div>
+            </div>
+          )}
+        </div>
       </div>
 
       {/* Statistics Cards */}
@@ -248,7 +309,7 @@ export default function SalaryHistoryChart({ history, currentSalary, employeeNam
             <span className="text-sm font-medium text-blue-900 dark:text-blue-100">Total Increase</span>
           </div>
           <div className="text-2xl font-bold text-blue-900 dark:text-blue-100">
-            ${totalIncrease.toLocaleString()}
+            {formatValue(totalIncrease)}
           </div>
           <div className="text-xs text-blue-700 dark:text-blue-300 mt-1">
             {percentageIncrease.toFixed(1)}% growth
@@ -311,8 +372,18 @@ export default function SalaryHistoryChart({ history, currentSalary, employeeNam
               })}
             </div>
             <div className="text-2xl font-bold mb-2">
-              ${sortedHistory[hoveredPoint].wage.toLocaleString()}
+              {formatValue(displayValues[hoveredPoint])}
+              {viewMode === 'base_rate' && <span className="text-sm font-normal">/hr</span>}
             </div>
+            {viewMode === 'base_rate' && sortedHistory[hoveredPoint].annual_salary ? (
+              <div className="text-xs text-gray-300 mb-1">
+                Annual: ${sortedHistory[hoveredPoint].annual_salary!.toLocaleString(undefined, { maximumFractionDigits: 0 })}
+              </div>
+            ) : viewMode === 'annual' && (
+              <div className="text-xs text-gray-300 mb-1">
+                Base Rate: ${sortedHistory[hoveredPoint].wage.toLocaleString()}/hr
+              </div>
+            )}
             {sortedHistory[hoveredPoint].change_reason && (
               <div className="text-xs text-gray-300 mb-1">
                 {sortedHistory[hoveredPoint].change_reason}
@@ -354,7 +425,7 @@ export default function SalaryHistoryChart({ history, currentSalary, employeeNam
                   Date
                 </th>
                 <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
-                  Salary
+                  {viewMode === 'annual' ? 'Annual Salary' : 'Base Rate'}
                 </th>
                 <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
                   Change
@@ -380,7 +451,8 @@ export default function SalaryHistoryChart({ history, currentSalary, employeeNam
                     })}
                   </td>
                   <td className="px-4 py-3 whitespace-nowrap text-sm font-semibold text-gray-900 dark:text-white">
-                    ${entry.wage.toLocaleString()}
+                    {formatValue(displayValues[index])}
+                    {viewMode === 'base_rate' && <span className="text-xs font-normal text-gray-500">/hr</span>}
                   </td>
                   <td className="px-4 py-3 whitespace-nowrap text-sm">
                     {entry.change_percentage !== null && entry.change_percentage !== undefined ? (

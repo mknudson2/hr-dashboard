@@ -35,6 +35,8 @@ interface EmployeeDetail {
   termination_type: string | null;
   tenure_years: number;
   wage: number;
+  annual_wage: number;
+  wage_type: string;
   benefits_cost: number;
   pto_allotted: number;
   pto_used: number;
@@ -50,6 +52,7 @@ interface EmployeeDetail {
 interface WageHistoryRecord {
   effective_date: string;
   wage: number;
+  annual_salary: number | null;
   change_reason: string | null;
   change_amount: number | null;
   change_percentage: number | null;
@@ -622,6 +625,8 @@ export default function EmployeeDetailPage() {
             history={wageHistory}
             currentSalary={employee.wage}
             employeeName={employee.full_name}
+            employeeType={employee.type}
+            annualWage={employee.annual_wage}
           />
         </motion.div>
       )}
