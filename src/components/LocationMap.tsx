@@ -1,7 +1,8 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { MapContainer, TileLayer, CircleMarker, Popup, useMap } from 'react-leaflet';
 import { LatLngExpression } from 'leaflet';
 import 'leaflet/dist/leaflet.css';
+import { RotateCcw } from 'lucide-react';
 import { getCoordinates, getRandomOffset } from '../utils/geocoding';
 
 interface LocationMapProps {
@@ -30,14 +31,45 @@ interface MarkerData {
 function FitBounds({ markers }: { markers: MarkerData[] }) {
   const map = useMap();
 
-  useEffect(() => {
+  const fitToMarkers = useCallback(() => {
     if (markers.length > 0) {
       const bounds = markers.map(m => m.position as [number, number]);
       map.fitBounds(bounds, { padding: [50, 50], maxZoom: 5 });
     }
   }, [markers, map]);
 
+  useEffect(() => {
+    fitToMarkers();
+  }, [fitToMarkers]);
+
   return null;
+}
+
+// Reset button rendered inside the map container
+function ResetViewButton({ markers }: { markers: MarkerData[] }) {
+  const map = useMap();
+
+  const handleReset = () => {
+    if (markers.length > 0) {
+      const bounds = markers.map(m => m.position as [number, number]);
+      map.fitBounds(bounds, { padding: [50, 50], maxZoom: 5 });
+    }
+  };
+
+  return (
+    <div className="leaflet-top leaflet-right" style={{ zIndex: 1000 }}>
+      <div className="leaflet-control">
+        <button
+          onClick={handleReset}
+          title="Reset map view"
+          className="flex items-center gap-1.5 px-3 py-1.5 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-200 text-xs font-medium rounded-md shadow border border-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+        >
+          <RotateCcw className="w-3.5 h-3.5" />
+          Reset View
+        </button>
+      </div>
+    </div>
+  );
 }
 
 const LocationMap = ({ locationData }: LocationMapProps) => {
@@ -103,7 +135,7 @@ const LocationMap = ({ locationData }: LocationMapProps) => {
 
   // Get marker color based on type
   const getMarkerColor = (type: 'us' | 'international') => {
-    return type === 'us' ? '#3B82F6' : '#10B981'; // Blue for US, Green for International
+    return type === 'us' ? '#6C3FA0' : '#2ABFBF'; // Bifröst violet for US, teal for International
   };
 
   return (
@@ -145,6 +177,7 @@ const LocationMap = ({ locationData }: LocationMapProps) => {
         ))}
 
         <FitBounds markers={markers} />
+        <ResetViewButton markers={markers} />
       </MapContainer>
     </div>
   );
