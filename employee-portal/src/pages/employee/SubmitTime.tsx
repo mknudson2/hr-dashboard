@@ -4,8 +4,6 @@ import { useAuth } from '@/contexts/AuthContext';
 import { apiGet, apiPost } from '@/utils/api';
 import { Clock, CheckCircle, AlertCircle, FileText, Users } from 'lucide-react';
 import { motion } from 'framer-motion';
-import { useEmployeeFeatures } from '@/contexts/EmployeeFeaturesContext';
-import AuroraPageHeader from '@/components/bifrost/AuroraPageHeader';
 
 interface Case {
   id: number;
@@ -31,7 +29,6 @@ interface PendingCase {
 
 export default function SubmitTime() {
   const navigate = useNavigate();
-  const { viewMode } = useEmployeeFeatures();
   const { isSupervisor } = useAuth();
   const [cases, setCases] = useState<Case[]>([]);
   const [pendingCases, setPendingCases] = useState<PendingCase[]>([]);
@@ -220,17 +217,10 @@ export default function SubmitTime() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      {viewMode === 'bifrost' ? (
-        <AuroraPageHeader
-          title="Log FMLA Time"
-          subtitle="Log FMLA hours used for supervisor approval"
-        />
-      ) : (
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Log FMLA Time</h1>
-          <p className="text-gray-600 dark:text-gray-400 mt-1">Log FMLA hours used for supervisor approval</p>
-        </div>
-      )}
+      <div>
+        <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Log FMLA Time</h1>
+        <p className="text-gray-600 dark:text-gray-400 mt-1">Log FMLA hours used for supervisor approval</p>
+      </div>
 
       {/* Form */}
       <motion.div

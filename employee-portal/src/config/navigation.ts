@@ -22,7 +22,6 @@ import {
   BarChart,
   History,
   Send,
-  CalendarRange,
   type LucideIcon,
 } from 'lucide-react';
 import type { FeatureFlags } from '@/contexts/EmployeeFeaturesContext';
@@ -130,7 +129,6 @@ export const navigationConfig: NavigationConfig = {
       requiresEmployee: true,
       items: [
         { label: 'Request Time Off', path: '/requests/pto', icon: Clock },
-        { label: 'Team Calendar', path: '/requests/team-calendar', icon: CalendarRange },
         { label: 'New Request', path: '/requests/new', icon: PlusCircle },
       ],
     },
@@ -155,12 +153,6 @@ export const navigationConfig: NavigationConfig = {
         { label: 'PIPs', path: '/team/pips', icon: AlertTriangle },
         { label: 'HR Change Requests', path: '/team/hr-changes', icon: FileEdit },
         { label: 'Team Reports', path: '/team/analytics', icon: BarChart },
-        {
-          label: 'Hiring',
-          path: '/hiring/my-requisitions',
-          icon: Briefcase,
-          requiresFeature: (flags) => flags.is_hiring_manager || flags.is_recruiting_stakeholder,
-        },
       ],
     },
   ],

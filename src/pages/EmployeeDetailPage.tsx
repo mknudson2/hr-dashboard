@@ -15,9 +15,7 @@ import {
   Cake,
   AlertCircle,
   ClipboardList,
-  Tag,
-  Plus,
-  X,
+  Shield,
 } from "lucide-react";
 import SalaryHistoryChart from "@/components/compensation/SalaryHistoryChart";
 
@@ -47,7 +45,6 @@ interface EmployeeDetail {
   show_birthday?: boolean;
   show_tenure?: boolean;
   show_exact_dates?: boolean;
-  custom_tags?: string[];
 }
 
 interface WageHistoryRecord {
@@ -65,8 +62,7 @@ export default function EmployeeDetailPage() {
   const [wageHistory, setWageHistory] = useState<WageHistoryRecord[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [tagInput, setTagInput] = useState('');
-  const [savingTags, setSavingTags] = useState(false);
+  const [privacySaving, setPrivacySaving] = useState(false);
 
   useEffect(() => {
     async function fetchEmployeeData() {
@@ -108,35 +104,23 @@ export default function EmployeeDetailPage() {
     }
   }, [employeeId]);
 
-  const updateTags = async (newTags: string[]) => {
+  const handlePrivacyToggle = async (field: 'show_birthday' | 'show_tenure' | 'show_exact_dates') => {
     if (!employee) return;
-    setSavingTags(true);
+    const newValue = !employee[field];
+    setEmployee({ ...employee, [field]: newValue });
     try {
-      const res = await fetch(`/employees/${employee.employee_id}/custom-tags`, {
-        method: 'PUT',
-        credentials: 'include',
+      setPrivacySaving(true);
+      await fetch(`/employees/${employee.employee_id}`, {
+        method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ tags: newTags }),
+        credentials: 'include',
+        body: JSON.stringify({ [field]: newValue }),
       });
-      if (res.ok) {
-        setEmployee({ ...employee, custom_tags: newTags });
-      }
-    } catch (err) {
-      console.error('Failed to update tags:', err);
+    } catch {
+      setEmployee({ ...employee, [field]: !newValue });
     } finally {
-      setSavingTags(false);
+      setPrivacySaving(false);
     }
-  };
-
-  const addTag = (tag: string) => {
-    const trimmed = tag.trim().toLowerCase().replace(/\s+/g, '_');
-    if (!trimmed || (employee?.custom_tags || []).includes(trimmed)) return;
-    updateTags([...(employee?.custom_tags || []), trimmed]);
-    setTagInput('');
-  };
-
-  const removeTag = (tag: string) => {
-    updateTags((employee?.custom_tags || []).filter(t => t !== tag));
   };
 
   if (loading) {
@@ -192,7 +176,7 @@ export default function EmployeeDetailPage() {
           <ArrowLeft className="w-5 h-5 text-gray-600 dark:text-gray-400" />
         </button>
         <div>
-          <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
+          <h1 className="font-display text-3xl font-bold text-gray-900 dark:text-white">
             {employee.full_name}
           </h1>
           <p className="text-gray-500 dark:text-gray-400">
@@ -255,11 +239,12 @@ export default function EmployeeDetailPage() {
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
-        className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm p-6 border border-gray-200 dark:border-gray-700"
+        className="relative overflow-hidden bg-white dark:bg-gray-800 rounded-2xl shadow-sm p-6 border border-gray-200 dark:border-gray-700"
       >
+        <div className="absolute top-0 left-0 right-0 h-[2px]" style={{ background: 'linear-gradient(90deg, #6C3FA0, #8B5FC4)' }} />
         <div className="flex items-center gap-2 mb-4">
-          <User className="w-5 h-5 text-blue-600 dark:text-blue-400" />
-          <h2 className="text-xl font-semibold text-gray-900 dark:text-white">
+          <User className="w-5 h-5 text-bifrost-violet dark:text-bifrost-violet-light" />
+          <h2 className="font-display text-xl font-semibold text-gray-900 dark:text-white">
             Personal Information
           </h2>
         </div>
@@ -308,11 +293,12 @@ export default function EmployeeDetailPage() {
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.1 }}
-        className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm p-6 border border-gray-200 dark:border-gray-700"
+        className="relative overflow-hidden bg-white dark:bg-gray-800 rounded-2xl shadow-sm p-6 border border-gray-200 dark:border-gray-700"
       >
+        <div className="absolute top-0 left-0 right-0 h-[2px]" style={{ background: 'linear-gradient(90deg, #1F9E9E, #2ABFBF)' }} />
         <div className="flex items-center gap-2 mb-4">
-          <Briefcase className="w-5 h-5 text-blue-600 dark:text-blue-400" />
-          <h2 className="text-xl font-semibold text-gray-900 dark:text-white">
+          <Briefcase className="w-5 h-5 text-aurora-teal-dark dark:text-aurora-teal" />
+          <h2 className="font-display text-xl font-semibold text-gray-900 dark:text-white">
             Position & Organization
           </h2>
         </div>
@@ -335,83 +321,17 @@ export default function EmployeeDetailPage() {
         </div>
       </motion.div>
 
-      {/* Custom Tags */}
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.15 }}
-        className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm p-6 border border-gray-200 dark:border-gray-700"
-      >
-        <div className="flex items-center gap-2 mb-4">
-          <Tag className="w-5 h-5 text-blue-600 dark:text-blue-400" />
-          <h2 className="text-xl font-semibold text-gray-900 dark:text-white">
-            Custom Tags
-          </h2>
-        </div>
-        <div className="flex flex-wrap gap-2 mb-3">
-          {(employee.custom_tags || []).map(tag => (
-            <span
-              key={tag}
-              className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-medium ${
-                tag === 'hiring_manager'
-                  ? 'bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-300'
-                  : tag === 'interviewer'
-                  ? 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300'
-                  : 'bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300'
-              }`}
-            >
-              {tag.replace(/_/g, ' ')}
-              <button
-                onClick={() => removeTag(tag)}
-                disabled={savingTags}
-                className="hover:text-red-600 dark:hover:text-red-400 transition-colors"
-              >
-                <X className="w-3.5 h-3.5" />
-              </button>
-            </span>
-          ))}
-          {(employee.custom_tags || []).length === 0 && (
-            <span className="text-sm text-gray-400 dark:text-gray-500">No tags assigned</span>
-          )}
-        </div>
-        <div className="flex gap-2">
-          <input
-            type="text"
-            value={tagInput}
-            onChange={e => setTagInput(e.target.value)}
-            onKeyDown={e => {
-              if (e.key === 'Enter' && tagInput.trim()) {
-                e.preventDefault();
-                addTag(tagInput);
-              }
-            }}
-            className="flex-1 px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-            placeholder="Add tag (e.g. hiring_manager, interviewer)"
-          />
-          <button
-            onClick={() => addTag(tagInput)}
-            disabled={!tagInput.trim() || savingTags}
-            className="flex items-center gap-1 px-3 py-2 bg-blue-600 text-white text-sm rounded-lg hover:bg-blue-700 disabled:opacity-50 transition-colors"
-          >
-            <Plus className="w-4 h-4" />
-            Add
-          </button>
-        </div>
-        <p className="text-xs text-gray-400 dark:text-gray-500 mt-2">
-          Tags like "hiring_manager" grant access to the Employee Portal hiring features.
-        </p>
-      </motion.div>
-
       {/* Compensation */}
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.2 }}
-        className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm p-6 border border-gray-200 dark:border-gray-700"
+        className="relative overflow-hidden bg-white dark:bg-gray-800 rounded-2xl shadow-sm p-6 border border-gray-200 dark:border-gray-700"
       >
+        <div className="absolute top-0 left-0 right-0 h-[2px]" style={{ background: 'linear-gradient(90deg, #D4A030, #E8B84B)' }} />
         <div className="flex items-center gap-2 mb-4">
-          <DollarSign className="w-5 h-5 text-blue-600 dark:text-blue-400" />
-          <h2 className="text-xl font-semibold text-gray-900 dark:text-white">
+          <DollarSign className="w-5 h-5 text-bridge-gold-dark dark:text-bridge-gold" />
+          <h2 className="font-display text-xl font-semibold text-gray-900 dark:text-white">
             Compensation & Benefits
           </h2>
         </div>
@@ -449,11 +369,12 @@ export default function EmployeeDetailPage() {
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.3 }}
-        className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm p-6 border border-gray-200 dark:border-gray-700"
+        className="relative overflow-hidden bg-white dark:bg-gray-800 rounded-2xl shadow-sm p-6 border border-gray-200 dark:border-gray-700"
       >
+        <div className="absolute top-0 left-0 right-0 h-[2px]" style={{ background: 'linear-gradient(90deg, #1B3A5C, #2A5580)' }} />
         <div className="flex items-center gap-2 mb-4">
-          <Calendar className="w-5 h-5 text-blue-600 dark:text-blue-400" />
-          <h2 className="text-xl font-semibold text-gray-900 dark:text-white">
+          <Calendar className="w-5 h-5 text-mimir-blue dark:text-well-silver" />
+          <h2 className="font-display text-xl font-semibold text-gray-900 dark:text-white">
             PTO & Attendance
           </h2>
         </div>
@@ -496,11 +417,12 @@ export default function EmployeeDetailPage() {
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.4 }}
-        className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm p-6 border border-gray-200 dark:border-gray-700"
+        className="relative overflow-hidden bg-white dark:bg-gray-800 rounded-2xl shadow-sm p-6 border border-gray-200 dark:border-gray-700"
       >
+        <div className="absolute top-0 left-0 right-0 h-[2px]" style={{ background: 'linear-gradient(90deg, #6C3FA0, #2ABFBF)' }} />
         <div className="flex items-center gap-2 mb-6">
-          <Award className="w-5 h-5 text-blue-600 dark:text-blue-400" />
-          <h2 className="text-xl font-semibold text-gray-900 dark:text-white">
+          <Award className="w-5 h-5 text-bifrost-violet dark:text-bifrost-violet-light" />
+          <h2 className="font-display text-xl font-semibold text-gray-900 dark:text-white">
             Tenure & Personal Dates
           </h2>
         </div>
@@ -510,12 +432,12 @@ export default function EmployeeDetailPage() {
           {employee.hire_date && (
             <div className="space-y-4">
               <div className="flex items-center gap-2">
-                <Award className="w-5 h-5 text-blue-600 dark:text-blue-400" />
+                <Award className="w-5 h-5 text-aurora-teal-dark dark:text-aurora-teal" />
                 <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
                   Tenure Timeline
                 </h3>
               </div>
-              <div className="bg-gradient-to-r from-blue-50 to-purple-50 dark:from-blue-900/20 dark:to-purple-900/20 rounded-lg p-4 border border-blue-200 dark:border-blue-800">
+              <div className="bg-gradient-to-r from-bifrost-violet/5 to-aurora-teal/5 dark:from-bifrost-violet/20 dark:to-aurora-teal/20 rounded-lg p-4 border border-bifrost-violet/20 dark:border-bifrost-violet/30">
                 <div className="flex items-center justify-between mb-2">
                   <span className="text-sm text-gray-600 dark:text-gray-400">Hire Date</span>
                   <span className="text-sm font-medium text-gray-900 dark:text-white">
@@ -528,7 +450,7 @@ export default function EmployeeDetailPage() {
                 </div>
                 <div className="flex items-center justify-between mb-3">
                   <span className="text-sm text-gray-600 dark:text-gray-400">Years of Service</span>
-                  <span className="text-2xl font-bold text-blue-600 dark:text-blue-400">
+                  <span className="text-2xl font-bold text-bifrost-violet dark:text-bifrost-violet-light">
                     {employee.tenure_years} years
                   </span>
                 </div>
@@ -548,7 +470,7 @@ export default function EmployeeDetailPage() {
                     (nextAnniversary.getTime() - today.getTime()) / (1000 * 60 * 60 * 24)
                   );
                   return (
-                    <div className="flex items-center justify-between pt-3 border-t border-blue-200 dark:border-blue-800">
+                    <div className="flex items-center justify-between pt-3 border-t border-bifrost-violet/20 dark:border-bifrost-violet/30">
                       <span className="text-sm text-gray-600 dark:text-gray-400">Next Anniversary</span>
                       <span className="text-sm font-medium text-gray-900 dark:text-white">
                         {daysUntil === 0 ? "Today!" : `in ${daysUntil} days`}
@@ -632,17 +554,67 @@ export default function EmployeeDetailPage() {
         </div>
       </motion.div>
 
+      {/* Privacy Settings */}
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.45 }}
+        className="relative overflow-hidden bg-white dark:bg-gray-800 rounded-2xl shadow-sm p-6 border border-gray-200 dark:border-gray-700"
+      >
+        <div className="absolute top-0 left-0 right-0 h-[2px]" style={{ background: 'linear-gradient(90deg, #1F9E9E, #2ABFBF)' }} />
+        <div className="flex items-center gap-2 mb-4">
+          <Shield className="w-5 h-5 text-aurora-teal-dark dark:text-aurora-teal" />
+          <h2 className="font-display text-xl font-semibold text-gray-900 dark:text-white">
+            Privacy Settings
+          </h2>
+        </div>
+        <p className="text-sm text-gray-500 dark:text-gray-400 mb-6">
+          Control what appears on team dashboards and calendars for this employee.
+        </p>
+        <div className="space-y-5">
+          {([
+            { key: 'show_birthday' as const, label: 'Show Birthday', description: 'Include birthday on the team birthday calendar' },
+            { key: 'show_tenure' as const, label: 'Show Work Anniversary', description: 'Include work anniversary on the team calendar' },
+            { key: 'show_exact_dates' as const, label: 'Show Exact Dates', description: 'Display exact date vs. month only for birthday and anniversary' },
+          ]).map(({ key, label, description }) => (
+            <div key={key} className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-gray-900 dark:text-white">{label}</p>
+                <p className="text-xs text-gray-500 dark:text-gray-400">{description}</p>
+              </div>
+              <button
+                type="button"
+                role="switch"
+                aria-checked={employee[key] ?? true}
+                disabled={privacySaving}
+                onClick={() => handlePrivacyToggle(key)}
+                className={`relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-bifrost-violet focus:ring-offset-2 disabled:opacity-50 ${
+                  (employee[key] ?? true) ? 'bg-bifrost-violet' : 'bg-gray-200 dark:bg-gray-600'
+                }`}
+              >
+                <span
+                  className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${
+                    (employee[key] ?? true) ? 'translate-x-5' : 'translate-x-0'
+                  }`}
+                />
+              </button>
+            </div>
+          ))}
+        </div>
+      </motion.div>
+
       {/* Wage History */}
       {wageHistory.length > 0 && (
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.5 }}
-          className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm p-6 border border-gray-200 dark:border-gray-700"
+          className="relative overflow-hidden bg-white dark:bg-gray-800 rounded-2xl shadow-sm p-6 border border-gray-200 dark:border-gray-700"
         >
+          <div className="absolute top-0 left-0 right-0 h-[2px]" style={{ background: 'linear-gradient(90deg, #D4A030, #E8B84B)' }} />
           <div className="flex items-center gap-2 mb-4">
-            <TrendingUp className="w-5 h-5 text-blue-600 dark:text-blue-400" />
-            <h2 className="text-xl font-semibold text-gray-900 dark:text-white">
+            <TrendingUp className="w-5 h-5 text-bridge-gold-dark dark:text-bridge-gold" />
+            <h2 className="font-display text-xl font-semibold text-gray-900 dark:text-white">
               Wage History
             </h2>
           </div>

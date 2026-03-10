@@ -115,7 +115,7 @@ export default function PipelineTemplatePage() {
 
   const updateStage = (index: number, field: string, value: unknown) => {
     const updated = [...formStages];
-    (updated[index] as unknown as Record<string, unknown>)[field] = value;
+    (updated[index] as Record<string, unknown>)[field] = value;
     setFormStages(updated);
   };
 

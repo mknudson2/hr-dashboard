@@ -231,7 +231,7 @@ export default function MyGarnishments() {
               transition={{ delay: index * 0.05 }}
             >
               <Link
-                to={`/my-garnishments/${g.id}`}
+                to={`/requests/garnishments/${g.id}`}
                 className="block bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-300 dark:border-gray-700 p-6 hover:border-blue-300 dark:hover:border-blue-600 transition-colors"
               >
                 <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">

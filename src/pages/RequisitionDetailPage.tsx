@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import {
-  ChevronLeft, Plus, Globe, Lock
+  ChevronLeft, Edit, Plus, Eye, Users, FileText, Globe, Lock
 } from 'lucide-react';
 
 const BASE_URL = '';
@@ -233,13 +233,7 @@ export default function RequisitionDetailPage() {
             </p>
           </div>
         </div>
-        <div className="flex items-center gap-2">
-          <button
-            onClick={() => navigate(`/recruiting/requisitions/${requisition.id}/lifecycle`)}
-            className="px-3 py-1.5 bg-blue-600 text-white rounded-lg text-sm hover:bg-blue-700"
-          >
-            View Lifecycle
-          </button>
+        <div className="flex gap-2">
           {nextStatuses[requisition.status]?.map(s => (
             <button
               key={s}

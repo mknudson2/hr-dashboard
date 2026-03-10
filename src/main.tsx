@@ -13,7 +13,7 @@ ReactDOM.createRoot(document.getElementById("root")!).render(
     <ErrorBoundary>
       <ThemeProvider
         attribute="class"
-        defaultTheme="light"
+        defaultTheme="dark"
         enableSystem={false}
         storageKey="hr-dashboard-theme"
       >

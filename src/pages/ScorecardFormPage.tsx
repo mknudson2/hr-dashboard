@@ -1,7 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { ChevronLeft, Star, Check } from 'lucide-react';
-import ComplianceTipsPanel from '@/components/recruiting/ComplianceTipsPanel';
 
 const BASE_URL = '';
 
@@ -21,8 +20,7 @@ interface ScorecardData {
   submitted_at: string | null;
   due_date: string | null;
   scorecard_template: {
-    criteria?: { name: string; weight: number; min_score?: number; description?: string }[];
-    passing_overall_score?: number;
+    criteria?: { name: string; weight: number }[];
   } | null;
 }
 
@@ -187,26 +185,11 @@ export default function ScorecardFormPage() {
       {criteriaRatings.length > 0 && (
         <div className="bg-white dark:bg-gray-800 rounded-lg border dark:border-gray-700 p-6 space-y-5">
           <h2 className="font-semibold">Criteria Ratings</h2>
-          {criteriaRatings.map((cr, idx) => {
-            const templateCriteria = scorecard?.scorecard_template?.criteria?.find(c => c.name === cr.criteria);
-            const minScore = templateCriteria?.min_score;
-            const meetsMin = !minScore || (cr.rating !== null && cr.rating >= minScore);
-            return (
+          {criteriaRatings.map((cr, idx) => (
             <div key={idx} className="space-y-2">
-              <div className="flex items-center justify-between">
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-                  {cr.criteria}
-                </label>
-                {minScore && (
-                  <span className={`text-xs font-medium ${meetsMin ? 'text-green-600' : 'text-red-600'}`}>
-                    Min: {minScore}/5
-                    {cr.rating !== null && (meetsMin ? ' ✓' : ' ✗')}
-                  </span>
-                )}
-              </div>
-              {templateCriteria?.description && (
-                <p className="text-xs text-gray-500 dark:text-gray-400">{templateCriteria.description}</p>
-              )}
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                {cr.criteria}
+              </label>
               <div className="flex gap-1">
                 {[1, 2, 3, 4, 5].map(rating => (
                   <button
@@ -214,9 +197,7 @@ export default function ScorecardFormPage() {
                     onClick={() => updateCriteriaRating(idx, rating)}
                     className={`w-10 h-10 rounded-lg border text-sm font-medium transition-colors ${
                       cr.rating === rating
-                        ? minScore && rating < minScore
-                          ? 'bg-red-500 text-white border-red-500'
-                          : 'bg-blue-600 text-white border-blue-600'
+                        ? 'bg-blue-600 text-white border-blue-600'
                         : 'bg-white dark:bg-gray-700 border-gray-300 dark:border-gray-600 hover:border-blue-400 text-gray-700 dark:text-gray-300'
                     }`}
                   >
@@ -232,8 +213,7 @@ export default function ScorecardFormPage() {
                 placeholder="Notes for this criteria..."
               />
             </div>
-            );
-          })}
+          ))}
         </div>
       )}
 
@@ -312,25 +292,6 @@ export default function ScorecardFormPage() {
           />
         </div>
       </div>
-
-      {/* Passing Score Info */}
-      {scorecard?.scorecard_template?.passing_overall_score && (
-        <div className={`rounded-lg p-3 text-sm font-medium ${
-          overallRating >= scorecard.scorecard_template.passing_overall_score
-            ? 'bg-green-50 text-green-700 dark:bg-green-900/20 dark:text-green-300 border border-green-200 dark:border-green-800'
-            : 'bg-yellow-50 text-yellow-700 dark:bg-yellow-900/20 dark:text-yellow-300 border border-yellow-200 dark:border-yellow-800'
-        }`}>
-          Minimum overall score: {scorecard.scorecard_template.passing_overall_score}/5
-          {overallRating > 0 && (
-            overallRating >= scorecard.scorecard_template.passing_overall_score
-              ? ' — Meets requirement'
-              : ' — Below minimum'
-          )}
-        </div>
-      )}
-
-      {/* Compliance Tips */}
-      <ComplianceTipsPanel collapsed={true} />
 
       {/* Submit */}
       <div className="flex gap-2">

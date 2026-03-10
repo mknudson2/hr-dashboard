@@ -20,14 +20,13 @@ export default defineConfig({
   server: {
     proxy: {
       "/auth": hrProxy,
-      "/analytics/": hrProxy,
-      "/employees/": hrProxy,
-      "/recruiting": hrProxy,
+      "/analytics": hrProxy,
+      "/employees": hrProxy,
       "/notifications": hrProxy,
       "/fmla/": { ...hrProxy, rewrite: (path: string) => path },
-      "/garnishments/": hrProxy,
+      "/garnishments": hrProxy,
       "/turnover": hrProxy,
-      "/events/": hrProxy,
+      "/events": hrProxy,
       "/event-types": hrProxy,
       "/projects": hrProxy,
       "/timesheets": hrProxy,
@@ -37,10 +36,10 @@ export default defineConfig({
       "/performance": hrProxy,
       "/onboarding": hrProxy,
       "/offboarding": hrProxy,
-      "/equipment/": hrProxy,
+      "/equipment": hrProxy,
       "/contribution-limits": hrProxy,
       "/pto": hrProxy,
-      "/users/": hrProxy,
+      "/users": hrProxy,
       "/admin": hrProxy,
       "/aca": hrProxy,
       "/eeo": hrProxy,
@@ -52,14 +51,8 @@ export default defineConfig({
       "/capitalized-labor": hrProxy,
       "/reports": hrProxy,
       "/in-app-notifications": hrProxy,
-      "/content-management": {
-        ...hrProxy,
-        bypass(req: any) {
-          if (req.headers.accept?.includes("text/html")) {
-            return "/index.html";
-          }
-        },
-      },
+      "/content-management": hrProxy,
+      "/recruiting": hrProxy,
     },
   },
 });

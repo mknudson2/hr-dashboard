@@ -23,8 +23,6 @@ import TrackingTypeSelector, { type TrackingType } from '@/components/goals/Trac
 import ProgressUpdateForm from '@/components/goals/ProgressUpdateForm';
 import ProgressHistory from '@/components/goals/ProgressHistory';
 import MilestoneManager from '@/components/goals/MilestoneManager';
-import { useEmployeeFeatures } from '@/contexts/EmployeeFeaturesContext';
-import AuroraPageHeader from '@/components/bifrost/AuroraPageHeader';
 
 interface Goal {
   id: number;
@@ -53,11 +51,6 @@ interface Goal {
   milestones_total: number | null;
   milestones_completed: number | null;
   is_key_result: boolean;
-  // Fallback property aliases used in templates
-  title?: string;
-  description?: string;
-  due_date?: string;
-  progress?: number;
 }
 
 interface MilestoneInput {
@@ -135,7 +128,6 @@ const initialFormData: GoalFormData = {
 };
 
 export default function Goals() {
-  const { viewMode } = useEmployeeFeatures();
   const [data, setData] = useState<GoalsData | null>(null);
   const [allGoals, setAllGoals] = useState<Goal[]>([]);
   const [directReports, setDirectReports] = useState<DirectReport[]>([]);
@@ -415,43 +407,24 @@ export default function Goals() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      {viewMode === 'bifrost' ? (
-        <AuroraPageHeader
-          title="Team Goals"
-          subtitle="Track and manage your team's goals and KPIs"
-          rightContent={
-            <button
-              onClick={() => {
-                setFormData(initialFormData);
-                setShowCreateModal(true);
-              }}
-              className="flex items-center gap-2 px-3 py-2 bg-white/10 border border-white/20 text-white hover:bg-white/20 rounded-lg transition-colors text-sm"
-            >
-              <Plus size={16} />
-              Create Goal
-            </button>
-          }
-        />
-      ) : (
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Team Goals</h1>
-            <p className="text-gray-600 dark:text-gray-400 mt-1">
-              Track and manage your team's goals and KPIs
-            </p>
-          </div>
-          <button
-            onClick={() => {
-              setFormData(initialFormData);
-              setShowCreateModal(true);
-            }}
-            className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
-          >
-            <Plus size={20} />
-            Create Goal
-          </button>
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Team Goals</h1>
+          <p className="text-gray-600 dark:text-gray-400 mt-1">
+            Track and manage your team's goals and KPIs
+          </p>
         </div>
-      )}
+        <button
+          onClick={() => {
+            setFormData(initialFormData);
+            setShowCreateModal(true);
+          }}
+          className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+        >
+          <Plus size={20} />
+          Create Goal
+        </button>
+      </div>
 
       {/* Error Alert */}
       {error && (
@@ -642,7 +615,7 @@ export default function Goals() {
                                       {goal.status?.replace('_', ' ').replace(/\b\w/g, (l) => l.toUpperCase())}
                                     </span>
                                     <span className="text-xs text-gray-500 dark:text-gray-400">
-                                      Due: {formatDate(goalDetails.target_date || goal.due_date || '')}
+                                      Due: {formatDate(goalDetails.target_date || goal.due_date)}
                                     </span>
                                     {goalDetails.target_value && (
                                       <span className="text-xs text-gray-500 dark:text-gray-400">
@@ -789,7 +762,7 @@ export default function Goals() {
                                         stroke="currentColor"
                                         strokeWidth="8"
                                         fill="none"
-                                        strokeDasharray={`${(goalDetails.progress_percentage || goal.progress || 0) * 1.76} 176`}
+                                        strokeDasharray={`${(goalDetails.progress_percentage || goal.progress) * 1.76} 176`}
                                         className="text-blue-500"
                                       />
                                     </svg>

@@ -113,12 +113,21 @@ export default function GarnishmentDetail() {
 
   useEffect(() => {
     const fetchData = async () => {
+      // Validate id is a valid number before making API call
+      if (!id || isNaN(Number(id))) {
+        setError('Invalid garnishment ID');
+        setLoading(false);
+        return;
+      }
+
       try {
         setLoading(true);
         const result = await apiGet<GarnishmentDetailData>(`/portal/garnishment/garnishment/${id}`);
         setData(result);
       } catch (err) {
-        setError(err instanceof Error ? err.message : 'Failed to load garnishment details');
+        const errorMessage = err instanceof Error ? err.message : 'Failed to load garnishment details';
+        // Handle case where error message might be "[object Object]"
+        setError(errorMessage.includes('[object') ? 'Failed to load garnishment details' : errorMessage);
       } finally {
         setLoading(false);
       }
@@ -266,7 +275,7 @@ export default function GarnishmentDetail() {
         <div className="text-center">
           <AlertCircle className="mx-auto text-red-500 mb-2" size={48} />
           <p className="text-gray-600 dark:text-gray-400">{error || 'Failed to load garnishment'}</p>
-          <Link to="/my-garnishments" className="text-blue-600 hover:underline mt-2 inline-block">
+          <Link to="/requests/garnishments" className="text-blue-600 hover:underline mt-2 inline-block">
             Back to My Garnishments
           </Link>
         </div>
@@ -286,7 +295,7 @@ export default function GarnishmentDetail() {
       {/* Header */}
       <div className="flex items-center gap-4">
         <Link
-          to="/my-garnishments"
+          to="/requests/garnishments"
           className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
         >
           <ArrowLeft className="text-gray-600 dark:text-gray-400" size={20} />

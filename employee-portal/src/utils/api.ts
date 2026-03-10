@@ -20,6 +20,28 @@ function handleUnauthorized() {
   window.location.href = '/login';
 }
 
+// Extract error message from API response
+function extractErrorMessage(error: unknown): string {
+  if (!error || typeof error !== 'object') {
+    return 'Request failed';
+  }
+
+  const errorObj = error as { detail?: unknown };
+
+  // Handle FastAPI validation error format (detail is an array)
+  if (Array.isArray(errorObj.detail) && errorObj.detail.length > 0) {
+    const firstError = errorObj.detail[0] as { msg?: string };
+    return firstError.msg || 'Validation error';
+  }
+
+  // Handle standard error format (detail is a string)
+  if (typeof errorObj.detail === 'string') {
+    return errorObj.detail;
+  }
+
+  return 'Request failed';
+}
+
 // GET request
 export async function apiGet<T>(endpoint: string): Promise<T> {
   const response = await apiFetch(endpoint);
@@ -28,7 +50,7 @@ export async function apiGet<T>(endpoint: string): Promise<T> {
       handleUnauthorized();
     }
     const error = await response.json().catch(() => ({ detail: 'Request failed' }));
-    throw new Error(error.detail || 'Request failed');
+    throw new Error(extractErrorMessage(error));
   }
   return response.json();
 }
@@ -44,7 +66,7 @@ export async function apiPost<T>(endpoint: string, body?: unknown): Promise<T> {
       handleUnauthorized();
     }
     const error = await response.json().catch(() => ({ detail: 'Request failed' }));
-    throw new Error(error.detail || 'Request failed');
+    throw new Error(extractErrorMessage(error));
   }
   return response.json();
 }
@@ -60,7 +82,7 @@ export async function apiPut<T>(endpoint: string, body?: unknown): Promise<T> {
       handleUnauthorized();
     }
     const error = await response.json().catch(() => ({ detail: 'Request failed' }));
-    throw new Error(error.detail || 'Request failed');
+    throw new Error(extractErrorMessage(error));
   }
   return response.json();
 }
@@ -75,7 +97,7 @@ export async function apiDelete<T>(endpoint: string): Promise<T> {
       handleUnauthorized();
     }
     const error = await response.json().catch(() => ({ detail: 'Request failed' }));
-    throw new Error(error.detail || 'Request failed');
+    throw new Error(extractErrorMessage(error));
   }
   return response.json();
 }
@@ -96,7 +118,7 @@ export async function apiPostFormData<T>(endpoint: string, formData: FormData): 
       handleUnauthorized();
     }
     const error = await response.json().catch(() => ({ detail: 'Request failed' }));
-    throw new Error(error.detail || 'Request failed');
+    throw new Error(extractErrorMessage(error));
   }
   return response.json();
 }

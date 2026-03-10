@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
-import { ChevronLeft, Star, User, Columns } from 'lucide-react';
+import { ChevronLeft, Star, User, ChevronRight, Columns } from 'lucide-react';
 
 const BASE_URL = '';
 

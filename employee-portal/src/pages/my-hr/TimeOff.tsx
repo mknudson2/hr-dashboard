@@ -2,9 +2,6 @@ import { useEffect, useState } from 'react';
 import { apiGet } from '@/utils/api';
 import { Calendar, Clock, Sun, Heart, AlertCircle, TrendingUp } from 'lucide-react';
 import { motion } from 'framer-motion';
-import { useEmployeeFeatures } from '@/contexts/EmployeeFeaturesContext';
-import MimirCTA from '@/components/bifrost/MimirCTA';
-import AuroraPageHeader from '@/components/bifrost/AuroraPageHeader';
 
 interface PTOBalance {
   vacation_available: number;
@@ -35,7 +32,6 @@ interface TimeOffData {
 }
 
 export default function TimeOff() {
-  const { viewMode } = useEmployeeFeatures();
   const [data, setData] = useState<TimeOffData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -138,17 +134,10 @@ export default function TimeOff() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      {viewMode === 'bifrost' ? (
-        <AuroraPageHeader
-          title="Time Off Balances"
-          subtitle="View your PTO balances and usage history"
-        />
-      ) : (
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Time Off Balances</h1>
-          <p className="text-gray-600 dark:text-gray-400 mt-1">View your PTO balances and usage history</p>
-        </div>
-      )}
+      <div>
+        <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Time Off Balances</h1>
+        <p className="text-gray-600 dark:text-gray-400 mt-1">View your PTO balances and usage history</p>
+      </div>
 
       {/* Accrual Info */}
       {data?.accrual_rate && (
@@ -171,15 +160,6 @@ export default function TimeOff() {
             </div>
           </div>
         </motion.div>
-      )}
-
-      {/* Mímir CTA */}
-      {viewMode === 'bifrost' && (
-        <MimirCTA
-          title="Questions about your time off?"
-          description="Ask Mímir about PTO policies, accrual rates, carryover rules, or how to request extended leave."
-          buttonText="Ask Mímir about Time Off"
-        />
       )}
 
       {/* Balance Cards */}

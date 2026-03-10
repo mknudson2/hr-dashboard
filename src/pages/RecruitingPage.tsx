@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
-  Briefcase, Users, FileText, TrendingUp, Plus, Eye, Clock, UserPlus
+  Briefcase, Users, FileText, TrendingUp, Plus, Eye, Clock
 } from 'lucide-react';
 
 const BASE_URL = '';
@@ -22,19 +22,8 @@ interface DashboardData {
   }[];
 }
 
-interface PortalRequest {
-  id: number;
-  requisition_id: string;
-  title: string;
-  department: string | null;
-  status: string;
-  urgency: string | null;
-  created_at: string | null;
-}
-
 export default function RecruitingPage() {
   const [data, setData] = useState<DashboardData | null>(null);
-  const [portalRequests, setPortalRequests] = useState<PortalRequest[]>([]);
   const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
 
@@ -44,16 +33,9 @@ export default function RecruitingPage() {
 
   const loadDashboard = async () => {
     try {
-      const [dashRes, reqRes] = await Promise.all([
-        fetch(`${BASE_URL}/recruiting/dashboard`, { credentials: 'include' }),
-        fetch(`${BASE_URL}/recruiting/requisitions?request_source=employee_portal&status=Pending+Approval&limit=5`, { credentials: 'include' }),
-      ]);
-      if (dashRes.ok) {
-        setData(await dashRes.json());
-      }
-      if (reqRes.ok) {
-        const reqData = await reqRes.json();
-        setPortalRequests(reqData.requisitions || []);
+      const res = await fetch(`${BASE_URL}/recruiting/dashboard`, { credentials: 'include' });
+      if (res.ok) {
+        setData(await res.json());
       }
     } catch (error) {
       console.error('Failed to load recruiting dashboard:', error);
@@ -125,51 +107,6 @@ export default function RecruitingPage() {
           </div>
         ))}
       </div>
-
-      {/* Portal Requests Banner */}
-      {portalRequests.length > 0 && (
-        <div className="bg-purple-50 dark:bg-purple-900/20 border border-purple-200 dark:border-purple-800 rounded-lg p-4">
-          <div className="flex items-center justify-between mb-3">
-            <h2 className="text-sm font-semibold text-purple-800 dark:text-purple-300 flex items-center gap-2">
-              <UserPlus className="w-4 h-4" />
-              New Portal Requests ({portalRequests.length})
-            </h2>
-            <button
-              onClick={() => navigate('/recruiting/requisitions?source=employee_portal')}
-              className="text-xs text-purple-600 hover:text-purple-800 dark:text-purple-400"
-            >
-              View All
-            </button>
-          </div>
-          <div className="space-y-2">
-            {portalRequests.map(req => (
-              <button
-                key={req.id}
-                onClick={() => navigate(`/recruiting/requisitions/${req.id}`)}
-                className="w-full flex items-center justify-between bg-white dark:bg-gray-800 rounded-lg px-3 py-2 text-left hover:bg-gray-50 dark:hover:bg-gray-700 border border-purple-100 dark:border-purple-800"
-              >
-                <div>
-                  <span className="text-sm font-medium text-gray-900 dark:text-white">{req.title}</span>
-                  <span className="text-xs text-gray-500 ml-2">{req.department}</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  {req.urgency && req.urgency !== 'Normal' && (
-                    <span className={`px-1.5 py-0.5 rounded text-xs font-medium ${
-                      req.urgency === 'Critical' ? 'bg-red-100 text-red-700' :
-                      req.urgency === 'High' ? 'bg-orange-100 text-orange-700' : 'bg-gray-100 text-gray-600'
-                    }`}>
-                      {req.urgency}
-                    </span>
-                  )}
-                  <span className="px-1.5 py-0.5 bg-yellow-100 text-yellow-800 rounded text-xs font-medium">
-                    Pending Review
-                  </span>
-                </div>
-              </button>
-            ))}
-          </div>
-        </div>
-      )}
 
       {/* Pipeline Overview */}
       {data?.applications_by_status && Object.keys(data.applications_by_status).length > 0 && (

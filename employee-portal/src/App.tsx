@@ -1,4 +1,4 @@
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, Navigate, useParams } from 'react-router-dom';
 import { AuthProvider, useAuth } from '@/contexts/AuthContext';
 import { EmployeeFeaturesProvider } from '@/contexts/EmployeeFeaturesContext';
 import LoginPage from '@/pages/LoginPage';
@@ -53,6 +53,12 @@ import InternalApplicationsPage from '@/pages/InternalApplicationsPage';
 import NewRequisitionRequestPage from '@/pages/hiring/NewRequisitionRequestPage';
 import MyRequisitionsPage from '@/pages/hiring/MyRequisitionsPage';
 import RequisitionTrackerPage from '@/pages/hiring/RequisitionTrackerPage';
+
+// Redirect component for garnishment detail (handles :id parameter properly)
+function GarnishmentRedirect() {
+  const { id } = useParams<{ id: string }>();
+  return <Navigate to={`/requests/garnishments/${id}`} replace />;
+}
 
 // Protected route wrapper
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
@@ -259,7 +265,7 @@ function AppRoutes() {
         <Route path="/request-leave" element={<Navigate to="/requests/fmla/new" replace />} />
         <Route path="/my-submissions" element={<Navigate to="/requests/fmla/submissions" replace />} />
         <Route path="/my-garnishments" element={<Navigate to="/requests/garnishments" replace />} />
-        <Route path="/my-garnishments/:id" element={<Navigate to="/requests/garnishments/:id" replace />} />
+        <Route path="/my-garnishments/:id" element={<GarnishmentRedirect />} />
         <Route path="/pending-reviews" element={<Navigate to="/team/fmla-reviews" replace />} />
         <Route path="/reports" element={<Navigate to="/team/analytics" replace />} />
       </Route>

@@ -2,10 +2,6 @@ import { useEffect, useState } from 'react';
 import { apiGet } from '@/utils/api';
 import { BookOpen, ChevronRight, Search, AlertCircle, Download } from 'lucide-react';
 import { motion } from 'framer-motion';
-import DOMPurify from 'dompurify';
-import { useEmployeeFeatures } from '@/contexts/EmployeeFeaturesContext';
-import MimirCTA from '@/components/bifrost/MimirCTA';
-import AuroraPageHeader from '@/components/bifrost/AuroraPageHeader';
 
 interface HandbookSection {
   id: number;
@@ -30,7 +26,6 @@ interface HandbookData {
 }
 
 export default function Handbook() {
-  const { viewMode } = useEmployeeFeatures();
   const [data, setData] = useState<HandbookData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -110,45 +105,25 @@ export default function Handbook() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      {viewMode === 'bifrost' ? (
-        <AuroraPageHeader
-          title="Employee Handbook"
-          subtitle={`Version ${data?.version ?? ''} • Last updated ${data?.last_updated ? formatDate(data.last_updated) : ''}`}
-          rightContent={
-            data?.download_url ? (
-              <a
-                href={data.download_url}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="flex items-center gap-2 px-3 py-2 bg-white/10 border border-white/20 text-white hover:bg-white/20 rounded-lg transition-colors text-sm"
-              >
-                <Download size={16} />
-                Download PDF
-              </a>
-            ) : undefined
-          }
-        />
-      ) : (
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Employee Handbook</h1>
-            <p className="text-gray-600 dark:text-gray-400 mt-1">
-              Version {data?.version} • Last updated {data?.last_updated && formatDate(data.last_updated)}
-            </p>
-          </div>
-          {data?.download_url && (
-            <a
-              href={data.download_url}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
-            >
-              <Download size={18} />
-              Download PDF
-            </a>
-          )}
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Employee Handbook</h1>
+          <p className="text-gray-600 dark:text-gray-400 mt-1">
+            Version {data?.version} • Last updated {data?.last_updated && formatDate(data.last_updated)}
+          </p>
         </div>
-      )}
+        {data?.download_url && (
+          <a
+            href={data.download_url}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+          >
+            <Download size={18} />
+            Download PDF
+          </a>
+        )}
+      </div>
 
       {/* Search */}
       <div className="relative">
@@ -164,15 +139,6 @@ export default function Handbook() {
           className="w-full pl-10 pr-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
         />
       </div>
-
-      {/* Mímir CTA */}
-      {viewMode === 'bifrost' && (
-        <MimirCTA
-          title="Can't find what you need?"
-          description="Ask Mímir to search the handbook for you — get instant answers about policies, procedures, and guidelines."
-          buttonText="Ask Mímir about Policies"
-        />
-      )}
 
       {/* Content */}
       <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
@@ -246,8 +212,8 @@ export default function Handbook() {
                 <h2 className="text-2xl font-bold text-gray-900 dark:text-white">{currentSection.title}</h2>
               </div>
               <div
-                className="prose dark:prose-invert max-w-none prose-p:my-0 prose-p:leading-relaxed"
-                dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(currentSection.content) }}
+                className="prose dark:prose-invert max-w-none text-gray-700 dark:text-gray-200 prose-headings:text-gray-900 dark:prose-headings:text-white prose-p:text-gray-700 dark:prose-p:text-gray-200 prose-p:my-0 prose-p:leading-relaxed prose-li:text-gray-700 dark:prose-li:text-gray-200 prose-strong:text-gray-900 dark:prose-strong:text-white"
+                dangerouslySetInnerHTML={{ __html: currentSection.content }}
               />
             </div>
           ) : (

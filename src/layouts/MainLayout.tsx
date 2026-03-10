@@ -191,7 +191,7 @@ export default function MainLayout() {
             </aside>
 
             {/* Main Content — aurora in dark mode, realm-white in light */}
-            <main className="flex-1 ml-[233px] p-8 overflow-y-auto bg-realm-white dark-aurora-main relative">
+            <main className="flex-1 ml-[233px] p-8 overflow-y-auto overflow-x-hidden bg-realm-white dark-aurora-main relative">
                 <div className="relative z-10">
                     <Outlet />
                 </div>

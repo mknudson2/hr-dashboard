@@ -1,17 +1,17 @@
 import { useState } from 'react';
-import { FileEdit, BookOpen, Heart, HelpCircle, FileText, FolderOpen } from 'lucide-react';
+import { FileEdit, BookOpen, Heart, HelpCircle, FileText, ClipboardCheck } from 'lucide-react';
 import HandbookTab from '@/components/cms/HandbookTab';
 import BenefitsTab from '@/components/cms/BenefitsTab';
 import FAQsTab from '@/components/cms/FAQsTab';
 import FormsTab from '@/components/cms/FormsTab';
-import DocumentsTab from '@/components/cms/DocumentsTab';
+import ReviewTemplatesTab from '@/components/cms/ReviewTemplatesTab';
 
 const tabs = [
   { key: 'handbook', label: 'Handbook', icon: BookOpen },
   { key: 'benefits', label: 'Benefits Guide', icon: Heart },
   { key: 'faqs', label: 'FAQs', icon: HelpCircle },
   { key: 'forms', label: 'Forms', icon: FileText },
-  { key: 'documents', label: 'Documents', icon: FolderOpen },
+  { key: 'review-templates', label: 'Review Forms', icon: ClipboardCheck },
 ] as const;
 
 type TabKey = typeof tabs[number]['key'];
@@ -27,7 +27,7 @@ export default function ContentManagementPage() {
           <FileEdit className="w-8 h-8 text-blue-600" />
           <div>
             <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Content Management</h1>
-            <p className="text-sm text-gray-500 dark:text-gray-400">Manage Employee Portal resources — handbook, benefits, FAQs, forms, and employee documents</p>
+            <p className="text-sm text-gray-500 dark:text-gray-400">Manage Employee Portal resources — handbook, benefits, FAQs, forms, and review templates</p>
           </div>
         </div>
       </div>
@@ -58,7 +58,7 @@ export default function ContentManagementPage() {
         {activeTab === 'benefits' && <BenefitsTab />}
         {activeTab === 'faqs' && <FAQsTab />}
         {activeTab === 'forms' && <FormsTab />}
-        {activeTab === 'documents' && <DocumentsTab />}
+        {activeTab === 'review-templates' && <ReviewTemplatesTab />}
       </div>
     </div>
   );

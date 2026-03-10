@@ -33,9 +33,10 @@ import PARApprovalsPage from "./pages/PARApprovalsPage";
 import ContentManagementPage from "./pages/ContentManagementPage";
 import RecruitingPage from "./pages/RecruitingPage";
 import RequisitionListPage from "./pages/RequisitionListPage";
+import RequisitionDetailPage from "./pages/RequisitionDetailPage";
+import PipelineTemplatePage from "./pages/PipelineTemplatePage";
 import ApplicationDetailPage from "./pages/ApplicationDetailPage";
 import PipelineKanbanView from "./pages/PipelineKanbanView";
-import PipelineTemplatePage from "./pages/PipelineTemplatePage";
 import ScorecardFormPage from "./pages/ScorecardFormPage";
 import InterviewSchedulerPage from "./pages/InterviewSchedulerPage";
 import CandidateComparisonPage from "./pages/CandidateComparisonPage";
@@ -46,7 +47,6 @@ import HireConversionWizard from "./pages/HireConversionWizard";
 import HireConversionList from "./pages/HireConversionList";
 import RecruitingAnalyticsPage from "./pages/RecruitingAnalyticsPage";
 import EEOApplicantReportPage from "./pages/EEOApplicantReportPage";
-import RequisitionLifecyclePage from "./pages/RequisitionLifecyclePage";
 import LoginPage from "./pages/LoginPage";
 import ProtectedRoute from "./components/ProtectedRoute";
 import { AuthProvider } from "./contexts/AuthContext";
@@ -92,10 +92,10 @@ export default function App() {
         <Route path="/content-management" element={<ContentManagementPage />} />
         <Route path="/recruiting" element={<RecruitingPage />} />
         <Route path="/recruiting/requisitions" element={<RequisitionListPage />} />
-        <Route path="/recruiting/requisitions/:id" element={<RequisitionLifecyclePage />} />
-        <Route path="/recruiting/requisitions/:reqId/kanban" element={<PipelineKanbanView />} />
+        <Route path="/recruiting/requisitions/:id" element={<RequisitionDetailPage />} />
         <Route path="/recruiting/pipelines" element={<PipelineTemplatePage />} />
         <Route path="/recruiting/applications/:id" element={<ApplicationDetailPage />} />
+        <Route path="/recruiting/requisitions/:reqId/kanban" element={<PipelineKanbanView />} />
         <Route path="/recruiting/scorecards/:scorecardId" element={<ScorecardFormPage />} />
         <Route path="/recruiting/schedule-interview" element={<InterviewSchedulerPage />} />
         <Route path="/recruiting/compare" element={<CandidateComparisonPage />} />
@@ -105,7 +105,6 @@ export default function App() {
         <Route path="/recruiting/email" element={<EmailComposerPage />} />
         <Route path="/recruiting/conversions" element={<HireConversionList />} />
         <Route path="/recruiting/hire-wizard" element={<HireConversionWizard />} />
-        <Route path="/recruiting/requisitions/:id/lifecycle" element={<Navigate to=".." relative="path" replace />} />
         <Route path="/recruiting/analytics" element={<RecruitingAnalyticsPage />} />
         <Route path="/recruiting/analytics/eeo" element={<EEOApplicantReportPage />} />
         <Route path="/settings" element={<SettingsPage />} />

@@ -229,7 +229,7 @@ export default function DashboardPage() {
       accent: 'navy',
     },
     {
-      title: "Regrettable Turnover",
+      title: "Involuntary Turnover %",
       value:
         (data as any).regrettable_turnover_pct !== undefined
           ? `${(data as any).regrettable_turnover_pct}%`

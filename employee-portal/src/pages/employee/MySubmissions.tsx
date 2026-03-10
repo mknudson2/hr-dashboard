@@ -4,8 +4,6 @@ import { useAuth } from '@/contexts/AuthContext';
 import { apiGet } from '@/utils/api';
 import { Clock, AlertCircle, CheckCircle, XCircle, Edit3, Plus, Users } from 'lucide-react';
 import { motion } from 'framer-motion';
-import { useEmployeeFeatures } from '@/contexts/EmployeeFeaturesContext';
-import AuroraPageHeader from '@/components/bifrost/AuroraPageHeader';
 
 interface Submission {
   id: number;
@@ -31,7 +29,6 @@ interface SubmissionsData {
 
 export default function MySubmissions() {
   const { isSupervisor } = useAuth();
-  const { viewMode } = useEmployeeFeatures();
   const [data, setData] = useState<SubmissionsData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -138,35 +135,19 @@ export default function MySubmissions() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      {viewMode === 'bifrost' ? (
-        <AuroraPageHeader
-          title="FMLA Time History"
-          subtitle="Track the status of your FMLA time entries"
-          rightContent={
-            <Link
-              to="/submit-time"
-              className="inline-flex items-center gap-2 px-3 py-2 bg-white/10 border border-white/20 text-white hover:bg-white/20 rounded-lg transition-colors text-sm"
-            >
-              <Plus size={16} />
-              Log FMLA Time
-            </Link>
-          }
-        />
-      ) : (
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-          <div>
-            <h1 className="text-2xl font-bold text-gray-900 dark:text-white">FMLA Time History</h1>
-            <p className="text-gray-600 dark:text-gray-400 mt-1">Track the status of your FMLA time entries</p>
-          </div>
-          <Link
-            to="/submit-time"
-            className="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 transition-colors"
-          >
-            <Plus size={20} />
-            Log FMLA Time
-          </Link>
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">FMLA Time History</h1>
+          <p className="text-gray-600 dark:text-gray-400 mt-1">Track the status of your FMLA time entries</p>
         </div>
-      )}
+        <Link
+          to="/submit-time"
+          className="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 transition-colors"
+        >
+          <Plus size={20} />
+          Log FMLA Time
+        </Link>
+      </div>
 
       {/* Stats */}
       {data && (

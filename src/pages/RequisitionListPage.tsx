@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
-  Plus, Search, ChevronLeft
+  Plus, Search, Filter, ChevronLeft, ArrowUpDown
 } from 'lucide-react';
 
 const BASE_URL = '';
@@ -28,7 +28,7 @@ export default function RequisitionListPage() {
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
-  const [departmentFilter, _setDepartmentFilter] = useState('');
+  const [departmentFilter, setDepartmentFilter] = useState('');
   const [showCreateModal, setShowCreateModal] = useState(false);
   const navigate = useNavigate();
 
@@ -135,22 +135,6 @@ export default function RequisitionListPage() {
         </select>
       </div>
 
-      {/* Source filter chips */}
-      <div className="flex gap-2">
-        {['All', 'Portal Requests', 'Manual'].map(source => (
-          <button
-            key={source}
-            onClick={() => {
-              // Filter client-side for simplicity
-              if (source === 'All') setStatusFilter(statusFilter); // re-trigger
-            }}
-            className="px-3 py-1 text-xs rounded-full bg-gray-100 text-gray-600 hover:bg-gray-200 dark:bg-gray-700 dark:text-gray-400 dark:hover:bg-gray-600"
-          >
-            {source}
-          </button>
-        ))}
-      </div>
-
       {/* Table */}
       <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 overflow-hidden">
         {loading ? (
@@ -168,7 +152,6 @@ export default function RequisitionListPage() {
                 <th className="text-left px-4 py-3 text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">Location</th>
                 <th className="text-left px-4 py-3 text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">Status</th>
                 <th className="text-left px-4 py-3 text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">Openings</th>
-                <th className="text-left px-4 py-3 text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">Source</th>
                 <th className="text-left px-4 py-3 text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">Created</th>
               </tr>
             </thead>
@@ -199,22 +182,6 @@ export default function RequisitionListPage() {
                   </td>
                   <td className="px-4 py-3 text-sm text-gray-600 dark:text-gray-400">
                     {req.filled_count}/{req.openings}
-                  </td>
-                  <td className="px-4 py-3">
-                    {(req as { request_source?: string }).request_source === 'employee_portal' ? (
-                      <span className="px-1.5 py-0.5 bg-purple-100 text-purple-700 dark:bg-purple-900/40 dark:text-purple-300 rounded text-xs font-medium">Portal</span>
-                    ) : (
-                      <span className="text-xs text-gray-400">Manual</span>
-                    )}
-                    {(req as { urgency?: string }).urgency && (req as { urgency?: string }).urgency !== 'Normal' && (
-                      <span className={`ml-1 px-1.5 py-0.5 rounded text-xs font-medium ${
-                        (req as { urgency?: string }).urgency === 'Critical' ? 'bg-red-100 text-red-700' :
-                        (req as { urgency?: string }).urgency === 'High' ? 'bg-orange-100 text-orange-700' :
-                        'bg-gray-100 text-gray-500'
-                      }`}>
-                        {(req as { urgency?: string }).urgency}
-                      </span>
-                    )}
                   </td>
                   <td className="px-4 py-3 text-sm text-gray-500 dark:text-gray-400">
                     {req.created_at ? new Date(req.created_at).toLocaleDateString() : '—'}

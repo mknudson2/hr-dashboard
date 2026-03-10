@@ -118,7 +118,7 @@ export default function OfferBuilderPage() {
         equity_details: data.equity_details || '',
         benefits_summary: data.benefits_summary || '',
         expires_at: data.expires_at ? data.expires_at.split('T')[0] : '',
-        contingencies: (data.contingencies as OfferForm['contingencies']) || { background_check: true, drug_test: false, references: true },
+        contingencies: data.contingencies || { background_check: true, drug_test: false, references: true },
       });
     } catch {
       setError('Failed to load offer');
