@@ -8,6 +8,12 @@ const hrProxy = {
   target: "http://localhost:8000",
   changeOrigin: true,
   headers: { "X-Portal-Source": "hr" },
+  // Don't proxy browser page navigations (refresh / direct URL) — serve the SPA instead
+  bypass(req: { headers: { accept?: string } }) {
+    if (req.headers.accept?.includes("text/html")) {
+      return "/index.html";
+    }
+  },
 };
 
 export default defineConfig({

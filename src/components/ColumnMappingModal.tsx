@@ -34,6 +34,7 @@ interface ColumnMappingModalProps {
 
 interface DetectedMappingData {
   file_id: number;
+  file_category: string | null;
   detected_columns: string[];
   row_count: number;
   sample_data: Record<string, unknown>[];
@@ -192,6 +193,7 @@ export default function ColumnMappingModal({
         },
         body: JSON.stringify({
           column_mappings: mappings,
+          file_category: data?.file_category || null,
           dry_run: dryRun,
         }),
       });
@@ -238,6 +240,17 @@ export default function ColumnMappingModal({
             <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
               Map columns from <span className="font-medium">{fileName}</span> to database fields
             </p>
+            {data?.file_category && (
+              <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium mt-1 ${
+                data.file_category === "compensation_history"
+                  ? "bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-300"
+                  : "bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300"
+              }`}>
+                {data.file_category === "compensation_history" ? "Compensation History Import" :
+                 data.file_category === "employment_list" ? "Employee Data Import" :
+                 data.file_category.replace(/_/g, " ")}
+              </span>
+            )}
           </div>
           <button
             onClick={onClose}

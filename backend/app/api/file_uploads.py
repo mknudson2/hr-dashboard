@@ -840,9 +840,14 @@ async def detect_column_mappings(
             raise HTTPException(status_code=400, detail="Only CSV and Excel files support column mapping")
 
         # Get columns and sample data
-        result = parser.parse(str(file_path), preview_rows=5)
-        columns = result.get('columns', [])
-        sample_data = result.get('data', [])
+        df, _logs = await parser.parse(str(file_path))
+        columns = list(df.columns)
+        sample_data = df.head(5).where(df.notna(), None).to_dict('records')
+
+        # Auto-detect file category
+        from app.services.file_type_configs import detect_file_category
+        detected_category = detect_file_category(columns)
+        file_category = detected_category.value if detected_category else None
 
         # Auto-detect mappings
         suggested_mappings = column_mapping_service.auto_detect_mappings(columns)
@@ -855,9 +860,10 @@ async def detect_column_mappings(
 
         return {
             "file_id": file_id,
+            "file_category": file_category,
             "detected_columns": columns,
-            "row_count": result.get('row_count', 0),
-            "sample_data": sample_data[:5],
+            "row_count": len(df),
+            "sample_data": sample_data,
             "suggested_mappings": suggested_mappings,
             "unmapped_columns": unmapped,
             "is_valid": is_valid,
@@ -874,6 +880,7 @@ async def detect_column_mappings(
 class CustomMappingImportRequest(BaseModel):
     """Request body for import with custom mappings"""
     column_mappings: Dict[str, str]  # source_column -> db_field
+    file_category: Optional[str] = None  # e.g. "compensation_history", "employment_list"
     dry_run: bool = False
 
 
@@ -936,7 +943,24 @@ async def import_with_custom_mappings(
         )
 
     try:
-        # Import with custom mappings
+        # Route to dedicated importer for compensation history
+        if request.file_category == "compensation_history":
+            from app.services.file_upload_service import ExcelParser, CSVParser
+            from app.services.file_type_configs import FileCategory, get_file_config
+            import pandas as pd
+
+            if upload.file_type == 'csv':
+                parser = CSVParser()
+            else:
+                parser = ExcelParser()
+            df, _logs = await parser.parse(upload.file_path)
+            config = get_file_config(FileCategory.COMPENSATION_HISTORY)
+            result = await DataImportService.import_compensation_history(
+                df, config, file_id, db
+            )
+            return result
+
+        # Default: import as employee data
         result = await DataImportService.import_with_custom_mappings(
             file_upload_id=file_id,
             column_mappings=request.column_mappings,

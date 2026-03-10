@@ -42,10 +42,11 @@ class Employee(Base):
     employment_type = Column(String, nullable=True)  # "Full Time", "Part Time", "Contract", "Intern"
 
     # Compensation information
-    wage = Column(Float, nullable=True)
+    wage = Column(Float, nullable=True)  # Base rate (hourly)
     wage_type = Column(String, nullable=True)  # "Hourly" or "Salary"
+    wage_effective_date = Column(Date, nullable=True)  # Start date of current pay rate
     annual_wage = Column(Float, nullable=True)  # Annual equivalent
-    hourly_wage = Column(Float, nullable=True)  # Hourly rate
+    hourly_wage = Column(Float, nullable=True)  # Hourly rate (same as wage/base rate)
     benefits_cost = Column(Float, nullable=True)  # Annual benefits cost
     benefits_cost_annual = Column(Float, nullable=True)  # Alias for clarity
     employer_taxes_annual = Column(Float, nullable=True)  # FICA, Medicare, unemployment, etc.
@@ -68,6 +69,7 @@ class Employee(Base):
     address_city = Column(String, nullable=True)
     address_state = Column(String, nullable=True)
     address_zip = Column(String, nullable=True)
+    address_country = Column(String, nullable=True)
 
     # Privacy settings
     show_birthday = Column(Boolean, default=True)  # Show birthday on dashboard/exports
@@ -159,8 +161,12 @@ class WageHistory(Base):
     id = Column(Integer, primary_key=True, index=True)
     employee_id = Column(String, ForeignKey("employees.employee_id"), index=True)
     effective_date = Column(Date)
+    pay_rate_start_date = Column(Date, nullable=True)
+    pay_rate_end_date = Column(Date, nullable=True)
     wage = Column(Float)
-    change_reason = Column(String, nullable=True)  # e.g., "Merit Increase", "Promotion", "Annual Review"
+    wage_unit = Column(String, nullable=True)  # "Hour", "Year", etc.
+    annual_salary = Column(Float, nullable=True)
+    change_reason = Column(String, nullable=True)  # e.g., "Merit Increase", "Promotion", "New Hire"
     change_amount = Column(Float, nullable=True)
     change_percentage = Column(Float, nullable=True)
 

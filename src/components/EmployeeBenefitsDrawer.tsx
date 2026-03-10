@@ -1,6 +1,7 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { X, DollarSign, Heart, Shield, TrendingUp, Briefcase } from "lucide-react";
-import { motion, AnimatePresence } from "framer-motion";
+// framer-motion removed: transform breaks backdrop-filter in WebKit
 
 interface Benefits {
     medical: {
@@ -62,6 +63,7 @@ interface EmployeeDetail {
     full_name: string;
     department: string;
     position: string;
+    type: string;
     wage: number;
     wage_type: string;
     annual_wage: number;
@@ -181,6 +183,15 @@ export default function EmployeeBenefitsDrawer({ employeeId, onClose }: Employee
     const costs = employee ? calculateMonthlyCosts() : { eeCost: 0, erCost: 0, total: 0 };
 
     // ESC key support
+    const drawerRef = useRef<HTMLDivElement>(null);
+
+    // Reset scroll to top when a new employee is selected
+    useEffect(() => {
+        if (employeeId && drawerRef.current) {
+            drawerRef.current.scrollTop = 0;
+        }
+    }, [employeeId]);
+
     useEffect(() => {
         const handleEscape = (e: KeyboardEvent) => {
             if (e.key === 'Escape') onClose();
@@ -189,37 +200,57 @@ export default function EmployeeBenefitsDrawer({ employeeId, onClose }: Employee
         return () => window.removeEventListener('keydown', handleEscape);
     }, [onClose]);
 
-    return (
-        <AnimatePresence>
-            {employeeId && (
-                <>
-                    {/* Backdrop */}
-                    <motion.div
-                        initial={{ opacity: 0 }}
-                        animate={{ opacity: 1 }}
-                        exit={{ opacity: 0 }}
-                        onClick={onClose}
-                        className="fixed inset-0 bg-black/50 z-40"
-                    />
+    const isOpen = !!employeeId;
 
-                    {/* Drawer */}
-                    <motion.div
-                        initial={{ x: "100%" }}
-                        animate={{ x: 0 }}
-                        exit={{ x: "100%" }}
-                        transition={{ type: "spring", damping: 30, stiffness: 300 }}
-                        className="fixed right-0 top-0 h-full w-full md:w-2/3 lg:w-1/2 bg-white dark:bg-gray-800 shadow-2xl z-50 overflow-y-auto"
-                    >
-                        {/* Header */}
-                        <div className="sticky top-0 bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 p-6 flex items-center justify-between z-10">
+    return createPortal(
+        <>
+            {/* Backdrop */}
+            <div
+                onClick={isOpen ? onClose : undefined}
+                className={`fixed inset-0 bg-black/25 z-40 transition-opacity duration-300 ${isOpen ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}
+            />
+
+            {/* Drawer — uses CSS right transition instead of transform to preserve backdrop-filter */}
+            <div
+                className={`fixed top-0 h-full w-full md:w-2/3 lg:w-1/2 z-50 shadow-2xl transition-[right] duration-300 ease-out ${isOpen ? 'right-0' : '-right-full'}`}
+                style={{ background: 'rgba(255, 255, 255, 0.12)', backdropFilter: 'blur(20px) brightness(1.8) saturate(1.5)', WebkitBackdropFilter: 'blur(20px) brightness(1.8) saturate(1.5)', borderLeft: '1px solid rgba(255, 255, 255, 0.12)' }}
+            >
+              <div ref={drawerRef} className="relative h-full overflow-y-auto">
+                {/* Header */}
+                <div className="sticky top-0 border-b border-white/10 p-6 flex items-center justify-between z-10"
+                     style={{ background: 'rgba(255, 255, 255, 0.04)' }}>
                             <div>
                                 <h2 className="text-2xl font-bold text-gray-900 dark:text-white">
                                     {employee?.full_name || "Loading..."}
                                 </h2>
                                 {employee && (
-                                    <p className="text-sm text-gray-500 dark:text-gray-400">
-                                        {employee.position} • {employee.department}
-                                    </p>
+                                    <>
+                                        <p className="text-sm text-gray-500 dark:text-gray-400">
+                                            {employee.position} • {employee.department}
+                                        </p>
+                                        <div className="flex gap-2 mt-2">
+                                            {employee.type && (
+                                                <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                                                    employee.type.toLowerCase().includes("part time") || employee.type.toLowerCase().includes("part-time")
+                                                        ? "bg-amber-100 text-amber-800 dark:bg-amber-900/70 dark:text-amber-200"
+                                                        : "bg-green-100 text-green-800 dark:bg-green-900/70 dark:text-green-200"
+                                                }`}>
+                                                    {employee.type.toLowerCase().includes("part time") || employee.type.toLowerCase().includes("part-time")
+                                                        ? "Part-Time"
+                                                        : "Full-Time"}
+                                                </span>
+                                            )}
+                                            {employee.wage_type && (
+                                                <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                                                    employee.wage_type.toLowerCase() === "hourly"
+                                                        ? "bg-blue-100 text-blue-800 dark:bg-blue-900/70 dark:text-blue-200"
+                                                        : "bg-purple-100 text-purple-800 dark:bg-purple-900/70 dark:text-purple-200"
+                                                }`}>
+                                                    {employee.wage_type}
+                                                </span>
+                                            )}
+                                        </div>
+                                    </>
                                 )}
                             </div>
                             <button
@@ -237,32 +268,38 @@ export default function EmployeeBenefitsDrawer({ employeeId, onClose }: Employee
                         ) : employee ? (
                             <div className="p-6 space-y-6">
                                 {/* Total Compensation Summary */}
-                                <div className="bg-gradient-to-r from-blue-50 to-purple-50 dark:from-blue-900/20 dark:to-purple-900/20 rounded-xl p-6 border border-blue-200 dark:border-blue-800">
+                                <div className="bg-gradient-to-r from-blue-50 to-purple-50 dark:from-blue-900/60 dark:to-purple-900/60 rounded-xl p-6 border border-blue-200 dark:border-blue-800">
                                     <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
                                         Total Compensation Summary
                                     </h3>
                                     <div className="grid grid-cols-2 gap-4">
                                         <div>
-                                            <p className="text-sm text-gray-600 dark:text-gray-400">Annual Salary</p>
+                                            <p className="text-sm text-gray-600 dark:text-gray-200">Base Rate</p>
+                                            <p className="text-2xl font-bold text-gray-900 dark:text-white">
+                                                ${(employee.wage || 0).toFixed(2)}/hr
+                                            </p>
+                                        </div>
+                                        <div>
+                                            <p className="text-sm text-gray-600 dark:text-gray-200">Annual Salary</p>
                                             <p className="text-2xl font-bold text-gray-900 dark:text-white">
                                                 ${(employee.annual_wage || employee.wage || 0).toLocaleString()}
                                             </p>
                                         </div>
                                         <div>
-                                            <p className="text-sm text-gray-600 dark:text-gray-400">Monthly Benefits (ER)</p>
-                                            <p className="text-2xl font-bold text-blue-600 dark:text-blue-400">
+                                            <p className="text-sm text-gray-600 dark:text-gray-200">Monthly Benefits (ER)</p>
+                                            <p className="text-2xl font-bold" style={{ color: 'white' }}>
                                                 ${costs.erCost.toFixed(2)}
                                             </p>
                                         </div>
                                         <div>
-                                            <p className="text-sm text-gray-600 dark:text-gray-400">Annual Benefits Cost (ER)</p>
+                                            <p className="text-sm text-gray-600 dark:text-gray-200">Annual Benefits Cost (ER)</p>
                                             <p className="text-xl font-semibold text-gray-900 dark:text-white">
                                                 ${(costs.erCost * 12).toLocaleString(undefined, { maximumFractionDigits: 0 })}
                                             </p>
                                         </div>
                                         <div className="bg-white dark:bg-gray-800 rounded-lg p-3">
                                             <p className="text-sm text-gray-600 dark:text-gray-400">Total Annual Comp</p>
-                                            <p className="text-xl font-bold text-purple-600 dark:text-purple-400">
+                                            <p className="text-xl font-bold text-purple-600 dark:text-white">
                                                 ${((employee.annual_wage || employee.wage || 0) + (costs.erCost * 12)).toLocaleString(undefined, { maximumFractionDigits: 0 })}
                                             </p>
                                         </div>
@@ -462,9 +499,9 @@ export default function EmployeeBenefitsDrawer({ employeeId, onClose }: Employee
                         ) : (
                             <div className="p-6 text-red-500">Failed to load employee details</div>
                         )}
-                    </motion.div>
-                </>
-            )}
-        </AnimatePresence>
+              </div>
+            </div>
+        </>,
+        document.body
     );
 }

@@ -14,6 +14,7 @@ class FileCategory(str, Enum):
     OT_EARNINGS = "ot_earnings"
     HSA_REPORT = "hsa_report"
     DEDUCTION_LISTING = "deduction_listing"
+    COMPENSATION_HISTORY = "compensation_history"
     PAYROLL_DATA = "payroll_data"
     BENEFITS_DATA = "benefits_data"
     TIME_OFF_DATA = "time_off_data"
@@ -290,6 +291,57 @@ DEDUCTION_LISTING_CONFIG = FileTypeConfig(
 
 
 # ============================================================================
+# COMPENSATION HISTORY CONFIGURATION
+# ============================================================================
+
+COMPENSATION_HISTORY_CONFIG = FileTypeConfig(
+    category=FileCategory.COMPENSATION_HISTORY,
+    name="Compensation History",
+    description="Pay rate change history by employee with effective dates, base rates, and change reasons",
+    expected_extensions=["xlsx", "csv"],
+
+    required_columns=[
+        "Employee Id",
+        "Base Rate",
+    ],
+
+    optional_columns=[
+        "Pay Rate Effective Date",
+        "Pay Rate Start Date",
+        "Pay Rate End Date",
+        "Pay Rate Change Reason",
+        "Base Rate Per Unit",
+        "Per Check Salary",
+        "Default Hours",
+        "Annual Salary",
+    ],
+
+    column_mappings=[
+        ColumnMapping("Employee Id", "employee_id", required=True, data_type="string"),
+        ColumnMapping("Pay Rate Effective Date", "effective_date", required=False, data_type="date"),
+        ColumnMapping("Pay Rate Start Date", "pay_rate_start_date", required=False, data_type="date"),
+        ColumnMapping("Pay Rate End Date", "pay_rate_end_date", required=False, data_type="date"),
+        ColumnMapping("Pay Rate Change Reason", "change_reason", required=False, data_type="string"),
+        ColumnMapping("Base Rate", "wage", required=True, data_type="float"),
+        ColumnMapping("Base Rate Per Unit", "wage_unit", required=False, data_type="string"),
+        ColumnMapping("Annual Salary", "annual_salary", required=False, data_type="float"),
+    ],
+
+    header_row=0,
+    skip_rows=None,
+    sheet_name=None,
+
+    min_rows=1,
+    max_rows=100000,
+    allow_duplicates=True,  # Multiple rate changes per employee
+    unique_columns=[],
+
+    import_mode="append",
+    conflict_resolution="skip"
+)
+
+
+# ============================================================================
 # FILE TYPE REGISTRY
 # ============================================================================
 
@@ -298,6 +350,7 @@ FILE_TYPE_CONFIGS: Dict[FileCategory, FileTypeConfig] = {
     FileCategory.OT_EARNINGS: OT_EARNINGS_CONFIG,
     FileCategory.HSA_REPORT: HSA_REPORT_CONFIG,
     FileCategory.DEDUCTION_LISTING: DEDUCTION_LISTING_CONFIG,
+    FileCategory.COMPENSATION_HISTORY: COMPENSATION_HISTORY_CONFIG,
 }
 
 

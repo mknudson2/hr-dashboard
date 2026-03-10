@@ -834,8 +834,11 @@ def get_location_distribution(db: Session = Depends(get_db)):
     countries = {}
     cities = []
 
-    # International country list for detection
-    intl_countries = [
+    # US country values (used to detect domestic vs international)
+    us_country_values = {"US", "USA", "UNITED STATES"}
+
+    # Legacy international country names for backwards compatibility
+    intl_country_names = [
         "Canada", "United Kingdom", "Germany", "France", "Australia",
         "India", "Mexico", "Spain", "Netherlands", "Brazil"
     ]
@@ -846,14 +849,19 @@ def get_location_distribution(db: Session = Depends(get_db)):
 
         location = emp.location
 
-        # Check if international (contains country name OR "International -" prefix)
-        is_international = any(country in location for country in intl_countries) or location.startswith("International")
+        # Determine if international using address_country field first, then fallback to name matching
+        emp_country = (emp.address_country or "").strip().upper()
+        is_international = False
+        if emp_country and emp_country not in us_country_values:
+            is_international = True
+        elif any(name in location for name in intl_country_names) or location.startswith("International"):
+            is_international = True
 
         if is_international:
             # Handle "International - Company" format (e.g., "International - Congruent")
             if location.startswith("International - "):
                 company = location.replace("International - ", "").strip()
-                country = company  # Use company name as the country/region identifier
+                country = company
 
                 if country not in countries:
                     countries[country] = {"count": 0, "cities": {}}
@@ -865,8 +873,8 @@ def get_location_distribution(db: Session = Depends(get_db)):
                     "full_location": location,
                     "type": "international"
                 })
-            # Extract country (everything after last comma)
             elif ", " in location:
+                # Format: "City/Region, CountryCode" (e.g., "Lagos, NGA")
                 parts = location.split(", ")
                 country = parts[-1].strip()
                 city = parts[0].strip() if len(parts) > 1 else ""
@@ -886,8 +894,15 @@ def get_location_distribution(db: Session = Depends(get_db)):
                         "full_location": location,
                         "type": "international"
                     })
+            else:
+                # Bare country code (e.g., "IND", "BRA")
+                country = location.strip()
+                if country:
+                    if country not in countries:
+                        countries[country] = {"count": 0, "cities": {}}
+                    countries[country]["count"] += 1
         else:
-            # US location (City, State format)
+            # US location (City, State format or bare state code)
             if ", " in location:
                 parts = location.split(", ")
                 state = parts[-1].strip()
@@ -908,6 +923,13 @@ def get_location_distribution(db: Session = Depends(get_db)):
                         "full_location": location,
                         "type": "us"
                     })
+            else:
+                # Bare state code (e.g., "OH", "TX")
+                state = location.strip()
+                if state and len(state) <= 3:
+                    if state not in us_states:
+                        us_states[state] = {"count": 0, "cities": {}}
+                    us_states[state]["count"] += 1
 
     # Calculate totals
     total_us = sum(state["count"] for state in us_states.values())

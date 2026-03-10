@@ -21,6 +21,8 @@ import {
   Folder,
   Plus,
   X,
+  AlertTriangle,
+  Loader,
 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import TwoFactorSetupModal from "@/components/TwoFactorSetupModal";
@@ -236,6 +238,31 @@ export default function SettingsPage() {
         if (confirm("Are you sure you want to clear all cached data? This will reload the page.")) {
             localStorage.clear();
             window.location.reload();
+        }
+    };
+
+    // Clear Demo Data
+    const [showClearDemoConfirm, setShowClearDemoConfirm] = useState(false);
+    const [clearDemoLoading, setClearDemoLoading] = useState(false);
+    const [clearDemoResult, setClearDemoResult] = useState<{ success: boolean; message: string } | null>(null);
+
+    const handleClearDemoData = async () => {
+        setClearDemoLoading(true);
+        setClearDemoResult(null);
+        try {
+            const response = await fetch(`${API_URL}/employees/demo-data`, {
+                method: 'DELETE',
+                credentials: 'include',
+            });
+            const data = await response.json();
+            if (!response.ok) throw new Error(data.detail || 'Failed to clear data');
+            setClearDemoResult({ success: true, message: data.message });
+            setShowClearDemoConfirm(false);
+        } catch (error: unknown) {
+            const msg = error instanceof Error ? error.message : 'An error occurred';
+            setClearDemoResult({ success: false, message: msg });
+        } finally {
+            setClearDemoLoading(false);
         }
     };
 
@@ -680,7 +707,73 @@ export default function SettingsPage() {
                             Clear
                         </button>
                     </div>
+
+                    <div className="flex items-center justify-between py-3 border-t border-gray-200 dark:border-gray-700">
+                        <div>
+                            <span className="text-gray-900 dark:text-gray-100 font-medium">Clear Employee Data</span>
+                            <p className="text-sm text-gray-600 dark:text-gray-400">Remove all employees and dependent records (PTO, reviews, wage history, etc.) to prepare for fresh data import</p>
+                        </div>
+                        <button
+                            onClick={() => setShowClearDemoConfirm(true)}
+                            disabled={clearDemoLoading}
+                            className="flex items-center gap-2 px-4 py-2 bg-red-600 hover:bg-red-700 disabled:bg-red-400 text-white rounded-lg transition-colors"
+                        >
+                            {clearDemoLoading ? <Loader className="w-4 h-4 animate-spin" /> : <Trash2 className="w-4 h-4" />}
+                            {clearDemoLoading ? 'Clearing...' : 'Clear All'}
+                        </button>
+                    </div>
+
+                    {clearDemoResult && (
+                        <div className={`p-3 rounded-lg text-sm ${clearDemoResult.success ? 'bg-green-50 dark:bg-green-900/20 text-green-700 dark:text-green-400' : 'bg-red-50 dark:bg-red-900/20 text-red-700 dark:text-red-400'}`}>
+                            {clearDemoResult.message}
+                        </div>
+                    )}
                 </div>
+
+                {/* Clear Demo Data Confirmation Modal */}
+                {showClearDemoConfirm && (
+                    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+                        <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-xl p-6 max-w-md mx-4">
+                            <div className="flex items-center gap-3 mb-4">
+                                <div className="p-2 bg-red-100 dark:bg-red-900/30 rounded-full">
+                                    <AlertTriangle className="w-6 h-6 text-red-600 dark:text-red-400" />
+                                </div>
+                                <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Clear All Employee Data?</h3>
+                            </div>
+                            <p className="text-gray-600 dark:text-gray-400 mb-2">
+                                This will permanently delete:
+                            </p>
+                            <ul className="text-sm text-gray-600 dark:text-gray-400 mb-6 list-disc list-inside space-y-1">
+                                <li>All employee records</li>
+                                <li>Wage history</li>
+                                <li>Performance reviews & goals</li>
+                                <li>PTO requests</li>
+                                <li>FMLA cases</li>
+                                <li>Onboarding & offboarding tasks</li>
+                                <li>Garnishments, bonuses, documents</li>
+                            </ul>
+                            <p className="text-sm text-gray-500 dark:text-gray-500 mb-6">
+                                User accounts, roles, and system settings will not be affected. You can re-import data via the File Upload page.
+                            </p>
+                            <div className="flex justify-end gap-3">
+                                <button
+                                    onClick={() => setShowClearDemoConfirm(false)}
+                                    className="px-4 py-2 text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 rounded-lg transition-colors"
+                                >
+                                    Cancel
+                                </button>
+                                <button
+                                    onClick={handleClearDemoData}
+                                    disabled={clearDemoLoading}
+                                    className="flex items-center gap-2 px-4 py-2 bg-red-600 hover:bg-red-700 disabled:bg-red-400 text-white rounded-lg transition-colors"
+                                >
+                                    {clearDemoLoading ? <Loader className="w-4 h-4 animate-spin" /> : <Trash2 className="w-4 h-4" />}
+                                    {clearDemoLoading ? 'Clearing...' : 'Yes, Clear All Data'}
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                )}
             </section>
 
             {/* Employee Folder Settings Section */}

@@ -438,6 +438,191 @@ class DataImportService:
             raise HTTPException(status_code=500, detail=f"Import failed: {str(e)}")
 
     @staticmethod
+    @staticmethod
+    async def import_compensation_history(
+        df: pd.DataFrame,
+        config: FileTypeConfig,
+        file_upload_id: int,
+        db: Session
+    ) -> Dict[str, Any]:
+        """
+        Import compensation/pay rate history into wage_history table.
+        Also updates each employee's current wage, hourly_wage, annual_wage,
+        and wage_effective_date from their most recent entry.
+        """
+        imported = 0
+        skipped = 0
+        errors = []
+
+        def parse_date(val):
+            if val is None or (isinstance(val, float) and pd.isna(val)):
+                return None
+            if str(val).strip().lower() == 'nat':
+                return None
+            if hasattr(val, 'date'):
+                return val.date()
+            if hasattr(val, 'year'):
+                return val
+            if isinstance(val, str):
+                val = val.strip()
+                for fmt in ['%m/%d/%Y', '%Y-%m-%d', '%Y-%m-%d %H:%M:%S', '%m-%d-%Y']:
+                    try:
+                        return datetime.strptime(val, fmt).date()
+                    except ValueError:
+                        continue
+            return None
+
+        try:
+            # Track latest rate per employee to update current compensation
+            latest_by_employee: Dict[str, dict] = {}
+
+            for idx, row in df.iterrows():
+                try:
+                    emp_id = str(row.get('Employee Id', '')).strip()
+                    if emp_id.endswith('.0'):
+                        emp_id = emp_id[:-2]
+                    if not emp_id:
+                        skipped += 1
+                        errors.append(f"Row {idx + 2}: Missing Employee Id")
+                        continue
+
+                    base_rate = row.get('Base Rate')
+                    if pd.isna(base_rate) or not base_rate:
+                        skipped += 1
+                        errors.append(f"Row {idx + 2}: Missing Base Rate")
+                        continue
+                    base_rate = float(base_rate)
+
+                    effective_date = parse_date(row.get('Pay Rate Effective Date'))
+                    start_date = parse_date(row.get('Pay Rate Start Date'))
+                    end_date = parse_date(row.get('Pay Rate End Date'))
+                    change_reason = str(row.get('Pay Rate Change Reason', '')).strip() if pd.notna(row.get('Pay Rate Change Reason')) else None
+                    wage_unit = str(row.get('Base Rate Per Unit', '')).strip() if pd.notna(row.get('Base Rate Per Unit')) else None
+                    annual_salary = float(row['Annual Salary']) if pd.notna(row.get('Annual Salary')) and row.get('Annual Salary') else None
+
+                    # Check for duplicate (same employee + effective_date + wage)
+                    existing = db.query(models.WageHistory).filter(
+                        models.WageHistory.employee_id == emp_id,
+                        models.WageHistory.effective_date == effective_date,
+                        models.WageHistory.wage == base_rate
+                    ).first()
+                    if existing:
+                        skipped += 1
+                        continue
+
+                    record = models.WageHistory(
+                        employee_id=emp_id,
+                        effective_date=effective_date,
+                        pay_rate_start_date=start_date,
+                        pay_rate_end_date=end_date,
+                        wage=base_rate,
+                        wage_unit=wage_unit,
+                        annual_salary=annual_salary,
+                        change_reason=change_reason,
+                    )
+                    db.add(record)
+                    imported += 1
+
+                    # Track the most recent entry per employee (by effective_date)
+                    if emp_id not in latest_by_employee or (
+                        effective_date and (
+                            latest_by_employee[emp_id]['effective_date'] is None or
+                            effective_date > latest_by_employee[emp_id]['effective_date']
+                        )
+                    ):
+                        latest_by_employee[emp_id] = {
+                            'effective_date': effective_date,
+                            'start_date': start_date,
+                            'wage': base_rate,
+                            'annual_salary': annual_salary,
+                        }
+
+                except Exception as e:
+                    skipped += 1
+                    errors.append(f"Row {idx + 2}: {str(e)}")
+                    logger.warning(f"Error importing comp history row {idx + 2}: {e}")
+
+            db.flush()
+
+            # Compute change_amount and change_percentage for each employee's records
+            for emp_id in latest_by_employee:
+                records = db.query(models.WageHistory).filter(
+                    models.WageHistory.employee_id == emp_id
+                ).order_by(models.WageHistory.effective_date.asc()).all()
+
+                prev_wage = None
+                for rec in records:
+                    if prev_wage is not None and rec.wage and prev_wage > 0:
+                        rec.change_amount = round(rec.wage - prev_wage, 4)
+                        rec.change_percentage = round(((rec.wage - prev_wage) / prev_wage) * 100, 2)
+                    prev_wage = rec.wage if rec.wage else prev_wage
+
+            # Update each employee's current compensation from their latest rate
+            employees_updated = 0
+            for emp_id, latest in latest_by_employee.items():
+                emp = db.query(models.Employee).filter(
+                    models.Employee.employee_id == emp_id
+                ).first()
+                if emp:
+                    emp.wage = latest['wage']
+                    emp.hourly_wage = latest['wage']
+                    if latest['start_date']:
+                        emp.wage_effective_date = latest['start_date']
+                    elif latest['effective_date']:
+                        emp.wage_effective_date = latest['effective_date']
+                    # Recalculate annual wage
+                    emp_type = str(emp.type or '').lower()
+                    if latest['annual_salary'] and latest['annual_salary'] > 0 and 'part time' not in emp_type:
+                        emp.annual_wage = latest['annual_salary']
+                    elif 'part time' in emp_type or 'part-time' in emp_type:
+                        emp.annual_wage = round(latest['wage'] * 1040, 2)
+                    else:
+                        emp.annual_wage = round(latest['wage'] * 2080, 2)
+                    employees_updated += 1
+
+            db.commit()
+
+            # Update file upload record
+            file_upload = db.query(models.FileUpload).filter(
+                models.FileUpload.id == file_upload_id
+            ).first()
+            if file_upload:
+                file_upload.status = 'completed'
+                file_upload.records_processed = imported
+                file_upload.records_failed = skipped
+                file_upload.processing_completed_at = datetime.now()
+                file_upload.file_metadata = {
+                    'import_stats': {
+                        'records_imported': imported,
+                        'records_skipped': skipped,
+                        'unique_employees': len(latest_by_employee),
+                        'employees_updated': employees_updated,
+                    }
+                }
+                if errors:
+                    file_upload.error_message = '; '.join(errors[:5])
+                db.commit()
+
+            return {
+                'status': 'success',
+                'imported': imported,
+                'updated': employees_updated,
+                'skipped': skipped,
+                'total': len(df),
+                'errors': errors,
+                'summary': {
+                    'records_imported': imported,
+                    'unique_employees': len(latest_by_employee),
+                    'employees_updated': employees_updated,
+                }
+            }
+
+        except Exception as e:
+            db.rollback()
+            logger.error(f"Error importing compensation history: {e}")
+            raise HTTPException(status_code=500, detail=f"Import failed: {str(e)}")
+
+    @staticmethod
     async def import_file_data(
         file_upload_id: int,
         db: Session,
@@ -513,6 +698,10 @@ class DataImportService:
                 )
             elif category == FileCategory.DEDUCTION_LISTING:
                 result = await DataImportService.import_deduction_listing(
+                    df, config, file_upload_id, db
+                )
+            elif category == FileCategory.COMPENSATION_HISTORY:
+                result = await DataImportService.import_compensation_history(
                     df, config, file_upload_id, db
                 )
             else:
@@ -595,8 +784,9 @@ class DataImportService:
                 )
 
             # Parse the file
-            result = parser.parse(file_upload.file_path)
-            data_rows = result.get('data', [])
+            df, _logs = await parser.parse(file_upload.file_path)
+            # Convert DataFrame to list of dicts
+            data_rows = df.where(df.notna(), None).to_dict('records')
             total_rows = len(data_rows)
 
             if dry_run:
@@ -637,25 +827,71 @@ class DataImportService:
                     mapped_data['employee_id'] = employee_id
 
                     # Parse dates
-                    date_fields = ['hire_date', 'termination_date', 'birth_date', 'rehire_date', 'original_hire_date']
+                    date_fields = ['hire_date', 'termination_date', 'birth_date', 'rehire_date', 'original_hire_date', 'wage_effective_date']
                     for date_field in date_fields:
-                        if date_field in mapped_data and mapped_data[date_field]:
-                            try:
-                                date_val = mapped_data[date_field]
-                                if isinstance(date_val, str):
-                                    # Try various date formats
-                                    for fmt in ['%Y-%m-%d', '%m/%d/%Y', '%m-%d-%Y', '%d/%m/%Y']:
-                                        try:
-                                            parsed = datetime.strptime(date_val.strip(), fmt)
-                                            mapped_data[date_field] = parsed.date()
-                                            break
-                                        except ValueError:
-                                            continue
-                                    else:
-                                        # Couldn't parse, set to None
-                                        mapped_data[date_field] = None
-                            except Exception:
+                        if date_field not in mapped_data:
+                            continue
+                        date_val = mapped_data[date_field]
+                        # Handle None, empty, NaT, and "NaT" string
+                        if date_val is None or date_val == "" or str(date_val).strip().lower() == "nat":
+                            mapped_data[date_field] = None
+                            continue
+                        try:
+                            # Handle native datetime/Timestamp objects
+                            if hasattr(date_val, 'date'):
+                                mapped_data[date_field] = date_val.date()
+                            elif hasattr(date_val, 'year'):
+                                # Already a date object
+                                mapped_data[date_field] = date_val
+                            elif isinstance(date_val, str):
+                                # Try various date formats
+                                for fmt in ['%Y-%m-%d', '%Y-%m-%d %H:%M:%S', '%m/%d/%Y', '%m-%d-%Y', '%d/%m/%Y']:
+                                    try:
+                                        parsed = datetime.strptime(date_val.strip(), fmt)
+                                        mapped_data[date_field] = parsed.date()
+                                        break
+                                    except ValueError:
+                                        continue
+                                else:
+                                    mapped_data[date_field] = None
+                            else:
                                 mapped_data[date_field] = None
+                        except Exception:
+                            mapped_data[date_field] = None
+
+                    # Composite location from address components if not directly mapped
+                    if not mapped_data.get('location'):
+                        loc_parts = []
+                        state = mapped_data.get('address_state')
+                        zip_code = mapped_data.get('address_zip')
+                        country = mapped_data.get('address_country')
+                        if state:
+                            loc_parts.append(str(state).strip())
+                        if zip_code:
+                            loc_parts.append(str(zip_code).strip())
+                        if country:
+                            country_val = str(country).strip()
+                            # Only append country if it's not a US variant
+                            if country_val and country_val.upper() not in ('US', 'USA', 'UNITED STATES'):
+                                loc_parts.append(country_val)
+                        if loc_parts:
+                            mapped_data['location'] = ", ".join(loc_parts)
+
+                    # Derive compensation fields from base rate
+                    base_rate = mapped_data.get('wage')
+                    if base_rate and isinstance(base_rate, (int, float)) and base_rate > 0:
+                        # hourly_wage = base rate
+                        if not mapped_data.get('hourly_wage'):
+                            mapped_data['hourly_wage'] = base_rate
+                        # annual_wage: part time always uses ×1040, others use
+                        # imported Annual Salary if > 0, otherwise ×2080
+                        emp_type = str(mapped_data.get('type') or '').lower()
+                        if 'part time' in emp_type or 'part-time' in emp_type:
+                            mapped_data['annual_wage'] = round(base_rate * 1040, 2)
+                        else:
+                            annual = mapped_data.get('annual_wage')
+                            if not annual or annual <= 0:
+                                mapped_data['annual_wage'] = round(base_rate * 2080, 2)
 
                     # Check if employee exists
                     existing_employee = db.query(models.Employee).filter(
@@ -682,8 +918,28 @@ class DataImportService:
                     errors.append(f"Row {idx + 2}: {str(e)}")
                     logger.warning(f"Error importing row {idx + 2}: {e}")
 
-            # Commit all changes
+            # Commit employee records first
             db.commit()
+
+            # Resolve supervisor employee codes to names
+            # If "Supervisor's Employee Code" was mapped to supervisor, values will
+            # be employee IDs — look up each one and replace with the actual name.
+            if any(v == 'supervisor' for v in column_mappings.values()):
+                all_employees = db.query(models.Employee).all()
+                emp_name_map = {
+                    str(emp.employee_id): f"{emp.first_name} {emp.last_name}".strip()
+                    for emp in all_employees
+                    if emp.first_name or emp.last_name
+                }
+                resolved_count = 0
+                for emp in all_employees:
+                    sup = str(emp.supervisor).strip() if emp.supervisor else None
+                    if sup and sup in emp_name_map:
+                        emp.supervisor = emp_name_map[sup]
+                        resolved_count += 1
+                if resolved_count:
+                    db.commit()
+                    logger.info(f"Resolved {resolved_count} supervisor codes to names")
 
             # Update file upload record
             file_upload.status = 'completed'

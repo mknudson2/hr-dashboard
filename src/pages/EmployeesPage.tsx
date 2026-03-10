@@ -228,9 +228,12 @@ export default function EmployeesPage() {
 
     // Apply all filters
     let filtered = employees.filter((e) => {
-        // Search query filter
-        if (query && !e.full_name.toLowerCase().includes(query.toLowerCase())) {
-            return false;
+        // Search query filter (name or employee ID)
+        if (query) {
+            const q = query.toLowerCase();
+            const matchesName = e.full_name.toLowerCase().includes(q);
+            const matchesId = e.employee_id?.toString().toLowerCase().includes(q);
+            if (!matchesName && !matchesId) return false;
         }
 
         // Status toggle filter (takes precedence over filters.status)
@@ -482,7 +485,7 @@ export default function EmployeesPage() {
             {/* Search Input */}
             <input
                 type="text"
-                placeholder="Search employees..."
+                placeholder="Search by name or employee ID..."
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
                 className="border dark:border-gray-700 rounded-lg px-4 py-2 mb-5 w-full max-w-md
@@ -899,7 +902,7 @@ export default function EmployeesPage() {
                                                         {emp.hourly_wage ? (
                                                             `$${emp.hourly_wage.toFixed(2)}`
                                                         ) : emp.wage ? (
-                                                            `$${(emp.wage / 2080).toFixed(2)}`
+                                                            `$${emp.wage.toFixed(2)}`
                                                         ) : (
                                                             "N/A"
                                                         )}
@@ -936,13 +939,14 @@ export default function EmployeesPage() {
 
                                                     {/* Total Compensation Column */}
                                                     <td className="px-6 py-3 text-gray-900 dark:text-gray-100 font-bold bg-blue-50 dark:bg-blue-900/20">
-                                                        {emp.total_compensation ? (
-                                                            `$${emp.total_compensation.toLocaleString()}`
-                                                        ) : emp.wage ? (
-                                                            `$${emp.wage.toLocaleString()}`
-                                                        ) : (
-                                                            "$0"
-                                                        )}
+                                                        {(() => {
+                                                            const total = emp.total_compensation || (
+                                                                (emp.annual_wage || 0) +
+                                                                (emp.benefits_cost_annual || 0) +
+                                                                (emp.employer_taxes_annual || 0)
+                                                            );
+                                                            return total ? `$${total.toLocaleString()}` : "$0";
+                                                        })()}
                                                     </td>
                                                 </tr>
                                             );

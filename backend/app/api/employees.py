@@ -9,6 +9,7 @@ from pydantic import BaseModel
 from app.db import models, database
 from app.api.auth import get_current_user
 from app.services.audit_service import audit_service
+from app.services.rbac_service import require_permission, Permissions
 
 logger = logging.getLogger(__name__)
 
@@ -1013,3 +1014,57 @@ async def reconcile_contributions(file: UploadFile = File(...), db: Session = De
 
     except Exception as e:
         raise HTTPException(status_code=400, detail=f"Error processing file: {str(e)}")
+
+
+@router.delete("/demo-data")
+def clear_demo_data(
+    request: Request,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(require_permission(Permissions.EMPLOYEES_WRITE_ALL))
+):
+    """Clear all employee data and dependent records to prepare for real data import."""
+    # Order matters — delete from dependent tables first to respect foreign keys
+    dependent_tables = [
+        models.PTORequest,
+        models.WageHistory,
+        models.OnboardingTask,
+        models.OffboardingTask,
+        models.FMLALeaveEntry,
+        models.FMLACase,
+        models.PerformanceReview,
+        models.PerformanceGoal,
+        models.ReviewFeedback,
+        models.PerformanceImprovementPlan,
+        models.Garnishment,
+        models.EmployeeDocument,
+        models.Termination,
+        models.Bonus,
+        models.EquipmentAssignment,
+    ]
+
+    counts = {}
+    for model in dependent_tables:
+        try:
+            table_name = model.__tablename__
+            count = db.query(model).delete()
+            counts[table_name] = count
+        except Exception:
+            pass  # Table may not exist or may have no employee_id FK
+
+    # Clear employees last
+    emp_count = db.query(models.Employee).delete()
+    counts["employees"] = emp_count
+
+    db.commit()
+
+    audit_service.log_data_update(
+        db, current_user, request, "employees", "all",
+        {"action": "clear_demo_data"},
+        {"cleared_tables": counts}
+    )
+
+    return {
+        "success": True,
+        "message": f"Cleared {emp_count} employees and dependent records",
+        "details": counts,
+    }

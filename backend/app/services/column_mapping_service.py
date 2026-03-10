@@ -158,11 +158,11 @@ EMPLOYEE_FIELDS: List[FieldDefinition] = [
     FieldDefinition(
         db_field="location",
         display_name="Location",
-        description="Work location",
+        description="Work location (auto-composed from state/zip/country if not directly mapped)",
         category=FieldCategory.EMPLOYMENT,
         data_type="string",
         example="Remote",
-        common_aliases=["Location", "Work Location", "Office", "Site", "Branch", "Current Home State"]
+        common_aliases=["Location", "Work Location", "Office", "Site", "Branch"]
     ),
     FieldDefinition(
         db_field="position",
@@ -180,7 +180,7 @@ EMPLOYEE_FIELDS: List[FieldDefinition] = [
         category=FieldCategory.EMPLOYMENT,
         data_type="string",
         example="Jane Smith",
-        common_aliases=["Supervisor", "Manager", "Reports To", "Direct Manager", "Supervisor Name"]
+        common_aliases=["Supervisor", "Manager", "Reports To", "Direct Manager", "Supervisor Name", "Supervisor's Name", "Supervisor's Name (First Last)"]
     ),
     FieldDefinition(
         db_field="employment_type",
@@ -195,12 +195,12 @@ EMPLOYEE_FIELDS: List[FieldDefinition] = [
     # Compensation fields
     FieldDefinition(
         db_field="wage",
-        display_name="Wage/Rate",
-        description="Primary wage amount (hourly or salary)",
+        display_name="Base Rate",
+        description="Base pay rate (hourly rate)",
         category=FieldCategory.COMPENSATION,
         data_type="number",
-        example="85000",
-        common_aliases=["Wage", "Rate", "Base Rate", "Pay Rate", "Salary", "Hourly Rate", "Annual Salary"]
+        example="40.87",
+        common_aliases=["Wage", "Rate", "Base Rate", "Pay Rate", "Hourly Rate"]
     ),
     FieldDefinition(
         db_field="wage_type",
@@ -210,6 +210,15 @@ EMPLOYEE_FIELDS: List[FieldDefinition] = [
         data_type="string",
         example="Salary",
         common_aliases=["Wage Type", "Pay Type", "Pay Type Code", "Compensation Type", "Pay Frequency"]
+    ),
+    FieldDefinition(
+        db_field="wage_effective_date",
+        display_name="Pay Rate Start Date",
+        description="Start date of current pay rate",
+        category=FieldCategory.COMPENSATION,
+        data_type="date",
+        example="2024-01-15",
+        common_aliases=["Pay Rate Start Date", "Rate Effective Date", "Wage Effective Date", "Rate Start Date"]
     ),
     FieldDefinition(
         db_field="annual_wage",
@@ -525,6 +534,15 @@ EMPLOYEE_FIELDS: List[FieldDefinition] = [
         example="78701",
         common_aliases=["Zip Code", "Zip", "Postal Code", "Address Zip"]
     ),
+    FieldDefinition(
+        db_field="address_country",
+        display_name="Country",
+        description="Country",
+        category=FieldCategory.PERSONAL,
+        data_type="string",
+        example="US",
+        common_aliases=["Country", "Home Country", "Current Home Country", "Address Country", "Country Code"]
+    ),
 
     # EEO fields
     FieldDefinition(
@@ -543,7 +561,7 @@ EMPLOYEE_FIELDS: List[FieldDefinition] = [
         category=FieldCategory.EEO,
         data_type="string",
         example="White (Not Hispanic or Latino)",
-        common_aliases=["Race/Ethnicity", "Race", "Ethnicity", "EEO Race", "Race/Ethnic Group"]
+        common_aliases=["Race/Ethnicity", "Race", "Ethnicity", "Ethnicity Code", "EEO Race", "Race/Ethnic Group"]
     ),
     FieldDefinition(
         db_field="eeo_gender",
@@ -742,6 +760,9 @@ class ColumnMappingService:
     def _convert_value(self, value: Any, db_field: str) -> Any:
         """Convert value to appropriate type for database field"""
         if value is None or value == "" or (isinstance(value, str) and value.strip() == ""):
+            return None
+        # Handle pandas NaT (Not a Time) — str(NaT) == "NaT"
+        if str(value) == "NaT":
             return None
 
         field_def = self._fields_by_name.get(db_field)
