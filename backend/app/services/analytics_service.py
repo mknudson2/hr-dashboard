@@ -165,10 +165,10 @@ def get_average_tenure_by_group(session: Session) -> Dict[str, Any]:
         models.Employee.termination_date,
     ).all()
 
-    # Filter active employees
+    # Filter active employees (must have hire_date <= today to exclude future-dated hires)
     active = [
         e for e in employees
-        if e.hire_date and (not e.termination_date or e.termination_date > today)
+        if e.hire_date and e.hire_date <= today and (not e.termination_date or e.termination_date > today)
     ]
 
     def years_between(start, end):
@@ -305,11 +305,19 @@ def get_pto_utilization_by_group(session: Session) -> Dict[str, object]:
     """
     Returns average PTO utilization (used / allotted * 100)
     grouped by department, cost center, and team for ACTIVE employees.
+    Uses date-based active filter (hire_date/termination_date) for consistency
+    with all other analytics endpoints.
     """
+    today = date.today()
     employees = (
         session.query(models.Employee)
-        .filter(models.Employee.status.isnot(None))
-        .filter(models.Employee.status.ilike("active"))
+        .filter(
+            models.Employee.hire_date <= today,
+            or_(
+                models.Employee.termination_date == None,
+                models.Employee.termination_date > today,
+            ),
+        )
         .all()
     )
 

@@ -51,8 +51,17 @@ def get_analytics(db: Session = Depends(get_db)):
         "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"
     ][:current_month]
 
-    # ✅ Truncate headcount trend to current month only
-    months = [date(current_year, m, 1) for m in range(1, current_month + 1)]
+    # ✅ Truncate headcount trend to current month only (use month-end dates
+    #    for consistency with YTD average headcount calculation)
+    today = date.today()
+    months = []
+    for m in range(1, current_month + 1):
+        if m == 12:
+            month_end = date(current_year + 1, 1, 1) - timedelta(days=1)
+        else:
+            month_end = date(current_year, m + 1, 1) - timedelta(days=1)
+        # For the current month, cap at today instead of month-end
+        months.append(min(month_end, today))
     headcount_trend = []
     for dt in months:
         count = sum(
@@ -194,8 +203,8 @@ def get_departments(db: Session = Depends(get_db), group_by: str = "department")
         if is_active:
             summary[key]["active"] += 1
 
-        # Check if terminated YTD
-        if emp.termination_date and emp.termination_date.year == current_year:
+        # Check if terminated YTD (only count terminations that have actually occurred)
+        if emp.termination_date and emp.termination_date.year == current_year and emp.termination_date <= today:
             summary[key]["ytd_terms"] += 1
 
     return summary
