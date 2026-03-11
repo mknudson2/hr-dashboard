@@ -692,6 +692,114 @@ class DeductionListingParser(HRFileParser):
             raise HTTPException(status_code=400, detail=f"Error parsing Deduction Listing: {str(e)}")
 
 
+class BenefitsDataParser(HRFileParser):
+    """Parser for benefits enrollment data from insurance carriers"""
+
+    @staticmethod
+    async def parse(file_path: str) -> Tuple[pd.DataFrame, FileTypeConfig, List[Dict]]:
+        """
+        Parse benefits enrollment file (CSV or Excel).
+        Auto-detects delimiter for CSV to handle tab-separated carrier exports.
+        Returns: (dataframe, config, logs)
+        """
+        logs = []
+        config = get_file_config(FileCategory.BENEFITS_DATA)
+
+        try:
+            # Read file with auto-detect delimiter for CSV
+            if file_path.endswith('.csv') or file_path.endswith('.tsv'):
+                df = pd.read_csv(file_path, sep=None, engine='python')
+            else:
+                parsing_opts = get_parsing_options(config)
+                df = pd.read_excel(file_path, engine='openpyxl', **parsing_opts)
+
+            logs.append({
+                'level': 'info',
+                'message': f'Successfully read file with {len(df)} rows and {len(df.columns)} columns',
+                'details': {'rows': len(df), 'columns': list(df.columns)}
+            })
+
+            # Clean dataframe
+            df = BenefitsDataParser.clean_dataframe(df)
+            logs.append({
+                'level': 'info',
+                'message': f'After cleaning: {len(df)} rows',
+                'details': {'rows': len(df)}
+            })
+
+            # Validate structure
+            is_valid, errors = validate_file_structure(df.columns.tolist(), config)
+            if not is_valid:
+                for error in errors:
+                    logs.append({
+                        'level': 'error',
+                        'message': error,
+                        'details': {}
+                    })
+                raise HTTPException(status_code=400, detail=f"File structure validation failed: {'; '.join(errors)}")
+
+            # Clean currency values ($7.80 → 7.80) before type conversion
+            currency_cols = ['EE Cost', 'ER Cost', 'Benefit Amount',
+                             'Approved Benefit Amount', 'Requested Benefit Amount']
+            for col in currency_cols:
+                if col in df.columns:
+                    df[col] = (df[col].astype(str)
+                               .str.replace('$', '', regex=False)
+                               .str.replace(',', '', regex=False)
+                               .str.strip())
+                    df[col] = pd.to_numeric(df[col], errors='coerce')
+
+            # Convert data types
+            df = BenefitsDataParser.convert_data_types(df, config)
+            logs.append({
+                'level': 'info',
+                'message': 'Data types converted successfully',
+                'details': {}
+            })
+
+            # Validate data quality
+            issues = BenefitsDataParser.validate_data_quality(df, config)
+            for issue in issues:
+                logs.append(issue)
+
+            # Check for critical errors
+            critical_errors = [i for i in issues if i['level'] == 'error']
+            if critical_errors:
+                error_messages = [i['message'] for i in critical_errors]
+                raise HTTPException(
+                    status_code=400,
+                    detail=f"Data validation failed: {'; '.join(error_messages)}"
+                )
+
+            # Summary statistics
+            unique_employees = df['Employee ID'].nunique()
+            unique_benefits = df['Benefit'].nunique()
+            benefit_types = df['Benefit'].value_counts().to_dict()
+
+            logs.append({
+                'level': 'success',
+                'message': f'Benefits data parsed successfully: {len(df)} records, {unique_employees} employees, {unique_benefits} benefit types',
+                'details': {
+                    'record_count': len(df),
+                    'unique_employees': unique_employees,
+                    'unique_benefits': unique_benefits,
+                    'benefit_types': benefit_types
+                }
+            })
+
+            return df, config, logs
+
+        except HTTPException:
+            raise
+        except Exception as e:
+            logs.append({
+                'level': 'error',
+                'message': f'Error parsing Benefits Data: {str(e)}',
+                'details': {'error': str(e)}
+            })
+            raise HTTPException(status_code=400, detail=f"Error parsing Benefits Data: {str(e)}")
+
+
 class AutoDetectParser:
     """Auto-detect file type and parse accordingly"""
 
@@ -773,6 +881,7 @@ PARSER_REGISTRY = {
     FileCategory.OT_EARNINGS: OTEarningsParser,
     FileCategory.HSA_REPORT: HSAReportParser,
     FileCategory.DEDUCTION_LISTING: DeductionListingParser,
+    FileCategory.BENEFITS_DATA: BenefitsDataParser,
 }
 
 

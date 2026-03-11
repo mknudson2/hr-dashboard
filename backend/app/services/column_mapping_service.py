@@ -21,6 +21,7 @@ class FieldCategory(str, Enum):
     BENEFITS_OTHER = "benefits_other"
     PERSONAL = "personal"
     EEO = "eeo"
+    BENEFIT_ENROLLMENT = "benefit_enrollment"
 
 
 @dataclass
@@ -593,6 +594,205 @@ EMPLOYEE_FIELDS: List[FieldDefinition] = [
 ]
 
 
+# ============================================================================
+# BENEFIT ENROLLMENT FIELD DEFINITIONS
+# ============================================================================
+
+BENEFIT_ENROLLMENT_FIELDS: List[FieldDefinition] = [
+    FieldDefinition(
+        db_field="employee_id",
+        display_name="Employee ID",
+        description="Unique identifier for the employee (required)",
+        category=FieldCategory.REQUIRED,
+        data_type="string",
+        required=True,
+        example="173",
+        common_aliases=["Employee ID", "Employee Id", "Emp ID", "EE ID", "Worker ID"]
+    ),
+    FieldDefinition(
+        db_field="benefit_type",
+        display_name="Benefit Type",
+        description="Type of benefit (Vision, Dental, Medical, Group Life, etc.)",
+        category=FieldCategory.BENEFIT_ENROLLMENT,
+        data_type="string",
+        required=True,
+        example="Vision",
+        common_aliases=["Benefit", "Benefit Type", "Benefit Name", "Coverage Type", "Plan Type"]
+    ),
+    FieldDefinition(
+        db_field="plan_name",
+        display_name="Plan Name",
+        description="Full plan name from the carrier",
+        category=FieldCategory.BENEFIT_ENROLLMENT,
+        data_type="string",
+        example="2026 EMI Health: Vision Plan",
+        common_aliases=["Plan", "Plan Name", "Plan Description", "Benefit Plan", "Coverage Plan"]
+    ),
+    FieldDefinition(
+        db_field="enrollment_type",
+        display_name="Enrollment Type",
+        description="Enrollment status (Current, New, Termed, etc.)",
+        category=FieldCategory.BENEFIT_ENROLLMENT,
+        data_type="string",
+        example="Current",
+        common_aliases=["Enrollment Type", "Enrollment Status", "Election Status"]
+    ),
+    FieldDefinition(
+        db_field="relationship",
+        display_name="Relationship",
+        description="Relationship of the covered person (Employee, Spouse, Child)",
+        category=FieldCategory.BENEFIT_ENROLLMENT,
+        data_type="string",
+        example="Employee",
+        common_aliases=["Relationship", "Relation", "Dependent Relationship", "Coverage Relationship"]
+    ),
+    FieldDefinition(
+        db_field="ee_cost",
+        display_name="Employee Cost (EE)",
+        description="Employee cost per pay period",
+        category=FieldCategory.BENEFIT_ENROLLMENT,
+        data_type="number",
+        example="7.80",
+        common_aliases=["EE Cost", "Employee Cost", "EE Premium", "Employee Premium", "Employee Deduction"]
+    ),
+    FieldDefinition(
+        db_field="er_cost",
+        display_name="Employer Cost (ER)",
+        description="Employer cost per pay period",
+        category=FieldCategory.BENEFIT_ENROLLMENT,
+        data_type="number",
+        example="586.77",
+        common_aliases=["ER Cost", "Employer Cost", "ER Premium", "Employer Premium", "Employer Contribution"]
+    ),
+    FieldDefinition(
+        db_field="coverage_level",
+        display_name="Coverage Level",
+        description="Coverage tier (Employee, Employee + One, Employee + Family, etc.)",
+        category=FieldCategory.BENEFIT_ENROLLMENT,
+        data_type="string",
+        example="Employee + Family",
+        common_aliases=["Coverage Level", "Coverage Tier", "Tier", "Coverage"]
+    ),
+    FieldDefinition(
+        db_field="benefit_amount",
+        display_name="Benefit Amount",
+        description="Coverage or benefit amount (e.g., $50,000 life insurance)",
+        category=FieldCategory.BENEFIT_ENROLLMENT,
+        data_type="number",
+        example="50000",
+        common_aliases=["Benefit Amount", "Coverage Amount", "Amount", "Approved Benefit Amount"]
+    ),
+    FieldDefinition(
+        db_field="payroll_code",
+        display_name="Employee Payroll Code",
+        description="Payroll deduction code for the employee",
+        category=FieldCategory.BENEFIT_ENROLLMENT,
+        data_type="string",
+        example="VISCH",
+        common_aliases=["Employee Payroll Code", "Payroll Code", "Deduction Code", "EE Payroll Code"]
+    ),
+    FieldDefinition(
+        db_field="pre_tax_code",
+        display_name="Pre-tax Code",
+        description="Pre-tax payroll deduction code",
+        category=FieldCategory.BENEFIT_ENROLLMENT,
+        data_type="string",
+        example="VISCH",
+        common_aliases=["Pre-tax Code", "Pre Tax Code", "Pretax Code"]
+    ),
+    FieldDefinition(
+        db_field="post_tax_code",
+        display_name="Post-tax Code",
+        description="Post-tax payroll deduction code",
+        category=FieldCategory.BENEFIT_ENROLLMENT,
+        data_type="string",
+        example="",
+        common_aliases=["Post-tax Code", "Post Tax Code", "Posttax Code"]
+    ),
+    FieldDefinition(
+        db_field="employer_code",
+        display_name="Employer Code",
+        description="Employer payroll contribution code",
+        category=FieldCategory.BENEFIT_ENROLLMENT,
+        data_type="string",
+        example="",
+        common_aliases=["Employer Code", "ER Code", "Employer Payroll Code"]
+    ),
+    FieldDefinition(
+        db_field="effective_date",
+        display_name="Coverage Start Date",
+        description="Date coverage begins",
+        category=FieldCategory.BENEFIT_ENROLLMENT,
+        data_type="date",
+        example="1/1/26",
+        common_aliases=["Coverage Start Date", "Effective Date", "Start Date", "Begin Date"]
+    ),
+    FieldDefinition(
+        db_field="end_date",
+        display_name="Coverage End Date",
+        description="Date coverage ends",
+        category=FieldCategory.BENEFIT_ENROLLMENT,
+        data_type="date",
+        example="12/31/26",
+        common_aliases=["Coverage End Date", "End Date", "Termination Date", "Expiration Date"]
+    ),
+    FieldDefinition(
+        db_field="hsa_limit_level",
+        display_name="HSA Limit Level",
+        description="HSA contribution limit level (Individual, Family, Family Catch-up)",
+        category=FieldCategory.BENEFIT_ENROLLMENT,
+        data_type="string",
+        example="Family",
+        common_aliases=["HSA Limit Level", "HSA Level", "HSA Tier", "HSA Limit"]
+    ),
+    FieldDefinition(
+        db_field="carrier",
+        display_name="Carrier",
+        description="Insurance carrier name",
+        category=FieldCategory.BENEFIT_ENROLLMENT,
+        data_type="string",
+        example="Equitable",
+        common_aliases=["Carrier", "Insurance Carrier", "Provider", "Vendor"]
+    ),
+    FieldDefinition(
+        db_field="carrier_plan_code",
+        display_name="Carrier Plan Code",
+        description="Carrier's internal plan code",
+        category=FieldCategory.BENEFIT_ENROLLMENT,
+        data_type="string",
+        example="",
+        common_aliases=["Carrier Plan Code", "Plan Code", "Carrier Code"]
+    ),
+    FieldDefinition(
+        db_field="plan_policy_number",
+        display_name="Plan Policy Number",
+        description="Policy number for the plan",
+        category=FieldCategory.BENEFIT_ENROLLMENT,
+        data_type="string",
+        example="",
+        common_aliases=["Plan Policy Number", "Policy Number", "Policy #", "Policy No"]
+    ),
+    FieldDefinition(
+        db_field="is_cobra",
+        display_name="Is COBRA",
+        description="Whether this is a COBRA continuation enrollment",
+        category=FieldCategory.BENEFIT_ENROLLMENT,
+        data_type="boolean",
+        example="false",
+        common_aliases=["Is Cobra", "COBRA", "Cobra Status", "Is COBRA"]
+    ),
+    FieldDefinition(
+        db_field="declined_reason",
+        display_name="Declined Reason",
+        description="Reason for declining coverage",
+        category=FieldCategory.BENEFIT_ENROLLMENT,
+        data_type="string",
+        example="",
+        common_aliases=["Declined Reason", "Waiver Reason", "Decline Reason"]
+    ),
+]
+
+
 class ColumnMappingService:
     """Service for managing column mappings"""
 
@@ -605,6 +805,13 @@ class ColumnMappingService:
         for field_def in EMPLOYEE_FIELDS:
             for alias in field_def.common_aliases:
                 self._alias_to_field[alias.lower()] = field_def.db_field
+
+        # Benefit enrollment fields
+        self._benefit_fields_by_name = {f.db_field: f for f in BENEFIT_ENROLLMENT_FIELDS}
+        self._benefit_alias_to_field: Dict[str, str] = {}
+        for field_def in BENEFIT_ENROLLMENT_FIELDS:
+            for alias in field_def.common_aliases:
+                self._benefit_alias_to_field[alias.lower()] = field_def.db_field
 
     def get_all_fields(self) -> List[Dict[str, Any]]:
         """Get all available field definitions grouped by category"""
@@ -622,11 +829,12 @@ class ColumnMappingService:
             })
         return result
 
-    def get_fields_by_category(self) -> Dict[str, List[Dict[str, Any]]]:
+    def get_fields_by_category(self, file_category: Optional[str] = None) -> Dict[str, List[Dict[str, Any]]]:
         """Get fields organized by category"""
+        fields = BENEFIT_ENROLLMENT_FIELDS if file_category == "benefits_data" else EMPLOYEE_FIELDS
         result: Dict[str, List[Dict[str, Any]]] = {}
 
-        for field_def in EMPLOYEE_FIELDS:
+        for field_def in fields:
             category = field_def.category.value
             if category not in result:
                 result[category] = []
@@ -642,36 +850,45 @@ class ColumnMappingService:
 
         return result
 
-    def auto_detect_mappings(self, source_columns: List[str]) -> Dict[str, str]:
+    def auto_detect_mappings(self, source_columns: List[str], file_category: Optional[str] = None) -> Dict[str, str]:
         """
         Auto-detect column mappings based on column names
 
         Args:
             source_columns: List of column names from the source file
+            file_category: Optional file category to use category-specific fields
 
         Returns:
             Dict mapping source column names to database field names
         """
+        if file_category == "benefits_data":
+            alias_lookup = self._benefit_alias_to_field
+            fields_lookup = self._benefit_fields_by_name
+        else:
+            alias_lookup = self._alias_to_field
+            fields_lookup = self._fields_by_name
+
         mappings: Dict[str, str] = {}
 
         for col in source_columns:
             col_lower = col.strip().lower()
 
             # Check direct alias match
-            if col_lower in self._alias_to_field:
-                mappings[col] = self._alias_to_field[col_lower]
+            if col_lower in alias_lookup:
+                mappings[col] = alias_lookup[col_lower]
                 continue
 
             # Check if column name matches db field directly
             col_normalized = col_lower.replace(" ", "_").replace("-", "_")
-            if col_normalized in self._fields_by_name:
+            if col_normalized in fields_lookup:
                 mappings[col] = col_normalized
                 continue
 
-            # Fuzzy matching for common patterns
-            detected = self._fuzzy_match(col)
-            if detected:
-                mappings[col] = detected
+            # Fuzzy matching for common patterns (only for employee fields)
+            if file_category != "benefits_data":
+                detected = self._fuzzy_match(col)
+                if detected:
+                    mappings[col] = detected
 
         return mappings
 
@@ -725,8 +942,8 @@ class ColumnMappingService:
                 if field_def:
                     errors.append(f"Required field '{field_def.display_name}' is not mapped")
 
-        # Check all target fields are valid
-        valid_fields = set(self._fields_by_name.keys())
+        # Check all target fields are valid (accept both employee and benefit enrollment fields)
+        valid_fields = set(self._fields_by_name.keys()) | set(self._benefit_fields_by_name.keys())
         for source, target in mappings.items():
             if target and target not in valid_fields:
                 errors.append(f"Unknown target field '{target}' for source column '{source}'")

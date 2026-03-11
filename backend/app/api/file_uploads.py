@@ -842,15 +842,19 @@ async def detect_column_mappings(
         # Get columns and sample data
         df, _logs = await parser.parse(str(file_path))
         columns = list(df.columns)
-        sample_data = df.head(5).where(df.notna(), None).to_dict('records')
+        sample_df = df.head(5).where(df.notna(), None)
+        sample_data = [
+            {k: (None if v != v else v) for k, v in row.items()}
+            for row in sample_df.to_dict('records')
+        ]
 
         # Auto-detect file category
         from app.services.file_type_configs import detect_file_category
         detected_category = detect_file_category(columns)
         file_category = detected_category.value if detected_category else None
 
-        # Auto-detect mappings
-        suggested_mappings = column_mapping_service.auto_detect_mappings(columns)
+        # Auto-detect mappings (pass category so benefits files get benefit fields)
+        suggested_mappings = column_mapping_service.auto_detect_mappings(columns, file_category)
 
         # Find unmapped columns
         unmapped = [col for col in columns if col not in suggested_mappings]
@@ -868,7 +872,7 @@ async def detect_column_mappings(
             "unmapped_columns": unmapped,
             "is_valid": is_valid,
             "validation_warnings": validation_errors,
-            "available_fields": column_mapping_service.get_fields_by_category()
+            "available_fields": column_mapping_service.get_fields_by_category(file_category)
         }
 
     except HTTPException:
@@ -956,6 +960,15 @@ async def import_with_custom_mappings(
             df, _logs = await parser.parse(upload.file_path)
             config = get_file_config(FileCategory.COMPENSATION_HISTORY)
             result = await DataImportService.import_compensation_history(
+                df, config, file_id, db
+            )
+            return result
+
+        # Route to dedicated importer for benefits data
+        if request.file_category == "benefits_data":
+            from app.services.file_parsers import BenefitsDataParser
+            df, config, _logs = await BenefitsDataParser.parse(upload.file_path)
+            result = await DataImportService.import_benefits_data(
                 df, config, file_id, db
             )
             return result

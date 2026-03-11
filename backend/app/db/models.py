@@ -4394,6 +4394,47 @@ class UserStageView(Base):
     )
 
 
+class BenefitEnrollment(Base):
+    """Individual benefit enrollment record from carrier data files."""
+    __tablename__ = "benefit_enrollments"
+
+    id = Column(Integer, primary_key=True, index=True)
+    employee_id = Column(String, ForeignKey("employees.employee_id"), index=True)
+    file_upload_id = Column(Integer, ForeignKey("file_uploads.id"), nullable=True, index=True)
+
+    carrier = Column(String, nullable=True)  # e.g., "Equitable", "EMI Health"
+    benefit_type = Column(String, nullable=False)  # e.g., "Group Life", "Dental", "Vision"
+    plan_name = Column(String, nullable=True)  # Plan description
+    carrier_plan_code = Column(String, nullable=True)
+    plan_policy_number = Column(String, nullable=True)
+
+    coverage_level = Column(String, nullable=True)  # "Employee", "Employee + Spouse", "Family"
+    approved_benefit_amount = Column(Float, nullable=True)
+    requested_benefit_amount = Column(Float, nullable=True)
+    benefit_amount = Column(Float, nullable=True)  # Coverage/benefit amount (e.g., $50,000 life)
+    relationship = Column(String, nullable=True)  # "Employee", "Spouse", etc.
+
+    # Cost per pay period
+    ee_cost = Column(Float, nullable=True)  # Employee cost per pay period
+    er_cost = Column(Float, nullable=True)  # Employer cost per pay period
+
+    # Payroll codes
+    payroll_code = Column(String, nullable=True)  # Employee Payroll Code
+    pre_tax_code = Column(String, nullable=True)
+    post_tax_code = Column(String, nullable=True)
+    employer_code = Column(String, nullable=True)
+
+    effective_date = Column(Date, nullable=True)
+    end_date = Column(Date, nullable=True)
+    enrollment_type = Column(String, nullable=True)  # "Current", "New", etc.
+    sign_date = Column(Date, nullable=True)
+    is_cobra = Column(Boolean, default=False)
+    declined_reason = Column(String, nullable=True)
+    hsa_limit_level = Column(String, nullable=True)  # "Family", "Family Catch-up", etc.
+
+    created_at = Column(DateTime, server_default=func.now())
+
+
 class InterviewComplianceTip(Base):
     """Knowledge base of interview compliance tips and best practices."""
     __tablename__ = "interview_compliance_tips"

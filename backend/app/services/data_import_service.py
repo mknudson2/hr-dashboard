@@ -438,6 +438,303 @@ class DataImportService:
             raise HTTPException(status_code=500, detail=f"Import failed: {str(e)}")
 
     @staticmethod
+    async def import_benefits_data(
+        df: pd.DataFrame,
+        config: FileTypeConfig,
+        file_upload_id: int,
+        db: Session
+    ) -> Dict[str, Any]:
+        """
+        Import benefits enrollment data.
+        1. Store each row as a BenefitEnrollment record.
+        2. Pivot per-employee to update Employee benefit columns.
+        """
+        imported = 0
+        updated_employees = 0
+        skipped = 0
+        errors = []
+
+        def parse_date(val):
+            if val is None or (isinstance(val, float) and pd.isna(val)):
+                return None
+            if str(val).strip().lower() in ('nat', 'none', ''):
+                return None
+            if hasattr(val, 'date'):
+                return val.date()
+            if hasattr(val, 'year'):
+                return val
+            if isinstance(val, str):
+                val = val.strip()
+                for fmt in ['%m/%d/%Y', '%Y-%m-%d', '%Y-%m-%d %H:%M:%S', '%m-%d-%Y']:
+                    try:
+                        return datetime.strptime(val, fmt).date()
+                    except ValueError:
+                        continue
+            return None
+
+        def safe_float(val):
+            if val is None or (isinstance(val, float) and pd.isna(val)):
+                return None
+            try:
+                v = float(str(val).replace(',', '').replace('$', '').strip())
+                return v if not pd.isna(v) else None
+            except (ValueError, TypeError):
+                return None
+
+        def safe_str(val):
+            if val is None or (isinstance(val, float) and pd.isna(val)):
+                return None
+            s = str(val).strip()
+            return s if s and s.lower() not in ('nan', 'none') else None
+
+        try:
+            # Group rows by employee for later Employee-column updates
+            employee_benefits: Dict[str, List[dict]] = {}
+
+            for idx, row in df.iterrows():
+                try:
+                    emp_id = safe_str(row.get('Employee ID'))
+                    if not emp_id:
+                        skipped += 1
+                        errors.append(f"Row {idx + 2}: Missing Employee ID")
+                        continue
+                    # Clean trailing .0 from numeric IDs
+                    if emp_id.endswith('.0'):
+                        emp_id = emp_id[:-2]
+
+                    benefit_type = safe_str(row.get('Benefit'))
+                    if not benefit_type:
+                        skipped += 1
+                        errors.append(f"Row {idx + 2}: Missing Benefit type")
+                        continue
+
+                    approved_amt = safe_float(row.get('Approved Benefit Amount'))
+                    requested_amt = safe_float(row.get('Requested Benefit Amount'))
+                    benefit_amt = safe_float(row.get('Benefit Amount'))
+                    ee_cost = safe_float(row.get('EE Cost'))
+                    er_cost = safe_float(row.get('ER Cost'))
+
+                    is_cobra_val = False
+                    cobra_raw = row.get('Is Cobra')
+                    if cobra_raw is not None and not (isinstance(cobra_raw, float) and pd.isna(cobra_raw)):
+                        cobra_str = str(cobra_raw).strip().lower()
+                        is_cobra_val = cobra_str in ('true', '1', 'yes', 'y')
+
+                    # Support alternate date column names
+                    eff_date = parse_date(row.get('Effective Date')) or parse_date(row.get('Coverage Start Date'))
+                    end_dt = parse_date(row.get('End Date')) or parse_date(row.get('Coverage End Date'))
+
+                    plan_name = safe_str(row.get('Plan'))
+
+                    # Check for existing enrollment (upsert by employee + benefit + plan + effective date)
+                    existing = db.query(models.BenefitEnrollment).filter(
+                        models.BenefitEnrollment.employee_id == emp_id,
+                        models.BenefitEnrollment.benefit_type == benefit_type,
+                        models.BenefitEnrollment.plan_name == plan_name,
+                        models.BenefitEnrollment.effective_date == eff_date,
+                    ).first()
+
+                    enrollment_data = dict(
+                        file_upload_id=file_upload_id,
+                        carrier=safe_str(row.get('Carrier')),
+                        carrier_plan_code=safe_str(row.get('Carrier Plan Code')),
+                        plan_policy_number=safe_str(row.get('Plan Policy Number')),
+                        coverage_level=safe_str(row.get('Coverage Level')),
+                        approved_benefit_amount=approved_amt,
+                        requested_benefit_amount=requested_amt,
+                        benefit_amount=benefit_amt,
+                        relationship=safe_str(row.get('Relationship')),
+                        ee_cost=ee_cost,
+                        er_cost=er_cost,
+                        payroll_code=safe_str(row.get('Employee Payroll Code')),
+                        pre_tax_code=safe_str(row.get('Pre-tax Code')),
+                        post_tax_code=safe_str(row.get('Post-tax Code')),
+                        employer_code=safe_str(row.get('Employer Code')),
+                        end_date=end_dt,
+                        enrollment_type=safe_str(row.get('Enrollment Type')),
+                        sign_date=parse_date(row.get('Sign Date')),
+                        is_cobra=is_cobra_val,
+                        declined_reason=safe_str(row.get('Declined Reason')),
+                        hsa_limit_level=safe_str(row.get('HSA Limit Level')),
+                    )
+
+                    if existing:
+                        # Update existing record with new values
+                        for key, value in enrollment_data.items():
+                            if value is not None:
+                                setattr(existing, key, value)
+                        imported += 1
+                    else:
+                        enrollment = models.BenefitEnrollment(
+                            employee_id=emp_id,
+                            benefit_type=benefit_type,
+                            plan_name=plan_name,
+                            effective_date=eff_date,
+                            **enrollment_data,
+                        )
+                        db.add(enrollment)
+                        imported += 1
+
+                    # Use benefit_amount or approved_benefit_amount (whichever is present)
+                    coverage_amount = benefit_amt or approved_amt
+
+                    # Collect for Employee column pivot
+                    if emp_id not in employee_benefits:
+                        employee_benefits[emp_id] = []
+                    employee_benefits[emp_id].append({
+                        'benefit_type': benefit_type,
+                        'plan_name': safe_str(row.get('Plan')),
+                        'coverage_level': safe_str(row.get('Coverage Level')),
+                        'coverage_amount': coverage_amount,
+                        'ee_cost': ee_cost,
+                        'er_cost': er_cost,
+                        'hsa_limit_level': safe_str(row.get('HSA Limit Level')),
+                    })
+
+                except Exception as e:
+                    skipped += 1
+                    errors.append(f"Row {idx + 2}: {str(e)}")
+                    logger.warning(f"Error processing benefits row {idx + 2}: {e}")
+
+            db.flush()
+
+            # Pivot: update Employee benefit columns per employee
+            # EE/ER Cost values are per pay period (semi-monthly = 2×/month)
+            PAY_PERIODS_PER_MONTH = 2
+
+            for emp_id, benefits in employee_benefits.items():
+                emp = db.query(models.Employee).filter(
+                    models.Employee.employee_id == emp_id
+                ).first()
+                if not emp:
+                    continue
+
+                life_total = 0.0
+                life_ee_total = 0.0
+                life_er_total = 0.0
+
+                for b in benefits:
+                    bt = (b['benefit_type'] or '').lower()
+                    ee = b.get('ee_cost') or 0
+                    er = b.get('er_cost') or 0
+
+                    if bt in ('group life', 'employer paid life and ad&d'):
+                        life_total += (b['coverage_amount'] or 0)
+                        life_ee_total += ee
+                        life_er_total += er
+
+                    elif bt == 'voluntary life':
+                        life_total += (b['coverage_amount'] or 0)
+                        life_ee_total += ee
+                        life_er_total += er
+
+                    elif bt in ('group long-term disability', 'long-term disability'):
+                        emp.disability_ltd = True
+                        if er > 0 or ee > 0:
+                            emp.disability_ltd_cost = round((ee + er) * PAY_PERIODS_PER_MONTH, 2)
+
+                    elif bt in ('voluntary short-term disability', 'short-term disability'):
+                        emp.disability_std = True
+                        if er > 0 or ee > 0:
+                            emp.disability_std_cost = round((ee + er) * PAY_PERIODS_PER_MONTH, 2)
+
+                    elif bt == 'dental':
+                        if b['plan_name']:
+                            emp.dental_plan = b['plan_name']
+                        if b['coverage_level']:
+                            emp.dental_tier = b['coverage_level']
+                        if ee > 0:
+                            emp.dental_ee_cost = round(ee * PAY_PERIODS_PER_MONTH, 2)
+                        if er > 0:
+                            emp.dental_er_cost = round(er * PAY_PERIODS_PER_MONTH, 2)
+
+                    elif bt == 'vision':
+                        if b['plan_name']:
+                            emp.vision_plan = b['plan_name']
+                        if b['coverage_level']:
+                            emp.vision_tier = b['coverage_level']
+                        if ee > 0:
+                            emp.vision_ee_cost = round(ee * PAY_PERIODS_PER_MONTH, 2)
+                        if er > 0:
+                            emp.vision_er_cost = round(er * PAY_PERIODS_PER_MONTH, 2)
+
+                    elif bt == 'medical':
+                        if b['plan_name']:
+                            emp.medical_plan = b['plan_name']
+                        if b['coverage_level']:
+                            emp.medical_tier = b['coverage_level']
+                        if ee > 0:
+                            emp.medical_ee_cost = round(ee * PAY_PERIODS_PER_MONTH, 2)
+                        if er > 0:
+                            emp.medical_er_cost = round(er * PAY_PERIODS_PER_MONTH, 2)
+
+                    elif bt == 'health savings account':
+                        if ee > 0:
+                            emp.hsa_ee_contribution = round(ee * PAY_PERIODS_PER_MONTH, 2)
+                        if er > 0:
+                            emp.hsa_er_contribution = round(er * PAY_PERIODS_PER_MONTH, 2)
+
+                    # "Voluntary AD&D", "Executive", HRA, Telemedicine,
+                    # Hospital Indemnity — enrollment record only
+
+                if life_total > 0:
+                    emp.life_insurance_coverage = life_total
+                if life_ee_total > 0:
+                    emp.life_insurance_ee_cost = round(life_ee_total * PAY_PERIODS_PER_MONTH, 2)
+                if life_er_total > 0:
+                    emp.life_insurance_er_cost = round(life_er_total * PAY_PERIODS_PER_MONTH, 2)
+
+                # Compute total annual benefits cost (all EE + ER, annualized)
+                total_ee = sum(b.get('ee_cost') or 0 for b in benefits)
+                total_er = sum(b.get('er_cost') or 0 for b in benefits)
+                annual_benefits = round((total_ee + total_er) * PAY_PERIODS_PER_MONTH * 12, 2)
+                if annual_benefits > 0:
+                    emp.benefits_cost = annual_benefits
+                    if emp.annual_wage:
+                        emp.total_compensation = round(emp.annual_wage + annual_benefits, 2)
+
+                updated_employees += 1
+
+            db.commit()
+
+            # Update file upload record
+            file_upload = db.query(models.FileUpload).filter(
+                models.FileUpload.id == file_upload_id
+            ).first()
+            if file_upload:
+                file_upload.status = 'completed'
+                file_upload.records_processed = imported
+                file_upload.records_failed = skipped
+                file_upload.processing_completed_at = datetime.now()
+                file_upload.file_metadata = {
+                    'import_stats': {
+                        'enrollment_records': imported,
+                        'employees_updated': updated_employees,
+                        'skipped': skipped,
+                    }
+                }
+                if errors:
+                    file_upload.error_message = '; '.join(errors[:5])
+                db.commit()
+
+            return {
+                'status': 'success',
+                'imported': imported,
+                'updated': updated_employees,
+                'skipped': skipped,
+                'total': len(df),
+                'errors': errors,
+                'summary': {
+                    'enrollment_records': imported,
+                    'employees_updated': updated_employees,
+                }
+            }
+
+        except Exception as e:
+            db.rollback()
+            logger.error(f"Error importing benefits data: {e}")
+            raise HTTPException(status_code=500, detail=f"Import failed: {str(e)}")
+
     @staticmethod
     async def import_compensation_history(
         df: pd.DataFrame,
@@ -704,6 +1001,10 @@ class DataImportService:
                 result = await DataImportService.import_compensation_history(
                     df, config, file_upload_id, db
                 )
+            elif category == FileCategory.BENEFITS_DATA:
+                result = await DataImportService.import_benefits_data(
+                    df, config, file_upload_id, db
+                )
             else:
                 raise HTTPException(
                     status_code=400,
@@ -713,12 +1014,15 @@ class DataImportService:
             # Create import history record
             import_history = models.DataImportHistory(
                 file_upload_id=file_upload_id,
-                import_type=category.value,
-                records_imported=result.get('imported', 0),
-                records_updated=result.get('updated', 0),
-                records_failed=result.get('skipped', 0),
-                import_status='completed' if result.get('status') == 'success' else 'failed',
-                error_log=result.get('errors', [])
+                table_name=category.value,
+                record_id=str(file_upload_id),
+                action='completed' if result.get('status') == 'success' else 'error',
+                new_values={
+                    'imported': result.get('imported', 0),
+                    'updated': result.get('updated', 0),
+                    'skipped': result.get('skipped', 0),
+                },
+                error_message='; '.join(result.get('errors', [])[:3]) or None
             )
             db.add(import_history)
             db.commit()

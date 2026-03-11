@@ -342,6 +342,103 @@ COMPENSATION_HISTORY_CONFIG = FileTypeConfig(
 
 
 # ============================================================================
+# BENEFITS DATA CONFIGURATION
+# ============================================================================
+
+BENEFITS_DATA_CONFIG = FileTypeConfig(
+    category=FileCategory.BENEFITS_DATA,
+    name="Benefits Enrollment Data",
+    description="Per-benefit enrollment records from insurance carriers (Equitable, EMI Health, etc.)",
+    expected_extensions=["csv", "xlsx", "xls", "tsv"],
+
+    required_columns=[
+        "Employee ID",
+        "Benefit",
+    ],
+
+    optional_columns=[
+        "Carrier",
+        "Plan",
+        "Coverage Level",
+        "Approved Benefit Amount",
+        "Requested Benefit Amount",
+        "Benefit Amount",
+        "Relationship",
+        "EE Cost",
+        "ER Cost",
+        "Employee Payroll Code",
+        "Pre-tax Code",
+        "Post-tax Code",
+        "Employer Code",
+        "Effective Date",
+        "End Date",
+        "Coverage Start Date",
+        "Coverage End Date",
+        "Enrollment Type",
+        "Plan Policy Number",
+        "Carrier Plan Code",
+        "Sign Date",
+        "Is Cobra",
+        "Declined Reason",
+        "HSA Limit Level",
+        "First Name",
+        "Last Name",
+        "Annual Compensation",
+        "Hourly Rate",
+        "Job Title",
+        "Hire Date",
+        "City",
+        "State Territory",
+        "Zip Code",
+        "Country",
+    ],
+
+    column_mappings=[
+        ColumnMapping("Employee ID", "employee_id", required=True, data_type="string"),
+        ColumnMapping("Benefit", "benefit_type", required=True, data_type="string"),
+        ColumnMapping("Carrier", "carrier", required=False, data_type="string"),
+        ColumnMapping("Plan", "plan_name", required=False, data_type="string"),
+        ColumnMapping("Coverage Level", "coverage_level", required=False, data_type="string"),
+        ColumnMapping("Approved Benefit Amount", "approved_benefit_amount", required=False, data_type="float"),
+        ColumnMapping("Requested Benefit Amount", "requested_benefit_amount", required=False, data_type="float"),
+        ColumnMapping("Benefit Amount", "benefit_amount", required=False, data_type="float"),
+        ColumnMapping("Relationship", "relationship", required=False, data_type="string"),
+        ColumnMapping("EE Cost", "ee_cost", required=False, data_type="float"),
+        ColumnMapping("ER Cost", "er_cost", required=False, data_type="float"),
+        ColumnMapping("Employee Payroll Code", "payroll_code", required=False, data_type="string"),
+        ColumnMapping("Pre-tax Code", "pre_tax_code", required=False, data_type="string"),
+        ColumnMapping("Post-tax Code", "post_tax_code", required=False, data_type="string"),
+        ColumnMapping("Employer Code", "employer_code", required=False, data_type="string"),
+        ColumnMapping("Effective Date", "effective_date", required=False, data_type="date"),
+        ColumnMapping("End Date", "end_date", required=False, data_type="date"),
+        ColumnMapping("Coverage Start Date", "effective_date", required=False, data_type="date"),
+        ColumnMapping("Coverage End Date", "end_date", required=False, data_type="date"),
+        ColumnMapping("Enrollment Type", "enrollment_type", required=False, data_type="string"),
+        ColumnMapping("Plan Policy Number", "plan_policy_number", required=False, data_type="string"),
+        ColumnMapping("Carrier Plan Code", "carrier_plan_code", required=False, data_type="string"),
+        ColumnMapping("Sign Date", "sign_date", required=False, data_type="date"),
+        ColumnMapping("Is Cobra", "is_cobra", required=False, data_type="boolean"),
+        ColumnMapping("Declined Reason", "declined_reason", required=False, data_type="string"),
+        ColumnMapping("HSA Limit Level", "hsa_limit_level", required=False, data_type="string"),
+        ColumnMapping("First Name", "first_name", required=False, data_type="string"),
+        ColumnMapping("Last Name", "last_name", required=False, data_type="string"),
+    ],
+
+    header_row=0,
+    skip_rows=None,
+    sheet_name=None,
+
+    min_rows=1,
+    max_rows=50000,
+    allow_duplicates=True,  # Multiple benefits per employee
+    unique_columns=[],
+
+    import_mode="upsert",
+    conflict_resolution="overwrite"
+)
+
+
+# ============================================================================
 # FILE TYPE REGISTRY
 # ============================================================================
 
@@ -351,6 +448,7 @@ FILE_TYPE_CONFIGS: Dict[FileCategory, FileTypeConfig] = {
     FileCategory.HSA_REPORT: HSA_REPORT_CONFIG,
     FileCategory.DEDUCTION_LISTING: DEDUCTION_LISTING_CONFIG,
     FileCategory.COMPENSATION_HISTORY: COMPENSATION_HISTORY_CONFIG,
+    FileCategory.BENEFITS_DATA: BENEFITS_DATA_CONFIG,
 }
 
 
