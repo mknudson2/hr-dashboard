@@ -319,8 +319,8 @@ export default function EmployeesPage() {
                     compareB = b.full_name.toLowerCase();
                     break;
                 case "employee_id":
-                    compareA = a.employee_id;
-                    compareB = b.employee_id;
+                    compareA = parseInt(a.employee_id, 10) || 0;
+                    compareB = parseInt(b.employee_id, 10) || 0;
                     break;
                 case "base_rate":
                     compareA = a.wage ? (a.wage / 2080) : 0;
