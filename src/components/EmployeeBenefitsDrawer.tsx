@@ -156,6 +156,9 @@ export default function EmployeeBenefitsDrawer({ employeeId, onClose }: Employee
         </div>
     );
 
+    const fmt = (v: number | null | undefined) =>
+        (v ?? 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+
     const CostRow = ({ label, eeCost, erCost }: { label: string; eeCost?: number | null; erCost?: number | null }) => (
         <div className="flex justify-between items-center py-2 border-b border-gray-200 dark:border-gray-600 last:border-0">
             <span className="text-sm text-gray-600 dark:text-gray-400">{label}</span>
@@ -164,15 +167,15 @@ export default function EmployeeBenefitsDrawer({ employeeId, onClose }: Employee
                     <div className="text-right">
                         <span className="text-xs text-gray-500 dark:text-gray-400">EE: </span>
                         <span className="font-medium text-gray-900 dark:text-white">
-                            ${eeCost?.toFixed(2) || '0.00'}
+                            ${fmt(eeCost)}
                         </span>
                     </div>
                 )}
                 {erCost !== undefined && (
                     <div className="text-right">
                         <span className="text-xs text-gray-500 dark:text-gray-400">ER: </span>
-                        <span className="font-medium text-blue-600 dark:text-blue-400">
-                            ${erCost?.toFixed(2) || '0.00'}
+                        <span className="font-medium" style={{ color: erColor }}>
+                            ${fmt(erCost)}
                         </span>
                     </div>
                 )}
@@ -202,14 +205,17 @@ export default function EmployeeBenefitsDrawer({ employeeId, onClose }: Employee
 
     const isOpen = !!employeeId;
     const isDark = document.documentElement.classList.contains('dark');
+    const erColor = isDark ? '#6ee7b7' : '#2563eb'; // emerald-300 / blue-600
 
+    // Drawer body: frosted glass with blur
     const drawerStyle = isDark
         ? { background: 'rgba(255, 255, 255, 0.12)', backdropFilter: 'blur(20px) brightness(1.8) saturate(1.5)', WebkitBackdropFilter: 'blur(20px) brightness(1.8) saturate(1.5)' }
         : { background: 'rgba(255, 255, 255, 0.45)', backdropFilter: 'blur(24px) saturate(1.3)', WebkitBackdropFilter: 'blur(24px) saturate(1.3)' };
 
+    // Header: aurora gradient matching the employee portal hero card
     const headerStyle = isDark
-        ? { background: 'rgba(255, 255, 255, 0.04)' }
-        : { background: 'rgba(255, 255, 255, 0.5)' };
+        ? { background: 'radial-gradient(ellipse at 20% 80%, rgba(42,191,191,0.35) 0%, transparent 50%), radial-gradient(ellipse at 80% 20%, rgba(232,184,75,0.2) 0%, transparent 50%), radial-gradient(ellipse at 50% 50%, rgba(108,63,160,0.4) 0%, transparent 70%), linear-gradient(135deg, #1A1A2E 0%, #2A1B4E 40%, #1B3A5C 100%)' }
+        : { background: 'linear-gradient(135deg, #e8eaf6 0%, #d1c4e9 40%, #b3e5fc 100%)' };
 
     return createPortal(
         <>
@@ -287,7 +293,7 @@ export default function EmployeeBenefitsDrawer({ employeeId, onClose }: Employee
                                         <div>
                                             <p className="text-sm text-gray-600 dark:text-gray-200">Base Rate</p>
                                             <p className="text-2xl font-bold text-gray-900 dark:text-white">
-                                                ${(employee.wage || 0).toFixed(2)}/hr
+                                                ${fmt(employee.wage)}/hr
                                             </p>
                                         </div>
                                         <div>
@@ -299,7 +305,7 @@ export default function EmployeeBenefitsDrawer({ employeeId, onClose }: Employee
                                         <div>
                                             <p className="text-sm text-gray-600 dark:text-gray-200">Monthly Benefits (ER)</p>
                                             <p className="text-2xl font-bold text-gray-900 dark:text-white">
-                                                ${costs.erCost.toFixed(2)}
+                                                ${fmt(costs.erCost)}
                                             </p>
                                         </div>
                                         <div>
@@ -489,19 +495,19 @@ export default function EmployeeBenefitsDrawer({ employeeId, onClose }: Employee
                                         <div className="flex justify-between">
                                             <span className="text-gray-600 dark:text-gray-400">Employee Monthly Deductions</span>
                                             <span className="font-semibold text-gray-900 dark:text-white">
-                                                ${costs.eeCost.toFixed(2)}
+                                                ${fmt(costs.eeCost)}
                                             </span>
                                         </div>
                                         <div className="flex justify-between">
                                             <span className="text-gray-600 dark:text-gray-400">Employer Monthly Cost</span>
-                                            <span className="font-semibold text-blue-600 dark:text-blue-400">
-                                                ${costs.erCost.toFixed(2)}
+                                            <span className="font-semibold" style={{ color: erColor }}>
+                                                ${fmt(costs.erCost)}
                                             </span>
                                         </div>
                                         <div className="flex justify-between pt-2 border-t border-gray-300 dark:border-gray-600">
                                             <span className="font-semibold text-gray-900 dark:text-white">Total Monthly Benefits</span>
-                                            <span className="font-bold text-purple-600 dark:text-purple-400">
-                                                ${costs.total.toFixed(2)}
+                                            <span className="font-bold" style={{ color: erColor }}>
+                                                ${fmt(costs.total)}
                                             </span>
                                         </div>
                                     </div>
