@@ -59,7 +59,7 @@ export default function EmployeesPage() {
     const [orgToggle, setOrgToggle] = useState<"department" | "team" | "cost_center">("department");
     const [wageTypeFilter, setWageTypeFilter] = useState<"all" | "hourly" | "salary">("all");
     const [orgFilter, setOrgFilter] = useState("");
-    const [sortBy, setSortBy] = useState<"name" | "employee_id" | "base_rate" | "annual_rate">("name");
+    const [sortBy, setSortBy] = useState<"name" | "employee_id" | "base_rate" | "annual_rate">("employee_id");
     const [sortOrder, setSortOrder] = useState<"asc" | "desc">("asc");
     const [selectedEmployeeId, setSelectedEmployeeId] = useState<string | null>(null);
     const [updatingStatus, setUpdatingStatus] = useState<string | null>(null);
@@ -318,10 +318,25 @@ export default function EmployeesPage() {
                     compareA = a.full_name.toLowerCase();
                     compareB = b.full_name.toLowerCase();
                     break;
-                case "employee_id":
-                    compareA = parseInt(a.employee_id, 10) || 0;
-                    compareB = parseInt(b.employee_id, 10) || 0;
+                case "employee_id": {
+                    const numA = parseInt(a.employee_id, 10);
+                    const numB = parseInt(b.employee_id, 10);
+                    const aIsNum = !isNaN(numA);
+                    const bIsNum = !isNaN(numB);
+                    // Numeric IDs first, then non-numeric alphabetically
+                    if (aIsNum && bIsNum) {
+                        compareA = numA;
+                        compareB = numB;
+                    } else if (aIsNum) {
+                        return sortOrder === "asc" ? -1 : 1;
+                    } else if (bIsNum) {
+                        return sortOrder === "asc" ? 1 : -1;
+                    } else {
+                        compareA = a.employee_id || '';
+                        compareB = b.employee_id || '';
+                    }
                     break;
+                }
                 case "base_rate":
                     compareA = a.wage ? (a.wage / 2080) : 0;
                     compareB = b.wage ? (b.wage / 2080) : 0;
