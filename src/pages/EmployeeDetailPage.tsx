@@ -343,7 +343,7 @@ export default function EmployeeDetailPage() {
             icon={<DollarSign className="w-4 h-4" />}
             label="Annual Wage"
             value={
-              employee.wage ? `$${employee.wage.toLocaleString()}` : null
+              employee.annual_wage ? `$${employee.annual_wage.toLocaleString()}` : null
             }
           />
           <InfoCard
@@ -359,8 +359,8 @@ export default function EmployeeDetailPage() {
             icon={<DollarSign className="w-4 h-4" />}
             label="Total Compensation"
             value={
-              employee.wage && employee.benefits_cost
-                ? `$${(employee.wage + employee.benefits_cost).toLocaleString()}`
+              employee.annual_wage && employee.benefits_cost
+                ? `$${(employee.annual_wage + employee.benefits_cost).toLocaleString()}`
                 : null
             }
           />
