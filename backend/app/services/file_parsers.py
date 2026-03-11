@@ -153,7 +153,10 @@ class EmploymentListParser(HRFileParser):
                 df = pd.read_csv(file_path)
             else:
                 parsing_opts = get_parsing_options(config)
-                df = pd.read_excel(file_path, engine='openpyxl', **parsing_opts)
+                try:
+                    df = pd.read_excel(file_path, engine='openpyxl', **parsing_opts)
+                except Exception:
+                    df = pd.read_excel(file_path, engine='calamine', **parsing_opts)
 
             logs.append({
                 'level': 'info',
@@ -239,7 +242,10 @@ class OTEarningsParser(HRFileParser):
                 df = pd.read_csv(file_path, skiprows=3)
             else:
                 parsing_opts = get_parsing_options(config)
-                df = pd.read_excel(file_path, engine='openpyxl', **parsing_opts)
+                try:
+                    df = pd.read_excel(file_path, engine='openpyxl', **parsing_opts)
+                except Exception:
+                    df = pd.read_excel(file_path, engine='calamine', **parsing_opts)
 
             logs.append({
                 'level': 'info',
@@ -711,7 +717,11 @@ class BenefitsDataParser(HRFileParser):
                 df = pd.read_csv(file_path, sep=None, engine='python')
             else:
                 parsing_opts = get_parsing_options(config)
-                df = pd.read_excel(file_path, engine='openpyxl', **parsing_opts)
+                try:
+                    df = pd.read_excel(file_path, engine='openpyxl', **parsing_opts)
+                except Exception:
+                    # Fallback to calamine for Strict Open XML format
+                    df = pd.read_excel(file_path, engine='calamine', **parsing_opts)
 
             logs.append({
                 'level': 'info',
@@ -816,7 +826,10 @@ class AutoDetectParser:
             if file_path.endswith('.csv'):
                 preview_df = pd.read_csv(file_path, nrows=0)  # Just get columns
             else:
-                preview_df = pd.read_excel(file_path, engine='openpyxl', nrows=0)
+                try:
+                    preview_df = pd.read_excel(file_path, engine='openpyxl', nrows=0)
+                except Exception:
+                    preview_df = pd.read_excel(file_path, engine='calamine', nrows=0)
 
             # Detect category
             category = detect_file_category(preview_df.columns.tolist())
@@ -841,7 +854,10 @@ class AutoDetectParser:
                 # Could not detect - try different header rows for OT Earnings
                 try:
                     if file_path.endswith('.xlsx') or file_path.endswith('.xls'):
-                        preview_df_alt = pd.read_excel(file_path, engine='openpyxl', header=3, nrows=0)
+                        try:
+                            preview_df_alt = pd.read_excel(file_path, engine='openpyxl', header=3, nrows=0)
+                        except Exception:
+                            preview_df_alt = pd.read_excel(file_path, engine='calamine', header=3, nrows=0)
                         category_alt = detect_file_category(preview_df_alt.columns.tolist())
 
                         if category_alt == FileCategory.OT_EARNINGS:

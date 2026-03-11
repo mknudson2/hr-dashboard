@@ -243,12 +243,18 @@ class ExcelParser:
         """
         logs = []
         try:
-            # Read Excel with pandas
-            if sheet_name:
-                df = pd.read_excel(file_path, sheet_name=sheet_name, engine='openpyxl')
-            else:
-                # Read first sheet by default
-                df = pd.read_excel(file_path, engine='openpyxl')
+            # Read Excel with pandas — try openpyxl first, fall back to calamine
+            # for Strict Open XML files that openpyxl can't handle
+            try:
+                if sheet_name:
+                    df = pd.read_excel(file_path, sheet_name=sheet_name, engine='openpyxl')
+                else:
+                    df = pd.read_excel(file_path, engine='openpyxl')
+            except Exception:
+                if sheet_name:
+                    df = pd.read_excel(file_path, sheet_name=sheet_name, engine='calamine')
+                else:
+                    df = pd.read_excel(file_path, engine='calamine')
 
             logs.append({
                 'level': 'info',
