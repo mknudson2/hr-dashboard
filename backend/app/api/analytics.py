@@ -216,6 +216,13 @@ def get_departments(db: Session = Depends(get_db), group_by: str = "department")
 def get_all_employees(db: Session = Depends(get_db)):
     """Get list of all employees with comprehensive information."""
     employees = db.query(models.Employee).all()
+    # Sort numerically for numeric IDs, alphabetically for non-numeric
+    def _emp_sort_key(emp):
+        try:
+            return (0, int(emp.employee_id), '')
+        except (ValueError, TypeError):
+            return (1, 0, emp.employee_id or '')
+    employees.sort(key=_emp_sort_key)
 
     result = []
     for emp in employees:
