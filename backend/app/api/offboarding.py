@@ -1707,7 +1707,12 @@ def download_exit_document(
     with open(document.file_path, 'rb') as f:
         content = f.read()
 
-    filename = os.path.basename(document.file_path)
+    # Use template_name for download filename (e.g. "Equitable Portability Form_Embla Halvorsen")
+    if document.template_name:
+        # Ensure it ends with .pdf
+        filename = document.template_name if document.template_name.endswith('.pdf') else f"{document.template_name}.pdf"
+    else:
+        filename = os.path.basename(document.file_path)
 
     return StreamingResponse(
         iter([content]),
