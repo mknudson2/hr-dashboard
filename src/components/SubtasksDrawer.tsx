@@ -371,11 +371,19 @@ export default function SubtasksDrawer({
         throw new Error('Failed to download document');
       }
 
+      // Extract filename from Content-Disposition header
+      const disposition = response.headers.get('content-disposition');
+      let filename = `exit_document_${documentId}.pdf`;
+      if (disposition) {
+        const match = disposition.match(/filename="?(.+?)"?$/);
+        if (match) filename = match[1];
+      }
+
       const blob = await response.blob();
       const blobUrl = window.URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = blobUrl;
-      a.download = `exit_document_${documentId}.pdf`;
+      a.download = filename;
       document.body.appendChild(a);
       a.click();
       window.URL.revokeObjectURL(blobUrl);
