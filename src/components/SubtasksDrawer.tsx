@@ -1138,7 +1138,7 @@ export default function SubtasksDrawer({
                           <FileText className="w-5 h-5 text-red-500 flex-shrink-0 mt-0.5" />
                           <div className="min-w-0">
                             <p className="font-medium text-gray-900 dark:text-white text-sm truncate">
-                              {getFormTypeDisplayName(doc.form_type)}
+                              {doc.template_name || getFormTypeDisplayName(doc.form_type)}
                             </p>
                             <div className="flex flex-wrap items-center gap-2 mt-1">
                               <span className="text-xs text-gray-500 dark:text-gray-400">
@@ -1827,7 +1827,7 @@ export default function SubtasksDrawer({
                   {exitDocuments.map((doc) => (
                     <li key={doc.id} className="flex items-center gap-2">
                       <FileText className="w-3 h-3" />
-                      {getFormTypeDisplayName(doc.form_type)}
+                      {doc.template_name || getFormTypeDisplayName(doc.form_type)}
                     </li>
                   ))}
                 </ul>
