@@ -1,7 +1,7 @@
 import logging
 import json
 import os
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, UploadFile, File as FastAPIFile
 from fastapi.responses import StreamingResponse
 from sqlalchemy.orm import Session
 from sqlalchemy import func
@@ -1616,6 +1616,72 @@ def list_exit_documents(
         "employment_type": employee.employment_type,
         "termination_date": employee.termination_date.isoformat() if employee.termination_date else None,
         "documents": result
+    }
+
+
+@router.post("/tasks/{task_id}/upload")
+async def upload_task_document(
+    task_id: int,
+    file: UploadFile = FastAPIFile(...),
+    db: Session = Depends(database.get_db)
+):
+    """
+    Upload a file for an offboarding task (e.g. Non-Solicitation document).
+    Saves the file and creates a FilledPdfForm record so it appears in
+    the Generated Documents list.
+    """
+    # Get the task
+    task = db.query(models.OffboardingTask).filter(
+        models.OffboardingTask.id == task_id
+    ).first()
+    if not task:
+        raise HTTPException(status_code=404, detail="Task not found")
+
+    # Get the employee
+    employee = db.query(models.Employee).filter(
+        models.Employee.employee_id == task.employee_id
+    ).first()
+    if not employee:
+        raise HTTPException(status_code=404, detail="Employee not found")
+
+    # Save file to storage
+    upload_dir = "app/storage/filled_forms"
+    os.makedirs(upload_dir, exist_ok=True)
+
+    # Generate safe filename with timestamp
+    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+    safe_name = f"NonSolicitation_{employee.first_name}_{employee.last_name}_{timestamp}_{file.filename}"
+    file_path = os.path.join(upload_dir, safe_name)
+
+    contents = await file.read()
+    with open(file_path, 'wb') as f:
+        f.write(contents)
+
+    file_size = len(contents)
+
+    # Create FilledPdfForm record so it shows in Generated Documents
+    filled_form = models.FilledPdfForm(
+        form_type="exit_non_solicitation",
+        template_name=file.filename,
+        employee_id=employee.id,
+        file_path=file_path,
+        file_size=file_size,
+        is_flattened=False,
+        form_data={"uploaded": True, "original_filename": file.filename},
+        generated_by="HR User",
+        status="uploaded"
+    )
+    db.add(filled_form)
+    db.commit()
+    db.refresh(filled_form)
+
+    return {
+        "id": filled_form.id,
+        "form_type": filled_form.form_type,
+        "file_path": file_path,
+        "file_size": file_size,
+        "status": "uploaded",
+        "filename": file.filename
     }
 
 
