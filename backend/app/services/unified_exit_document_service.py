@@ -284,121 +284,110 @@ class UnifiedExitDocumentService:
         - Employee/Spouse/Child Opt'l Terminated amounts (optional)
         - Signature Date
         """
-        # Read the template
-        template_reader = PdfReader(self.templates["conversion"])
-        template_page = template_reader.pages[1]  # Page 2 has the form (0-indexed)
+        # Build form field values from data
+        # Template field names are from the Equitable E15730 PDF form
+        def fmt_amount(val):
+            """Format amount as comma-separated number (no $ sign, matching template style)"""
+            if val and isinstance(val, (int, float)):
+                return f"{val:,.0f}"
+            return str(val) if val else ""
 
-        # Get page dimensions
-        page_width = float(template_page.mediabox.width)
-        page_height = float(template_page.mediabox.height)
-
-        # Create overlay with text
-        packet = io.BytesIO()
-        c = canvas.Canvas(packet, pagesize=(page_width, page_height))
-
-        # Set font for form fields
-        c.setFont("Helvetica", 9)
-
-        # Employee Information - Section 2
-        # Coordinates adjusted: moved down ~33 points from initial estimates
         employee_name = form_data.get('employee_name', f"{employee.first_name} {employee.last_name}")
         dob = self._format_date(form_data.get('date_of_birth', ''))
-
-        # Row 1: Name of employee | Date of birth | Class (Class is pre-filled as "Regular")
-        c.drawString(38, page_height - 295, employee_name)
-        if dob:
-            c.drawString(385, page_height - 295, dob)
-
-        # Row 2: Email Address | Phone Number
         email = form_data.get('personal_email', '') or employee.personal_email or ""
         phone = form_data.get('personal_phone', '') or employee.personal_phone or ""
-        c.drawString(38, page_height - 323, email)
-        c.drawString(340, page_height - 323, phone)
+        term_date = self._format_date(form_data.get('termination_date', ''))
+        ins_term = self._format_date(form_data.get('date_insurance_terminated', '')) or term_date
 
-        # Row 3: SSN | Basic annual salary | Date last worked | Date of disability | Insurance effective
+        # Format SSN
+        ssn_display = ""
         ssn_full = form_data.get('ssn_full', '')
         ssn_last_four = form_data.get('ssn_last_four', '')
-
         if ssn_full:
             ssn_digits = ssn_full.replace('-', '')
             if len(ssn_digits) == 9:
-                formatted_ssn = f"{ssn_digits[:3]}-{ssn_digits[3:5]}-{ssn_digits[5:]}"
-                c.drawString(38, page_height - 351, formatted_ssn)
+                ssn_display = f"{ssn_digits[:3]}-{ssn_digits[3:5]}-{ssn_digits[5:]}"
         elif ssn_last_four:
-            c.drawString(38, page_height - 351, f"XXX-XX-{ssn_last_four}")
+            ssn_display = f"XXX-XX-{ssn_last_four}"
 
-        # Basic annual salary
+        # Format salary
         salary = form_data.get('annual_salary', '')
+        salary_str = ""
         if salary:
             salary_str = f"${salary:,.2f}" if isinstance(salary, (int, float)) else str(salary)
-            c.drawString(145, page_height - 351, salary_str)
 
-        # Date last worked (termination date)
-        term_date = self._format_date(form_data.get('termination_date', ''))
-        if term_date:
-            c.drawString(250, page_height - 351, term_date)
-
-        # Insurance effective date
-        ins_effective = self._format_date(form_data.get('insurance_effective_date', ''))
-        if ins_effective:
-            c.drawString(480, page_height - 351, ins_effective)
-
-        # Row 4: Date of last salary increase | Date of reduction/termination | Date Optional terminated
-        last_raise = self._format_date(form_data.get('date_last_salary_increase', ''))
-        if last_raise:
-            c.drawString(38, page_height - 379, last_raise)
-
-        # Date of reduction/termination of group life insurance
-        ins_term = self._format_date(form_data.get('date_insurance_terminated', '')) or term_date
-        if ins_term:
-            c.drawString(225, page_height - 379, ins_term)
-
-        # Date Optional life coverage terminated (if different)
-        opt_term = self._format_date(form_data.get('date_optional_terminated', ''))
-        if opt_term:
-            c.drawString(445, page_height - 379, opt_term)
-
-        # Section 3: Coverage amounts - Optional/Voluntary Life terminated amounts
-        # These go in the "Terminated amount" columns for Opt'l/Voluntary Life
-        coverage_y_base = page_height - 523
-
-        # Employee Opt'l / Voluntary Life terminated amount
-        emp_opt_amount = form_data.get('employee_voluntary_life_amount', 0)
-        if emp_opt_amount:
-            c.drawString(408, coverage_y_base, f"${emp_opt_amount:,.2f}" if isinstance(emp_opt_amount, (int, float)) else str(emp_opt_amount))
-
-        # Spouse Opt'l / Voluntary Life terminated amount
-        spouse_opt_amount = form_data.get('spouse_voluntary_life_amount', 0)
-        if spouse_opt_amount:
-            c.drawString(408, coverage_y_base - 18, f"${spouse_opt_amount:,.2f}" if isinstance(spouse_opt_amount, (int, float)) else str(spouse_opt_amount))
-
-        # Child Opt'l / Voluntary Life terminated amount
-        child_opt_amount = form_data.get('child_voluntary_life_amount', 0)
-        if child_opt_amount:
-            c.drawString(408, coverage_y_base - 36, f"${child_opt_amount:,.2f}" if isinstance(child_opt_amount, (int, float)) else str(child_opt_amount))
-
-        # Section 4: Signature - Date field (name and phone are pre-filled)
         today = datetime.now().strftime("%m/%d/%Y")
-        c.drawString(500, page_height - 660, today)
 
-        c.save()
+        # Map form data to template PDF field names
+        field_values = {
+            # Section 2: Employee Information
+            # Row 1: Name | DOB | Class
+            "Name of person completing this form Employer administrative contact1": employee_name,
+            "Nicole.Sultze": employee_name,  # Overlapping name field
+            "Title2": dob,
+            # Row 2: Email | Phone
+            "Email Address": email,
+            "Phone Number": phone,
+            # Row 3: SSN | Salary | Date worked | Disability | Insurance effective
+            "Social Security Number": ssn_display,
+            "Basic annual salary": salary_str,
+            "Date last worked": term_date,
+            "Insurance effective": self._format_date(form_data.get('insurance_effective_date', '')),
+            # Row 4: Dates
+            "Date of last salary increase": self._format_date(form_data.get('date_last_salary_increase', '')),
+            "Date Optional life coverage terminated if different": ins_term,
+            "Date Optional life coverage terminated if different1": self._format_date(form_data.get('date_optional_terminated', '')),
+            # Section 3: Coverage amounts (fill_23 through fill_34)
+            # Row 1 - Employee: Basic terminated | Basic reduced | Opt'l terminated | Opt'l reduced
+            "fill_23": fmt_amount(form_data.get('employee_basic_life_amount')) if form_data.get('has_employee_basic_life') else "",
+            "fill_24": "",  # Employee Basic Life reduced
+            "fill_25": fmt_amount(form_data.get('employee_voluntary_life_amount')) if form_data.get('has_employee_voluntary_life') else "",
+            "fill_26": "",  # Employee Opt'l reduced
+            # Row 2 - Spouse
+            "fill_27": fmt_amount(form_data.get('spouse_basic_life_amount')) if form_data.get('has_spouse_basic_life') else "",
+            "fill_28": "",  # Spouse Basic Life reduced
+            "fill_29": fmt_amount(form_data.get('spouse_voluntary_life_amount')) if form_data.get('has_spouse_voluntary_life') else "",
+            "fill_30": "",  # Spouse Opt'l reduced
+            # Row 3 - Child
+            "fill_31": fmt_amount(form_data.get('child_basic_life_amount')) if form_data.get('has_child_basic_life') else "",
+            "fill_32": "",  # Child Basic Life reduced
+            "fill_33": fmt_amount(form_data.get('child_voluntary_life_amount')) if form_data.get('has_child_voluntary_life') else "",
+            "fill_34": "",  # Child Opt'l reduced
+            # Section 4: Signature date
+            "Date": today,
+        }
 
-        # Move to beginning of StringIO buffer
-        packet.seek(0)
-
-        # Read the overlay
-        overlay_reader = PdfReader(packet)
-        overlay_page = overlay_reader.pages[0]
-
-        # Merge overlay with template
+        # Build PDF using form field updates (no canvas overlay needed)
+        # Use append() to preserve AcroForm dictionary (required for form field updates)
         writer = PdfWriter()
+        writer.append(self.templates["conversion"])
 
-        # Add page 1 (informational page) unchanged
-        writer.add_page(template_reader.pages[0])
+        # Update form field values on all pages
+        for page in writer.pages:
+            writer.update_page_form_field_values(page, field_values)
 
-        # Merge overlay with page 2 (the form)
-        template_page.merge_page(overlay_page)
-        writer.add_page(template_page)
+        # Fix font size consistency across form fields:
+        # - "Title" field is narrow (75pt); replace long title with "HR Manager"
+        # - "Email Address" and "Phone Number" are 12pt while everything else is 10pt.
+        from pypdf.generic import (
+            NameObject, TextStringObject, IndirectObject,
+        )
+        da_10pt = "/Helvetica 10 Tf 0 g"
+        page1 = writer.pages[1] if len(writer.pages) > 1 else None
+        if page1:
+            annots_raw = page1.get("/Annots")
+            if isinstance(annots_raw, IndirectObject):
+                annots_raw = annots_raw.get_object()
+            if annots_raw:
+                for annot in annots_raw:
+                    obj = annot.get_object()
+                    field_name = str(obj.get("/T", ""))
+                    if field_name == "Title":
+                        # Short title that fits the narrow 75pt field at 10pt
+                        obj[NameObject("/V")] = TextStringObject("HR Manager")
+                    # Normalize Email/Phone from 12pt to 10pt
+                    elif field_name in ("Email Address", "Phone Number"):
+                        obj[NameObject("/DA")] = TextStringObject(da_10pt)
 
         # Write to buffer
         output_buffer = io.BytesIO()
@@ -413,90 +402,86 @@ class UnifiedExitDocumentService:
         employee: Any
     ) -> io.BytesIO:
         """
-        Generate Portability Form by overlaying text on the template PDF.
-        Uses the Equitable Portability Form template (E15763).
+        Generate Portability Form using form field updates + canvas overlay.
 
-        Template layout (Page 1 - index 0):
-        - Employer Use Section (some fields pre-filled, some to fill)
-        - Employee Information section (not filled by employer)
+        Employer Use Section fields filled:
+        - Name of Employee, Employee Termination Date, Date Notice Provided
+        - Supplemental/Voluntary coverage amounts (Employee, Spouse, Child)
+        - Termination of Employment checkbox
+        - Date next to Employer Signature (canvas overlay — signature is pre-baked in template)
 
-        Fields to fill:
-        - Name of Employee
-        - Supplemental/Voluntary Coverage amounts (Employee, Spouse, Child) - optional
-        - Employment Termination Date
-        - Date Notice Provided
-        - Date next to Employer Signature
-
-        Pre-filled fields:
-        - Employer name: National Benefit Services, LLC
-        - Policy #: 017428
-        - Class: Regular
-        - Basic coverage: $50,000
-        - Reason: Termination of Employment (checked)
-        - Employer signature (signed)
+        Pre-filled in template:
+        - Name of Employer, Policy #, Class, Basic coverage $50,000, Employer Signature
         """
-        # Read the template
-        template_reader = PdfReader(self.templates["portability"])
+        from pypdf.generic import (
+            NameObject, TextStringObject, IndirectObject,
+        )
 
-        # Get page dimensions from first page
-        page_width = float(template_reader.pages[0].mediabox.width)
-        page_height = float(template_reader.pages[0].mediabox.height)
+        employee_name = form_data.get(
+            'employee_name', f"{employee.first_name} {employee.last_name}"
+        )
+        term_date = self._format_date(
+            form_data.get('termination_date', '')
+        ) or datetime.now().strftime("%m/%d/%Y")
 
-        # Create overlay for page 1
+        def fmt_amount(val):
+            if val and isinstance(val, (int, float)):
+                return f"${val:,.0f}"
+            return str(val) if val else ""
+
+        # --- Step 1: Update form field values ---
+        # Note: "Employment Termination Date" field is actually the "Other:" reason
+        # text input (at same y as checkboxes), NOT a date field — do not set it.
+        field_values = {
+            "Name of Employee": employee_name,
+            "Employee Termination Date": term_date,
+            "Date Notice Provided": term_date,
+            # Supplemental/Voluntary coverage amounts
+            "Basic coverage Amount to Port _2": fmt_amount(form_data.get('employee_voluntary_life_amount')) if form_data.get('has_employee_voluntary_life') else "",
+            "Spouse_2": fmt_amount(form_data.get('spouse_voluntary_life_amount')) if form_data.get('has_spouse_voluntary_life') else "",
+            "Child_2": fmt_amount(form_data.get('child_voluntary_life_amount')) if form_data.get('has_child_voluntary_life') else "",
+        }
+
+        writer = PdfWriter()
+        writer.append(self.templates["portability"])
+
+        for page in writer.pages:
+            writer.update_page_form_field_values(page, field_values)
+
+        # --- Step 2: Check "Termination of Employment" checkbox ---
+        page0 = writer.pages[0]
+        annots_raw = page0.get("/Annots")
+        if isinstance(annots_raw, IndirectObject):
+            annots_raw = annots_raw.get_object()
+        if annots_raw:
+            for annot in annots_raw:
+                obj = annot.get_object()
+                rect = obj.get("/Rect")
+                if rect:
+                    x = float(rect[0])
+                    y = float(rect[1])
+                    # Checkbox at (37, 541) = "Termination of Employment", checked state '/1'
+                    if abs(x - 37) < 2 and abs(y - 541) < 2:
+                        obj[NameObject("/V")] = NameObject("/1")
+                        obj[NameObject("/AS")] = NameObject("/1")
+                        break
+
+        # --- Step 3: Overlay date next to Employer Signature via canvas ---
+        # Signature image is already baked into the template; only the date is missing.
+        page_width = 612.0
+        page_height = 792.0
+
         packet = io.BytesIO()
         c = canvas.Canvas(packet, pagesize=(page_width, page_height))
-
-        # Set font for form fields
         c.setFont("Helvetica", 10)
-
-        # Employee name in employer section
-        employee_name = form_data.get('employee_name', f"{employee.first_name} {employee.last_name}")
-        c.drawString(135, page_height - 156, employee_name)
-
-        # Supplemental/Voluntary Coverage amounts (optional)
-        # These appear on the "Supplemental/Voluntary Coverage Amount Eligible to Port" line
-        supp_emp_amount = form_data.get('supplemental_employee_amount', 0)
-        supp_spouse_amount = form_data.get('supplemental_spouse_amount', 0)
-        supp_child_amount = form_data.get('supplemental_child_amount', 0)
-
-        if supp_emp_amount:
-            c.drawString(365, page_height - 192, f"${supp_emp_amount:,.2f}" if isinstance(supp_emp_amount, (int, float)) else str(supp_emp_amount))
-        if supp_spouse_amount:
-            c.drawString(458, page_height - 192, f"${supp_spouse_amount:,.2f}" if isinstance(supp_spouse_amount, (int, float)) else str(supp_spouse_amount))
-        if supp_child_amount:
-            c.drawString(528, page_height - 192, f"${supp_child_amount:,.2f}" if isinstance(supp_child_amount, (int, float)) else str(supp_child_amount))
-
-        # Employment Termination Date - use current date
-        today = datetime.now().strftime("%m/%d/%Y")
-        term_date = self._format_date(form_data.get('termination_date', '')) or today
-        c.drawString(430, page_height - 210, term_date)
-
-        # Date Notice Provided - current date
-        c.drawString(175, page_height - 260, today)
-
-        # Date next to Employer Signature
-        c.drawString(480, page_height - 282, today)
+        c.drawString(445, 478, term_date)
 
         c.save()
-
-        # Move to beginning of buffer
         packet.seek(0)
 
-        # Read the overlay
+        # Merge overlay onto page 0
         overlay_reader = PdfReader(packet)
-        overlay_page = overlay_reader.pages[0]
-
-        # Create writer and merge pages
-        writer = PdfWriter()
-
-        # Merge overlay with page 1 (employer section)
-        page1 = template_reader.pages[0]
-        page1.merge_page(overlay_page)
-        writer.add_page(page1)
-
-        # Add remaining pages unchanged
-        for i in range(1, len(template_reader.pages)):
-            writer.add_page(template_reader.pages[i])
+        page0.merge_page(overlay_reader.pages[0])
 
         # Write to buffer
         output_buffer = io.BytesIO()

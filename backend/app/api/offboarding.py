@@ -1940,6 +1940,8 @@ def get_unified_form_data(
         annual_salary = float(employee.salary)
     elif hasattr(employee, 'annual_salary') and employee.annual_salary:
         annual_salary = float(employee.annual_salary)
+    elif hasattr(employee, 'annual_wage') and employee.annual_wage:
+        annual_salary = float(employee.annual_wage)
 
     # Get date of birth if available
     date_of_birth = None
@@ -1952,6 +1954,31 @@ def get_unified_form_data(
     insurance_effective_date = None
     if employee.hire_date:
         insurance_effective_date = employee.hire_date.strftime("%m/%d/%Y")
+
+    # Resolve employment type: prefer employee.type (e.g. "Regular Full Time") over employment_type
+    resolved_employment_type = employee.type or employee.employment_type
+
+    # Look up supervisor email by matching supervisor name to an employee record
+    supervisor_email = ""
+    if employee.supervisor:
+        sup_name = employee.supervisor.strip()
+        supervisor_emp = db.query(models.Employee).filter(
+            func.lower(models.Employee.first_name + " " + models.Employee.last_name) == func.lower(sup_name)
+        ).first()
+        # Fallback: split name and match first/last separately
+        if not supervisor_emp:
+            parts = sup_name.split()
+            if len(parts) >= 2:
+                supervisor_emp = db.query(models.Employee).filter(
+                    func.lower(models.Employee.first_name) == func.lower(parts[0]),
+                    func.lower(models.Employee.last_name) == func.lower(parts[-1])
+                ).first()
+        if supervisor_emp:
+            if supervisor_emp.personal_email:
+                supervisor_email = supervisor_emp.personal_email
+            else:
+                # Generate work email from name (same pattern as team_portal)
+                supervisor_email = f"{supervisor_emp.first_name.lower()}.{supervisor_emp.last_name.lower()}@company.com"
 
     return {
         "employee_id": employee.employee_id,
@@ -1981,11 +2008,11 @@ def get_unified_form_data(
 
         # Supervisor Info
         "supervisor_name": employee.supervisor or "",
-        "supervisor_email": "",
+        "supervisor_email": supervisor_email,
 
         # Compensation Info
         "annual_salary": annual_salary,
-        "date_last_salary_increase": None,
+        "date_last_salary_increase": employee.wage_effective_date.strftime("%m/%d/%Y") if hasattr(employee, 'wage_effective_date') and employee.wage_effective_date else None,
 
         # Insurance Info
         "insurance_effective_date": insurance_effective_date,
@@ -2000,8 +2027,8 @@ def get_unified_form_data(
         "premiums_paid_by_employer": False,
 
         # Coverage Amounts - defaults for full-time employees
-        "has_employee_basic_life": employee.employment_type == "Full Time",
-        "employee_basic_life_amount": 50000 if employee.employment_type == "Full Time" else None,
+        "has_employee_basic_life": resolved_employment_type and "full time" in resolved_employment_type.lower(),
+        "employee_basic_life_amount": 50000 if (resolved_employment_type and "full time" in resolved_employment_type.lower()) else None,
         "has_spouse_basic_life": False,
         "spouse_basic_life_amount": None,
         "has_child_basic_life": False,
@@ -2014,7 +2041,7 @@ def get_unified_form_data(
         "child_voluntary_life_amount": None,
 
         # Additional employee info for display
-        "employment_type": employee.employment_type,
+        "employment_type": resolved_employment_type,
         "termination_type": employee.termination_type,
         "department": employee.department,
         "position": employee.position
@@ -2165,7 +2192,8 @@ def generate_single_unified_document(
             buffer = unified_exit_document_service.generate_conversion_form(form_data, employee)
             filename = f"Conversion_Form_{employee.first_name}_{employee.last_name}.pdf"
         elif document_type == "portability":
-            raise HTTPException(status_code=501, detail="Portability form not yet implemented")
+            buffer = unified_exit_document_service.generate_portability_form(form_data, employee)
+            filename = f"Portability_Form_{employee.first_name}_{employee.last_name}.pdf"
 
         return StreamingResponse(
             buffer,
