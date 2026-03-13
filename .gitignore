@@ -98,3 +98,7 @@ nohup.out
 .claude/settings.local.json
 **/.claude/settings.local.json
 backend/app/storage/filled_forms/
+
+# User uploads
+backend/app/data/uploads/
+backend/data/uploads/
