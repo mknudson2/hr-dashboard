@@ -16,6 +16,9 @@ router = APIRouter(
 # File path for storing folder settings (in production, use database)
 FOLDER_SETTINGS_FILE = os.path.join(os.path.dirname(__file__), "..", "data", "folder_settings.json")
 
+# File path for storing HR contacts settings
+HR_CONTACTS_FILE = os.path.join(os.path.dirname(__file__), "..", "data", "hr_contacts_settings.json")
+
 
 class EmployeeFolderSettings(BaseModel):
     base_path: str = ""
@@ -217,6 +220,52 @@ def create_employee_folder(first_name: str, last_name: str, state: str = None) -
         return {"created": False, "reason": "Permission denied when creating folder"}
     except Exception as e:
         return {"created": False, "reason": str(e)}
+
+
+# ============================================================================
+# HR Contacts Settings
+# ============================================================================
+
+class HRContactsSettings(BaseModel):
+    retirement_contact_name: str = "Kat Haynie"
+
+
+def get_hr_contacts_settings() -> HRContactsSettings:
+    """Load HR contacts settings from file"""
+    try:
+        if os.path.exists(HR_CONTACTS_FILE):
+            with open(HR_CONTACTS_FILE, 'r') as f:
+                data = json.load(f)
+                return HRContactsSettings(**data)
+    except Exception:
+        pass
+    return HRContactsSettings()
+
+
+def save_hr_contacts_settings(settings: HRContactsSettings) -> None:
+    """Save HR contacts settings to file"""
+    os.makedirs(os.path.dirname(HR_CONTACTS_FILE), exist_ok=True)
+    with open(HR_CONTACTS_FILE, 'w') as f:
+        json.dump(settings.model_dump(), f, indent=2)
+
+
+@router.get("/hr-contacts")
+def get_hr_contacts():
+    """Get the current HR contacts settings"""
+    settings = get_hr_contacts_settings()
+    return settings.model_dump()
+
+
+@router.put("/hr-contacts")
+def update_hr_contacts(settings: HRContactsSettings):
+    """Update HR contacts settings"""
+    if not settings.retirement_contact_name.strip():
+        raise HTTPException(status_code=400, detail="Retirement contact name cannot be empty")
+    save_hr_contacts_settings(settings)
+    return {
+        "message": "HR contacts settings updated successfully",
+        "settings": settings.model_dump()
+    }
 
 
 @router.get("/browse-directories")

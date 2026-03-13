@@ -9,10 +9,8 @@ import {
   Bell,
   Database,
   Download,
-  Upload,
   Trash2,
   Shield,
-  Mail,
   Eye,
   FileText,
   Lock,
@@ -23,6 +21,7 @@ import {
   X,
   AlertTriangle,
   Loader,
+  Users,
 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import TwoFactorSetupModal from "@/components/TwoFactorSetupModal";
@@ -103,6 +102,14 @@ export default function SettingsPage() {
     const [folderSettingsSaved, setFolderSettingsSaved] = useState(false);
     const [showFolderPicker, setShowFolderPicker] = useState(false);
 
+    // HR Contacts settings
+    const [hrContacts, setHrContacts] = useState({
+        retirement_contact_name: "Kat Haynie",
+    });
+    const [hrContactsLoading, setHrContactsLoading] = useState(false);
+    const [hrContactsSaved, setHrContactsSaved] = useState(false);
+    const [hrContactsError, setHrContactsError] = useState<string | null>(null);
+
     const toggleTrackStyle = (checked: boolean) => ({
         backgroundColor: checked ? '#007AFF' : undefined,
         boxShadow: 'inset 0 2px 4px rgba(0,0,0,0.2)',
@@ -167,6 +174,23 @@ export default function SettingsPage() {
         };
 
         loadFolderSettings();
+
+        // Load HR contacts settings from backend
+        const loadHrContacts = async () => {
+            try {
+                const response = await fetch(`${API_URL}/settings/hr-contacts`, { credentials: 'include' });
+                if (response.ok) {
+                    const data = await response.json();
+                    setHrContacts({
+                        retirement_contact_name: data.retirement_contact_name || "Kat Haynie",
+                    });
+                }
+            } catch (error) {
+                console.error('Failed to load HR contacts settings:', error);
+            }
+        };
+
+        loadHrContacts();
     }, []);
 
     // Save notifications to localStorage whenever they change
@@ -332,6 +356,34 @@ export default function SettingsPage() {
             setFolderSettings({ ...folderSettings, subfolders: data.subfolders });
         } catch (error) {
             setFolderSettingsError(error instanceof Error ? error.message : 'Failed to remove subfolder');
+        }
+    };
+
+    // HR Contacts Functions
+    const saveHrContacts = async () => {
+        setHrContactsLoading(true);
+        setHrContactsError(null);
+        setHrContactsSaved(false);
+
+        try {
+            const response = await fetch(`${API_URL}/settings/hr-contacts`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                credentials: 'include',
+                body: JSON.stringify(hrContacts),
+            });
+
+            if (!response.ok) {
+                const error = await response.json();
+                throw new Error(error.detail || 'Failed to save HR contacts settings');
+            }
+
+            setHrContactsSaved(true);
+            setTimeout(() => setHrContactsSaved(false), 3000);
+        } catch (error) {
+            setHrContactsError(error instanceof Error ? error.message : 'An error occurred');
+        } finally {
+            setHrContactsLoading(false);
         }
     };
 
@@ -927,6 +979,62 @@ export default function SettingsPage() {
                     >
                         <Save className="w-4 h-4" />
                         {folderSettingsLoading ? 'Saving...' : 'Save Folder Settings'}
+                    </button>
+                </div>
+            </section>
+
+            {/* HR Contacts Section */}
+            <section className="rounded-2xl border dark:border-gray-700 bg-white dark:bg-gray-800 shadow-sm p-6 transition hover:shadow-lg">
+                <div className="flex items-center gap-3 mb-6">
+                    <Users className="w-5 h-5 text-purple-600 dark:text-purple-400" />
+                    <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
+                        HR Contacts
+                    </h3>
+                </div>
+
+                <p className="text-sm text-gray-600 dark:text-gray-400 mb-6">
+                    Configure HR contact information used in automated emails and documents.
+                </p>
+
+                <div className="space-y-6">
+                    <div>
+                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                            401(k) Plan Contact
+                        </label>
+                        <input
+                            type="text"
+                            value={hrContacts.retirement_contact_name}
+                            onChange={(e) => setHrContacts({ ...hrContacts, retirement_contact_name: e.target.value })}
+                            placeholder="Enter contact name..."
+                            className="w-full rounded-lg border dark:border-gray-700 px-3 py-2 bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-purple-500 outline-none"
+                        />
+                        <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                            Name of the person who handles 401(k) questions. Used in exit documents emails.
+                        </p>
+                    </div>
+
+                    {/* Error Message */}
+                    {hrContactsError && (
+                        <div className="p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg">
+                            <p className="text-sm text-red-600 dark:text-red-400">{hrContactsError}</p>
+                        </div>
+                    )}
+
+                    {/* Success Message */}
+                    {hrContactsSaved && (
+                        <div className="p-3 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg">
+                            <p className="text-sm text-green-600 dark:text-green-400">HR contacts settings saved successfully!</p>
+                        </div>
+                    )}
+
+                    {/* Save Button */}
+                    <button
+                        onClick={saveHrContacts}
+                        disabled={hrContactsLoading}
+                        className="flex items-center gap-2 px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-lg transition-colors disabled:opacity-50"
+                    >
+                        <Save className="w-4 h-4" />
+                        {hrContactsLoading ? 'Saving...' : 'Save HR Contacts'}
                     </button>
                 </div>
             </section>

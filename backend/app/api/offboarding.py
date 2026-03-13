@@ -1837,6 +1837,50 @@ async def send_exit_documents_email(
     else:
         template_name = "offboarding/exit_documents_standard.html"
 
+    # Calculate final pay date and coverage dates
+    final_pay_date = "N/A"
+    final_pay_day_of_week = ""
+    last_coverage_date = "N/A"
+    if employee.termination_date:
+        pay_date = employee.termination_date + timedelta(days=2)
+        final_pay_date = pay_date.strftime("%B %d, %Y")
+        final_pay_day_of_week = pay_date.strftime("%A")
+
+        # End of month for coverage
+        if employee.termination_date.month == 12:
+            next_month = employee.termination_date.replace(year=employee.termination_date.year + 1, month=1, day=1)
+        else:
+            next_month = employee.termination_date.replace(month=employee.termination_date.month + 1, day=1)
+        last_coverage_date = (next_month - timedelta(days=1)).strftime("%B %d, %Y")
+
+    # Benefit enrollment flags
+    has_medical = bool(getattr(employee, 'medical_plan', None))
+    has_dental = bool(getattr(employee, 'dental_plan', None))
+    has_vision = bool(getattr(employee, 'vision_plan', None))
+    has_retirement = bool(getattr(employee, 'retirement_plan_type', None))
+
+    # Build benefit list string (e.g., "medical, dental, and vision")
+    benefits = []
+    if has_medical:
+        benefits.append("medical")
+    if has_dental:
+        benefits.append("dental")
+    if has_vision:
+        benefits.append("vision")
+    if len(benefits) == 1:
+        benefit_list_str = benefits[0]
+    elif len(benefits) == 2:
+        benefit_list_str = f"{benefits[0]} and {benefits[1]}"
+    elif len(benefits) >= 3:
+        benefit_list_str = ", ".join(benefits[:-1]) + f", and {benefits[-1]}"
+    else:
+        benefit_list_str = ""
+
+    # Load 401k contact from HR contacts settings
+    from app.api.settings import get_hr_contacts_settings
+    hr_contacts = get_hr_contacts_settings()
+    retirement_contact_name = hr_contacts.retirement_contact_name
+
     # Build context
     context = {
         "employee_name": f"{employee.first_name} {employee.last_name}",
@@ -1851,7 +1895,19 @@ async def send_exit_documents_email(
         "is_involuntary": termination_type.lower() == "involuntary",
         "document_count": len(attachments),
         "custom_message": request.custom_message,
-        "from_name": "HR Department"
+        "from_name": "HR Department",
+        # Benefit enrollment flags
+        "has_medical": has_medical,
+        "has_dental": has_dental,
+        "has_vision": has_vision,
+        "has_retirement": has_retirement,
+        "benefit_list": benefit_list_str,
+        # Date calculations
+        "final_pay_date": final_pay_date,
+        "final_pay_day_of_week": final_pay_day_of_week,
+        "last_coverage_date": last_coverage_date,
+        # 401k contact
+        "retirement_contact_name": retirement_contact_name,
     }
 
     # Build subject

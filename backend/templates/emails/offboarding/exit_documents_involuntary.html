@@ -10,46 +10,46 @@
 {% endblock %}
 
 {% block content %}
-<p style="font-size: 16px;">
-    Please find attached important documentation regarding your separation from NBS. We want to ensure you have all the necessary information for your transition.
-</p>
-
-<div class="info-box info-box-info">
-    <strong>Employment Details:</strong>
-    <ul style="margin: 10px 0 0 0;">
-        <li><strong>Name:</strong> {{ employee_name }}</li>
-        <li><strong>Separation Date:</strong> {{ termination_date }}</li>
-        <li><strong>Employment Type:</strong> {{ employment_type }}</li>
-    </ul>
-</div>
-
-{% if document_count > 0 %}
-<h3 style="color: #3b82f6; margin-top: 30px;">Attached Documents</h3>
 <p style="font-size: 15px;">
-    The following documents are attached to this email for your records:
+    Please find attached important documentation regarding your separation from NBS. The following documents are included:
 </p>
+
 <ul style="margin: 15px 0;">
-    <li><strong>Important Information for Terminating Employee</strong> - Contains critical information about your final paycheck, benefits coverage end dates, and any PTO payout.</li>
+    <li>
+        <strong>Important Information for Terminating Employee</strong> &mdash; This document covers several items related to your departure. Please note that your Paylocity self-service portal access will remain available through May 2027 for retrieving pay stubs, tax documents, and other records. Your W-2 for this year will also be available there in January.
+    </li>
+    <li>
+        <strong>Signed Confidentiality Agreement</strong> &mdash; Attached is a copy of the confidentiality and non-solicitation agreement on file. Please review and retain for your records.
+    </li>
     {% if is_full_time %}
-    <li><strong>Equitable Portability Form</strong> - Information about options to continue your life insurance coverage.</li>
-    <li><strong>Equitable Conversion Form</strong> - Details about converting group coverage to individual policies.</li>
+    <li>
+        <strong>Equitable Life Insurance Forms</strong> &mdash; Included is a comparison handout along with portability and conversion applications for your life insurance. If you wish to continue coverage, the appropriate application must be submitted to Equitable within 31 days of your termination date. Equitable can be reached directly at 1-888-952-4834 for questions about these options.
+    </li>
     {% endif %}
-    <li><strong>Non-Solicitation and Confidentiality Document</strong> - Important reminder of your ongoing confidentiality obligations.</li>
 </ul>
-{% else %}
-<div class="info-box info-box-warning">
-    <p><strong>Note:</strong> Exit documents are being prepared and will be sent to you shortly.</p>
-</div>
+
+<h3 style="color: #3b82f6; margin-top: 30px;">Exit Survey</h3>
+<p style="font-size: 15px;">
+    You will receive an Exit Survey through Paylocity. We would appreciate your feedback, as it helps us improve the experience for current and future team members.
+</p>
+
+<h3 style="color: #3b82f6; margin-top: 30px;">Final Paycheck</h3>
+<p style="font-size: 15px;">
+    <strong>Your final paycheck, including hours worked as well as all PTO hours accrued, will be paid out and deposited into your account on or before {{ final_pay_day_of_week }}, {{ final_pay_date }}.</strong>
+</p>
+
+{% if has_medical or has_dental or has_vision %}
+<h3 style="color: #3b82f6; margin-top: 30px;">Benefits Continuation</h3>
+<p style="font-size: 15px;">
+    Your {{ benefit_list }} insurance will continue through the end of the month ({{ last_coverage_date }}). All other insurances will end effective {{ termination_date }}.
+</p>
 {% endif %}
 
-<h3 style="color: #3b82f6; margin-top: 30px;">Important Information</h3>
-<ul style="margin: 15px 0;">
-    <li><strong>Final Paycheck:</strong> Your final pay will be processed according to the schedule noted in the Important Information form. This includes payment for all hours worked through your separation date.</li>
-    <li><strong>PTO Payout:</strong> Any accrued, unused PTO will be included in your final paycheck as applicable under company policy.</li>
-    <li><strong>Benefits Coverage:</strong> Your health benefits will end as specified in the attached documents, typically at the end of the month of your separation date.</li>
-    <li><strong>COBRA:</strong> You will receive separate COBRA notification materials with information about your right to continue health coverage.</li>
-    <li><strong>401(k):</strong> Information about your retirement account options will be provided separately.</li>
-</ul>
+{% if has_retirement %}
+<p style="font-size: 15px;">
+    Any questions regarding your 401(k) can be directed to {{ retirement_contact_name }} (see the Important Information document for additional details).
+</p>
+{% endif %}
 
 {% if custom_message %}
 <div class="info-box">
@@ -58,21 +58,8 @@
 </div>
 {% endif %}
 
-<h3 style="color: #3b82f6; margin-top: 30px;">Questions or Concerns</h3>
-<p style="font-size: 15px;">
-    If you have any questions about these documents, your final pay, or benefits continuation options, please contact HR:
-</p>
-
-<div class="info-box info-box-info" style="margin-top: 15px;">
-    <p>
-        <strong>Michael Knudson</strong><br>
-        Email: <a href="mailto:{{ hr_contact_email }}" style="color: #3b82f6;">{{ hr_contact_email }}</a><br>
-        Phone: (801) 858-0266
-    </p>
-</div>
-
-<p style="font-size: 16px; margin-top: 25px;">
-    We wish you the best in your future endeavors.
+<p style="font-size: 15px; margin-top: 25px;">
+    If you have any questions regarding the above documentation or your transition, please do not hesitate to contact me.
 </p>
 {% endblock %}
 

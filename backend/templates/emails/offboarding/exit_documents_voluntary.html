@@ -6,51 +6,50 @@
 {% block header_subtitle %}Exit Documentation - Voluntary Separation{% endblock %}
 
 {% block greeting %}
-<p style="font-size: 18px;">Dear {{ employee_first_name }},</p>
+<p style="font-size: 18px;">Hey {{ employee_first_name }}!</p>
 {% endblock %}
 
 {% block content %}
-<p style="font-size: 16px;">
-    Thank you for your contributions during your time at NBS. As you prepare to move on to your next opportunity, we want to ensure you have all the necessary documentation for a smooth transition.
-</p>
-
-<div class="info-box info-box-success">
-    <strong>Employment Details:</strong>
-    <ul style="margin: 10px 0 0 0;">
-        <li><strong>Name:</strong> {{ employee_name }}</li>
-        <li><strong>Last Day:</strong> {{ termination_date }}</li>
-        <li><strong>Employment Type:</strong> {{ employment_type }}</li>
-        <li><strong>Separation Type:</strong> Voluntary</li>
-    </ul>
-</div>
-
-{% if document_count > 0 %}
-<h3 style="color: #3b82f6; margin-top: 30px;">Attached Documents</h3>
 <p style="font-size: 15px;">
-    Please review the following documents attached to this email:
+    Attached are some exit documents for you to help you as you transition away from NBS. They are as follows:
 </p>
+
 <ul style="margin: 15px 0;">
-    <li><strong>Important Information for Terminating Employee</strong> - Contains essential information about your final paycheck, benefits continuation, and PTO payout details.</li>
+    <li>
+        <strong>Important Information for Terminating Employee</strong> &mdash; This document goes over a few things, but just know that Paylocity self-service portal access will remain available through May 2027 for you to retrieve pay stubs, tax documents, etc. Your W-2 for this year will also be available there in January.
+    </li>
+    <li>
+        <strong>Signed Confidentiality Agreement</strong> &mdash; This is a copy of the confidentiality and non-solicitation agreement you signed. Please review and keep for your records.
+    </li>
     {% if is_full_time %}
-    <li><strong>Equitable Portability Form</strong> - Options for continuing your life insurance coverage after separation.</li>
-    <li><strong>Equitable Conversion Form</strong> - Information about converting group benefits to individual policies.</li>
+    <li>
+        <strong>Equitable Life Insurance Forms</strong> &mdash; Attached is a comparison handout along with portability and conversion applications for your life insurance. If you wish to continue coverage, you must submit the appropriate application to Equitable within 31 days of your termination date. Contact Equitable directly at 1-888-952-4834 for questions about these options.
+    </li>
     {% endif %}
-    <li><strong>Non-Solicitation and Confidentiality Document</strong> - A reminder of your ongoing confidentiality obligations.</li>
 </ul>
-{% else %}
-<div class="info-box info-box-warning">
-    <p><strong>Note:</strong> Your exit documents are currently being finalized and will be sent to you soon.</p>
-</div>
+
+<h3 style="color: #3b82f6; margin-top: 30px;">Exit Survey</h3>
+<p style="font-size: 15px;">
+    You will receive an Exit Survey through Paylocity. We would really appreciate it if you could take a few minutes to fill it out. Your feedback helps us improve the experience for current and future team members.
+</p>
+
+<h3 style="color: #3b82f6; margin-top: 30px;">Final Paycheck</h3>
+<p style="font-size: 15px;">
+    <strong>You can expect your final paycheck, including hours worked as well as all PTO hours accrued, will be paid out and deposited into your account on or before {{ final_pay_day_of_week }}, {{ final_pay_date }}.</strong>
+</p>
+
+{% if has_medical or has_dental or has_vision %}
+<h3 style="color: #3b82f6; margin-top: 30px;">Benefits Continuation</h3>
+<p style="font-size: 15px;">
+    Your {{ benefit_list }} insurance will continue through the end of the month ({{ last_coverage_date }}). Otherwise, all other insurances will end effective {{ termination_date }}.
+</p>
 {% endif %}
 
-<h3 style="color: #3b82f6; margin-top: 30px;">Next Steps</h3>
-<ul style="margin: 15px 0;">
-    <li><strong>Review Documents:</strong> Please carefully review all attached materials and keep them for your records.</li>
-    <li><strong>Final Paycheck:</strong> Your final pay, including any accrued PTO, will be processed according to the schedule noted in the Important Information form.</li>
-    <li><strong>Benefits:</strong> Your health benefits typically continue through the end of the month of your termination date.</li>
-    <li><strong>COBRA:</strong> You will receive separate COBRA election materials with details about continuing your health coverage.</li>
-    <li><strong>401(k):</strong> You will receive information about your retirement account options separately.</li>
-</ul>
+{% if has_retirement %}
+<p style="font-size: 15px;">
+    Any questions regarding your 401(k) can be directed to {{ retirement_contact_name }} (see the Important Information document for additional details).
+</p>
+{% endif %}
 
 {% if custom_message %}
 <div class="info-box">
@@ -59,29 +58,15 @@
 </div>
 {% endif %}
 
-<h3 style="color: #3b82f6; margin-top: 30px;">Staying Connected</h3>
-<p style="font-size: 15px;">
-    We value the relationships we build with our team members. Please feel free to stay in touch, and don't hesitate to reach out if you have any questions during your transition.
-</p>
-
-<div class="info-box info-box-info" style="margin-top: 25px;">
-    <p><strong>Contact HR:</strong> If you have any questions about your exit process, final pay, or benefits, please contact:</p>
-    <p style="margin-top: 10px;">
-        <strong>Michael Knudson</strong><br>
-        Email: <a href="mailto:{{ hr_contact_email }}" style="color: #3b82f6;">{{ hr_contact_email }}</a><br>
-        Phone: (801) 858-0266
-    </p>
-</div>
-
-<p style="font-size: 16px; margin-top: 25px;">
-    Thank you again for your time and dedication at NBS. We wish you every success in your future endeavors!
+<p style="font-size: 15px; margin-top: 25px;">
+    If you have any questions about any of the above or about your transition, please do not hesitate to contact me.
 </p>
 {% endblock %}
 
 {% block closing %}
 <div class="divider"></div>
 <p style="margin-top: 30px; margin-bottom: 5px;">
-    Warm regards,
+    All the best,
 </p>
 <table style="margin-top: 20px; border: 0; padding: 0;">
     <tr>
