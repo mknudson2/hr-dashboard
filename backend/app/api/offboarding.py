@@ -1129,6 +1129,11 @@ def export_offboarding_package(
     if not employee.termination_date:
         raise HTTPException(status_code=400, detail="Employee does not have a termination date set")
 
+    # Get termination record for the reason
+    termination_record = db.query(models.Termination).filter(
+        models.Termination.employee_id == employee_id
+    ).first()
+
     # Get all offboarding tasks for this employee
     tasks = db.query(models.OffboardingTask).filter(
         models.OffboardingTask.employee_id == employee_id
@@ -1139,13 +1144,13 @@ def export_offboarding_package(
         "employee_id": employee.employee_id,
         "first_name": employee.first_name,
         "last_name": employee.last_name,
-        "email": employee.email if hasattr(employee, 'email') else 'N/A',
+        "email": employee.personal_email or "N/A",
         "department": employee.department or "N/A",
         "position": employee.position or "N/A",
         "location": employee.location or "N/A",
         "hire_date": employee.hire_date.strftime("%B %d, %Y") if employee.hire_date else "N/A",
         "termination_date": employee.termination_date.strftime("%B %d, %Y"),
-        "termination_reason": employee.termination_reason if hasattr(employee, 'termination_reason') and employee.termination_reason else "N/A"
+        "termination_reason": (termination_record.termination_reason if termination_record and termination_record.termination_reason else None) or employee.termination_type or "N/A"
     }
 
     # Prepare tasks data
@@ -1158,7 +1163,8 @@ def export_offboarding_package(
             "due_date": task.due_date.strftime("%m/%d/%Y") if task.due_date else "N/A",
             "status": task.status,
             "priority": task.priority,
-            "task_description": task.task_description
+            "task_description": task.task_description,
+            "task_details": task.task_details
         })
 
     # Company info
