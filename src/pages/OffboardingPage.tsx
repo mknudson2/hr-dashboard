@@ -449,17 +449,22 @@ export default function OffboardingPage() {
       const formData = new FormData();
       formData.append('file', file);
 
-      await fetch(`${BASE_URL}/offboarding/tasks/${taskId}/upload`, {
+      const response = await fetch(`${BASE_URL}/offboarding/tasks/${taskId}/upload`, {
         method: 'POST',
         credentials: 'include',
         body: formData
       });
 
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.detail || 'Upload failed');
+      }
+
       await loadData();
       alert(`File "${file.name}" uploaded successfully!`);
     } catch (error) {
       console.error('Error uploading file:', error);
-      alert('Failed to upload file. Please try again.');
+      alert(`Failed to upload file: ${error instanceof Error ? error.message : 'Please try again.'}`);
     }
   };
 
