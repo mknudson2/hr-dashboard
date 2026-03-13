@@ -4,6 +4,13 @@ import { motion, AnimatePresence } from 'framer-motion';
 
 const BASE_URL = '';
 
+// Check if employment type represents full-time (handles "Full Time", "FT", "Regular Full Time", etc.)
+const isFullTimeType = (type: string | null | undefined): boolean => {
+  if (!type) return false;
+  const lower = type.toLowerCase().trim();
+  return lower === 'ft' || lower.includes('full time') || lower.includes('full-time');
+};
+
 // Format phone number as (XXX) XXX-XXXX
 const formatPhoneNumber = (value: string): string => {
   // Remove all non-digits
@@ -597,7 +604,7 @@ export default function SubtasksDrawer({
       });
       // Default to selecting Important Info, and Conversion for full-time employees
       const defaultDocs = ['important_info'];
-      if (data.employment_type && data.employment_type.toLowerCase().includes('full time')) {
+      if (isFullTimeType(data.employment_type)) {
         defaultDocs.push('conversion');
         defaultDocs.push('portability');
       }
@@ -1348,7 +1355,7 @@ export default function SubtasksDrawer({
                 {exitDocFormData.employment_type && (
                   <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
                     <span className={`inline-block px-2 py-0.5 rounded text-xs font-medium ${
-                      exitDocFormData.employment_type.toLowerCase().includes('full time')
+                      isFullTimeType(exitDocFormData.employment_type)
                         ? 'bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200'
                         : 'bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-200'
                     }`}>
@@ -1383,7 +1390,7 @@ export default function SubtasksDrawer({
               <h4 className="text-sm font-semibold text-blue-900 dark:text-blue-100 mb-3">
                 Select Documents to Generate
               </h4>
-              <div className="flex flex-wrap gap-3">
+              <div className="flex justify-between">
                 <label className="flex items-center gap-2 cursor-pointer">
                   <input
                     type="checkbox"
@@ -1393,29 +1400,29 @@ export default function SubtasksDrawer({
                   />
                   <span className="text-sm text-gray-700 dark:text-gray-300">Important Information Form</span>
                 </label>
-                <label className={`flex items-center gap-2 ${!(exitDocFormData.employment_type && exitDocFormData.employment_type.toLowerCase().includes('full time')) ? 'opacity-50' : 'cursor-pointer'}`}>
+                <label className={`flex items-center gap-2 ${!isFullTimeType(exitDocFormData.employment_type) ? 'opacity-50' : 'cursor-pointer'}`}>
                   <input
                     type="checkbox"
                     checked={selectedDocuments.includes('conversion')}
                     onChange={() => handleToggleDocumentSelection('conversion')}
-                    disabled={!(exitDocFormData.employment_type && exitDocFormData.employment_type.toLowerCase().includes('full time'))}
+                    disabled={!isFullTimeType(exitDocFormData.employment_type)}
                     className="w-4 h-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
                   />
                   <span className="text-sm text-gray-700 dark:text-gray-300">Equitable Conversion Form</span>
-                  {!(exitDocFormData.employment_type && exitDocFormData.employment_type.toLowerCase().includes('full time')) && (
+                  {!isFullTimeType(exitDocFormData.employment_type) && (
                     <span className="text-xs text-gray-500">(Full-time only)</span>
                   )}
                 </label>
-                <label className={`flex items-center gap-2 ${!(exitDocFormData.employment_type && exitDocFormData.employment_type.toLowerCase().includes('full time')) ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}>
+                <label className={`flex items-center gap-2 ${!isFullTimeType(exitDocFormData.employment_type) ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}>
                   <input
                     type="checkbox"
                     checked={selectedDocuments.includes('portability')}
                     onChange={() => handleToggleDocumentSelection('portability')}
-                    disabled={!(exitDocFormData.employment_type && exitDocFormData.employment_type.toLowerCase().includes('full time'))}
+                    disabled={!isFullTimeType(exitDocFormData.employment_type)}
                     className="w-4 h-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
                   />
                   <span className="text-sm text-gray-700 dark:text-gray-300">Equitable Portability Form</span>
-                  {!(exitDocFormData.employment_type && exitDocFormData.employment_type.toLowerCase().includes('full time')) && (
+                  {!isFullTimeType(exitDocFormData.employment_type) && (
                     <span className="text-xs text-gray-500">(Full-time only)</span>
                   )}
                 </label>
