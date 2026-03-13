@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { X, CheckCircle, Mail, Upload, FileText, Clock, AlertCircle, Loader2, Download, Edit3, Send, FolderOpen, Trash2 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
@@ -742,7 +743,7 @@ export default function SubtasksDrawer({
     }
   };
 
-  return (
+  return createPortal(
     <AnimatePresence>
       {isOpen && parentTask && (
         <>
@@ -751,7 +752,7 @@ export default function SubtasksDrawer({
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 bg-black/50 z-40"
+            className="fixed inset-0 bg-black/60 backdrop-blur-sm z-40"
             onClick={onClose}
           />
 
@@ -1971,6 +1972,7 @@ export default function SubtasksDrawer({
       )}
         </>
       )}
-    </AnimatePresence>
+    </AnimatePresence>,
+    document.body
   );
 }
