@@ -546,7 +546,7 @@ export default function SubtasksDrawer({
       });
       // Default to selecting Important Info, and Conversion for full-time employees
       const defaultDocs = ['important_info'];
-      if (data.employment_type === 'Full Time') {
+      if (data.employment_type && data.employment_type.toLowerCase().includes('full time')) {
         defaultDocs.push('conversion');
       }
       setSelectedDocuments(defaultDocs);
@@ -1257,7 +1257,7 @@ export default function SubtasksDrawer({
                 {exitDocFormData.employment_type && (
                   <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
                     <span className={`inline-block px-2 py-0.5 rounded text-xs font-medium ${
-                      exitDocFormData.employment_type === 'Full Time'
+                      exitDocFormData.employment_type.toLowerCase().includes('full time')
                         ? 'bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200'
                         : 'bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-200'
                     }`}>
@@ -1302,16 +1302,16 @@ export default function SubtasksDrawer({
                   />
                   <span className="text-sm text-gray-700 dark:text-gray-300">Important Information Form</span>
                 </label>
-                <label className={`flex items-center gap-2 ${exitDocFormData.employment_type !== 'Full Time' ? 'opacity-50' : 'cursor-pointer'}`}>
+                <label className={`flex items-center gap-2 ${!(exitDocFormData.employment_type && exitDocFormData.employment_type.toLowerCase().includes('full time')) ? 'opacity-50' : 'cursor-pointer'}`}>
                   <input
                     type="checkbox"
                     checked={selectedDocuments.includes('conversion')}
                     onChange={() => handleToggleDocumentSelection('conversion')}
-                    disabled={exitDocFormData.employment_type !== 'Full Time'}
+                    disabled={!(exitDocFormData.employment_type && exitDocFormData.employment_type.toLowerCase().includes('full time'))}
                     className="w-4 h-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
                   />
                   <span className="text-sm text-gray-700 dark:text-gray-300">Equitable Conversion Form</span>
-                  {exitDocFormData.employment_type !== 'Full Time' && (
+                  {!(exitDocFormData.employment_type && exitDocFormData.employment_type.toLowerCase().includes('full time')) && (
                     <span className="text-xs text-gray-500">(Full-time only)</span>
                   )}
                 </label>
