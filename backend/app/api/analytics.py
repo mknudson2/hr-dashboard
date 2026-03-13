@@ -340,6 +340,7 @@ def get_employee_details(employee_id: str, db: Session = Depends(get_db)):
         "hourly_wage": getattr(employee, 'hourly_wage', None),
         "position": getattr(employee, 'position', None),
         "supervisor": getattr(employee, 'supervisor', None),
+        "personal_email": getattr(employee, 'personal_email', None),
         "benefits_cost": employee.benefits_cost,
         "pto_allotted": employee.pto_allotted,
         "pto_used": employee.pto_used,

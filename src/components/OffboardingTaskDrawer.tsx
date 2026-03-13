@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
-import { X, Calendar, Users, FileText, Clock, CheckCircle, AlertCircle, Mail, AlertTriangle, Download } from 'lucide-react';
+import { createPortal } from 'react-dom';
+import { X, Calendar, Users, FileText, Clock, CheckCircle, AlertCircle, Mail, AlertTriangle, Download, Send } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
 // Helper function to format currency with comma separators
@@ -64,6 +65,8 @@ interface Employee {
   lfsa_contribution: number | null;
   pto_allotted: number | null;
   pto_used: number | null;
+  personal_email?: string | null;
+  termination_type?: string | null;
 }
 
 interface OffboardingTaskDrawerProps {
@@ -120,6 +123,22 @@ export default function OffboardingTaskDrawer({
     supervisorEmail: ''
   });
 
+  // Send Exit Documents Email state
+  const [exitDocsEmailRecipient, setExitDocsEmailRecipient] = useState('');
+  const [exitDocsEmailTemplateType, setExitDocsEmailTemplateType] = useState<'standard' | 'voluntary' | 'involuntary'>('standard');
+  const [exitDocsEmailCustomMessage, setExitDocsEmailCustomMessage] = useState('');
+  const [isSendingExitDocsEmail, setIsSendingExitDocsEmail] = useState(false);
+  const [exitDocsEmailSent, setExitDocsEmailSent] = useState(false);
+  const [exitDocsList, setExitDocsList] = useState<Array<{
+    id: number;
+    form_type: string;
+    template_name: string;
+    file_exists: boolean;
+    status: string;
+    delivered_at: string | null;
+  }>>([]);
+  const [isLoadingExitDocs, setIsLoadingExitDocs] = useState(false);
+
   useEffect(() => {
     if (task) {
       setParticipants(task.task_details?.participants?.join(', ') || '');
@@ -154,8 +173,52 @@ export default function OffboardingTaskDrawer({
 
       fetchEmployee();
       fetchGarnishments();
+
+      // Fetch exit documents list for "Send Exit Documents Email" task
+      if (task.task_name.toLowerCase().includes('send exit documents email')) {
+        const fetchExitDocs = async () => {
+          setIsLoadingExitDocs(true);
+          try {
+            const response = await fetch(`${BASE_URL}/offboarding/exit-documents/${task.employee_id}`);
+            if (response.ok) {
+              const data = await response.json();
+              setExitDocsList(data.documents || []);
+              // Pre-populate recipient from doc form_data
+              if (data.documents?.length > 0 && data.documents[0].form_data?.personal_email) {
+                setExitDocsEmailRecipient(data.documents[0].form_data.personal_email as string);
+              }
+              // Auto-detect template type from termination type
+              if (data.termination_type?.toLowerCase() === 'voluntary') {
+                setExitDocsEmailTemplateType('voluntary');
+              } else if (data.termination_type?.toLowerCase() === 'involuntary') {
+                setExitDocsEmailTemplateType('involuntary');
+              }
+            }
+          } catch (error) {
+            console.error('Error fetching exit documents:', error);
+          } finally {
+            setIsLoadingExitDocs(false);
+          }
+        };
+        fetchExitDocs();
+        // Reset email sent state when task changes
+        setExitDocsEmailSent(false);
+        setExitDocsEmailCustomMessage('');
+      }
     }
   }, [task]);
+
+  // Fallback: populate email recipient/template from employee data
+  useEffect(() => {
+    if (employee && !exitDocsEmailRecipient && employee.personal_email) {
+      setExitDocsEmailRecipient(employee.personal_email);
+    }
+    if (employee?.termination_type) {
+      const tt = employee.termination_type.toLowerCase();
+      if (tt === 'voluntary') setExitDocsEmailTemplateType('voluntary');
+      else if (tt === 'involuntary') setExitDocsEmailTemplateType('involuntary');
+    }
+  }, [employee]);
 
   useEffect(() => {
     const handleEscape = (e: KeyboardEvent) => {
@@ -182,7 +245,12 @@ export default function OffboardingTaskDrawer({
   const isContributionTask = task.task_name.toLowerCase().includes('contribution') || task.task_name.toLowerCase().includes('final contribution upload');
   const isGarnishmentTask = task.task_name.toLowerCase().includes('garnishment');
   const isFundsTransferTask = task.task_name.toLowerCase().includes('send funds transfer') || task.task_name.toLowerCase().includes('funds transfer email');
-  const isExitDocumentsTask = task.task_name.toLowerCase().includes('exit document') || task.task_name.toLowerCase().includes('prepare exit') || task.task_name.toLowerCase().includes('important information');
+  const isSendExitDocsEmailTask = task.task_name.toLowerCase().includes('send exit documents email');
+  const isExitDocumentsTask = !isSendExitDocsEmailTask && (
+    task.task_name.toLowerCase().includes('exit document') ||
+    task.task_name.toLowerCase().includes('prepare exit') ||
+    task.task_name.toLowerCase().includes('important information')
+  );
 
   // Calculate I-9 retention dates
   const calculateI9RetentionDates = () => {
@@ -376,6 +444,42 @@ export default function OffboardingTaskDrawer({
     }
   };
 
+  const handleSendExitDocsEmail = async () => {
+    if (!employee || !exitDocsEmailRecipient) {
+      alert('Please enter a recipient email address');
+      return;
+    }
+
+    setIsSendingExitDocsEmail(true);
+    try {
+      const response = await fetch(`${BASE_URL}/offboarding/exit-documents-email/${employee.employee_id}`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          recipient_email: exitDocsEmailRecipient,
+          template_type: exitDocsEmailTemplateType,
+          custom_message: exitDocsEmailCustomMessage || null
+        })
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.detail || 'Failed to send email');
+      }
+
+      const result = await response.json();
+      setExitDocsEmailSent(true);
+      alert(`Email sent successfully to ${result.recipient}. ${result.documents_sent} document(s) attached.`);
+    } catch (error) {
+      console.error('Error sending exit documents email:', error);
+      alert(`Failed to send email: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    } finally {
+      setIsSendingExitDocsEmail(false);
+    }
+  };
+
   const handleSendFundsTransferEmail = async () => {
     if (!employee) return;
 
@@ -479,7 +583,7 @@ export default function OffboardingTaskDrawer({
     }
   };
 
-  return (
+  return createPortal(
     <AnimatePresence>
       {isOpen && task && (
         <>
@@ -488,7 +592,7 @@ export default function OffboardingTaskDrawer({
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 bg-black/50 z-40"
+            className="fixed inset-0 bg-black/60 backdrop-blur-sm z-40"
             onClick={onClose}
           />
 
@@ -1628,6 +1732,136 @@ export default function OffboardingTaskDrawer({
               </div>
             )}
 
+            {/* Send Exit Documents Email Section */}
+            {isSendExitDocsEmailTask && employee && (
+              <div className="bg-green-50 dark:bg-green-900/20 rounded-lg p-4 space-y-4">
+                <h3 className="font-semibold text-gray-900 dark:text-white flex items-center gap-2">
+                  <Mail className="w-5 h-5 text-green-600" />
+                  Send Exit Documents Email
+                </h3>
+
+                <p className="text-sm text-gray-700 dark:text-gray-300">
+                  Send exit documents to {employee.first_name} {employee.last_name}'s personal email.
+                  Documents from "Prepare Exit Documents" will be attached.
+                </p>
+
+                {/* Documents to Attach */}
+                <div className="bg-white dark:bg-gray-800 rounded-lg p-4 border border-green-200 dark:border-green-800">
+                  <h4 className="font-semibold text-gray-900 dark:text-white mb-3 text-sm flex items-center gap-2">
+                    <FileText className="w-4 h-4 text-green-600" />
+                    Documents to Attach
+                  </h4>
+
+                  {isLoadingExitDocs ? (
+                    <p className="text-sm text-gray-500 dark:text-gray-400">Loading documents...</p>
+                  ) : exitDocsList.length === 0 ? (
+                    <div className="flex items-start gap-2 p-3 bg-amber-50 dark:bg-amber-900/20 rounded-lg border border-amber-200 dark:border-amber-800">
+                      <AlertTriangle className="w-4 h-4 text-amber-600 mt-0.5 flex-shrink-0" />
+                      <p className="text-sm text-amber-800 dark:text-amber-200">
+                        No exit documents found. Complete "Prepare Exit Documents" first to generate the documents that will be attached to this email.
+                      </p>
+                    </div>
+                  ) : (
+                    <div className="space-y-2">
+                      {exitDocsList.map((doc) => (
+                        <div key={doc.id} className="flex items-center justify-between py-2 px-3 bg-gray-50 dark:bg-gray-700 rounded-lg">
+                          <span className="text-sm text-gray-900 dark:text-white">
+                            {doc.template_name || doc.form_type}
+                          </span>
+                          {doc.file_exists ? (
+                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300">
+                              <CheckCircle className="w-3 h-3" />
+                              Ready
+                            </span>
+                          ) : (
+                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300">
+                              <AlertCircle className="w-3 h-3" />
+                              Missing
+                            </span>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+
+                {/* Email Settings */}
+                <div className="bg-white dark:bg-gray-800 rounded-lg p-4 border border-green-200 dark:border-green-800">
+                  <h4 className="font-semibold text-gray-900 dark:text-white mb-3 text-sm">
+                    Email Settings
+                  </h4>
+
+                  <div className="space-y-4">
+                    <div>
+                      <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">
+                        Recipient Email
+                      </label>
+                      <input
+                        type="email"
+                        value={exitDocsEmailRecipient}
+                        onChange={(e) => setExitDocsEmailRecipient(e.target.value)}
+                        placeholder="employee@personal-email.com"
+                        className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-sm"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">
+                        Email Template
+                      </label>
+                      <select
+                        value={exitDocsEmailTemplateType}
+                        onChange={(e) => setExitDocsEmailTemplateType(e.target.value as 'standard' | 'voluntary' | 'involuntary')}
+                        className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-sm"
+                      >
+                        <option value="standard">Standard</option>
+                        <option value="voluntary">Voluntary</option>
+                        <option value="involuntary">Involuntary</option>
+                      </select>
+                      {employee.termination_type && (
+                        <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                          Termination type: {employee.termination_type}
+                        </p>
+                      )}
+                    </div>
+
+                    <div>
+                      <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">
+                        Custom Message (Optional)
+                      </label>
+                      <textarea
+                        value={exitDocsEmailCustomMessage}
+                        onChange={(e) => setExitDocsEmailCustomMessage(e.target.value)}
+                        placeholder="Add a personal note to include in the email..."
+                        rows={3}
+                        className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-sm"
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                {/* Send Button */}
+                <button
+                  onClick={handleSendExitDocsEmail}
+                  disabled={!exitDocsEmailRecipient || exitDocsList.length === 0 || isSendingExitDocsEmail}
+                  className="w-full px-4 py-3 bg-green-600 hover:bg-green-700 disabled:bg-gray-400 disabled:cursor-not-allowed text-white rounded-lg transition-colors flex items-center justify-center gap-2 font-semibold"
+                >
+                  <Send className="w-5 h-5" />
+                  {isSendingExitDocsEmail ? 'Sending...' : exitDocsEmailSent ? 'Resend Exit Documents Email' : 'Send Exit Documents Email'}
+                </button>
+
+                {/* Success Banner */}
+                {exitDocsEmailSent && (
+                  <div className="flex items-center gap-2 p-3 bg-green-100 dark:bg-green-900/30 rounded-lg border border-green-200 dark:border-green-800">
+                    <CheckCircle className="w-5 h-5 text-green-600 flex-shrink-0" />
+                    <p className="text-sm text-green-800 dark:text-green-200">
+                      Exit documents email sent successfully to {exitDocsEmailRecipient}.
+                    </p>
+                  </div>
+                )}
+              </div>
+            )}
+
             {/* Notes Section */}
             <div className="bg-gray-50 dark:bg-gray-700 rounded-lg p-4 space-y-3">
               <h3 className="font-semibold text-gray-900 dark:text-white flex items-center gap-2">
@@ -1796,6 +2030,7 @@ export default function OffboardingTaskDrawer({
           )}
         </>
       )}
-    </AnimatePresence>
+    </AnimatePresence>,
+    document.body
   );
 }
