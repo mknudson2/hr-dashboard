@@ -4,6 +4,7 @@ import os
 from fastapi import APIRouter, Depends, HTTPException, UploadFile, File as FastAPIFile
 from fastapi.responses import StreamingResponse
 from sqlalchemy.orm import Session
+from sqlalchemy.orm.attributes import flag_modified
 from sqlalchemy import func
 from datetime import datetime, date, timedelta
 from typing import List, Optional
@@ -358,6 +359,7 @@ def update_offboarding_task(
             "created_by": "User"
         }
         task.notes_history.append(note_entry)
+        flag_modified(task, "notes_history")
 
         # Also update the 'notes' field with the latest note for backward compatibility
         task.notes = task_update.add_note
@@ -376,6 +378,7 @@ def update_offboarding_task(
 
         # Append the new uncheck event
         task.uncheck_history.append(task_update.uncheck_history)
+        flag_modified(task, "uncheck_history")
 
     task.updated_at = datetime.now()
 

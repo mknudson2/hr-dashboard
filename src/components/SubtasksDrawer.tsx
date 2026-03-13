@@ -123,6 +123,11 @@ interface Subtask {
     file_url?: string;
   };
   notes?: string;
+  notes_history?: Array<{
+    note: string;
+    timestamp: string;
+    created_by: string;
+  }>;
   uncheck_history?: Array<{
     action: string;
     timestamp: string;
@@ -628,9 +633,8 @@ export default function SubtasksDrawer({
   };
 
   const handleAddNote = (taskId: number) => {
-    const task = subtasks.find(t => t.id === taskId);
     setEditingTaskId(taskId);
-    setNoteText(task?.notes || '');
+    setNoteText('');
     setShowNoteModal(true);
   };
 
@@ -797,45 +801,47 @@ export default function SubtasksDrawer({
               <div className="flex items-center justify-between">
                 <h3 className="font-semibold text-gray-900 dark:text-white flex items-center gap-2">
                   <FileText className="w-4 h-4" />
-                  Parent Task Notes
+                  Notes History
                 </h3>
                 {!isEditingParentNotes && onAddNote && (
                   <button
                     onClick={() => {
-                      setParentNoteText(parentTask.notes || '');
+                      setParentNoteText('');
                       setIsEditingParentNotes(true);
                     }}
                     className="text-sm text-blue-600 hover:text-blue-700 dark:text-blue-400"
                   >
-                    {parentTask.notes ? 'Edit' : 'Add Note'}
+                    Add Note
                   </button>
                 )}
               </div>
 
-              {isEditingParentNotes ? (
+              {isEditingParentNotes && (
                 <div className="space-y-2">
                   <textarea
                     value={parentNoteText}
                     onChange={(e) => setParentNoteText(e.target.value)}
-                    placeholder="Enter notes here..."
+                    placeholder="Add a new note..."
                     className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white min-h-[80px]"
                     autoFocus
                   />
                   <div className="flex gap-2">
                     <button
                       onClick={() => {
-                        if (onAddNote) {
+                        if (onAddNote && parentNoteText.trim()) {
                           onAddNote(parentTask.id, parentNoteText);
                         }
                         setIsEditingParentNotes(false);
+                        setParentNoteText('');
                       }}
-                      className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors text-sm"
+                      disabled={!parentNoteText.trim()}
+                      className="px-4 py-2 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 text-white rounded-lg transition-colors text-sm"
                     >
-                      Save
+                      Add Note
                     </button>
                     <button
                       onClick={() => {
-                        setParentNoteText(parentTask.notes || '');
+                        setParentNoteText('');
                         setIsEditingParentNotes(false);
                       }}
                       className="px-4 py-2 bg-gray-200 dark:bg-gray-600 text-gray-900 dark:text-white rounded-lg hover:bg-gray-300 dark:hover:bg-gray-500 transition-colors text-sm"
@@ -844,11 +850,32 @@ export default function SubtasksDrawer({
                     </button>
                   </div>
                 </div>
-              ) : (
-                <div className="text-sm text-gray-600 dark:text-gray-400">
-                  {parentTask.notes || 'No notes added yet'}
-                </div>
               )}
+
+              {/* Notes History List */}
+              <div className="space-y-3 max-h-60 overflow-y-auto">
+                {parentTask.notes_history && parentTask.notes_history.length > 0 ? (
+                  [...parentTask.notes_history].reverse().map((noteEntry, index) => (
+                    <div key={index} className="bg-white dark:bg-gray-800 rounded-lg p-3 border border-gray-200 dark:border-gray-600">
+                      <p className="text-sm text-gray-900 dark:text-white whitespace-pre-wrap">
+                        {noteEntry.note}
+                      </p>
+                      <div className="flex items-center gap-2 mt-2 text-xs text-gray-500 dark:text-gray-400">
+                        <span>{noteEntry.created_by}</span>
+                        <span>•</span>
+                        <span>
+                          {new Date(noteEntry.timestamp).toLocaleDateString()} at{' '}
+                          {new Date(noteEntry.timestamp).toLocaleTimeString()}
+                        </span>
+                      </div>
+                    </div>
+                  ))
+                ) : (
+                  <p className="text-sm text-gray-500 dark:text-gray-400 text-center py-4">
+                    No notes yet. Add your first note above.
+                  </p>
+                )}
+              </div>
             </div>
 
             {/* Action Buttons */}
@@ -998,16 +1025,31 @@ export default function SubtasksDrawer({
                           className="flex items-center gap-2 px-3 py-1.5 bg-gray-600 hover:bg-gray-700 text-white rounded-lg text-xs transition-colors"
                         >
                           <FileText className="w-3 h-3" />
-                          {subtask.notes ? 'Edit Note' : 'Add Note'}
+                          Add Note
                         </button>
                       )}
-
-                      {subtask.notes && (
-                        <span className="text-xs text-gray-500 dark:text-gray-400 italic">
-                          Note added
-                        </span>
-                      )}
                     </div>
+
+                    {/* Subtask Notes History */}
+                    {subtask.notes_history && subtask.notes_history.length > 0 && (
+                      <div className="ml-14 mt-2 space-y-2">
+                        {[...subtask.notes_history].reverse().map((noteEntry, index) => (
+                          <div key={index} className="bg-white dark:bg-gray-800 rounded-lg p-2 border border-gray-200 dark:border-gray-600">
+                            <p className="text-xs text-gray-900 dark:text-white whitespace-pre-wrap">
+                              {noteEntry.note}
+                            </p>
+                            <div className="flex items-center gap-2 mt-1 text-xs text-gray-500 dark:text-gray-400">
+                              <span>{noteEntry.created_by}</span>
+                              <span>•</span>
+                              <span>
+                                {new Date(noteEntry.timestamp).toLocaleDateString()} at{' '}
+                                {new Date(noteEntry.timestamp).toLocaleTimeString()}
+                              </span>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
                   </div>
                 );
               })}

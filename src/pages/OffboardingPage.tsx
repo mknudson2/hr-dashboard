@@ -435,7 +435,7 @@ export default function OffboardingPage() {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
-        body: JSON.stringify({ notes: note })
+        body: JSON.stringify({ add_note: note })
       });
       await loadData();
     } catch (error) {
