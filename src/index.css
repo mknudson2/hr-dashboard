@@ -63,6 +63,23 @@ body,
   100% { background-position: 50% 0%; }
 }
 
+/* Bifrost glow border for cards */
+.bifrost-glow-border {
+  background: linear-gradient(135deg, var(--bifrost-violet), var(--aurora-teal), var(--bridge-gold), var(--aurora-teal), var(--bifrost-violet));
+  background-size: 300% 300%;
+  animation: bifrostGlow 6s ease infinite;
+  box-shadow:
+    0 0 15px rgba(108, 63, 160, 0.4),
+    0 0 30px rgba(42, 191, 191, 0.2),
+    0 0 45px rgba(232, 184, 75, 0.15);
+}
+
+@keyframes bifrostGlow {
+  0% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+
 /* Aurora gradient background */
 .bifrost-aurora {
   background:

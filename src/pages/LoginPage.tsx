@@ -164,8 +164,9 @@ const LoginPage = () => {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.3 }}
-          className="bg-white dark:bg-gray-800 rounded-2xl shadow-xl p-8"
+          className="relative rounded-2xl p-[2px] bifrost-glow-border"
         >
+        <div className="bg-white dark:bg-gray-800 rounded-2xl p-8">
           <form onSubmit={handleSubmit} className="space-y-6">
             {/* Error Message */}
             {error && (
@@ -239,6 +240,7 @@ const LoginPage = () => {
             </button>
           </form>
 
+        </div>
         </motion.div>
 
         {/* Footer */}
