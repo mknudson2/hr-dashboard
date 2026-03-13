@@ -301,6 +301,60 @@ class OffboardingPDFService:
             elements.append(task_table)
             elements.append(Spacer(1, 0.15*inch))
 
+        # === EXIT INTERVIEW SCHEDULE (if details exist) ===
+        interview_details = None
+        for task in tasks:
+            td = task.get('task_details')
+            if td and (td.get('scheduled_date') or td.get('participants') or td.get('interview_time')):
+                interview_details = td
+                break
+
+        if interview_details:
+            elements.append(Spacer(1, 0.2*inch))
+            elements.append(Paragraph("Exit Interview Schedule", self.styles['SectionTitle']))
+            elements.append(Spacer(1, 0.1*inch))
+
+            interview_data = [
+                [Paragraph("<b>Field</b>", self.styles['TableHeader']),
+                 Paragraph("<b>Value</b>", self.styles['TableHeader'])],
+            ]
+
+            participants = interview_details.get('participants', [])
+            if participants:
+                interview_data.append([
+                    Paragraph("Participants", self.styles['TableText']),
+                    Paragraph(", ".join(participants) if isinstance(participants, list) else str(participants), self.styles['TableText']),
+                ])
+
+            if interview_details.get('scheduled_date'):
+                interview_data.append([
+                    Paragraph("Date", self.styles['TableText']),
+                    Paragraph(interview_details['scheduled_date'], self.styles['TableText']),
+                ])
+
+            if interview_details.get('interview_time'):
+                interview_data.append([
+                    Paragraph("Time", self.styles['TableText']),
+                    Paragraph(interview_details['interview_time'], self.styles['TableText']),
+                ])
+
+            interview_table = Table(interview_data, colWidths=[2.5*inch, 4*inch])
+            interview_table.setStyle(TableStyle([
+                ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#3b82f6')),
+                ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
+                ('ALIGN', (0, 0), (-1, 0), 'CENTER'),
+                ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+                ('BOTTOMPADDING', (0, 0), (-1, 0), 10),
+                ('BACKGROUND', (0, 1), (-1, -1), colors.beige),
+                ('GRID', (0, 0), (-1, -1), 1, colors.HexColor('#d1d5db')),
+                ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+                ('LEFTPADDING', (0, 0), (-1, -1), 10),
+                ('RIGHTPADDING', (0, 0), (-1, -1), 10),
+                ('TOPPADDING', (0, 1), (-1, -1), 6),
+                ('BOTTOMPADDING', (0, 1), (-1, -1), 6),
+            ]))
+            elements.append(interview_table)
+
         elements.append(PageBreak())
 
         # === EXIT CHECKLIST PAGE ===

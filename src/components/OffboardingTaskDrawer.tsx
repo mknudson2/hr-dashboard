@@ -85,6 +85,7 @@ export default function OffboardingTaskDrawer({
   const [participants, setParticipants] = useState('');
   const [scheduledDate, setScheduledDate] = useState('');
   const [interviewTime, setInterviewTime] = useState('');
+  const [isEditingInterview, setIsEditingInterview] = useState(false);
   const [showUncheckModal, setShowUncheckModal] = useState(false);
   const [uncheckReason, setUncheckReason] = useState('');
   const [employee, setEmployee] = useState<Employee | null>(null);
@@ -253,7 +254,10 @@ export default function OffboardingTaskDrawer({
         interview_time: interviewTime
       }
     });
+    setIsEditingInterview(false);
   };
+
+  const hasInterviewDetails = !!(task.task_details?.scheduled_date || (task.task_details?.participants && task.task_details.participants.length > 0));
 
   const handleCheckboxChange = (checked: boolean) => {
     if (!checked && task.status === 'Completed') {
@@ -586,55 +590,122 @@ export default function OffboardingTaskDrawer({
                 <h3 className="font-semibold text-gray-900 dark:text-white flex items-center gap-2">
                   <Calendar className="w-4 h-4" />
                   Interview Details
+                  {hasInterviewDetails && !isEditingInterview && (
+                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400">
+                      <CheckCircle className="w-3 h-3" />
+                      Scheduled
+                    </span>
+                  )}
                 </h3>
 
-                <div className="space-y-3">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                      Participants
-                    </label>
-                    <input
-                      type="text"
-                      value={participants}
-                      onChange={(e) => setParticipants(e.target.value)}
-                      placeholder="Enter names separated by commas"
-                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
-                    />
-                  </div>
+                {hasInterviewDetails && !isEditingInterview ? (
+                  <div className="space-y-3">
+                    {task.task_details?.participants && task.task_details.participants.length > 0 && (
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                          Participants
+                        </label>
+                        <div className="px-3 py-2 bg-gray-100 dark:bg-gray-800 rounded-lg text-gray-900 dark:text-white font-medium">
+                          {task.task_details.participants.join(', ')}
+                        </div>
+                      </div>
+                    )}
 
-                  <div className="grid grid-cols-2 gap-3">
+                    <div className="grid grid-cols-2 gap-3">
+                      {task.task_details?.scheduled_date && (
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                            Date
+                          </label>
+                          <div className="px-3 py-2 bg-gray-100 dark:bg-gray-800 rounded-lg text-gray-900 dark:text-white font-medium">
+                            {new Date(task.task_details.scheduled_date + 'T00:00:00').toLocaleDateString()}
+                          </div>
+                        </div>
+                      )}
+
+                      {task.task_details?.interview_time && (
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                            Time
+                          </label>
+                          <div className="px-3 py-2 bg-gray-100 dark:bg-gray-800 rounded-lg text-gray-900 dark:text-white font-medium">
+                            {new Date(`2000-01-01T${task.task_details.interview_time}`).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+
+                    <button
+                      onClick={() => setIsEditingInterview(true)}
+                      className="w-full px-4 py-2 border border-blue-600 text-blue-600 dark:border-blue-400 dark:text-blue-400 rounded-lg hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-colors"
+                    >
+                      Edit Details
+                    </button>
+                  </div>
+                ) : (
+                  <div className="space-y-3">
                     <div>
                       <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                        Date
+                        Participants
                       </label>
                       <input
-                        type="date"
-                        value={scheduledDate}
-                        onChange={(e) => setScheduledDate(e.target.value)}
+                        type="text"
+                        value={participants}
+                        onChange={(e) => setParticipants(e.target.value)}
+                        placeholder="Enter names separated by commas"
                         className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
                       />
                     </div>
 
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                        Time
-                      </label>
-                      <input
-                        type="time"
-                        value={interviewTime}
-                        onChange={(e) => setInterviewTime(e.target.value)}
-                        className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
-                      />
+                    <div className="grid grid-cols-2 gap-3">
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                          Date
+                        </label>
+                        <input
+                          type="date"
+                          value={scheduledDate}
+                          onChange={(e) => setScheduledDate(e.target.value)}
+                          className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                        />
+                      </div>
+
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                          Time
+                        </label>
+                        <input
+                          type="time"
+                          value={interviewTime}
+                          onChange={(e) => setInterviewTime(e.target.value)}
+                          className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                        />
+                      </div>
+                    </div>
+
+                    <div className={`flex gap-2 ${hasInterviewDetails ? '' : ''}`}>
+                      <button
+                        onClick={handleSaveInterviewDetails}
+                        className="flex-1 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors"
+                      >
+                        Save Interview Details
+                      </button>
+                      {hasInterviewDetails && (
+                        <button
+                          onClick={() => {
+                            setParticipants(task.task_details?.participants?.join(', ') || '');
+                            setScheduledDate(task.task_details?.scheduled_date || '');
+                            setInterviewTime(task.task_details?.interview_time || '');
+                            setIsEditingInterview(false);
+                          }}
+                          className="px-4 py-2 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+                        >
+                          Cancel
+                        </button>
+                      )}
                     </div>
                   </div>
-
-                  <button
-                    onClick={handleSaveInterviewDetails}
-                    className="w-full px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors"
-                  >
-                    Save Interview Details
-                  </button>
-                </div>
+                )}
               </div>
             )}
 
