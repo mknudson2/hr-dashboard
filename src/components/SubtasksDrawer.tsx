@@ -414,8 +414,10 @@ export default function SubtasksDrawer({
     }
 
     setIsQuickDownloading(true);
+    const blobUrls: string[] = [];
     try {
-      for (const doc of exitDocuments) {
+      for (let i = 0; i < exitDocuments.length; i++) {
+        const doc = exitDocuments[i];
         const response = await fetch(`${BASE_URL}/offboarding/exit-document-download/${doc.id}`);
         if (!response.ok) continue;
 
@@ -428,18 +430,25 @@ export default function SubtasksDrawer({
 
         const blob = await response.blob();
         const blobUrl = window.URL.createObjectURL(blob);
+        blobUrls.push(blobUrl);
         const a = document.createElement('a');
         a.href = blobUrl;
         a.download = filename;
         document.body.appendChild(a);
         a.click();
-        window.URL.revokeObjectURL(blobUrl);
         document.body.removeChild(a);
+
+        // Small delay between downloads so the browser doesn't throttle them
+        if (i < exitDocuments.length - 1) {
+          await new Promise(resolve => setTimeout(resolve, 500));
+        }
       }
     } catch (error) {
       console.error('Error downloading documents:', error);
       alert('Failed to download some documents. Please try again.');
     } finally {
+      // Revoke blob URLs after all downloads have had time to start
+      setTimeout(() => blobUrls.forEach(url => window.URL.revokeObjectURL(url)), 5000);
       setIsQuickDownloading(false);
     }
   };

@@ -320,6 +320,8 @@ class UnifiedExitDocumentService:
 
         # Map form data to template PDF field names
         field_values = {
+            # Section 1: Employer Information (fix misspelling in template)
+            "Name of person completing this form Employer administrative contact": "Michael Knudson",
             # Section 2: Employee Information
             # Row 1: Name | DOB | Class
             "Name of person completing this form Employer administrative contact1": employee_name,
