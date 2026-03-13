@@ -12,6 +12,8 @@ type StatusChangeData = {
     rehireDate?: string;
     cancellationReason?: string;
     notes?: string;
+    terminationType?: string;
+    terminationReason?: string;
 };
 
 interface Employee {
@@ -188,7 +190,9 @@ export default function EmployeesPage() {
                         reason: data.reason,
                         rehire_date: data.rehireDate,
                         cancellation_reason: data.cancellationReason,
-                        notes: data.notes
+                        notes: data.notes,
+                        termination_type: data.terminationType,
+                        termination_reason: data.terminationReason
                     })
                 }
             );

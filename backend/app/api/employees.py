@@ -500,6 +500,8 @@ class StatusChangeRequest(BaseModel):
     rehire_date: Optional[str] = None
     cancellation_reason: Optional[str] = None
     notes: Optional[str] = None
+    termination_type: Optional[str] = None
+    termination_reason: Optional[str] = None
 
 
 @router.post("/{employee_id}/status-change")
@@ -636,6 +638,8 @@ def change_employee_status_with_reason(
     # Handle Active -> Terminated transitions
     elif old_status != "Terminated" and new_status == "Terminated":
         employee.termination_date = datetime.now().date()
+        employee.termination_type = request.termination_type or "Voluntary"
+        employee.termination_reason = request.termination_reason
         employee.reactivation_reason = None
         employee.reactivation_notes = None
 
@@ -655,7 +659,7 @@ def change_employee_status_with_reason(
                 all_tasks = checklist["tasks"]
 
                 employment_type = employee.employment_type if employee.employment_type else "Full Time"
-                termination_type = "Voluntary"
+                termination_type = request.termination_type or "Voluntary"
 
                 filtered_tasks = []
                 for task in all_tasks:
@@ -664,6 +668,10 @@ def change_employee_status_with_reason(
                         if condition == "full_time" and employment_type not in ["Full Time"]:
                             continue
                         if condition == "part_time" and employment_type not in ["Part Time"]:
+                            continue
+                        if condition == "voluntary" and termination_type != "Voluntary":
+                            continue
+                        if condition == "involuntary" and termination_type != "Involuntary":
                             continue
                         if condition == "has_benefits" and employment_type not in ["Full Time", "International"]:
                             continue

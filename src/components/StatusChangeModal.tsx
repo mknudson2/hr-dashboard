@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, AlertTriangle, UserMinus, UserCheck, RotateCcw, Calendar, FileText } from 'lucide-react';
 
@@ -9,6 +10,8 @@ export type StatusChangeData = {
   rehireDate?: string;
   cancellationReason?: string;
   notes?: string;
+  terminationType?: string;
+  terminationReason?: string;
 };
 
 interface Employee {
@@ -37,6 +40,8 @@ export default function StatusChangeModal({
   const [rehireDate, setRehireDate] = useState(new Date().toISOString().split('T')[0]);
   const [cancellationReason, setCancellationReason] = useState('');
   const [notes, setNotes] = useState('');
+  const [terminationType, setTerminationType] = useState('Voluntary');
+  const [terminationReason, setTerminationReason] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -66,6 +71,8 @@ export default function StatusChangeModal({
         rehireDate: selectedReason === 'rehired' ? rehireDate : undefined,
         cancellationReason: selectedReason === 'termination_cancelled' ? cancellationReason : undefined,
         notes: notes.trim() || undefined,
+        terminationType: changeType === 'to_terminated' ? terminationType : undefined,
+        terminationReason: changeType === 'to_terminated' ? (terminationReason || undefined) : undefined,
       };
 
       await onConfirm(data);
@@ -82,13 +89,15 @@ export default function StatusChangeModal({
     setRehireDate(new Date().toISOString().split('T')[0]);
     setCancellationReason('');
     setNotes('');
+    setTerminationType('Voluntary');
+    setTerminationReason('');
     setError(null);
     onClose();
   };
 
   if (!employee) return null;
 
-  return (
+  return createPortal(
     <AnimatePresence>
       {isOpen && (
         <>
@@ -98,15 +107,15 @@ export default function StatusChangeModal({
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             onClick={handleClose}
-            className="fixed inset-0 bg-black/50 z-50"
+            className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50"
           />
 
           {/* Modal */}
           <motion.div
-            initial={{ opacity: 0, scale: 0.95 }}
-            animate={{ opacity: 1, scale: 1 }}
-            exit={{ opacity: 0, scale: 0.95 }}
-            className="fixed inset-0 z-50 flex items-center justify-center p-4"
+            initial={{ opacity: 0, y: -20 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -20 }}
+            className="fixed inset-0 z-[60] flex items-center justify-center p-4"
           >
             <div className="bg-white dark:bg-gray-800 rounded-xl shadow-2xl max-w-lg w-full max-h-[90vh] overflow-y-auto">
               {/* Header */}
@@ -162,6 +171,44 @@ export default function StatusChangeModal({
                           <li>Trigger offboarding workflows</li>
                         </ul>
                       </div>
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                        Termination Type
+                      </label>
+                      <select
+                        value={terminationType}
+                        onChange={(e) => setTerminationType(e.target.value)}
+                        className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg
+                          bg-white dark:bg-gray-700 text-gray-900 dark:text-white
+                          focus:ring-2 focus:ring-red-500 outline-none"
+                      >
+                        <option value="Voluntary">Voluntary</option>
+                        <option value="Involuntary">Involuntary</option>
+                      </select>
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                        Termination Reason
+                      </label>
+                      <select
+                        value={terminationReason}
+                        onChange={(e) => setTerminationReason(e.target.value)}
+                        className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg
+                          bg-white dark:bg-gray-700 text-gray-900 dark:text-white
+                          focus:ring-2 focus:ring-red-500 outline-none"
+                      >
+                        <option value="">Select a reason...</option>
+                        <option value="Resignation">Resignation</option>
+                        <option value="Retirement">Retirement</option>
+                        <option value="Performance">Performance</option>
+                        <option value="Layoff">Layoff</option>
+                        <option value="Termination for Cause">Termination for Cause</option>
+                        <option value="Position Elimination">Position Elimination</option>
+                        <option value="Other">Other</option>
+                      </select>
                     </div>
 
                     <div>
@@ -374,6 +421,7 @@ export default function StatusChangeModal({
           </motion.div>
         </>
       )}
-    </AnimatePresence>
+    </AnimatePresence>,
+    document.body
   );
 }
