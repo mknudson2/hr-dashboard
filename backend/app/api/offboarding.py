@@ -1662,7 +1662,7 @@ async def upload_task_document(
     # Create FilledPdfForm record so it shows in Generated Documents
     filled_form = models.FilledPdfForm(
         form_type="exit_non_solicitation",
-        template_name=file.filename,
+        template_name=f"Non-Solicitation and Confidentiality Document_{employee.first_name} {employee.last_name}",
         employee_id=employee.id,
         file_path=file_path,
         file_size=file_size,
@@ -2170,11 +2170,12 @@ def generate_unified_documents(
             }
             db_form_type = db_form_type_map.get(doc_type, doc_type)
 
-            # Template name map
+            # Document display name (document name + employee name)
+            employee_full_name = f"{employee.first_name} {employee.last_name}"
             template_name_map = {
-                "important_info": "Important Information for Terminating Employees - Fillable.pdf",
-                "conversion": "Equitable Conversion Form - Template.pdf",
-                "portability": "Equitable Portability Form - Template.pdf"
+                "important_info": f"Important Information for Terminating Employee_{employee_full_name}",
+                "conversion": f"Equitable Conversion Form_{employee_full_name}",
+                "portability": f"Equitable Portability Form_{employee_full_name}"
             }
             template_name = template_name_map.get(doc_type, f"{doc_type}.pdf")
 

@@ -516,13 +516,13 @@ class UnifiedExitDocumentService:
 
         if form_type == "important_info":
             buffer = self.generate_important_info_form(form_data, employee)
-            base_filename = f"Exit_Info_{employee.first_name}_{employee.last_name}"
+            base_filename = f"Important Information for Terminating Employee_{employee_full_name}"
         elif form_type == "conversion":
             buffer = self.generate_conversion_form(form_data, employee)
-            base_filename = f"Equitable Conversion Form - {employee_full_name}"
+            base_filename = f"Equitable Conversion Form_{employee_full_name}"
         elif form_type == "portability":
             buffer = self.generate_portability_form(form_data, employee)
-            base_filename = f"Equitable Portability Form - {employee_full_name}"
+            base_filename = f"Equitable Portability Form_{employee_full_name}"
         else:
             raise ValueError(f"Unknown form type: {form_type}")
 
