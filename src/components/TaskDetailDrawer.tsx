@@ -284,6 +284,8 @@ export function TaskDetailDrawer({ isOpen, onClose, task, taskType, onUpdate }: 
             transition={{ type: 'spring', damping: 30, stiffness: 300 }}
             className="fixed right-0 top-0 h-full w-full max-w-2xl bg-white dark:bg-gray-800 shadow-2xl z-50 overflow-y-auto"
           >
+            {/* Bifröst shimmer edge */}
+            <div className="absolute left-0 top-0 bottom-0 w-[3px] bifrost-shimmer-v z-20" />
             <div className="p-6">
               {/* Header */}
               <div className="flex items-center justify-between mb-6 pb-4 border-b border-gray-200 dark:border-gray-700">

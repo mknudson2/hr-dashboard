@@ -28,6 +28,11 @@ interface OffboardingTask {
   completed_date: string | null;
   days_from_termination: number | null;
   notes?: string;
+  notes_history?: Array<{
+    note: string;
+    timestamp: string;
+    created_by: string;
+  }>;
   task_details?: any;
   parent_task_id?: number | null;
   has_subtasks?: boolean;
@@ -186,15 +191,15 @@ export default function OffboardingPage() {
       });
 
       if (response.ok) {
-        // Reload all data
-        await loadData();
+        // Refresh tasks without triggering full-page loading spinner
+        const tasksRes = await fetch(`${BASE_URL}/offboarding/tasks`, { credentials: 'include' });
+        if (tasksRes.ok) {
+          const data = await tasksRes.json();
+          setTasks(data.tasks || []);
 
-        // If SubtasksDrawer is open, refresh the selectedParentTask with updated subtasks
-        if (selectedParentTask) {
-          const tasksRes = await fetch(`${BASE_URL}/offboarding/tasks`, { credentials: 'include' });
-          if (tasksRes.ok) {
-            const data = await tasksRes.json();
-            const updatedParentTask = data.tasks?.find((t: OffboardingTask) => t.id === selectedParentTask.id);
+          // If SubtasksDrawer is open, refresh the selectedParentTask with updated subtasks
+          if (selectedParentTask) {
+            const updatedParentTask = (data.tasks || []).find((t: OffboardingTask) => t.id === selectedParentTask.id);
             if (updatedParentTask) {
               setSelectedParentTask(updatedParentTask);
             }
@@ -216,17 +221,14 @@ export default function OffboardingPage() {
       });
 
       if (response.ok) {
-        // Reload all data
-        await loadData();
+        // Refresh tasks without triggering full-page loading spinner
+        const tasksRes = await fetch(`${BASE_URL}/offboarding/tasks`, { credentials: 'include' });
+        if (tasksRes.ok) {
+          const data = await tasksRes.json();
+          setTasks(data.tasks || []);
 
-        // Fetch the updated task directly from the API to ensure we have the latest data
-        const taskResponse = await fetch(`${BASE_URL}/offboarding/tasks?employee_id=${selectedTaskForDrawer?.employee_id || ''}`, { credentials: 'include' });
-        if (taskResponse.ok) {
-          const data = await taskResponse.json();
-          // Search for the task in top-level tasks or within subtasks
-          let updatedTask = data.tasks?.find((t: OffboardingTask) => t.id === taskId);
-
-          // If not found in top-level, search in subtasks
+          // Update the drawer's task with fresh data
+          let updatedTask = (data.tasks || []).find((t: OffboardingTask) => t.id === taskId);
           if (!updatedTask) {
             for (const parentTask of data.tasks || []) {
               if (parentTask.subtasks) {
@@ -238,9 +240,16 @@ export default function OffboardingPage() {
               }
             }
           }
-
           if (updatedTask) {
             setSelectedTaskForDrawer(updatedTask);
+          }
+
+          // Also update selectedParentTask if the SubtasksDrawer is open
+          if (selectedParentTask) {
+            const updatedParent = (data.tasks || []).find((t: OffboardingTask) => t.id === selectedParentTask.id);
+            if (updatedParent) {
+              setSelectedParentTask(updatedParent);
+            }
           }
         }
       }
@@ -437,7 +446,19 @@ export default function OffboardingPage() {
         credentials: 'include',
         body: JSON.stringify({ add_note: note })
       });
-      await loadData();
+      // Refresh tasks without triggering full-page loading spinner
+      const tasksRes = await fetch(`${BASE_URL}/offboarding/tasks`, { credentials: 'include' });
+      if (tasksRes.ok) {
+        const data = await tasksRes.json();
+        setTasks(data.tasks || []);
+        // Update selectedParentTask so the drawer reflects the new note
+        if (selectedParentTask) {
+          const updatedParent = (data.tasks || []).find((t: OffboardingTask) => t.id === selectedParentTask.id);
+          if (updatedParent) {
+            setSelectedParentTask(updatedParent);
+          }
+        }
+      }
     } catch (error) {
       console.error('Error adding note:', error);
       alert('Failed to add note. Please try again.');

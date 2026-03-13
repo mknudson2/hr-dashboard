@@ -496,6 +496,8 @@ export default function OffboardingTaskDrawer({
             transition={{ type: "spring", damping: 30, stiffness: 300 }}
             className="fixed top-0 right-0 h-full w-full max-w-2xl bg-white dark:bg-gray-800 shadow-2xl z-50"
           >
+        {/* Bifröst shimmer edge */}
+        <div className="absolute left-0 top-0 bottom-0 w-[3px] bifrost-shimmer-v z-20" />
         <div className="h-full flex flex-col">
           {/* Header */}
           <div className="flex items-start justify-between p-6 border-b border-gray-200 dark:border-gray-700">

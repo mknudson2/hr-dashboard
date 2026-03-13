@@ -272,6 +272,7 @@ export default function SubtasksDrawer({
   const [emailTemplateType, setEmailTemplateType] = useState<'standard' | 'voluntary' | 'involuntary'>('standard');
   const [emailCustomMessage, setEmailCustomMessage] = useState('');
   const [isSendingEmail, setIsSendingEmail] = useState(false);
+  const [isQuickDownloading, setIsQuickDownloading] = useState(false);
   const [deletingDocumentId, setDeletingDocumentId] = useState<number | null>(null);
   const [isSavingDocument, setIsSavingDocument] = useState(false);
 
@@ -396,6 +397,43 @@ export default function SubtasksDrawer({
     } catch (error) {
       console.error('Error downloading document:', error);
       alert('Failed to download document. Please try again.');
+    }
+  };
+
+  const handleQuickDownloadAll = async () => {
+    if (exitDocuments.length === 0) {
+      alert('No generated documents to download. Please generate documents first.');
+      return;
+    }
+
+    setIsQuickDownloading(true);
+    try {
+      for (const doc of exitDocuments) {
+        const response = await fetch(`${BASE_URL}/offboarding/exit-document-download/${doc.id}`);
+        if (!response.ok) continue;
+
+        const disposition = response.headers.get('content-disposition');
+        let filename = `${doc.template_name || doc.form_type}.pdf`;
+        if (disposition) {
+          const match = disposition.match(/filename="?(.+?)"?$/);
+          if (match) filename = match[1];
+        }
+
+        const blob = await response.blob();
+        const blobUrl = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = blobUrl;
+        a.download = filename;
+        document.body.appendChild(a);
+        a.click();
+        window.URL.revokeObjectURL(blobUrl);
+        document.body.removeChild(a);
+      }
+    } catch (error) {
+      console.error('Error downloading documents:', error);
+      alert('Failed to download some documents. Please try again.');
+    } finally {
+      setIsQuickDownloading(false);
     }
   };
 
@@ -709,6 +747,8 @@ export default function SubtasksDrawer({
             transition={{ type: "spring", damping: 30, stiffness: 300 }}
             className="fixed top-0 right-0 h-full w-full max-w-3xl bg-white dark:bg-gray-800 shadow-2xl z-50"
           >
+        {/* Bifröst shimmer edge */}
+        <div className="absolute left-0 top-0 bottom-0 w-[3px] bifrost-shimmer-v z-20" />
         <div className="h-full flex flex-col">
           {/* Header */}
           <div className="flex items-start justify-between p-6 border-b border-gray-200 dark:border-gray-700">
@@ -926,12 +966,12 @@ export default function SubtasksDrawer({
                     {isLoadingFormData ? 'Loading...' : 'Complete Exit Documents Form'}
                   </button>
                   <button
-                    onClick={() => handleDownloadExitDocument(false)}
-                    disabled={isDownloadingExitDoc}
+                    onClick={handleQuickDownloadAll}
+                    disabled={isQuickDownloading || exitDocuments.length === 0}
                     className="flex items-center gap-2 px-4 py-2 bg-purple-600 hover:bg-purple-700 disabled:bg-purple-400 disabled:cursor-not-allowed text-white rounded-lg transition-colors"
                   >
                     <Download className="w-4 h-4" />
-                    {isDownloadingExitDoc ? 'Generating...' : 'Quick Download'}
+                    {isQuickDownloading ? 'Downloading...' : `Quick Download${exitDocuments.length > 0 ? ` (${exitDocuments.length})` : ''}`}
                   </button>
                 </>
               )}
