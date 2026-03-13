@@ -548,6 +548,7 @@ export default function SubtasksDrawer({
       const defaultDocs = ['important_info'];
       if (data.employment_type && data.employment_type.toLowerCase().includes('full time')) {
         defaultDocs.push('conversion');
+        defaultDocs.push('portability');
       }
       setSelectedDocuments(defaultDocs);
       setShowExitDocForm(true);
@@ -1315,15 +1316,18 @@ export default function SubtasksDrawer({
                     <span className="text-xs text-gray-500">(Full-time only)</span>
                   )}
                 </label>
-                <label className={`flex items-center gap-2 opacity-50`}>
+                <label className={`flex items-center gap-2 ${!(exitDocFormData.employment_type && exitDocFormData.employment_type.toLowerCase().includes('full time')) ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}>
                   <input
                     type="checkbox"
-                    checked={false}
-                    disabled
+                    checked={selectedDocuments.includes('portability')}
+                    onChange={() => handleToggleDocumentSelection('portability')}
+                    disabled={!(exitDocFormData.employment_type && exitDocFormData.employment_type.toLowerCase().includes('full time'))}
                     className="w-4 h-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
                   />
                   <span className="text-sm text-gray-700 dark:text-gray-300">Equitable Portability Form</span>
-                  <span className="text-xs text-gray-500">(Coming soon)</span>
+                  {!(exitDocFormData.employment_type && exitDocFormData.employment_type.toLowerCase().includes('full time')) && (
+                    <span className="text-xs text-gray-500">(Full-time only)</span>
+                  )}
                 </label>
               </div>
             </div>
