@@ -498,9 +498,11 @@ export default function OffboardingTaskDrawer({
             animate={{ x: 0 }}
             exit={{ x: "100%" }}
             transition={{ type: "spring", damping: 30, stiffness: 300 }}
-            className="fixed top-0 right-0 h-full w-full max-w-2xl bg-white dark:bg-gray-800 shadow-2xl z-50"
+            className="fixed top-0 right-0 h-full w-full max-w-2xl bg-white dark:bg-gray-800 shadow-2xl z-50 flex"
           >
-        <div className="h-full flex flex-col">
+            {/* Left shimmer bar */}
+            <div className="bifrost-shimmer-v w-1 shrink-0" />
+        <div className="h-full flex flex-col flex-1 min-w-0">
           {/* Header */}
           <div className="flex items-start justify-between p-6 border-b border-gray-200 dark:border-gray-700">
             <div className="flex items-start gap-4 flex-1">
