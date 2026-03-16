@@ -19,6 +19,9 @@ FOLDER_SETTINGS_FILE = os.path.join(os.path.dirname(__file__), "..", "data", "fo
 # File path for storing HR contacts settings
 HR_CONTACTS_FILE = os.path.join(os.path.dirname(__file__), "..", "data", "hr_contacts_settings.json")
 
+# File path for storing international settings
+INTERNATIONAL_SETTINGS_FILE = os.path.join(os.path.dirname(__file__), "..", "data", "international_settings.json")
+
 
 class EmployeeFolderSettings(BaseModel):
     base_path: str = ""
@@ -228,6 +231,8 @@ def create_employee_folder(first_name: str, last_name: str, state: str = None) -
 
 class HRContactsSettings(BaseModel):
     retirement_contact_name: str = "Kat Haynie"
+    equipment_return_contact_name: str = ""
+    equipment_return_contact_email: str = ""
 
 
 def get_hr_contacts_settings() -> HRContactsSettings:
@@ -264,6 +269,61 @@ def update_hr_contacts(settings: HRContactsSettings):
     save_hr_contacts_settings(settings)
     return {
         "message": "HR contacts settings updated successfully",
+        "settings": settings.model_dump()
+    }
+
+
+# ============================================================================
+# International Employee Settings
+# ============================================================================
+
+class InternationalSettings(BaseModel):
+    id_prefixes: List[str] = ["C", "AM", "BH"]
+    prefix_labels: Dict[str, str] = {"C": "Congruent", "AM": "Ameripol", "BH": "Bloom"}
+    contractor_contact_name: str = ""
+    contractor_contact_email: str = ""
+
+
+def get_international_settings() -> InternationalSettings:
+    """Load international settings from file"""
+    try:
+        if os.path.exists(INTERNATIONAL_SETTINGS_FILE):
+            with open(INTERNATIONAL_SETTINGS_FILE, 'r') as f:
+                data = json.load(f)
+                return InternationalSettings(**data)
+    except Exception:
+        pass
+    return InternationalSettings()
+
+
+def save_international_settings(settings: InternationalSettings) -> None:
+    """Save international settings to file"""
+    os.makedirs(os.path.dirname(INTERNATIONAL_SETTINGS_FILE), exist_ok=True)
+    with open(INTERNATIONAL_SETTINGS_FILE, 'w') as f:
+        json.dump(settings.model_dump(), f, indent=2)
+
+
+@router.get("/international")
+def get_international():
+    """Get the current international employee settings"""
+    settings = get_international_settings()
+    return settings.model_dump()
+
+
+@router.put("/international")
+def update_international(settings: InternationalSettings):
+    """Update international employee settings"""
+    # Validate prefixes are non-empty strings
+    settings.id_prefixes = [p.strip() for p in settings.id_prefixes if p.strip()]
+    if not settings.id_prefixes:
+        raise HTTPException(status_code=400, detail="At least one ID prefix is required")
+    # Ensure prefix_labels keys match id_prefixes
+    for prefix in settings.id_prefixes:
+        if prefix not in settings.prefix_labels:
+            settings.prefix_labels[prefix] = prefix
+    save_international_settings(settings)
+    return {
+        "message": "International settings updated successfully",
         "settings": settings.model_dump()
     }
 

@@ -240,6 +240,40 @@ app.add_middleware(RequestSizeLimitMiddleware)
 # Create DB tables on startup
 models.Base.metadata.create_all(bind=database.engine)
 
+# Backfill is_international flag based on configured ID prefixes
+def backfill_international_flag():
+    """Auto-populate is_international for employees matching configured ID prefixes."""
+    from app.api.settings import get_international_settings
+    try:
+        db = database.SessionLocal()
+        intl_settings = get_international_settings()
+        prefixes = intl_settings.id_prefixes
+        if not prefixes:
+            return
+        # Find employees where is_international is NULL and ID matches a prefix
+        employees = db.query(models.Employee).filter(
+            models.Employee.is_international == None
+        ).all()
+        updated = 0
+        for emp in employees:
+            if emp.employee_id:
+                # Sort prefixes by length desc to match longer ones first
+                for prefix in sorted(prefixes, key=len, reverse=True):
+                    if emp.employee_id.startswith(prefix):
+                        emp.is_international = True
+                        updated += 1
+                        break
+                else:
+                    emp.is_international = False
+        if updated > 0:
+            db.commit()
+            print(f"Backfilled is_international for {updated} employees")
+        db.close()
+    except Exception as e:
+        print(f"Warning: is_international backfill skipped: {e}")
+
+backfill_international_flag()
+
 # Dependency to get DB session
 
 

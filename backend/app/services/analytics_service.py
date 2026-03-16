@@ -119,11 +119,12 @@ def get_regrettable_turnover_pct(session: Session) -> float:
 def get_international_breakdown(session: Session) -> Dict[str, Any]:
     """
     Bottom-left donut: breakdown by employee_id prefix among ACTIVE employees.
-      - Congruent: IDs starting with 'C' (e.g., 'C16')
-      - Ameripol:  IDs starting with 'AM'
-      - Bloom:     IDs starting with 'BH'
+    Uses configurable prefixes from international settings.
     Returns raw counts + total.
     """
+    from app.api.settings import get_international_settings
+    intl_settings = get_international_settings()
+
     as_of = date.today()
     base_active = session.query(models.Employee).filter(
         models.Employee.hire_date <= as_of,
@@ -134,18 +135,17 @@ def get_international_breakdown(session: Session) -> Dict[str, Any]:
     def count_prefix(prefix: str) -> int:
         return int(base_active.filter(models.Employee.employee_id.like(f"{prefix}%")).count() or 0)
 
-    congruent = count_prefix("C")
-    ameripol = count_prefix("AM")
-    bloom = count_prefix("BH")
-    total = congruent + ameripol + bloom
+    by_group = {}
+    total = 0
+    for prefix in intl_settings.id_prefixes:
+        label = intl_settings.prefix_labels.get(prefix, prefix)
+        count = count_prefix(prefix)
+        by_group[label] = count
+        total += count
 
     return {
         "total_international": total,
-        "by_group": {
-            "Congruent": congruent,
-            "Ameripol": ameripol,
-            "Bloom": bloom,
-        }
+        "by_group": by_group,
     }
 
 

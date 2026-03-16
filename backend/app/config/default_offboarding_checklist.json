@@ -335,6 +335,26 @@
       "order": 20
     },
     {
+      "task_name": "Confirm Termination Request",
+      "task_description": "Review and confirm the termination request for the international employee",
+      "category": "International",
+      "assigned_to_role": "HR",
+      "days_from_termination": -1,
+      "priority": "Critical",
+      "order": 19,
+      "conditional": "international"
+    },
+    {
+      "task_name": "Send Access Shutoff Request to IT",
+      "task_description": "Send request to IT to shut off all system access for the international employee",
+      "category": "International",
+      "assigned_to_role": "HR",
+      "days_from_termination": 0,
+      "priority": "Critical",
+      "order": 20,
+      "conditional": "international"
+    },
+    {
       "task_name": "Send Email to Contractor to Terminate Employee",
       "task_description": "Send automatic, dynamic email to contractor requesting employee termination",
       "category": "International",

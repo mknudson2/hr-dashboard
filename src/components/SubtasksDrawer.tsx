@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
-import { X, CheckCircle, Mail, Upload, FileText, Clock, AlertCircle, Loader2, Download, Edit3, Send, FolderOpen, Trash2 } from 'lucide-react';
+import { X, CheckCircle, Mail, Upload, FileText, Clock, AlertCircle, Loader2, Download, Edit3, Send, FolderOpen, Trash2, Package, Check, AlertTriangle } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
 const BASE_URL = '';
@@ -114,6 +114,22 @@ interface ExitDocumentFormData {
   // Meta info for display
   employment_type?: string;
   termination_type?: string;
+}
+
+interface EquipmentAssignment {
+  assignment_id: number;
+  equipment_id: number | null;
+  equipment_type: string;
+  manufacturer: string;
+  model: string;
+  serial_number: string;
+  asset_tag: string;
+  assigned_date: string | null;
+  shipping_label_requested: boolean;
+  shipping_label_sent: boolean;
+  return_requested: boolean;
+  equipment_received: boolean;
+  equipment_received_date: string | null;
 }
 
 interface Subtask {
@@ -284,8 +300,278 @@ export default function SubtasksDrawer({
   const [deletingDocumentId, setDeletingDocumentId] = useState<number | null>(null);
   const [isSavingDocument, setIsSavingDocument] = useState(false);
 
+  // Equipment return state
+  const [equipmentAssignments, setEquipmentAssignments] = useState<EquipmentAssignment[]>([]);
+  const [isLoadingEquipment, setIsLoadingEquipment] = useState(false);
+  const [selectedEquipmentIds, setSelectedEquipmentIds] = useState<number[]>([]);
+  const [isSendingLabelRequest, setIsSendingLabelRequest] = useState(false);
+  const [isSendingReturnEmail, setIsSendingReturnEmail] = useState(false);
+  const [labelUploadedFile, setLabelUploadedFile] = useState<string | null>(null);
+  const [isUploadingLabel, setIsUploadingLabel] = useState(false);
+  const [equipmentEmployeeEmail, setEquipmentEmployeeEmail] = useState('');
+
+  // Determine if this is an "Equipment to Return?" task
+  const isEquipmentReturnTask = parentTask?.task_name === "Equipment to Return?";
+
   // Determine if this is a "Prepare Exit Documents" task
   const isPrepareExitDocumentsTask = parentTask?.task_name?.toLowerCase().includes('prepare exit documents');
+
+  // Determine if this is the "Send Email to Contractor to Terminate Employee" task
+  const isContractorTask = parentTask?.task_name === "Send Email to Contractor to Terminate Employee";
+  const [contractorConfirmed, setContractorConfirmed] = useState(false);
+  const [contractorConfirmedAt, setContractorConfirmedAt] = useState<string | null>(null);
+  const [contractorEmailSent, setContractorEmailSent] = useState(false);
+  const [contractorEmailLoading, setContractorEmailLoading] = useState(false);
+  const [contractorProofUploaded, setContractorProofUploaded] = useState(false);
+  const [contractorProofName, setContractorProofName] = useState<string | null>(null);
+  const [contractorConfirmLoading, setContractorConfirmLoading] = useState(false);
+
+  // Initialize contractor task state from task_details when drawer opens
+  useEffect(() => {
+    if (isOpen && isContractorTask && parentTask) {
+      const details = parentTask.task_details as Record<string, unknown> | undefined;
+      setContractorConfirmed(!!details?.contractor_confirmed);
+      setContractorConfirmedAt((details?.confirmed_at as string) || null);
+      setContractorEmailSent(!!details?.email_sent);
+      setContractorProofUploaded(!!details?.proof_uploaded);
+      setContractorProofName((details?.proof_file_name as string) || null);
+    }
+  }, [isOpen, isContractorTask, parentTask]);
+
+  // Load equipment assignments when drawer opens for equipment return task
+  useEffect(() => {
+    if (isOpen && isEquipmentReturnTask && employeeId) {
+      loadEquipmentAssignments();
+    }
+  }, [isOpen, isEquipmentReturnTask, employeeId]);
+
+  const loadEquipmentAssignments = async () => {
+    if (!employeeId) return;
+    setIsLoadingEquipment(true);
+    try {
+      const response = await fetch(`${BASE_URL}/offboarding/equipment-assignments/${employeeId}`, {
+        credentials: 'include',
+      });
+      if (response.ok) {
+        const data = await response.json();
+        setEquipmentAssignments(data.assignments || []);
+        // Select all by default
+        setSelectedEquipmentIds((data.assignments || []).map((a: EquipmentAssignment) => a.assignment_id));
+        // Try to pre-populate employee email
+        if (!equipmentEmployeeEmail) {
+          try {
+            const empResp = await fetch(`${BASE_URL}/offboarding/unified-form-data/${employeeId}`, { credentials: 'include' });
+            if (empResp.ok) {
+              const empData = await empResp.json();
+              if (empData.personal_email) setEquipmentEmployeeEmail(empData.personal_email);
+            }
+          } catch { /* ignore */ }
+        }
+      }
+    } catch (error) {
+      console.error('Error loading equipment assignments:', error);
+    } finally {
+      setIsLoadingEquipment(false);
+    }
+  };
+
+  // Contractor task handlers
+  const handleSendContractorEmail = async () => {
+    if (!employeeId) return;
+    setContractorEmailLoading(true);
+    try {
+      const response = await fetch(`${BASE_URL}/offboarding/contractor-termination-email/${employeeId}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ notes: '' }),
+      });
+      if (response.ok) {
+        setContractorEmailSent(true);
+      } else {
+        const err = await response.json();
+        alert(err.detail || 'Failed to send contractor email');
+      }
+    } catch {
+      alert('Failed to send contractor email');
+    } finally {
+      setContractorEmailLoading(false);
+    }
+  };
+
+  const handleContractorConfirmToggle = async () => {
+    if (!parentTask) return;
+    const newValue = !contractorConfirmed;
+    setContractorConfirmLoading(true);
+    try {
+      const taskId = (parentTask as unknown as { task_id: string }).task_id;
+      const response = await fetch(`${BASE_URL}/offboarding/tasks/${taskId}/contractor-confirmed`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ confirmed: newValue }),
+      });
+      if (response.ok) {
+        const data = await response.json();
+        setContractorConfirmed(newValue);
+        setContractorConfirmedAt(data.confirmed_at || null);
+        // Auto-complete if both confirmed and proof uploaded
+        if (newValue && contractorProofUploaded) {
+          onUpdateSubtask(parentTask.id, 'Completed');
+        }
+      }
+    } catch {
+      // revert
+    } finally {
+      setContractorConfirmLoading(false);
+    }
+  };
+
+  const handleContractorProofUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (!parentTask || !e.target.files?.[0]) return;
+    const file = e.target.files[0];
+    const taskId = (parentTask as unknown as { task_id: string }).task_id;
+    const formData = new FormData();
+    formData.append('file', file);
+
+    try {
+      const response = await fetch(`${BASE_URL}/offboarding/tasks/${taskId}/upload`, {
+        method: 'POST',
+        credentials: 'include',
+        body: formData,
+      });
+      if (response.ok) {
+        setContractorProofUploaded(true);
+        setContractorProofName(file.name);
+        // Auto-complete if both confirmed and proof uploaded
+        if (contractorConfirmed) {
+          onUpdateSubtask(parentTask.id, 'Completed');
+        }
+      }
+    } catch {
+      alert('Failed to upload proof');
+    }
+  };
+
+  const toggleEquipmentSelection = (assignmentId: number) => {
+    setSelectedEquipmentIds(prev =>
+      prev.includes(assignmentId)
+        ? prev.filter(id => id !== assignmentId)
+        : [...prev, assignmentId]
+    );
+  };
+
+  const handleSendLabelRequest = async () => {
+    if (!employeeId || selectedEquipmentIds.length === 0) return;
+    setIsSendingLabelRequest(true);
+    try {
+      const response = await fetch(`${BASE_URL}/offboarding/equipment-label-request/${employeeId}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ items: selectedEquipmentIds }),
+      });
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.detail || 'Failed to send label request');
+      }
+      const result = await response.json();
+      alert(`Label request email sent to ${result.contact_email}`);
+      // Auto-check the "Request Return Label" subtask
+      const requestSubtask = subtasks.find(st => st.task_name.toLowerCase().includes('request return label'));
+      if (requestSubtask && requestSubtask.status !== 'Completed') {
+        onUpdateSubtask(requestSubtask.id, 'Completed');
+      }
+      // Reload equipment to see updated flags
+      await loadEquipmentAssignments();
+    } catch (error) {
+      console.error('Error sending label request:', error);
+      alert(`Failed to send label request: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    } finally {
+      setIsSendingLabelRequest(false);
+    }
+  };
+
+  const handleUploadShippingLabel = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file || !employeeId) return;
+
+    // Find the "Send Return Label to Employee" subtask to use its task ID for the upload
+    const sendSubtask = subtasks.find(st => st.task_name.toLowerCase().includes('send return label'));
+    if (!sendSubtask) {
+      alert('Could not find the send return label subtask');
+      return;
+    }
+
+    setIsUploadingLabel(true);
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+
+      const response = await fetch(`${BASE_URL}/offboarding/tasks/${sendSubtask.id}/upload-label`, {
+        method: 'POST',
+        credentials: 'include',
+        body: formData,
+      });
+
+      if (!response.ok) {
+        // Fall back to standard upload endpoint
+        const response2 = await fetch(`${BASE_URL}/offboarding/tasks/${sendSubtask.id}/upload`, {
+          method: 'POST',
+          credentials: 'include',
+          body: formData,
+        });
+        if (!response2.ok) {
+          throw new Error('Failed to upload shipping label');
+        }
+        const result = await response2.json();
+        setLabelUploadedFile(result.filename || file.name);
+      } else {
+        const result = await response.json();
+        setLabelUploadedFile(result.filename || file.name);
+      }
+    } catch (error) {
+      console.error('Error uploading label:', error);
+      alert(`Failed to upload shipping label: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    } finally {
+      setIsUploadingLabel(false);
+    }
+  };
+
+  const handleSendReturnEmail = async () => {
+    if (!employeeId || selectedEquipmentIds.length === 0) return;
+    const email = equipmentEmployeeEmail.trim();
+    if (!email) {
+      alert('Please enter the employee\'s email address');
+      return;
+    }
+    setIsSendingReturnEmail(true);
+    try {
+      const response = await fetch(`${BASE_URL}/offboarding/equipment-return-email/${employeeId}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ recipient_email: email, items: selectedEquipmentIds }),
+      });
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.detail || 'Failed to send return email');
+      }
+      const result = await response.json();
+      alert(`Return instructions sent to ${result.recipient}${result.label_attached ? ' with shipping label attached' : ''}`);
+      // Auto-check the "Send Return Label to Employee" subtask
+      const sendSubtask = subtasks.find(st => st.task_name.toLowerCase().includes('send return label'));
+      if (sendSubtask && sendSubtask.status !== 'Completed') {
+        onUpdateSubtask(sendSubtask.id, 'Completed');
+      }
+      await loadEquipmentAssignments();
+    } catch (error) {
+      console.error('Error sending return email:', error);
+      alert(`Failed to send return email: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    } finally {
+      setIsSendingReturnEmail(false);
+    }
+  };
 
   // Load exit documents when drawer opens for exit documents task
   useEffect(() => {
@@ -993,6 +1279,271 @@ export default function SubtasksDrawer({
                 </>
               )}
             </div>
+
+            {/* Contractor Termination Panel — only for "Send Email to Contractor" task */}
+            {isContractorTask && (
+              <div className="bg-gray-50 dark:bg-gray-700 rounded-lg p-4 space-y-4">
+                <h3 className="font-semibold text-gray-900 dark:text-white flex items-center gap-2">
+                  <Mail className="w-4 h-4" />
+                  Contractor Termination Request
+                </h3>
+
+                {/* Send Email Button */}
+                <div className="flex items-center gap-3">
+                  <button
+                    onClick={handleSendContractorEmail}
+                    disabled={contractorEmailLoading || contractorEmailSent}
+                    className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                      contractorEmailSent
+                        ? 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300 cursor-default'
+                        : 'bg-blue-600 hover:bg-blue-700 text-white disabled:opacity-50'
+                    }`}
+                  >
+                    {contractorEmailLoading ? (
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                    ) : contractorEmailSent ? (
+                      <Check className="w-4 h-4" />
+                    ) : (
+                      <Send className="w-4 h-4" />
+                    )}
+                    {contractorEmailSent ? 'Email Sent' : 'Send Termination Request Email'}
+                  </button>
+                </div>
+
+                {/* Confirmation Toggle */}
+                <div className="flex items-center justify-between p-3 bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-600">
+                  <div>
+                    <p className="text-sm font-medium text-gray-900 dark:text-white">
+                      Contractor has confirmed termination
+                    </p>
+                    {contractorConfirmedAt && (
+                      <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
+                        Confirmed: {new Date(contractorConfirmedAt).toLocaleString()}
+                      </p>
+                    )}
+                  </div>
+                  <button
+                    onClick={handleContractorConfirmToggle}
+                    disabled={contractorConfirmLoading}
+                    className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50 ${
+                      contractorConfirmed ? 'bg-green-600' : 'bg-gray-300 dark:bg-gray-600'
+                    }`}
+                  >
+                    <span
+                      className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                        contractorConfirmed ? 'translate-x-6' : 'translate-x-1'
+                      }`}
+                    />
+                  </button>
+                </div>
+
+                {/* Proof Upload */}
+                <div className="p-3 bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-600">
+                  <p className="text-sm font-medium text-gray-900 dark:text-white mb-2">
+                    Upload Contractor Confirmation
+                  </p>
+                  {contractorProofUploaded && contractorProofName ? (
+                    <div className="flex items-center gap-2 text-sm text-green-600 dark:text-green-400">
+                      <Check className="w-4 h-4" />
+                      <span>{contractorProofName}</span>
+                    </div>
+                  ) : (
+                    <label className="flex items-center gap-2 px-3 py-2 bg-gray-100 dark:bg-gray-700 rounded-lg cursor-pointer hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors text-sm text-gray-700 dark:text-gray-300">
+                      <Upload className="w-4 h-4" />
+                      <span>Choose file (.pdf, .png, .jpg, .eml)</span>
+                      <input
+                        type="file"
+                        accept=".pdf,.png,.jpg,.jpeg,.eml"
+                        onChange={handleContractorProofUpload}
+                        className="hidden"
+                      />
+                    </label>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {/* Equipment Return Panel — only for "Equipment to Return?" task */}
+            {isEquipmentReturnTask && (
+              <div className="bg-gray-50 dark:bg-gray-700 rounded-lg p-4 space-y-4">
+                <div className="flex items-center justify-between">
+                  <h3 className="font-semibold text-gray-900 dark:text-white flex items-center gap-2">
+                    <Package className="w-4 h-4" />
+                    Assigned Equipment
+                  </h3>
+                  <button
+                    onClick={loadEquipmentAssignments}
+                    disabled={isLoadingEquipment}
+                    className="text-xs text-blue-600 hover:text-blue-700 dark:text-blue-400"
+                  >
+                    {isLoadingEquipment ? 'Loading...' : 'Refresh'}
+                  </button>
+                </div>
+
+                {isLoadingEquipment ? (
+                  <div className="flex items-center justify-center py-6">
+                    <Loader2 className="w-5 h-5 animate-spin text-blue-600" />
+                    <span className="ml-2 text-sm text-gray-600 dark:text-gray-400">Loading equipment...</span>
+                  </div>
+                ) : equipmentAssignments.length === 0 ? (
+                  <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4 text-center">
+                    <Package className="w-8 h-8 mx-auto mb-2 text-blue-400 opacity-50" />
+                    <p className="text-sm text-blue-700 dark:text-blue-300">No equipment currently assigned to this employee.</p>
+                  </div>
+                ) : (
+                  <>
+                    {/* Equipment Table */}
+                    <div className="space-y-2">
+                      {equipmentAssignments.map((assignment) => (
+                        <div
+                          key={assignment.assignment_id}
+                          className="flex items-center gap-3 p-3 bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-600"
+                        >
+                          <input
+                            type="checkbox"
+                            checked={selectedEquipmentIds.includes(assignment.assignment_id)}
+                            onChange={() => toggleEquipmentSelection(assignment.assignment_id)}
+                            className="w-4 h-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500 flex-shrink-0"
+                          />
+                          <div className="flex-1 min-w-0">
+                            <p className="font-medium text-sm text-gray-900 dark:text-white">
+                              {assignment.equipment_type}
+                            </p>
+                            <p className="text-xs text-gray-500 dark:text-gray-400">
+                              {assignment.manufacturer} {assignment.model}
+                              {assignment.serial_number && ` | S/N: ${assignment.serial_number}`}
+                              {assignment.asset_tag && ` | Tag: ${assignment.asset_tag}`}
+                            </p>
+                          </div>
+                          <div className="flex items-center gap-1.5 flex-shrink-0">
+                            {assignment.equipment_received ? (
+                              <span className="text-xs px-2 py-0.5 rounded-full bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-200">Received</span>
+                            ) : assignment.shipping_label_sent ? (
+                              <span className="text-xs px-2 py-0.5 rounded-full bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200">Label Sent</span>
+                            ) : assignment.shipping_label_requested ? (
+                              <span className="text-xs px-2 py-0.5 rounded-full bg-yellow-100 dark:bg-yellow-900 text-yellow-800 dark:text-yellow-200">Label Requested</span>
+                            ) : (
+                              <span className="text-xs px-2 py-0.5 rounded-full bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300">Pending</span>
+                            )}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+
+                    {/* Selected count */}
+                    <p className="text-xs text-gray-500 dark:text-gray-400">
+                      {selectedEquipmentIds.length} of {equipmentAssignments.length} item(s) selected
+                    </p>
+                  </>
+                )}
+              </div>
+            )}
+
+            {/* Equipment Return Actions — inline with subtasks */}
+            {isEquipmentReturnTask && equipmentAssignments.length > 0 && (
+              <div className="space-y-3">
+                {/* Subtask 1: Request Return Label */}
+                {subtasks.some(st => st.task_name.toLowerCase().includes('request return label')) && (
+                  <div className="bg-gray-50 dark:bg-gray-700 rounded-lg p-4 space-y-3">
+                    <h4 className="text-sm font-semibold text-gray-900 dark:text-white flex items-center gap-2">
+                      <Mail className="w-4 h-4 text-purple-500" />
+                      Request Prepaid Shipping Label
+                    </h4>
+                    <p className="text-xs text-gray-500 dark:text-gray-400">
+                      Send an email to the equipment return contact with the employee's address and equipment list.
+                    </p>
+                    <button
+                      onClick={handleSendLabelRequest}
+                      disabled={isSendingLabelRequest || selectedEquipmentIds.length === 0}
+                      className="flex items-center gap-2 px-4 py-2 bg-purple-600 hover:bg-purple-700 disabled:bg-purple-400 disabled:cursor-not-allowed text-white rounded-lg text-sm transition-colors"
+                    >
+                      {isSendingLabelRequest ? (
+                        <>
+                          <Loader2 className="w-4 h-4 animate-spin" />
+                          Sending...
+                        </>
+                      ) : (
+                        <>
+                          <Mail className="w-4 h-4" />
+                          Send Label Request Email
+                        </>
+                      )}
+                    </button>
+                  </div>
+                )}
+
+                {/* Subtask 2: Send Return Label to Employee */}
+                {subtasks.some(st => st.task_name.toLowerCase().includes('send return label')) && (
+                  <div className="bg-gray-50 dark:bg-gray-700 rounded-lg p-4 space-y-3">
+                    <h4 className="text-sm font-semibold text-gray-900 dark:text-white flex items-center gap-2">
+                      <Send className="w-4 h-4 text-green-500" />
+                      Send Return Label to Employee
+                    </h4>
+
+                    {/* Upload Label */}
+                    <div className="space-y-2">
+                      <p className="text-xs text-gray-500 dark:text-gray-400">
+                        Upload the shipping label received from the contact, then send it to the employee.
+                      </p>
+                      <div className="flex items-center gap-3">
+                        <label className="flex items-center gap-2 px-3 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm cursor-pointer transition-colors">
+                          {isUploadingLabel ? (
+                            <Loader2 className="w-4 h-4 animate-spin" />
+                          ) : (
+                            <Upload className="w-4 h-4" />
+                          )}
+                          {isUploadingLabel ? 'Uploading...' : 'Upload Shipping Label'}
+                          <input
+                            type="file"
+                            onChange={handleUploadShippingLabel}
+                            className="hidden"
+                            accept=".pdf,.png,.jpg,.jpeg"
+                            disabled={isUploadingLabel}
+                          />
+                        </label>
+                        {labelUploadedFile && (
+                          <span className="flex items-center gap-1 text-sm text-green-600 dark:text-green-400">
+                            <Check className="w-4 h-4" />
+                            {labelUploadedFile}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Employee Email + Send */}
+                    <div className="flex items-end gap-3">
+                      <div className="flex-1">
+                        <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Employee Email</label>
+                        <input
+                          type="email"
+                          value={equipmentEmployeeEmail}
+                          onChange={(e) => setEquipmentEmployeeEmail(e.target.value)}
+                          placeholder="employee@personal.com"
+                          className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white text-sm"
+                        />
+                      </div>
+                      <button
+                        onClick={handleSendReturnEmail}
+                        disabled={isSendingReturnEmail || selectedEquipmentIds.length === 0 || !equipmentEmployeeEmail.trim()}
+                        className="flex items-center gap-2 px-4 py-2 bg-green-600 hover:bg-green-700 disabled:bg-green-400 disabled:cursor-not-allowed text-white rounded-lg text-sm transition-colors"
+                      >
+                        {isSendingReturnEmail ? (
+                          <>
+                            <Loader2 className="w-4 h-4 animate-spin" />
+                            Sending...
+                          </>
+                        ) : (
+                          <>
+                            <Send className="w-4 h-4" />
+                            Send Return Instructions
+                          </>
+                        )}
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
 
             {/* Subtasks List */}
             <div className="space-y-3">

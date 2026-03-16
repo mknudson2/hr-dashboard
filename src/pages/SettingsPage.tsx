@@ -1,5 +1,6 @@
 import { useTheme } from "next-themes";
 import { useState, useEffect } from "react";
+import { createPortal } from "react-dom";
 import {
   Sun,
   Moon,
@@ -105,10 +106,25 @@ export default function SettingsPage() {
     // HR Contacts settings
     const [hrContacts, setHrContacts] = useState({
         retirement_contact_name: "Kat Haynie",
+        equipment_return_contact_name: "",
+        equipment_return_contact_email: "",
     });
     const [hrContactsLoading, setHrContactsLoading] = useState(false);
     const [hrContactsSaved, setHrContactsSaved] = useState(false);
     const [hrContactsError, setHrContactsError] = useState<string | null>(null);
+
+    // International settings
+    const [intlSettings, setIntlSettings] = useState({
+        id_prefixes: ["C", "AM", "BH"] as string[],
+        prefix_labels: { "C": "Congruent", "AM": "Ameripol", "BH": "Bloom" } as Record<string, string>,
+        contractor_contact_name: "",
+        contractor_contact_email: "",
+    });
+    const [intlSettingsLoading, setIntlSettingsLoading] = useState(false);
+    const [intlSettingsSaved, setIntlSettingsSaved] = useState(false);
+    const [intlSettingsError, setIntlSettingsError] = useState<string | null>(null);
+    const [newPrefix, setNewPrefix] = useState("");
+    const [newPrefixLabel, setNewPrefixLabel] = useState("");
 
     const toggleTrackStyle = (checked: boolean) => ({
         backgroundColor: checked ? '#007AFF' : undefined,
@@ -183,6 +199,8 @@ export default function SettingsPage() {
                     const data = await response.json();
                     setHrContacts({
                         retirement_contact_name: data.retirement_contact_name || "Kat Haynie",
+                        equipment_return_contact_name: data.equipment_return_contact_name || "",
+                        equipment_return_contact_email: data.equipment_return_contact_email || "",
                     });
                 }
             } catch (error) {
@@ -191,6 +209,26 @@ export default function SettingsPage() {
         };
 
         loadHrContacts();
+
+        // Load international settings from backend
+        const loadIntlSettings = async () => {
+            try {
+                const response = await fetch(`${API_URL}/settings/international`, { credentials: 'include' });
+                if (response.ok) {
+                    const data = await response.json();
+                    setIntlSettings({
+                        id_prefixes: data.id_prefixes || ["C", "AM", "BH"],
+                        prefix_labels: data.prefix_labels || { "C": "Congruent", "AM": "Ameripol", "BH": "Bloom" },
+                        contractor_contact_name: data.contractor_contact_name || "",
+                        contractor_contact_email: data.contractor_contact_email || "",
+                    });
+                }
+            } catch (error) {
+                console.error('Failed to load international settings:', error);
+            }
+        };
+
+        loadIntlSettings();
     }, []);
 
     // Save notifications to localStorage whenever they change
@@ -385,6 +423,56 @@ export default function SettingsPage() {
         } finally {
             setHrContactsLoading(false);
         }
+    };
+
+    // International Settings Functions
+    const saveIntlSettings = async () => {
+        setIntlSettingsLoading(true);
+        setIntlSettingsError(null);
+        setIntlSettingsSaved(false);
+
+        try {
+            const response = await fetch(`${API_URL}/settings/international`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                credentials: 'include',
+                body: JSON.stringify(intlSettings),
+            });
+
+            if (!response.ok) {
+                const error = await response.json();
+                throw new Error(error.detail || 'Failed to save international settings');
+            }
+
+            setIntlSettingsSaved(true);
+            setTimeout(() => setIntlSettingsSaved(false), 3000);
+        } catch (error) {
+            setIntlSettingsError(error instanceof Error ? error.message : 'An error occurred');
+        } finally {
+            setIntlSettingsLoading(false);
+        }
+    };
+
+    const addPrefix = () => {
+        const prefix = newPrefix.trim().toUpperCase();
+        if (!prefix) return;
+        if (intlSettings.id_prefixes.includes(prefix)) return;
+
+        const label = newPrefixLabel.trim() || prefix;
+        setIntlSettings({
+            ...intlSettings,
+            id_prefixes: [...intlSettings.id_prefixes, prefix],
+            prefix_labels: { ...intlSettings.prefix_labels, [prefix]: label },
+        });
+        setNewPrefix("");
+        setNewPrefixLabel("");
+    };
+
+    const removePrefix = (prefix: string) => {
+        const newPrefixes = intlSettings.id_prefixes.filter(p => p !== prefix);
+        const newLabels = { ...intlSettings.prefix_labels };
+        delete newLabels[prefix];
+        setIntlSettings({ ...intlSettings, id_prefixes: newPrefixes, prefix_labels: newLabels });
     };
 
     // 2FA Functions
@@ -782,10 +870,10 @@ export default function SettingsPage() {
                     )}
                 </div>
 
-                {/* Clear Demo Data Confirmation Modal */}
-                {showClearDemoConfirm && (
-                    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-                        <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-xl p-6 max-w-md mx-4">
+                {/* Clear Demo Data Confirmation Modal — rendered via portal to escape stacking context */}
+                {showClearDemoConfirm && createPortal(
+                    <div className="fixed inset-0 bg-black/50 backdrop-blur-md flex items-center justify-center z-[9999]">
+                        <div className="bg-white/95 dark:bg-gray-800/80 backdrop-blur-xl rounded-2xl shadow-2xl ring-1 ring-white/10 p-6 max-w-md mx-4">
                             <div className="flex items-center gap-3 mb-4">
                                 <div className="p-2 bg-red-100 dark:bg-red-900/30 rounded-full">
                                     <AlertTriangle className="w-6 h-6 text-red-600 dark:text-red-400" />
@@ -824,7 +912,8 @@ export default function SettingsPage() {
                                 </button>
                             </div>
                         </div>
-                    </div>
+                    </div>,
+                    document.body
                 )}
             </section>
 
@@ -1013,6 +1102,38 @@ export default function SettingsPage() {
                         </p>
                     </div>
 
+                    {/* Equipment Return Label Contact */}
+                    <div className="pt-4 border-t border-gray-200 dark:border-gray-700">
+                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">
+                            Equipment Return Label Contact
+                        </label>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div>
+                                <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Name</label>
+                                <input
+                                    type="text"
+                                    value={hrContacts.equipment_return_contact_name}
+                                    onChange={(e) => setHrContacts({ ...hrContacts, equipment_return_contact_name: e.target.value })}
+                                    placeholder="Enter contact name..."
+                                    className="w-full rounded-lg border dark:border-gray-700 px-3 py-2 bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-purple-500 outline-none"
+                                />
+                            </div>
+                            <div>
+                                <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Email</label>
+                                <input
+                                    type="email"
+                                    value={hrContacts.equipment_return_contact_email}
+                                    onChange={(e) => setHrContacts({ ...hrContacts, equipment_return_contact_email: e.target.value })}
+                                    placeholder="contact@company.com"
+                                    className="w-full rounded-lg border dark:border-gray-700 px-3 py-2 bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-purple-500 outline-none"
+                                />
+                            </div>
+                        </div>
+                        <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                            Contact person for requesting prepaid return shipping labels.
+                        </p>
+                    </div>
+
                     {/* Error Message */}
                     {hrContactsError && (
                         <div className="p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg">
@@ -1035,6 +1156,126 @@ export default function SettingsPage() {
                     >
                         <Save className="w-4 h-4" />
                         {hrContactsLoading ? 'Saving...' : 'Save HR Contacts'}
+                    </button>
+                </div>
+            </section>
+
+            {/* International Employee Settings */}
+            <section className="rounded-2xl border dark:border-gray-700 bg-white dark:bg-gray-800 shadow-sm p-6 transition hover:shadow-lg">
+                <div className="flex items-center gap-3 mb-6">
+                    <Layout className="w-5 h-5 text-teal-600 dark:text-teal-400" />
+                    <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
+                        International Employee Settings
+                    </h3>
+                </div>
+
+                <p className="text-sm text-gray-600 dark:text-gray-400 mb-6">
+                    Configure ID prefixes for international employee detection and contractor contact information for termination requests.
+                </p>
+
+                <div className="space-y-6">
+                    {/* ID Prefixes */}
+                    <div>
+                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">
+                            Employee ID Prefixes
+                        </label>
+                        <div className="flex flex-wrap gap-2 mb-3">
+                            {intlSettings.id_prefixes.map(prefix => (
+                                <span
+                                    key={prefix}
+                                    className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-teal-50 dark:bg-teal-900/30 border border-teal-200 dark:border-teal-700 rounded-lg text-sm"
+                                >
+                                    <span className="font-mono font-semibold text-teal-700 dark:text-teal-300">{prefix}</span>
+                                    <span className="text-gray-500 dark:text-gray-400">({intlSettings.prefix_labels[prefix] || prefix})</span>
+                                    <button
+                                        onClick={() => removePrefix(prefix)}
+                                        className="ml-1 text-gray-400 hover:text-red-500 transition-colors"
+                                    >
+                                        <X className="w-3.5 h-3.5" />
+                                    </button>
+                                </span>
+                            ))}
+                        </div>
+                        <div className="flex gap-2">
+                            <input
+                                type="text"
+                                value={newPrefix}
+                                onChange={(e) => setNewPrefix(e.target.value)}
+                                placeholder="Prefix (e.g. AM)"
+                                className="w-28 rounded-lg border dark:border-gray-700 px-3 py-2 bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-teal-500 outline-none font-mono"
+                            />
+                            <input
+                                type="text"
+                                value={newPrefixLabel}
+                                onChange={(e) => setNewPrefixLabel(e.target.value)}
+                                placeholder="Label (e.g. Ameripol)"
+                                className="flex-1 rounded-lg border dark:border-gray-700 px-3 py-2 bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-teal-500 outline-none"
+                            />
+                            <button
+                                onClick={addPrefix}
+                                disabled={!newPrefix.trim()}
+                                className="px-3 py-2 bg-teal-600 hover:bg-teal-700 text-white rounded-lg transition-colors disabled:opacity-50"
+                            >
+                                <Plus className="w-4 h-4" />
+                            </button>
+                        </div>
+                        <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                            Employees whose ID starts with these prefixes are detected as international employees.
+                        </p>
+                    </div>
+
+                    {/* Contractor Contact */}
+                    <div className="pt-4 border-t border-gray-200 dark:border-gray-700">
+                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">
+                            Contractor Contact for Termination Requests
+                        </label>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div>
+                                <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Name</label>
+                                <input
+                                    type="text"
+                                    value={intlSettings.contractor_contact_name}
+                                    onChange={(e) => setIntlSettings({ ...intlSettings, contractor_contact_name: e.target.value })}
+                                    placeholder="Enter contact name..."
+                                    className="w-full rounded-lg border dark:border-gray-700 px-3 py-2 bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-teal-500 outline-none"
+                                />
+                            </div>
+                            <div>
+                                <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Email</label>
+                                <input
+                                    type="email"
+                                    value={intlSettings.contractor_contact_email}
+                                    onChange={(e) => setIntlSettings({ ...intlSettings, contractor_contact_email: e.target.value })}
+                                    placeholder="contractor@company.com"
+                                    className="w-full rounded-lg border dark:border-gray-700 px-3 py-2 bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-teal-500 outline-none"
+                                />
+                            </div>
+                        </div>
+                        <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                            Contact for international employee termination requests (Congruent, Ameripol, Bloom, etc.)
+                        </p>
+                    </div>
+
+                    {/* Error / Success Messages */}
+                    {intlSettingsError && (
+                        <div className="p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg">
+                            <p className="text-sm text-red-600 dark:text-red-400">{intlSettingsError}</p>
+                        </div>
+                    )}
+                    {intlSettingsSaved && (
+                        <div className="p-3 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg">
+                            <p className="text-sm text-green-600 dark:text-green-400">International settings saved successfully!</p>
+                        </div>
+                    )}
+
+                    {/* Save Button */}
+                    <button
+                        onClick={saveIntlSettings}
+                        disabled={intlSettingsLoading}
+                        className="flex items-center gap-2 px-4 py-2 bg-teal-600 hover:bg-teal-700 text-white rounded-lg transition-colors disabled:opacity-50"
+                    >
+                        <Save className="w-4 h-4" />
+                        {intlSettingsLoading ? 'Saving...' : 'Save International Settings'}
                     </button>
                 </div>
             </section>

@@ -1,0 +1,50 @@
+{% extends "base/base.html" %}
+
+{% block title %}Employee Termination Request - {{ employee_name }}{% endblock %}
+
+{% block header_title %}NBS HR Notification{% endblock %}
+{% block header_subtitle %}Employee Termination Request{% endblock %}
+
+{% block greeting %}
+<p>Hey <strong>{{ contractor_contact_name }}</strong>,</p>
+{% endblock %}
+
+{% block content %}
+<p>We are requesting the termination of the following employee effective <strong>{{ termination_date }}</strong>:</p>
+
+<div class="info-box info-box-warning">
+    <table style="width: 100%; border: 0; border-collapse: collapse;">
+        <tr>
+            <td style="padding: 8px 0; color: #9ca3af; width: 140px; border: 0;">Employee Name:</td>
+            <td style="padding: 8px 0; color: #FFFFFF; font-weight: 600; border: 0;">{{ employee_name }}</td>
+        </tr>
+        <tr>
+            <td style="padding: 8px 0; color: #9ca3af; border: 0;">Employee ID:</td>
+            <td style="padding: 8px 0; color: #FFFFFF; font-weight: 600; border: 0;">{{ employee_id }}</td>
+        </tr>
+        <tr>
+            <td style="padding: 8px 0; color: #9ca3af; border: 0;">Contractor Group:</td>
+            <td style="padding: 8px 0; color: #FFFFFF; font-weight: 600; border: 0;">{{ contractor_group }}</td>
+        </tr>
+        <tr>
+            <td style="padding: 8px 0; color: #9ca3af; border: 0;">Department:</td>
+            <td style="padding: 8px 0; color: #FFFFFF; font-weight: 600; border: 0;">{{ department }}</td>
+        </tr>
+        <tr>
+            <td style="padding: 8px 0; color: #9ca3af; border: 0;">Termination Date:</td>
+            <td style="padding: 8px 0; color: #FFFFFF; font-weight: 600; border: 0;">{{ termination_date }}</td>
+        </tr>
+    </table>
+</div>
+
+{% if notes %}
+<div class="info-box">
+    <p style="color: #9ca3af; margin-bottom: 8px;"><strong>Additional Notes:</strong></p>
+    <p>{{ notes }}</p>
+</div>
+{% endif %}
+
+<p>Please confirm the termination has been processed by replying to this email.</p>
+
+<p>Thanks!</p>
+{% endblock %}

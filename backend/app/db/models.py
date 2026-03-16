@@ -40,6 +40,7 @@ class Employee(Base):
     position = Column(String, nullable=True)
     supervisor = Column(String, nullable=True)
     employment_type = Column(String, nullable=True)  # "Full Time", "Part Time", "Contract", "Intern"
+    is_international = Column(Boolean, default=False, nullable=True)  # Authoritative international status flag
 
     # Compensation information
     wage = Column(Float, nullable=True)  # Base rate (hourly)

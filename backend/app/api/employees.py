@@ -63,6 +63,7 @@ def list_employees(db: Session = Depends(get_db)):
             "pto_allotted": e.pto_allotted,
             "attendance_days": e.attendance_days,
             "expected_days": e.expected_days,
+            "is_international": e.is_international or False,
         }
         for e in employees
     ]
@@ -95,6 +96,7 @@ def get_employee(employee_id: int, db: Session = Depends(get_db)):
         "pto_allotted": e.pto_allotted,
         "attendance_days": e.attendance_days,
         "expected_days": e.expected_days,
+        "is_international": e.is_international or False,
     }
 
 
@@ -293,6 +295,8 @@ def update_employee(
         employee.show_tenure = update_data["show_tenure"]
     if "show_exact_dates" in update_data:
         employee.show_exact_dates = update_data["show_exact_dates"]
+    if "is_international" in update_data:
+        employee.is_international = update_data["is_international"]
 
     # Auto-set status to Terminated if termination_date is set
     if termination_date_set and employee.status != "Terminated":
@@ -343,39 +347,45 @@ def update_employee(
                     checklist = json.load(f)
                 all_tasks = checklist["tasks"]
 
-                # Determine employment type and termination type (defaults)
+                # Determine international status, employment type, and termination type
+                is_international = employee.is_international or False
                 employment_type = employee.employment_type if hasattr(employee, 'employment_type') and employee.employment_type else "Full Time"
-                termination_type = "Voluntary"  # Default, could be enhanced to track this
+                termination_type = update_data.get("termination_type") or getattr(employee, 'termination_type', None) or "Voluntary"
 
-                # Filter tasks based on employee attributes
+                # Check if employee has an active garnishment
+                has_active_garnishment = db.query(models.Garnishment).filter(
+                    models.Garnishment.employee_id == employee_id,
+                    models.Garnishment.status == "Active"
+                ).first() is not None
+
+                # Filter tasks: international employees get ONLY international tasks, others get ONLY non-international tasks
                 filtered_tasks = []
                 for task in all_tasks:
-                    # Check if task has conditional requirements
-                    if "conditional" in task:
-                        condition = task["conditional"]
+                    condition = task.get("conditional")
 
-                        # Employment type filtering
-                        if condition == "full_time" and employment_type not in ["Full Time"]:
+                    if is_international:
+                        # International track: ONLY include tasks with conditional == "international"
+                        if condition != "international":
                             continue
-                        if condition == "part_time" and employment_type not in ["Part Time"]:
-                            continue
-                        if condition == "international" and employment_type != "International":
-                            continue
-
-                        # Voluntary vs Involuntary filtering
-                        if condition == "voluntary" and termination_type != "Voluntary":
-                            continue
-                        if condition == "involuntary" and termination_type != "Involuntary":
+                    else:
+                        # Standard track: EXCLUDE all international tasks
+                        if condition == "international":
                             continue
 
-                        # Benefits check
-                        if condition == "has_benefits":
-                            if employment_type not in ["Full Time", "International"]:
+                        if condition:
+                            if condition == "full_time" and employment_type not in ["Full Time"]:
                                 continue
-
-                        # COBRA eligibility
-                        if condition == "cobra_eligible":
-                            if employment_type != "Full Time":
+                            if condition == "part_time" and employment_type not in ["Part Time"]:
+                                continue
+                            if condition == "voluntary" and termination_type != "Voluntary":
+                                continue
+                            if condition == "involuntary" and termination_type != "Involuntary":
+                                continue
+                            if condition == "has_benefits" and employment_type not in ["Full Time", "International"]:
+                                continue
+                            if condition == "cobra_eligible" and employment_type != "Full Time":
+                                continue
+                            if condition == "has_garnishment" and not has_active_garnishment:
                                 continue
 
                     filtered_tasks.append(task)
@@ -479,6 +489,7 @@ def update_employee(
         "show_birthday": employee.show_birthday,
         "show_tenure": employee.show_tenure,
         "show_exact_dates": employee.show_exact_dates,
+        "is_international": employee.is_international or False,
     }
     audit_service.log_data_update(
         db, current_user, request, "employee", employee_id,

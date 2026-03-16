@@ -16,6 +16,7 @@ import {
   AlertCircle,
   ClipboardList,
   Shield,
+  Globe,
 } from "lucide-react";
 import SalaryHistoryChart from "@/components/compensation/SalaryHistoryChart";
 
@@ -47,6 +48,7 @@ interface EmployeeDetail {
   show_birthday?: boolean;
   show_tenure?: boolean;
   show_exact_dates?: boolean;
+  is_international?: boolean;
 }
 
 interface WageHistoryRecord {
@@ -66,6 +68,7 @@ export default function EmployeeDetailPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [privacySaving, setPrivacySaving] = useState(false);
+  const [intlSaving, setIntlSaving] = useState(false);
 
   useEffect(() => {
     async function fetchEmployeeData() {
@@ -123,6 +126,25 @@ export default function EmployeeDetailPage() {
       setEmployee({ ...employee, [field]: !newValue });
     } finally {
       setPrivacySaving(false);
+    }
+  };
+
+  const handleInternationalToggle = async () => {
+    if (!employee) return;
+    const newValue = !employee.is_international;
+    setEmployee({ ...employee, is_international: newValue });
+    try {
+      setIntlSaving(true);
+      await fetch(`/employees/${employee.employee_id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ is_international: newValue }),
+      });
+    } catch {
+      setEmployee({ ...employee, is_international: !newValue });
+    } finally {
+      setIntlSaving(false);
     }
   };
 
@@ -262,6 +284,35 @@ export default function EmployeeDetailPage() {
             label="Type"
             value={employee.type}
           />
+          {/* International Employee Toggle */}
+          <div className="flex items-center gap-3 p-4 bg-gray-50 dark:bg-gray-700 rounded-lg">
+            <div className="text-blue-600 dark:text-blue-400">
+              <Globe className="w-4 h-4" />
+            </div>
+            <div className="flex-1">
+              <p className="text-xs text-gray-500 dark:text-gray-400">International</p>
+              <div className="flex items-center gap-2 mt-0.5">
+                <button
+                  onClick={handleInternationalToggle}
+                  disabled={intlSaving}
+                  className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800 disabled:opacity-50 ${
+                    employee.is_international ? 'bg-teal-600' : 'bg-gray-300 dark:bg-gray-600'
+                  }`}
+                >
+                  <span
+                    className={`inline-block h-3.5 w-3.5 transform rounded-full bg-white transition-transform ${
+                      employee.is_international ? 'translate-x-4' : 'translate-x-0.5'
+                    }`}
+                  />
+                </button>
+                {employee.is_international && (
+                  <span className="text-xs font-medium text-teal-600 dark:text-teal-400">
+                    International
+                  </span>
+                )}
+              </div>
+            </div>
+          </div>
           <InfoCard
             icon={<MapPin className="w-4 h-4" />}
             label="Location"

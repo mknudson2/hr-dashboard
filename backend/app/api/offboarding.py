@@ -621,6 +621,17 @@ def bulk_create_offboarding_tasks(
     from datetime import datetime as dt
     employee.status = "Terminated"
     employee.termination_date = dt.strptime(termination_date, "%Y-%m-%d").date()
+
+    # Set is_international flag based on employment_type parameter or existing DB value
+    is_international = employee.is_international or False
+    if employment_type == "International":
+        is_international = True
+        employee.is_international = True
+
+    # Store employment_type on the employee record
+    if employment_type and employment_type != "Full Time":
+        employee.employment_type = employment_type
+
     db.commit()
 
     # Load default offboarding checklist from JSON
@@ -632,45 +643,45 @@ def bulk_create_offboarding_tasks(
     except (FileNotFoundError, json.JSONDecodeError) as e:
         raise HTTPException(status_code=500, detail=f"Error loading default checklist: {str(e)}")
 
-    # Filter tasks based on employee attributes and conditional logic
+    # Determine effective employment type for non-international filtering
+    effective_employment_type = employment_type if employment_type else (employee.employment_type or "Full Time")
+
+    # Check if employee has an active garnishment
+    has_active_garnishment = db.query(models.Garnishment).filter(
+        models.Garnishment.employee_id == employee_id,
+        models.Garnishment.status == "Active"
+    ).first() is not None
+
+    # Filter tasks: international employees get ONLY international tasks, others get ONLY non-international tasks
     filtered_tasks = []
     for task in all_tasks:
-        # Check if task has conditional requirements
-        if "conditional" in task:
-            condition = task["conditional"]
+        condition = task.get("conditional")
 
-            # Employment type filtering (use parameter override if provided, else use employee record)
-            effective_employment_type = employment_type if employment_type else employee.employment_type
-
-            # Full-time vs Part-time vs International filtering
-            if condition == "full_time" and effective_employment_type not in ["Full Time"]:
+        if is_international:
+            # International track: ONLY include tasks with conditional == "international"
+            if condition != "international":
                 continue
-            if condition == "part_time" and effective_employment_type not in ["Part Time"]:
-                continue
-            if condition == "international" and effective_employment_type != "International":
+        else:
+            # Standard track: EXCLUDE all international tasks
+            if condition == "international":
                 continue
 
-            # Voluntary vs Involuntary filtering
-            if condition == "voluntary" and termination_type != "Voluntary":
-                continue
-            if condition == "involuntary" and termination_type != "Involuntary":
-                continue
-
-            # Equipment check - would need equipment tracking
-            # Skipping for now as we don't have has_equipment field
-
-            # Benefits check (only Full Time and International have benefits)
-            if condition == "has_benefits":
-                if effective_employment_type not in ["Full Time", "International"]:
+            # Apply other conditional filters for standard track
+            if condition:
+                if condition == "full_time" and effective_employment_type not in ["Full Time"]:
                     continue
-
-            # COBRA eligibility - only full-time with benefits (not International)
-            if condition == "cobra_eligible":
-                if effective_employment_type != "Full Time":
+                if condition == "part_time" and effective_employment_type not in ["Part Time"]:
                     continue
-
-            # Garnishment check - would need garnishment tracking
-            # Skipping for now as we don't have has_garnishment field
+                if condition == "voluntary" and termination_type != "Voluntary":
+                    continue
+                if condition == "involuntary" and termination_type != "Involuntary":
+                    continue
+                if condition == "has_benefits" and effective_employment_type not in ["Full Time", "International"]:
+                    continue
+                if condition == "cobra_eligible" and effective_employment_type != "Full Time":
+                    continue
+                if condition == "has_garnishment" and not has_active_garnishment:
+                    continue
 
         filtered_tasks.append(task)
 
@@ -854,30 +865,46 @@ def ensure_offboarding_tasks(
     except (FileNotFoundError, json.JSONDecodeError) as e:
         raise HTTPException(status_code=500, detail=f"Error loading default checklist: {str(e)}")
 
-    # Determine employment type and termination type
+    # Determine international status and employment/termination types
+    is_international = getattr(employee, 'is_international', False) or False
     employment_type = getattr(employee, 'employment_type', None) or "Full Time"
     termination_type = getattr(employee, 'termination_type', None) or "Voluntary"
 
-    # Filter tasks based on employee attributes
+    # Check if employee has an active garnishment
+    has_active_garnishment = db.query(models.Garnishment).filter(
+        models.Garnishment.employee_id == employee_id,
+        models.Garnishment.status == "Active"
+    ).first() is not None
+
+    # Filter tasks: international employees get ONLY international tasks, others get ONLY non-international tasks
     filtered_tasks = []
     for task in all_tasks:
-        if "conditional" in task:
-            condition = task["conditional"]
+        condition = task.get("conditional")
 
-            if condition == "full_time" and employment_type not in ["Full Time"]:
+        if is_international:
+            # International track: ONLY include tasks with conditional == "international"
+            if condition != "international":
                 continue
-            if condition == "part_time" and employment_type not in ["Part Time"]:
+        else:
+            # Standard track: EXCLUDE all international tasks
+            if condition == "international":
                 continue
-            if condition == "international" and employment_type != "International":
-                continue
-            if condition == "voluntary" and termination_type != "Voluntary":
-                continue
-            if condition == "involuntary" and termination_type != "Involuntary":
-                continue
-            if condition == "has_benefits" and employment_type not in ["Full Time", "International"]:
-                continue
-            if condition == "cobra_eligible" and employment_type != "Full Time":
-                continue
+
+            if condition:
+                if condition == "full_time" and employment_type not in ["Full Time"]:
+                    continue
+                if condition == "part_time" and employment_type not in ["Part Time"]:
+                    continue
+                if condition == "voluntary" and termination_type != "Voluntary":
+                    continue
+                if condition == "involuntary" and termination_type != "Involuntary":
+                    continue
+                if condition == "has_benefits" and employment_type not in ["Full Time", "International"]:
+                    continue
+                if condition == "cobra_eligible" and employment_type != "Full Time":
+                    continue
+                if condition == "has_garnishment" and not has_active_garnishment:
+                    continue
 
         filtered_tasks.append(task)
 
@@ -984,6 +1011,111 @@ def ensure_offboarding_tasks(
         "created": True,
         "tasks_count": len(created_tasks),
         "message": f"Created {len(created_tasks)} offboarding tasks for {employee.first_name} {employee.last_name}"
+    }
+
+
+# ============================================================================
+# International Contractor Endpoints
+# ============================================================================
+
+class ContractorTerminationEmailRequest(BaseModel):
+    notes: Optional[str] = None
+
+
+@router.post("/contractor-termination-email/{employee_id}")
+def send_contractor_termination_email(
+    employee_id: str,
+    request_data: ContractorTerminationEmailRequest,
+    db: Session = Depends(database.get_db)
+):
+    """Send termination request email to contractor for an international employee"""
+    from app.api.settings import get_international_settings
+
+    employee = db.query(models.Employee).filter(
+        models.Employee.employee_id == employee_id
+    ).first()
+    if not employee:
+        raise HTTPException(status_code=404, detail="Employee not found")
+
+    if not employee.termination_date:
+        raise HTTPException(status_code=400, detail="Employee has no termination date set")
+
+    # Load contractor contact from international settings
+    intl_settings = get_international_settings()
+    if not intl_settings.contractor_contact_email:
+        raise HTTPException(status_code=400, detail="Contractor contact email not configured. Please set it in Settings > International Employee Settings.")
+
+    termination_date_str = employee.termination_date.strftime("%B %d, %Y")
+
+    # Determine contractor group from ID prefix
+    contractor_group = "International"
+    for prefix in sorted(intl_settings.id_prefixes, key=len, reverse=True):
+        if employee.employee_id.startswith(prefix):
+            contractor_group = intl_settings.prefix_labels.get(prefix, prefix)
+            break
+
+    try:
+        email_service.send_email(
+            to_email=intl_settings.contractor_contact_email,
+            subject=f"Employee Termination Request - {employee.first_name} {employee.last_name} ({employee.employee_id})",
+            template="offboarding/contractor_termination_request.html",
+            context={
+                "contractor_contact_name": intl_settings.contractor_contact_name or "Contractor",
+                "employee_name": f"{employee.first_name} {employee.last_name}",
+                "employee_id": employee.employee_id,
+                "termination_date": termination_date_str,
+                "contractor_group": contractor_group,
+                "department": employee.department or "N/A",
+                "notes": request_data.notes or "",
+                "hr_contact_email": "mknudson@nbsbenefits.com",
+            }
+        )
+
+        return {
+            "success": True,
+            "message": f"Contractor termination email sent to {intl_settings.contractor_contact_email}",
+            "employee_id": employee.employee_id,
+            "contractor_email": intl_settings.contractor_contact_email,
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to send email: {str(e)}")
+
+
+class ContractorConfirmedRequest(BaseModel):
+    confirmed: bool
+
+
+@router.post("/tasks/{task_id}/contractor-confirmed")
+def set_contractor_confirmed(
+    task_id: str,
+    request_data: ContractorConfirmedRequest,
+    db: Session = Depends(database.get_db)
+):
+    """Mark a contractor task as confirmed/unconfirmed"""
+    task = db.query(models.OffboardingTask).filter(
+        models.OffboardingTask.task_id == task_id
+    ).first()
+    if not task:
+        raise HTTPException(status_code=404, detail="Task not found")
+
+    if task.task_details is None:
+        task.task_details = {}
+
+    task.task_details["contractor_confirmed"] = request_data.confirmed
+    if request_data.confirmed:
+        task.task_details["confirmed_at"] = datetime.now().isoformat()
+    else:
+        task.task_details.pop("confirmed_at", None)
+
+    flag_modified(task, "task_details")
+    task.updated_at = datetime.now()
+    db.commit()
+
+    return {
+        "success": True,
+        "task_id": task_id,
+        "contractor_confirmed": request_data.confirmed,
+        "confirmed_at": task.task_details.get("confirmed_at"),
     }
 
 
@@ -1694,6 +1826,66 @@ async def upload_task_document(
     }
 
 
+@router.post("/tasks/{task_id}/upload-label")
+async def upload_shipping_label(
+    task_id: int,
+    file: UploadFile = FastAPIFile(...),
+    db: Session = Depends(database.get_db)
+):
+    """
+    Upload a shipping label file for an equipment return task.
+    Saves the file and creates a FilledPdfForm record with form_type='equipment_shipping_label'.
+    """
+    task = db.query(models.OffboardingTask).filter(
+        models.OffboardingTask.id == task_id
+    ).first()
+    if not task:
+        raise HTTPException(status_code=404, detail="Task not found")
+
+    employee = db.query(models.Employee).filter(
+        models.Employee.employee_id == task.employee_id
+    ).first()
+    if not employee:
+        raise HTTPException(status_code=404, detail="Employee not found")
+
+    upload_dir = "app/storage/filled_forms"
+    os.makedirs(upload_dir, exist_ok=True)
+
+    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+    safe_name = f"ShippingLabel_{employee.first_name}_{employee.last_name}_{timestamp}_{file.filename}"
+    file_path = os.path.join(upload_dir, safe_name)
+
+    contents = await file.read()
+    with open(file_path, 'wb') as f:
+        f.write(contents)
+
+    file_size = len(contents)
+
+    filled_form = models.FilledPdfForm(
+        form_type="equipment_shipping_label",
+        template_name=f"Shipping Label_{employee.first_name} {employee.last_name}",
+        employee_id=employee.id,
+        file_path=file_path,
+        file_size=file_size,
+        is_flattened=False,
+        form_data={"uploaded": True, "original_filename": file.filename},
+        generated_by="HR User",
+        status="uploaded"
+    )
+    db.add(filled_form)
+    db.commit()
+    db.refresh(filled_form)
+
+    return {
+        "id": filled_form.id,
+        "form_type": filled_form.form_type,
+        "file_path": file_path,
+        "file_size": file_size,
+        "status": "uploaded",
+        "filename": file.filename
+    }
+
+
 @router.get("/exit-document-download/{document_id}")
 def download_exit_document(
     document_id: int,
@@ -2344,3 +2536,243 @@ def generate_single_unified_document(
         raise HTTPException(status_code=501, detail=f"{document_type} form not yet implemented")
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Failed to generate document: {str(e)}")
+
+
+# ============================================================================
+# Equipment Return Endpoints
+# ============================================================================
+
+class EquipmentLabelRequestBody(BaseModel):
+    items: List[int]  # List of equipment assignment IDs
+
+
+class EquipmentReturnEmailBody(BaseModel):
+    recipient_email: str
+    items: List[int]  # List of equipment assignment IDs
+
+
+@router.get("/equipment-assignments/{employee_id}")
+def get_equipment_assignments(
+    employee_id: str,
+    db: Session = Depends(database.get_db)
+):
+    """
+    Get active equipment assignments for an employee.
+    Returns equipment details with return tracking flags.
+    """
+    employee = db.query(models.Employee).filter(
+        models.Employee.employee_id == employee_id
+    ).first()
+
+    if not employee:
+        raise HTTPException(status_code=404, detail="Employee not found")
+
+    # Get active equipment assignments
+    assignments = db.query(models.EquipmentAssignment).filter(
+        models.EquipmentAssignment.employee_id == employee_id,
+        models.EquipmentAssignment.status == "Active"
+    ).all()
+
+    result = []
+    for assignment in assignments:
+        equipment = assignment.equipment
+        result.append({
+            "assignment_id": assignment.id,
+            "equipment_id": equipment.id if equipment else None,
+            "equipment_type": equipment.equipment_type if equipment else "Unknown",
+            "manufacturer": equipment.manufacturer if equipment else "",
+            "model": equipment.model if equipment else "",
+            "serial_number": equipment.serial_number if equipment else "",
+            "asset_tag": equipment.asset_tag if equipment else "",
+            "assigned_date": assignment.assigned_date.isoformat() if assignment.assigned_date else None,
+            "shipping_label_requested": assignment.shipping_label_requested,
+            "shipping_label_sent": assignment.shipping_label_sent,
+            "return_requested": assignment.return_requested,
+            "equipment_received": assignment.equipment_received,
+            "equipment_received_date": assignment.equipment_received_date.isoformat() if assignment.equipment_received_date else None,
+        })
+
+    return {
+        "employee_id": employee_id,
+        "employee_name": f"{employee.first_name} {employee.last_name}",
+        "assignments": result,
+        "total": len(result)
+    }
+
+
+@router.post("/equipment-label-request/{employee_id}")
+async def request_equipment_label(
+    employee_id: str,
+    body: EquipmentLabelRequestBody,
+    db: Session = Depends(database.get_db)
+):
+    """
+    Send an email to the equipment return contact requesting a prepaid shipping label.
+    Marks selected assignments as shipping_label_requested.
+    """
+    from app.api.settings import get_hr_contacts_settings
+
+    employee = db.query(models.Employee).filter(
+        models.Employee.employee_id == employee_id
+    ).first()
+
+    if not employee:
+        raise HTTPException(status_code=404, detail="Employee not found")
+
+    # Load equipment return contact
+    hr_contacts = get_hr_contacts_settings()
+    contact_name = hr_contacts.equipment_return_contact_name
+    contact_email = hr_contacts.equipment_return_contact_email
+
+    if not contact_email:
+        raise HTTPException(
+            status_code=400,
+            detail="Equipment return contact email is not configured. Please set it in Settings > HR Contacts."
+        )
+
+    # Get selected assignments
+    assignments = db.query(models.EquipmentAssignment).filter(
+        models.EquipmentAssignment.id.in_(body.items),
+        models.EquipmentAssignment.employee_id == employee_id
+    ).all()
+
+    if not assignments:
+        raise HTTPException(status_code=404, detail="No matching equipment assignments found")
+
+    # Build equipment items for template
+    equipment_items = []
+    for assignment in assignments:
+        eq = assignment.equipment
+        equipment_items.append({
+            "equipment_type": eq.equipment_type if eq else "Unknown",
+            "manufacturer": eq.manufacturer if eq else "",
+            "model": eq.model if eq else "",
+            "serial_number": eq.serial_number if eq else "N/A",
+            "asset_tag": eq.asset_tag if eq else "N/A",
+        })
+
+    # Build context
+    context = {
+        "contact_name": contact_name or "Team",
+        "employee_name": f"{employee.first_name} {employee.last_name}",
+        "address_street": employee.address_street or "N/A",
+        "address_city": employee.address_city or "N/A",
+        "address_state": employee.address_state or "N/A",
+        "address_zip": employee.address_zip or "N/A",
+        "equipment_items": equipment_items,
+    }
+
+    subject = f"Equipment Return Label Request - {employee.first_name} {employee.last_name}"
+
+    try:
+        await email_service.send_email(
+            to_emails=[contact_email],
+            subject=subject,
+            template_name="offboarding/equipment_return_label_request.html",
+            context=context,
+        )
+
+        # Mark assignments as label requested
+        for assignment in assignments:
+            assignment.shipping_label_requested = True
+            assignment.return_requested = True
+            assignment.return_requested_date = date.today()
+            assignment.return_requested_by = "HR User"
+
+        db.commit()
+
+        return {
+            "success": True,
+            "message": f"Label request email sent to {contact_email}",
+            "items_count": len(assignments),
+            "contact_name": contact_name,
+            "contact_email": contact_email,
+        }
+
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to send label request email: {str(e)}")
+
+
+@router.post("/equipment-return-email/{employee_id}")
+async def send_equipment_return_email(
+    employee_id: str,
+    body: EquipmentReturnEmailBody,
+    db: Session = Depends(database.get_db)
+):
+    """
+    Send return instructions email to the employee with the uploaded shipping label attached.
+    """
+    employee = db.query(models.Employee).filter(
+        models.Employee.employee_id == employee_id
+    ).first()
+
+    if not employee:
+        raise HTTPException(status_code=404, detail="Employee not found")
+
+    # Get selected assignments
+    assignments = db.query(models.EquipmentAssignment).filter(
+        models.EquipmentAssignment.id.in_(body.items),
+        models.EquipmentAssignment.employee_id == employee_id
+    ).all()
+
+    if not assignments:
+        raise HTTPException(status_code=404, detail="No matching equipment assignments found")
+
+    # Find the uploaded shipping label file
+    # Look for FilledPdfForm with form_type containing "shipping_label" for this employee
+    label_doc = db.query(models.FilledPdfForm).filter(
+        models.FilledPdfForm.employee_id == employee.id,
+        models.FilledPdfForm.form_type == "equipment_shipping_label"
+    ).order_by(models.FilledPdfForm.generated_at.desc()).first()
+
+    attachments = []
+    if label_doc and label_doc.file_path and os.path.exists(label_doc.file_path):
+        attachments.append(label_doc.file_path)
+
+    # Build equipment items for template
+    equipment_items = []
+    for assignment in assignments:
+        eq = assignment.equipment
+        equipment_items.append({
+            "equipment_type": eq.equipment_type if eq else "Unknown",
+            "manufacturer": eq.manufacturer if eq else "",
+            "model": eq.model if eq else "",
+            "serial_number": eq.serial_number if eq else "",
+            "asset_tag": eq.asset_tag if eq else "",
+        })
+
+    context = {
+        "employee_name": f"{employee.first_name} {employee.last_name}",
+        "employee_first_name": employee.first_name,
+        "equipment_items": equipment_items,
+    }
+
+    subject = f"Equipment Return Instructions - {employee.first_name} {employee.last_name}"
+
+    try:
+        await email_service.send_email(
+            to_emails=[body.recipient_email],
+            subject=subject,
+            template_name="offboarding/equipment_return_instructions.html",
+            context=context,
+            attachments=attachments if attachments else None,
+        )
+
+        # Mark assignments
+        for assignment in assignments:
+            assignment.shipping_label_sent = True
+            assignment.shipping_label_sent_date = date.today()
+            assignment.return_requested = True
+
+        db.commit()
+
+        return {
+            "success": True,
+            "message": f"Return instructions sent to {body.recipient_email}",
+            "items_count": len(assignments),
+            "recipient": body.recipient_email,
+            "label_attached": len(attachments) > 0,
+        }
+
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to send return instructions email: {str(e)}")

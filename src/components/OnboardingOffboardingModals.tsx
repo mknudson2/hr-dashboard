@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, UserPlus, UserMinus, AlertCircle } from 'lucide-react';
 
@@ -12,6 +12,7 @@ interface Employee {
   position?: string;
   hire_date?: string;
   termination_date?: string;
+  is_international?: boolean;
 }
 
 interface OnboardingModalProps {
@@ -531,6 +532,23 @@ export function OffboardingModal({ isOpen, onClose, employees, onSuccess }: Offb
   const [terminationType, setTerminationType] = useState<'Voluntary' | 'Involuntary'>('Voluntary');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [intlPrefixes, setIntlPrefixes] = useState<string[]>(['C', 'AM', 'BH']);
+
+  // Load international settings for prefix detection
+  useEffect(() => {
+    const loadPrefixes = async () => {
+      try {
+        const response = await fetch(`${BASE_URL}/settings/international`, { credentials: 'include' });
+        if (response.ok) {
+          const data = await response.json();
+          if (data.id_prefixes?.length) {
+            setIntlPrefixes(data.id_prefixes);
+          }
+        }
+      } catch { /* use defaults */ }
+    };
+    loadPrefixes();
+  }, []);
 
   // Show all employees (offboarding will set their termination date)
   const availableEmployees = employees;
@@ -543,22 +561,28 @@ export function OffboardingModal({ isOpen, onClose, employees, onSuccess }: Offb
       const employee = employees.find(emp => emp.employee_id === employeeId);
 
       if (employee) {
-        // Check if international employee (ID starts with AM, BH, or C)
-        const isInternational = /^(AM|BH|C)/.test(employee.employee_id);
-
-        if (isInternational) {
+        // Primary signal: is_international flag from employee record
+        if (employee.is_international) {
           setEmploymentType('International');
         } else {
-          // Use employment_type or employee_type_category from the employee record
-          const empType = (employee as any).employment_type || (employee as any).employee_type_category || (employee as any).type;
+          // Fallback: check if employee ID starts with any configured international prefix
+          // Sort by length descending to match longer prefixes first (e.g., "AM" before "A")
+          const sortedPrefixes = [...intlPrefixes].sort((a, b) => b.length - a.length);
+          const matchesPrefix = sortedPrefixes.some(prefix => employee.employee_id.startsWith(prefix));
 
-          if (empType === 'Full Time' || empType === 'Full-Time' || empType === 'FT') {
-            setEmploymentType('Full Time');
-          } else if (empType === 'Part Time' || empType === 'Part-Time' || empType === 'PT') {
-            setEmploymentType('Part Time');
+          if (matchesPrefix) {
+            setEmploymentType('International');
           } else {
-            // Default to Full Time if not specified
-            setEmploymentType('Full Time');
+            // Use employment_type or employee_type_category from the employee record
+            const empType = (employee as Record<string, unknown>).employment_type as string || (employee as Record<string, unknown>).employee_type_category as string || (employee as Record<string, unknown>).type as string;
+
+            if (empType === 'Full Time' || empType === 'Full-Time' || empType === 'FT') {
+              setEmploymentType('Full Time');
+            } else if (empType === 'Part Time' || empType === 'Part-Time' || empType === 'PT') {
+              setEmploymentType('Part Time');
+            } else {
+              setEmploymentType('Full Time');
+            }
           }
         }
       }
