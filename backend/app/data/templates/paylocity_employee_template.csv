@@ -1,6 +1,0 @@
-Employee Id,Preferred/First Name,Last Name,Type,Worked CostCenter,Worked Department,Worked Team,Hire Date,Term Date,Termination Type,Status,Location,Rate
-EMP001,John,Doe,Full Time,CC-001,Engineering,Backend Team,2020-01-15,,,Active,Remote,85000
-EMP002,Jane,Smith,Full Time,CC-002,Human Resources,HR Operations,2019-06-20,,,Active,Office - HQ,65000
-EMP003,Bob,Johnson,Part Time,CC-003,Sales,Inside Sales,2021-03-10,,,Active,Office - Branch,45000
-EMP004,Alice,Williams,Full Time,CC-001,Engineering,Frontend Team,2018-11-05,,,Active,Remote,90000
-EMP005,Charlie,Brown,Contractor,CC-004,Marketing,Social Media,2022-02-28,,,Active,Remote,50000

@@ -51,6 +51,11 @@ interface Goal {
   milestones_total: number | null;
   milestones_completed: number | null;
   is_key_result: boolean;
+  // Alternate field names returned by some API responses
+  title?: string;
+  description?: string;
+  due_date?: string;
+  progress?: number;
 }
 
 interface MilestoneInput {
@@ -615,7 +620,7 @@ export default function Goals() {
                                       {goal.status?.replace('_', ' ').replace(/\b\w/g, (l) => l.toUpperCase())}
                                     </span>
                                     <span className="text-xs text-gray-500 dark:text-gray-400">
-                                      Due: {formatDate(goalDetails.target_date || goal.due_date)}
+                                      Due: {formatDate(goalDetails.target_date || goal.due_date || '')}
                                     </span>
                                     {goalDetails.target_value && (
                                       <span className="text-xs text-gray-500 dark:text-gray-400">
@@ -762,7 +767,7 @@ export default function Goals() {
                                         stroke="currentColor"
                                         strokeWidth="8"
                                         fill="none"
-                                        strokeDasharray={`${(goalDetails.progress_percentage || goal.progress) * 1.76} 176`}
+                                        strokeDasharray={`${(goalDetails.progress_percentage || goal.progress || 0) * 1.76} 176`}
                                         className="text-blue-500"
                                       />
                                     </svg>

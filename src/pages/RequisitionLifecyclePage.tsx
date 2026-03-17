@@ -319,7 +319,7 @@ export default function RequisitionLifecyclePage() {
                 </span>
               )}
               {requisition.location && (
-                <span>{requisition.location}{requisition.remote_type !== 'On-site' && ` (${requisition.remote_type})`}</span>
+                <span>{requisition.location}</span>
               )}
               {requisition.created_at && (
                 <span className="flex items-center gap-1">

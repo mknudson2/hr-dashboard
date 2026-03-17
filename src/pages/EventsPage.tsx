@@ -544,7 +544,7 @@ const EventsPage = () => {
             <div className="bg-gradient-to-r from-amber-50 to-orange-50 dark:from-amber-900/20 dark:to-orange-900/20 border-l-4 border-amber-500 dark:border-amber-600 rounded-xl shadow-lg p-6">
               <div className="flex items-start gap-4">
                 <div className="flex-shrink-0">
-                  <Bell className="w-6 h-6 text-amber-600 dark:text-amber-400 animate-pulse" />
+                  <Bell className="w-6 h-6 text-amber-600 dark:text-amber-400" />
                 </div>
                 <div className="flex-1">
                   <h3 className="text-lg font-bold text-amber-900 dark:text-amber-200 mb-3">

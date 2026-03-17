@@ -1,5 +1,0 @@
-Employee Id,Preferred/First Name,Last Name,Type,Worked CostCenter,Worked Department,Worked Team,Hire Date,Term Date,Termination Type,Status,Location,Rate,Position,Supervisor,Medical Tier,HSA EE Monthly,HSA ER Monthly,FSA Monthly,DCFSA Monthly,401k Monthly,Medical Plan,Dental Plan,Vision Plan
-1000,John,Doe,FT,01-Admin,Human Resources,HR Operations,2020-01-15,,,Active,New York,75000,HR Manager,Jane Smith,Employee Only,150.00,100.00,0,0,500.00,PPO Gold,Dental PPO,Vision Standard
-1001,Jane,Smith,FT,02-Sales,Sales,East Coast,2019-06-01,,,Active,Boston,80000,Sales Director,Bob Johnson,Family,300.00,200.00,0,250.00,600.00,PPO Gold,Dental PPO,Vision Premium
-1002,Bob,Johnson,PT,03-IT,Engineering,Development,2021-03-10,,,Active,Remote,45000,Software Engineer,Alice Williams,Employee Only,0,0,125.00,0,300.00,HMO Silver,Basic Dental,
-1003,Alice,Williams,FT,02-Sales,Sales,West Coast,2018-09-20,2024-12-31,Voluntary,Terminated,San Francisco,85000,Regional Sales Manager,,Employee + Spouse,250.00,150.00,0,0,650.00,PPO Silver,Dental HMO,Vision Standard

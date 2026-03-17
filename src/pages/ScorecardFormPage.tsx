@@ -1,8 +1,18 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ChevronLeft, Star, Check } from 'lucide-react';
+import { ChevronLeft, Star, Check, Info, ChevronDown, ChevronUp } from 'lucide-react';
 
 const BASE_URL = '';
+
+interface RubricMap {
+  [key: string]: string;
+}
+
+interface CriterionTemplate {
+  name: string;
+  weight: number;
+  rubric?: RubricMap;
+}
 
 interface ScorecardData {
   id: number;
@@ -20,7 +30,7 @@ interface ScorecardData {
   submitted_at: string | null;
   due_date: string | null;
   scorecard_template: {
-    criteria?: { name: string; weight: number }[];
+    criteria?: CriterionTemplate[];
   } | null;
 }
 
@@ -47,6 +57,16 @@ export default function ScorecardFormPage() {
   const [strengths, setStrengths] = useState('');
   const [concerns, setConcerns] = useState('');
   const [additionalNotes, setAdditionalNotes] = useState('');
+  const [expandedRubrics, setExpandedRubrics] = useState<Record<number, boolean>>({});
+
+  // Helper to get rubric for a criterion by name
+  const getRubric = (criterionName: string): RubricMap | undefined => {
+    return scorecard?.scorecard_template?.criteria?.find(c => c.name === criterionName)?.rubric;
+  };
+
+  const toggleRubricExpand = (idx: number) => {
+    setExpandedRubrics(prev => ({ ...prev, [idx]: !prev[idx] }));
+  };
 
   useEffect(() => { loadScorecard(); }, [scorecardId]);
 
@@ -185,35 +205,84 @@ export default function ScorecardFormPage() {
       {criteriaRatings.length > 0 && (
         <div className="bg-white dark:bg-gray-800 rounded-lg border dark:border-gray-700 p-6 space-y-5">
           <h2 className="font-semibold">Criteria Ratings</h2>
-          {criteriaRatings.map((cr, idx) => (
-            <div key={idx} className="space-y-2">
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-                {cr.criteria}
-              </label>
-              <div className="flex gap-1">
-                {[1, 2, 3, 4, 5].map(rating => (
+          {criteriaRatings.map((cr, idx) => {
+            const rubric = getRubric(cr.criteria);
+            const hasRubric = rubric && Object.keys(rubric).length > 0;
+            const isExpanded = expandedRubrics[idx];
+
+            return (
+              <div key={idx} className="space-y-2">
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                  {cr.criteria}
+                </label>
+                <div className="flex gap-1">
+                  {[1, 2, 3, 4, 5].map(rating => (
+                    <div key={rating} className="relative group">
+                      <button
+                        onClick={() => updateCriteriaRating(idx, rating)}
+                        className={`w-10 h-10 rounded-lg border text-sm font-medium transition-colors ${
+                          cr.rating === rating
+                            ? 'bg-blue-600 text-white border-blue-600'
+                            : 'bg-white dark:bg-gray-700 border-gray-300 dark:border-gray-600 hover:border-blue-400 text-gray-700 dark:text-gray-300'
+                        }`}
+                      >
+                        {rating}
+                      </button>
+                      {/* Rubric tooltip on hover */}
+                      {hasRubric && rubric[String(rating)] && (
+                        <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-64 p-2 bg-gray-900 dark:bg-gray-700 text-white text-xs rounded-lg shadow-lg opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-10">
+                          <div className="font-semibold mb-0.5">Rating {rating}</div>
+                          {rubric[String(rating)]}
+                          <div className="absolute top-full left-1/2 -translate-x-1/2 w-2 h-2 bg-gray-900 dark:bg-gray-700 rotate-45 -mt-1" />
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+
+                {/* Inline rubric description for selected rating */}
+                {hasRubric && cr.rating && rubric[String(cr.rating)] && (
+                  <div className="flex items-start gap-2 p-2.5 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg">
+                    <Info className="w-4 h-4 text-blue-500 mt-0.5 flex-shrink-0" />
+                    <p className="text-xs text-blue-700 dark:text-blue-300">
+                      <span className="font-semibold">Rating {cr.rating}:</span> {rubric[String(cr.rating)]}
+                    </p>
+                  </div>
+                )}
+
+                {/* Collapsible full rubric */}
+                {hasRubric && (
                   <button
-                    key={rating}
-                    onClick={() => updateCriteriaRating(idx, rating)}
-                    className={`w-10 h-10 rounded-lg border text-sm font-medium transition-colors ${
-                      cr.rating === rating
-                        ? 'bg-blue-600 text-white border-blue-600'
-                        : 'bg-white dark:bg-gray-700 border-gray-300 dark:border-gray-600 hover:border-blue-400 text-gray-700 dark:text-gray-300'
-                    }`}
+                    onClick={() => toggleRubricExpand(idx)}
+                    className="flex items-center gap-1 text-xs text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300"
                   >
-                    {rating}
+                    {isExpanded ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
+                    {isExpanded ? 'Hide' : 'View'} full rubric
                   </button>
-                ))}
+                )}
+                {hasRubric && isExpanded && (
+                  <div className="bg-gray-50 dark:bg-gray-900/30 rounded-lg p-3 space-y-1.5 text-xs">
+                    {[1, 2, 3, 4, 5].map(r => (
+                      rubric[String(r)] ? (
+                        <div key={r} className={`flex gap-2 ${cr.rating === r ? 'font-semibold text-blue-700 dark:text-blue-300' : 'text-gray-600 dark:text-gray-400'}`}>
+                          <span className="font-medium w-4 flex-shrink-0">{r}.</span>
+                          <span>{rubric[String(r)]}</span>
+                        </div>
+                      ) : null
+                    ))}
+                  </div>
+                )}
+
+                <input
+                  type="text"
+                  value={cr.notes}
+                  onChange={e => updateCriteriaNotes(idx, e.target.value)}
+                  className="w-full border dark:border-gray-600 rounded px-3 py-1.5 text-sm dark:bg-gray-700 dark:text-white"
+                  placeholder="Notes for this criteria..."
+                />
               </div>
-              <input
-                type="text"
-                value={cr.notes}
-                onChange={e => updateCriteriaNotes(idx, e.target.value)}
-                className="w-full border dark:border-gray-600 rounded px-3 py-1.5 text-sm dark:bg-gray-700 dark:text-white"
-                placeholder="Notes for this criteria..."
-              />
-            </div>
-          ))}
+            );
+          })}
         </div>
       )}
 

@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
-  Briefcase, Users, FileText, TrendingUp, Plus, Eye, Clock
+  Briefcase, Users, FileText, TrendingUp, Plus, Eye, Clock, BookOpen
 } from 'lucide-react';
 
 const BASE_URL = '';
@@ -161,7 +161,7 @@ export default function RecruitingPage() {
       </div>
 
       {/* Quick Links */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
         <button
           onClick={() => navigate('/recruiting/requisitions')}
           className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-4 hover:bg-gray-50 dark:hover:bg-gray-700 text-left transition-colors"
@@ -169,6 +169,14 @@ export default function RecruitingPage() {
           <Briefcase className="w-6 h-6 text-blue-600 dark:text-blue-400 mb-2" />
           <h3 className="font-medium text-gray-900 dark:text-white">Requisitions</h3>
           <p className="text-sm text-gray-500 dark:text-gray-400">Manage open positions</p>
+        </button>
+        <button
+          onClick={() => navigate('/recruiting/job-descriptions')}
+          className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-4 hover:bg-gray-50 dark:hover:bg-gray-700 text-left transition-colors"
+        >
+          <BookOpen className="w-6 h-6 text-teal-600 dark:text-teal-400 mb-2" />
+          <h3 className="font-medium text-gray-900 dark:text-white">Job Descriptions</h3>
+          <p className="text-sm text-gray-500 dark:text-gray-400">Manage the JD library</p>
         </button>
         <button
           onClick={() => navigate('/recruiting/pipelines')}

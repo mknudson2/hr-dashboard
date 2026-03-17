@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { apiGet, apiPut, apiPost } from '@/utils/api';
-import { ArrowLeft, User, Calendar, Clock, CheckCircle, AlertCircle, ChevronDown, ChevronUp, Save, Send, Target, TrendingUp, AlertTriangle, Plus, Pencil, X } from 'lucide-react';
+import { ArrowLeft, User, Calendar, CheckCircle, AlertCircle, ChevronDown, ChevronUp, Save, Send, Target, TrendingUp, AlertTriangle, Plus, Pencil, X } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { RatingCategory, StarRatingInput } from '@/components/performance';
 
@@ -150,7 +150,7 @@ export default function PerformanceReviewDetail() {
 
   const [review, setReview] = useState<ReviewDetail | null>(null);
   const [selfReview, setSelfReview] = useState<SelfReview | null>(null);
-  const [employee, setEmployee] = useState<EmployeeInfo | null>(null);
+  const [, setEmployee] = useState<EmployeeInfo | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);

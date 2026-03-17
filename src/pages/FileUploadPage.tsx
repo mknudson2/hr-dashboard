@@ -324,10 +324,10 @@ export default function FileUploadPage() {
     <div className="p-6 space-y-6">
       {/* Toast Notification */}
       {toast.type && (
-        <div className={`fixed top-4 right-4 z-50 px-6 py-4 rounded-lg shadow-lg border ${
+        <div className={`fixed top-4 right-4 z-50 px-6 py-4 rounded-lg shadow-lg border backdrop-blur-sm ${
           toast.type === 'success'
-            ? 'bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-800'
-            : 'bg-red-50 dark:bg-red-900/20 border-red-200 dark:border-red-800'
+            ? 'bg-green-50 dark:bg-green-900/80 border-green-200 dark:border-green-800'
+            : 'bg-red-50 dark:bg-red-900/80 border-red-200 dark:border-red-800'
         }`}>
           <div className="flex items-center gap-3">
             {toast.type === 'success' ? (

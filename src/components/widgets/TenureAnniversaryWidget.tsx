@@ -173,7 +173,7 @@ export default function TenureAnniversaryWidget() {
                                                 <Check className="w-4 h-4" />
                                             </div>
                                         ) : (
-                                            <div className="p-1.5 rounded-full bg-yellow-100 dark:bg-yellow-900/30 text-yellow-600 dark:text-yellow-400 animate-pulse">
+                                            <div className="p-1.5 rounded-full bg-yellow-100 dark:bg-yellow-900/30 text-yellow-600 dark:text-yellow-400">
                                                 <Star className="w-4 h-4" />
                                             </div>
                                         )}

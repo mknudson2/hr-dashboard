@@ -107,7 +107,7 @@ export default function LifecycleTracker({
                   <div
                     className={`w-10 h-10 rounded-full border-2 flex items-center justify-center transition-all ${config.bgColor} ${
                       isSelected ? 'ring-2 ring-offset-2 ring-blue-500 dark:ring-offset-gray-900' : ''
-                    } ${stage.status === 'active' ? 'animate-pulse' : ''}`}
+                    }`}
                   >
                     <Icon className={`w-5 h-5 ${config.color}`} />
                   </div>

@@ -3,8 +3,9 @@ import { useParams, useNavigate } from 'react-router-dom';
 import {
   ChevronLeft, Star, Mail, Phone, Linkedin, Globe, Building,
   MapPin, Clock, FileText, MessageSquare, Calendar, ClipboardList,
-  XCircle, ChevronRight, ExternalLink
+  XCircle, ChevronRight, ExternalLink, Plus
 } from 'lucide-react';
+import ResumeAnalysisPanel from '../components/recruiting/ResumeAnalysisPanel';
 
 const BASE_URL = '';
 
@@ -185,6 +186,32 @@ export default function ApplicationDetailPage() {
     }
   };
 
+  const createScorecard = async () => {
+    // Use current stage, or first pipeline stage if no current stage set
+    const stageId = app?.current_stage?.id || app?.pipeline_stages?.[0]?.id;
+    if (!stageId) return;
+    try {
+      const res = await fetch(`${BASE_URL}/recruiting/scorecards`, {
+        method: 'POST',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          application_id: Number(id),
+          stage_id: stageId,
+          interviewer_id: 0,
+        }),
+      });
+      if (res.ok) {
+        const data = await res.json();
+        navigate(`/recruiting/scorecards/${data.id}`);
+      } else {
+        loadApplication();
+      }
+    } catch (error) {
+      console.error('Failed to create scorecard:', error);
+    }
+  };
+
   const rejectApp = async () => {
     try {
       const res = await fetch(`${BASE_URL}/recruiting/applications/${id}/reject`, {
@@ -350,7 +377,11 @@ export default function ApplicationDetailPage() {
 
       {/* Tab Content */}
       {activeTab === 'profile' && (
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <div className="space-y-6">
+          {/* AI Resume Analysis — full width above profile grid */}
+          <ResumeAnalysisPanel applicationId={app.id} />
+
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-5 space-y-4">
             <h3 className="font-semibold text-gray-900 dark:text-white">Applicant Profile</h3>
             <div className="space-y-2 text-sm">
@@ -397,6 +428,7 @@ export default function ApplicationDetailPage() {
             </div>
           )}
         </div>
+        </div>
       )}
 
       {activeTab === 'timeline' && (
@@ -426,14 +458,28 @@ export default function ApplicationDetailPage() {
 
       {activeTab === 'scorecards' && (
         <div className="space-y-4">
+          <div className="flex justify-end">
+            <button
+              onClick={createScorecard}
+              disabled={!app.current_stage && (!app.pipeline_stages || app.pipeline_stages.length === 0)}
+              className="flex items-center gap-2 bg-blue-600 text-white px-4 py-2 rounded-lg text-sm hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              <Plus className="w-4 h-4" /> Add Scorecard
+            </button>
+          </div>
           {app.scorecards.length === 0 ? (
             <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-8 text-center">
               <ClipboardList className="w-10 h-10 text-gray-300 dark:text-gray-600 mx-auto mb-2" />
               <p className="text-gray-500 dark:text-gray-400">No scorecards assigned yet.</p>
+              <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">Click "Add Scorecard" to create one for the current stage.</p>
             </div>
           ) : (
             app.scorecards.map(sc => (
-              <div key={sc.id} className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-5">
+              <div
+                key={sc.id}
+                onClick={() => navigate(`/recruiting/scorecards/${sc.id}`)}
+                className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-5 cursor-pointer hover:border-blue-400 dark:hover:border-blue-500 transition-colors"
+              >
                 <div className="flex items-start justify-between">
                   <div>
                     <div className="flex items-center gap-2">

@@ -47,6 +47,7 @@ import HireConversionWizard from "./pages/HireConversionWizard";
 import HireConversionList from "./pages/HireConversionList";
 import RecruitingAnalyticsPage from "./pages/RecruitingAnalyticsPage";
 import EEOApplicantReportPage from "./pages/EEOApplicantReportPage";
+import JobDescriptionsPage from "./pages/JobDescriptionsPage";
 import LoginPage from "./pages/LoginPage";
 import ProtectedRoute from "./components/ProtectedRoute";
 import { AuthProvider } from "./contexts/AuthContext";
@@ -107,6 +108,7 @@ export default function App() {
         <Route path="/recruiting/hire-wizard" element={<HireConversionWizard />} />
         <Route path="/recruiting/analytics" element={<RecruitingAnalyticsPage />} />
         <Route path="/recruiting/analytics/eeo" element={<EEOApplicantReportPage />} />
+        <Route path="/recruiting/job-descriptions" element={<JobDescriptionsPage />} />
         <Route path="/settings" element={<SettingsPage />} />
         </Route>
       </Routes>

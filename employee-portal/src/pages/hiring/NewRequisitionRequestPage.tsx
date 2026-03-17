@@ -1,7 +1,7 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { apiPost, apiGet } from '@/utils/api';
-import { ArrowLeft, Send, CheckCircle, X, Search } from 'lucide-react';
+import { ArrowLeft, Send, CheckCircle, X, Search, Plus } from 'lucide-react';
 import { motion } from 'framer-motion';
 
 
@@ -38,16 +38,6 @@ interface TeamMember {
   department: string;
   position: string;
 }
-
-const costCenterOptions = [
-  { value: '01 - Operating', label: '01 - Operating' },
-  { value: '02 - COBRA', label: '02 - COBRA' },
-  { value: '03 - Cafeteria', label: '03 - Cafeteria' },
-  { value: '04 - 401K', label: '04 - 401K' },
-  { value: '05 - 403b', label: '05 - 403b' },
-  { value: '06 - Data Services', label: '06 - Data Services' },
-  { value: '07 - Fiduciary Services', label: '07 - Fiduciary Services' },
-];
 
 const urgencyOptions = [
   { value: 'Low', label: 'Low', color: 'bg-gray-100 text-gray-700' },
@@ -95,12 +85,52 @@ export default function NewRequisitionRequestPage() {
     return null;
   });
 
+  // Field options from API
+  const [fieldOptions, setFieldOptions] = useState<{ departments: string[]; costCenters: string[]; teams: string[] }>({ departments: [], costCenters: [], teams: [] });
+
+  // Department dropdown
+  const [departmentOpen, setDepartmentOpen] = useState(false);
+  const [departmentFilter, setDepartmentFilter] = useState('');
+  const filteredDepartments = fieldOptions.departments.filter(d =>
+    d.toLowerCase().includes(departmentFilter.toLowerCase())
+  );
+
   // Cost center dropdown
   const [costCenterOpen, setCostCenterOpen] = useState(false);
   const [costCenterFilter, setCostCenterFilter] = useState('');
-  const filteredCostCenters = costCenterOptions.filter(cc =>
-    cc.label.toLowerCase().includes(costCenterFilter.toLowerCase())
+  const filteredCostCenters = fieldOptions.costCenters.filter(cc =>
+    cc.toLowerCase().includes(costCenterFilter.toLowerCase())
   );
+
+  // Team dropdown
+  const [teamOpen, setTeamOpen] = useState(false);
+  const [teamFilter, setTeamFilter] = useState('');
+  const [teamRequestSent, setTeamRequestSent] = useState(false);
+  const filteredTeams = fieldOptions.teams.filter(t =>
+    t.toLowerCase().includes(teamFilter.toLowerCase())
+  );
+  const teamFilterExactMatch = fieldOptions.teams.some(t => t.toLowerCase() === teamFilter.toLowerCase().trim());
+
+  // Click-outside refs to close dropdowns
+  const departmentRef = useRef<HTMLDivElement>(null);
+  const costCenterRef = useRef<HTMLDivElement>(null);
+  const teamRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (departmentRef.current && !departmentRef.current.contains(e.target as Node)) {
+        setDepartmentOpen(false);
+      }
+      if (costCenterRef.current && !costCenterRef.current.contains(e.target as Node)) {
+        setCostCenterOpen(false);
+      }
+      if (teamRef.current && !teamRef.current.contains(e.target as Node)) {
+        setTeamOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
 
   // Team member search
   const [memberSearch, setMemberSearch] = useState('');
@@ -268,6 +298,20 @@ export default function NewRequisitionRequestPage() {
       handleChange('requires_early_tech_screen', true);
     }
   };
+
+  // Fetch field options on mount
+  useEffect(() => {
+    (async () => {
+      try {
+        const data = await apiGet<{ departments: string[]; cost_centers: string[]; teams: string[] }>(
+          '/portal/hiring-manager/field-options'
+        );
+        setFieldOptions({ departments: data.departments, costCenters: data.cost_centers, teams: data.teams });
+      } catch {
+        // silently fail — fields will just have empty dropdowns
+      }
+    })();
+  }, []);
 
   // Skills suggestions
   useEffect(() => {
@@ -584,28 +628,111 @@ export default function NewRequisitionRequestPage() {
           </div>
 
           <div className="grid grid-cols-2 gap-4">
-            <div>
+            <div className="relative" ref={departmentRef}>
               <label className={labelClass}>Department *</label>
-              <input
-                type="text"
-                value={formData.department}
-                onChange={e => handleChange('department', e.target.value)}
-                className={inputClass}
-              />
+              {formData.department ? (
+                <span className={`${inputClass} flex items-center justify-between`}>
+                  {formData.department}
+                  <button type="button" onClick={() => { handleChange('department', ''); setDepartmentFilter(''); }}>
+                    <X className="w-4 h-4 text-gray-400 hover:text-gray-600" />
+                  </button>
+                </span>
+              ) : (
+                <>
+                  <input
+                    type="text"
+                    value={departmentFilter}
+                    onChange={e => { setDepartmentFilter(e.target.value); setDepartmentOpen(true); }}
+                    onFocus={() => setDepartmentOpen(true)}
+                    className={inputClass}
+                    placeholder="Search departments..."
+                  />
+                  {departmentOpen && filteredDepartments.length > 0 && (
+                    <div className="absolute z-10 w-full mt-1 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg shadow-lg max-h-48 overflow-y-auto">
+                      {filteredDepartments.map(d => (
+                        <button
+                          key={d}
+                          type="button"
+                          onClick={() => { handleChange('department', d); setDepartmentOpen(false); setDepartmentFilter(''); }}
+                          className="w-full text-left px-3 py-2 text-sm hover:bg-gray-100 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-300"
+                        >
+                          {d}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </>
+              )}
             </div>
-            <div>
+            <div className="relative" ref={teamRef}>
               <label className={labelClass}>Team *</label>
-              <input
-                type="text"
-                value={formData.team}
-                onChange={e => handleChange('team', e.target.value)}
-                className={inputClass}
-              />
+              {formData.team ? (
+                <div>
+                  <span className={`${inputClass} flex items-center justify-between`}>
+                    {formData.team}
+                    <button type="button" onClick={() => { handleChange('team', ''); setTeamFilter(''); setTeamRequestSent(false); }}>
+                      <X className="w-4 h-4 text-gray-400 hover:text-gray-600" />
+                    </button>
+                  </span>
+                  {teamRequestSent && (
+                    <p className="text-xs text-green-600 dark:text-green-400 mt-1">New team request sent to HR for approval.</p>
+                  )}
+                </div>
+              ) : (
+                <>
+                  <input
+                    type="text"
+                    value={teamFilter}
+                    onChange={e => { setTeamFilter(e.target.value); setTeamOpen(true); }}
+                    onFocus={() => setTeamOpen(true)}
+                    className={inputClass}
+                    placeholder="Search teams..."
+                  />
+                  {teamOpen && (filteredTeams.length > 0 || (teamFilter.trim() && !teamFilterExactMatch)) && (
+                    <div className="absolute z-10 w-full mt-1 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg shadow-lg max-h-48 overflow-y-auto">
+                      {filteredTeams.map(t => (
+                        <button
+                          key={t}
+                          type="button"
+                          onClick={() => { handleChange('team', t); setTeamOpen(false); setTeamFilter(''); }}
+                          className="w-full text-left px-3 py-2 text-sm hover:bg-gray-100 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-300"
+                        >
+                          {t}
+                        </button>
+                      ))}
+                      {teamFilter.trim() && !teamFilterExactMatch && (
+                        <button
+                          type="button"
+                          onClick={async () => {
+                            const newTeam = teamFilter.trim();
+                            handleChange('team', newTeam);
+                            setTeamOpen(false);
+                            setTeamFilter('');
+                            try {
+                              await apiPost('/portal/hiring-manager/custom-team-request', {
+                                team_name: newTeam,
+                                position_title: formData.title || 'Untitled Position',
+                              });
+                              setTeamRequestSent(true);
+                            } catch {
+                              // still keep the value, just skip notification
+                            }
+                          }}
+                          className="w-full text-left px-3 py-2 text-sm hover:bg-blue-50 dark:hover:bg-blue-900/20 text-blue-600 dark:text-blue-400 font-medium border-t border-gray-200 dark:border-gray-600 flex items-center gap-1"
+                        >
+                          <Plus className="w-3.5 h-3.5" />
+                          Create new team "{teamFilter.trim()}"
+                        </button>
+                      )}
+                    </div>
+                  )}
+                </>
+              )}
             </div>
           </div>
 
           <div className="grid grid-cols-2 gap-4">
-            <div className="relative">
+            <div className="relative" ref={costCenterRef}>
               <label className={labelClass}>Cost Center *</label>
               {formData.cost_center ? (
                 <div className="flex items-center gap-2">
@@ -630,12 +757,12 @@ export default function NewRequisitionRequestPage() {
                     <div className="absolute z-10 w-full mt-1 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg shadow-lg max-h-48 overflow-y-auto">
                       {filteredCostCenters.map(cc => (
                         <button
-                          key={cc.value}
+                          key={cc}
                           type="button"
-                          onClick={() => { handleChange('cost_center', cc.value); setCostCenterOpen(false); setCostCenterFilter(''); }}
+                          onClick={() => { handleChange('cost_center', cc); setCostCenterOpen(false); setCostCenterFilter(''); }}
                           className="w-full text-left px-3 py-2 text-sm hover:bg-gray-100 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-300"
                         >
-                          {cc.label}
+                          {cc}
                         </button>
                       ))}
                     </div>
