@@ -31,6 +31,7 @@ interface RequisitionDetail {
   created_at: string | null;
   recruiter_name: string | null;
   hiring_manager_name: string | null;
+  visibility_names: string[] | null;
 }
 
 interface StageNote {
@@ -497,6 +498,21 @@ export default function RequisitionTrackerPage() {
                 <span className="text-gray-500">Supervisor</span>
                 <span className="text-gray-700 dark:text-gray-300">{requisition.position_supervisor}</span>
               </div>
+            )}
+            {requisition.visibility_names && requisition.visibility_names.length > 0 && (
+              <>
+                <hr className="border-gray-200 dark:border-gray-700" />
+                <div>
+                  <span className="text-gray-500">Collaborators</span>
+                  <div className="mt-1 flex flex-wrap gap-1">
+                    {requisition.visibility_names.map(name => (
+                      <span key={name} className="inline-block px-2 py-0.5 bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-300 rounded-full text-xs">
+                        {name}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              </>
             )}
           </div>
         </div>

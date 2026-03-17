@@ -77,6 +77,12 @@ interface PayrollNextDate {
   days_until: number;
 }
 
+interface HiringStats {
+  open_count: number;
+  in_process_count: number;
+  total: number;
+}
+
 // ---- Accent types ----
 
 type AccentColor = 'violet' | 'teal' | 'gold';
@@ -105,6 +111,7 @@ export default function BifrostDashboard() {
   const [supervisorData, setSupervisorData] = useState<SupervisorDashboardData | null>(null);
   const [ptoBalance, setPtoBalance] = useState<PTOBalance | null>(null);
   const [payrollDate, setPayrollDate] = useState<PayrollNextDate | null>(null);
+  const [hiringStats, setHiringStats] = useState<HiringStats | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [actionItems, setActionItems] = useState<ActionItem[]>([]);
@@ -155,6 +162,16 @@ export default function BifrostDashboard() {
           setPayrollDate(payroll);
         } catch {
           // Payroll endpoint might not exist yet
+        }
+
+        // Fetch hiring involvement stats
+        try {
+          const hiring = await apiGet<HiringStats>('/portal/hiring-manager/my-hiring-stats');
+          if (hiring.total > 0) {
+            setHiringStats(hiring);
+          }
+        } catch {
+          // Hiring stats might not be available
         }
 
         // If supervisor, fetch supervisor dashboard
@@ -290,6 +307,18 @@ export default function BifrostDashboard() {
         icon: Heart,
         accent: 'teal',
         link: '/my-hr/benefits',
+      });
+    }
+
+    // Show hiring involvement card if user is involved in any requisitions
+    if (hiringStats && cards.length < 3) {
+      cards.push({
+        title: 'Hiring',
+        value: hiringStats.open_count,
+        subtitle: `open · ${hiringStats.in_process_count} in process`,
+        icon: Briefcase,
+        accent: 'gold',
+        link: '/hiring/my-requisitions',
       });
     }
 

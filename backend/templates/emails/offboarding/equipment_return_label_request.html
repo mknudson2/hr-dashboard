@@ -1,0 +1,74 @@
+{% extends "base/base.html" %}
+
+{% block title %}Equipment Return Label Request{% endblock %}
+
+{% block header_title %}NBS HR Notification{% endblock %}
+{% block header_subtitle %}Equipment Return &mdash; Label Request{% endblock %}
+
+{% block greeting %}
+<p style="font-size: 18px;">Hey {{ contact_name }},</p>
+{% endblock %}
+
+{% block content %}
+<p style="font-size: 15px;">
+    We need a prepaid return shipping label for a departing employee. Here are the details:
+</p>
+
+<div class="info-box">
+    <p><strong>Employee:</strong> {{ employee_name }}</p>
+    <p style="margin-top: 8px;"><strong>Mailing Address:</strong></p>
+    <p style="margin-left: 15px;">
+        {{ address_street }}<br/>
+        {{ address_city }}, {{ address_state }} {{ address_zip }}
+    </p>
+</div>
+
+<h3 style="color: #3b82f6; margin-top: 30px;">Equipment to Return</h3>
+
+<table style="width: 100%; border-collapse: collapse; margin-top: 15px;">
+    <thead>
+        <tr style="background-color: #1e293b;">
+            <th style="padding: 10px 12px; text-align: left; color: #e2e8f0; font-size: 13px; border-bottom: 2px solid #3b82f6;">Type</th>
+            <th style="padding: 10px 12px; text-align: left; color: #e2e8f0; font-size: 13px; border-bottom: 2px solid #3b82f6;">Manufacturer / Model</th>
+            <th style="padding: 10px 12px; text-align: left; color: #e2e8f0; font-size: 13px; border-bottom: 2px solid #3b82f6;">Serial #</th>
+            <th style="padding: 10px 12px; text-align: left; color: #e2e8f0; font-size: 13px; border-bottom: 2px solid #3b82f6;">Asset Tag</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for item in equipment_items %}
+        <tr style="background-color: {% if loop.index is odd %}#0f172a{% else %}#1e293b{% endif %};">
+            <td style="padding: 10px 12px; color: #e2e8f0; font-size: 13px; border-bottom: 1px solid #334155;">{{ item.equipment_type }}</td>
+            <td style="padding: 10px 12px; color: #e2e8f0; font-size: 13px; border-bottom: 1px solid #334155;">{{ item.manufacturer }} {{ item.model }}</td>
+            <td style="padding: 10px 12px; color: #e2e8f0; font-size: 13px; border-bottom: 1px solid #334155;">{{ item.serial_number or 'N/A' }}</td>
+            <td style="padding: 10px 12px; color: #e2e8f0; font-size: 13px; border-bottom: 1px solid #334155;">{{ item.asset_tag or 'N/A' }}</td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+
+<p style="font-size: 15px; margin-top: 25px;">
+    Please send the label to me so I can forward it to the employee.
+</p>
+{% endblock %}
+
+{% block closing %}
+<div class="divider"></div>
+<p style="margin-top: 30px; margin-bottom: 5px;">
+    Thanks!
+</p>
+<table style="margin-top: 20px; border: 0; padding: 0;">
+    <tr>
+        <td style="padding: 0; border: 0;">
+            <p style="margin: 0; color: #FFFFFF; font-size: 16px; font-weight: 600;">Michael Knudson, Ph.D.</p>
+            <p style="margin: 5px 0; color: #9ca3af; font-size: 14px;">Manager, Payroll & Benefits, Human Resources</p>
+            <p style="margin: 15px 0 5px 0; color: #3b82f6; font-size: 14px; font-weight: 600;">Comprehensive Benefit and Retirement Plan Administration</p>
+            <p style="margin: 5px 0; color: #9ca3af; font-size: 13px;">Mountain Time Zone</p>
+            <p style="margin: 5px 0; color: #9ca3af; font-size: 13px;">Phone (801) 858-0266 | Fax (801) 858-0252</p>
+            <p style="margin: 5px 0; color: #9ca3af; font-size: 13px;">
+                <a href="mailto:{{ hr_contact_email }}" style="color: #3b82f6; text-decoration: none;">{{ hr_contact_email }}</a> |
+                <a href="https://www.nbsbenefits.com" style="color: #3b82f6; text-decoration: none;">www.nbsbenefits.com</a>
+            </p>
+        </td>
+    </tr>
+</table>
+{% endblock %}

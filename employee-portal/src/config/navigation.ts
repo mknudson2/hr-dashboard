@@ -22,6 +22,7 @@ import {
   BarChart,
   History,
   Send,
+  UserPlus,
   type LucideIcon,
 } from 'lucide-react';
 import type { FeatureFlags } from '@/contexts/EmployeeFeaturesContext';
@@ -153,6 +154,12 @@ export const navigationConfig: NavigationConfig = {
         { label: 'PIPs', path: '/team/pips', icon: AlertTriangle },
         { label: 'HR Change Requests', path: '/team/hr-changes', icon: FileEdit },
         { label: 'Team Reports', path: '/team/analytics', icon: BarChart },
+        {
+          label: 'Hiring',
+          path: '/hiring/my-requisitions',
+          icon: UserPlus,
+          requiresFeature: 'is_hiring_manager',
+        },
       ],
     },
   ],

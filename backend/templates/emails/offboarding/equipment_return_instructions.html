@@ -1,0 +1,60 @@
+{% extends "base/base.html" %}
+
+{% block title %}Equipment Return Instructions - {{ employee_name }}{% endblock %}
+
+{% block header_title %}NBS HR Notification{% endblock %}
+{% block header_subtitle %}Equipment Return Instructions{% endblock %}
+
+{% block greeting %}
+<p style="font-size: 18px;">Hey {{ employee_first_name }}!</p>
+{% endblock %}
+
+{% block content %}
+<p style="font-size: 15px;">
+    As part of your transition from NBS, the following company equipment needs to be returned:
+</p>
+
+<ul style="margin: 15px 0; font-size: 15px;">
+    {% for item in equipment_items %}
+    <li style="margin-bottom: 8px;">
+        <strong>{{ item.equipment_type }}</strong> &mdash; {{ item.manufacturer }} {{ item.model }}{% if item.serial_number %} (Serial: {{ item.serial_number }}){% endif %}
+    </li>
+    {% endfor %}
+</ul>
+
+<h3 style="color: #3b82f6; margin-top: 30px;">Return Instructions</h3>
+
+<div class="info-box">
+    <ol style="margin: 0; padding-left: 20px; font-size: 15px;">
+        <li style="margin-bottom: 10px;">Attached is a <strong>prepaid shipping label</strong>.</li>
+        <li style="margin-bottom: 10px;">Please pack items securely in a box with adequate padding.</li>
+        <li>Drop off at any shipping location.</li>
+    </ol>
+</div>
+
+<p style="font-size: 15px; margin-top: 25px;">
+    If you have any questions, please don't hesitate to contact me.
+</p>
+{% endblock %}
+
+{% block closing %}
+<div class="divider"></div>
+<p style="margin-top: 30px; margin-bottom: 5px;">
+    All the best,
+</p>
+<table style="margin-top: 20px; border: 0; padding: 0;">
+    <tr>
+        <td style="padding: 0; border: 0;">
+            <p style="margin: 0; color: #FFFFFF; font-size: 16px; font-weight: 600;">Michael Knudson, Ph.D.</p>
+            <p style="margin: 5px 0; color: #9ca3af; font-size: 14px;">Manager, Payroll & Benefits, Human Resources</p>
+            <p style="margin: 15px 0 5px 0; color: #3b82f6; font-size: 14px; font-weight: 600;">Comprehensive Benefit and Retirement Plan Administration</p>
+            <p style="margin: 5px 0; color: #9ca3af; font-size: 13px;">Mountain Time Zone</p>
+            <p style="margin: 5px 0; color: #9ca3af; font-size: 13px;">Phone (801) 858-0266 | Fax (801) 858-0252</p>
+            <p style="margin: 5px 0; color: #9ca3af; font-size: 13px;">
+                <a href="mailto:{{ hr_contact_email }}" style="color: #3b82f6; text-decoration: none;">{{ hr_contact_email }}</a> |
+                <a href="https://www.nbsbenefits.com" style="color: #3b82f6; text-decoration: none;">www.nbsbenefits.com</a>
+            </p>
+        </td>
+    </tr>
+</table>
+{% endblock %}

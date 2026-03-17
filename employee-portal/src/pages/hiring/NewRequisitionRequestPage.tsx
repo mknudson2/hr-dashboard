@@ -1,9 +1,19 @@
 import { useState, useEffect, useRef } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { apiPost, apiGet } from '@/utils/api';
-import { ArrowLeft, Send, CheckCircle, X, Search, Plus } from 'lucide-react';
+import { ArrowLeft, Send, CheckCircle, X, Search, Plus, UserPlus, Check } from 'lucide-react';
 import { motion } from 'framer-motion';
 
+
+interface JDOption {
+  id: number;
+  position_title: string;
+  description: string | null;
+  requirements: string | null;
+  preferred_qualifications: string | null;
+  responsibilities: string | null;
+  skills_tags: string[] | null;
+}
 
 interface FormData {
   title: string;
@@ -15,6 +25,7 @@ interface FormData {
   employment_type: string;
   position_type: string;
   position_supervisor: string;
+  openings: number;
   posting_channels: string[];
   requires_early_tech_screen: boolean;
   target_salary: string;
@@ -23,11 +34,14 @@ interface FormData {
   wage_type: string;
   skills_tags: string[];
   target_start_date: string;
+  target_fill_date: string;
   urgency: string;
   visibility_user_ids: number[];
+  visibility_employee_ids: string[];
   description: string;
   requirements: string;
   notes: string;
+  job_description_id: number | null;
 }
 
 interface TeamMember {
@@ -37,6 +51,7 @@ interface TeamMember {
   last_name: string;
   department: string;
   position: string;
+  is_hiring_manager?: boolean;
 }
 
 const urgencyOptions = [
@@ -85,12 +100,24 @@ export default function NewRequisitionRequestPage() {
     return null;
   });
 
+  // Job description search
+  const [jdSearch, setJdSearch] = useState('');
+  const [jdResults, setJdResults] = useState<JDOption[]>([]);
+  const [jdOpen, setJdOpen] = useState(false);
+  const [selectedJD, setSelectedJD] = useState<JDOption | null>(null);
+  const [jdHighlight, setJdHighlight] = useState(0);
+  const jdRef = useRef<HTMLDivElement>(null);
+
+  // Supervisor chain of command
+  const [supervisorChain, setSupervisorChain] = useState<TeamMember[]>([]);
+
   // Field options from API
   const [fieldOptions, setFieldOptions] = useState<{ departments: string[]; costCenters: string[]; teams: string[] }>({ departments: [], costCenters: [], teams: [] });
 
   // Department dropdown
   const [departmentOpen, setDepartmentOpen] = useState(false);
   const [departmentFilter, setDepartmentFilter] = useState('');
+  const [deptHighlight, setDeptHighlight] = useState(0);
   const filteredDepartments = fieldOptions.departments.filter(d =>
     d.toLowerCase().includes(departmentFilter.toLowerCase())
   );
@@ -98,6 +125,7 @@ export default function NewRequisitionRequestPage() {
   // Cost center dropdown
   const [costCenterOpen, setCostCenterOpen] = useState(false);
   const [costCenterFilter, setCostCenterFilter] = useState('');
+  const [ccHighlight, setCcHighlight] = useState(0);
   const filteredCostCenters = fieldOptions.costCenters.filter(cc =>
     cc.toLowerCase().includes(costCenterFilter.toLowerCase())
   );
@@ -106,15 +134,23 @@ export default function NewRequisitionRequestPage() {
   const [teamOpen, setTeamOpen] = useState(false);
   const [teamFilter, setTeamFilter] = useState('');
   const [teamRequestSent, setTeamRequestSent] = useState(false);
+  const [teamHighlight, setTeamHighlight] = useState(0);
   const filteredTeams = fieldOptions.teams.filter(t =>
     t.toLowerCase().includes(teamFilter.toLowerCase())
   );
   const teamFilterExactMatch = fieldOptions.teams.some(t => t.toLowerCase() === teamFilter.toLowerCase().trim());
 
+  // Keyboard highlight indices for async search dropdowns
+  const [supHighlight, setSupHighlight] = useState(0);
+  const [skillHighlight, setSkillHighlight] = useState(0);
+  const [memberHighlight, setMemberHighlight] = useState(0);
+
   // Click-outside refs to close dropdowns
   const departmentRef = useRef<HTMLDivElement>(null);
   const costCenterRef = useRef<HTMLDivElement>(null);
   const teamRef = useRef<HTMLDivElement>(null);
+  const supervisorRef = useRef<HTMLDivElement>(null);
+  const visibilityRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
@@ -127,15 +163,91 @@ export default function NewRequisitionRequestPage() {
       if (teamRef.current && !teamRef.current.contains(e.target as Node)) {
         setTeamOpen(false);
       }
+      if (supervisorRef.current && !supervisorRef.current.contains(e.target as Node)) {
+        setSupervisorResults([]);
+      }
+      if (visibilityRef.current && !visibilityRef.current.contains(e.target as Node)) {
+        setMemberResults([]);
+      }
+      if (jdRef.current && !jdRef.current.contains(e.target as Node)) {
+        setJdOpen(false);
+      }
     };
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
+  // Reset highlight indices when filtered lists change
+  useEffect(() => { setDeptHighlight(0); }, [departmentFilter]);
+  useEffect(() => { setCcHighlight(0); }, [costCenterFilter]);
+  useEffect(() => { setTeamHighlight(0); }, [teamFilter]);
+  useEffect(() => { setJdHighlight(0); }, [jdResults]);
+
+  // JD search
+  useEffect(() => {
+    if (jdSearch.length < 1) { setJdResults([]); return; }
+    const timer = setTimeout(async () => {
+      try {
+        const data = await apiGet<{ job_descriptions: JDOption[] }>(
+          `/portal/hiring-manager/job-descriptions?search=${encodeURIComponent(jdSearch)}&limit=10`
+        );
+        setJdResults(data.job_descriptions || []);
+      } catch { setJdResults([]); }
+    }, 250);
+    return () => clearTimeout(timer);
+  }, [jdSearch]);
+
+  const selectJD = (jd: JDOption) => {
+    setSelectedJD(jd);
+    handleChange('title', jd.position_title);
+    handleChange('job_description_id', jd.id as unknown as string);
+    if (jd.description) handleChange('description', jd.description);
+    if (jd.requirements) handleChange('requirements', jd.requirements);
+    if (jd.skills_tags && jd.skills_tags.length > 0) handleChange('skills_tags', jd.skills_tags);
+    setJdOpen(false);
+    setJdSearch('');
+  };
+
+  const clearJD = () => {
+    setSelectedJD(null);
+    handleChange('title', '');
+    handleChange('job_description_id', null as unknown as string);
+    setJdSearch('');
+  };
+
+  /** Shared arrow-key / enter handler for dropdown inputs */
+  const makeKeyHandler = (
+    listLen: number,
+    highlight: number,
+    setHighlight: React.Dispatch<React.SetStateAction<number>>,
+    onSelect: (idx: number) => void,
+  ) => (e: React.KeyboardEvent) => {
+    if (listLen === 0) return;
+    if (e.key === 'ArrowDown') {
+      e.preventDefault();
+      setHighlight(h => Math.min(h + 1, listLen - 1));
+    } else if (e.key === 'ArrowUp') {
+      e.preventDefault();
+      setHighlight(h => Math.max(h - 1, 0));
+    } else if (e.key === 'Enter') {
+      e.preventDefault();
+      onSelect(highlight);
+    }
+  };
+
   // Team member search
   const [memberSearch, setMemberSearch] = useState('');
   const [memberResults, setMemberResults] = useState<TeamMember[]>([]);
   const [selectedMembers, setSelectedMembers] = useState<TeamMember[]>([]);
+
+  // Warning modal for non-hiring-manager visibility adds
+  const [pendingMember, setPendingMember] = useState<TeamMember | null>(null);
+  const [showHmWarning, setShowHmWarning] = useState(false);
+
+  // Reset highlight indices for async search results
+  useEffect(() => { setSupHighlight(0); }, [supervisorResults]);
+  useEffect(() => { setSkillHighlight(0); }, [skillSuggestions]);
+  useEffect(() => { setMemberHighlight(0); }, [memberResults]);
 
   const [formData, setFormData] = useState<FormData>(() => {
     if (cloneData) {
@@ -149,6 +261,7 @@ export default function NewRequisitionRequestPage() {
         employment_type: String(cloneData.employment_type || 'Full Time'),
         position_type: 'New',
         position_supervisor: String(cloneData.position_supervisor || ''),
+        openings: Number(cloneData.openings) || 1,
         posting_channels: Array.isArray(cloneData.posting_channels) ? cloneData.posting_channels as string[] : [],
         requires_early_tech_screen: Boolean(cloneData.requires_early_tech_screen),
         target_salary: formatNum(cloneData.target_salary),
@@ -157,11 +270,14 @@ export default function NewRequisitionRequestPage() {
         wage_type: String(cloneData.wage_type || 'Salary'),
         skills_tags: Array.isArray(cloneData.skills_tags) ? cloneData.skills_tags as string[] : [],
         target_start_date: '',
+        target_fill_date: '',
         urgency: String(cloneData.urgency || 'Normal'),
         visibility_user_ids: [],
+        visibility_employee_ids: [],
         description: String(cloneData.description || ''),
         requirements: String(cloneData.requirements || ''),
         notes: '',
+        job_description_id: null,
       };
     }
     return {
@@ -174,6 +290,7 @@ export default function NewRequisitionRequestPage() {
       employment_type: 'Full Time',
       position_type: 'New',
       position_supervisor: '',
+      openings: 1,
       posting_channels: [],
       requires_early_tech_screen: false,
       target_salary: '',
@@ -182,15 +299,18 @@ export default function NewRequisitionRequestPage() {
       wage_type: 'Salary',
       skills_tags: [],
       target_start_date: '',
+      target_fill_date: '',
       urgency: 'Normal',
       visibility_user_ids: [],
+      visibility_employee_ids: [],
       description: '',
       requirements: '',
       notes: '',
+      job_description_id: null,
     };
   });
 
-  const handleChange = (field: keyof FormData, value: string | boolean | string[] | number[]) => {
+  const handleChange = (field: keyof FormData, value: string | boolean | number | string[] | number[]) => {
     setFormData(prev => ({ ...prev, [field]: value }));
   };
 
@@ -363,17 +483,30 @@ export default function NewRequisitionRequestPage() {
     }
   }, [supervisorSearch]);
 
-  const selectSupervisor = (member: TeamMember) => {
+  const selectSupervisor = async (member: TeamMember) => {
     const fullName = `${member.first_name} ${member.last_name}`;
     handleChange('position_supervisor', fullName);
     setSelectedSupervisor(member);
     setSupervisorSearch('');
     setSupervisorResults([]);
+
+    // Fetch chain of command for visibility suggestions
+    if (member.employee_id) {
+      try {
+        const data = await apiGet<{ chain: TeamMember[] }>(
+          `/portal/hiring-manager/supervisor-chain?employee_id=${encodeURIComponent(member.employee_id)}`
+        );
+        setSupervisorChain(data.chain);
+      } catch {
+        setSupervisorChain([]);
+      }
+    }
   };
 
   const clearSupervisor = () => {
     handleChange('position_supervisor', '');
     setSelectedSupervisor(null);
+    setSupervisorChain([]);
   };
 
   // Team member search
@@ -385,7 +518,7 @@ export default function NewRequisitionRequestPage() {
             `/portal/hiring-manager/team-members?search=${encodeURIComponent(memberSearch)}`
           );
           setMemberResults(data.employees.filter(
-            e => e.user_id && !formData.visibility_user_ids.includes(e.user_id)
+            e => !selectedMembers.some(s => s.employee_id === e.employee_id)
           ));
         } catch {
           setMemberResults([]);
@@ -398,17 +531,42 @@ export default function NewRequisitionRequestPage() {
   }, [memberSearch, formData.visibility_user_ids]);
 
   const addMember = (member: TeamMember) => {
-    if (member.user_id && !formData.visibility_user_ids.includes(member.user_id)) {
-      handleChange('visibility_user_ids', [...formData.visibility_user_ids, member.user_id]);
+    // Check hiring-manager eligibility — warn if not
+    if (!member.is_hiring_manager) {
+      setPendingMember(member);
+      setShowHmWarning(true);
+      return;
+    }
+    confirmAddMember(member);
+  };
+
+  const confirmAddMember = (member: TeamMember) => {
+    if (!selectedMembers.some(s => s.employee_id === member.employee_id)) {
+      if (member.user_id) {
+        handleChange('visibility_user_ids', [...formData.visibility_user_ids, member.user_id]);
+      }
+      setFormData(prev => ({
+        ...prev,
+        visibility_employee_ids: [...prev.visibility_employee_ids, member.employee_id],
+      }));
       setSelectedMembers(prev => [...prev, member]);
     }
     setMemberSearch('');
     setMemberResults([]);
+    setPendingMember(null);
+    setShowHmWarning(false);
   };
 
-  const removeMember = (userId: number) => {
-    handleChange('visibility_user_ids', formData.visibility_user_ids.filter(id => id !== userId));
-    setSelectedMembers(prev => prev.filter(m => m.user_id !== userId));
+  const removeMember = (employeeId: string) => {
+    const member = selectedMembers.find(m => m.employee_id === employeeId);
+    if (member?.user_id) {
+      handleChange('visibility_user_ids', formData.visibility_user_ids.filter(id => id !== member.user_id));
+    }
+    setFormData(prev => ({
+      ...prev,
+      visibility_employee_ids: prev.visibility_employee_ids.filter(id => id !== employeeId),
+    }));
+    setSelectedMembers(prev => prev.filter(m => m.employee_id !== employeeId));
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -454,6 +612,9 @@ export default function NewRequisitionRequestPage() {
         salary_min: formData.salary_min ? parseFloat(formData.salary_min.replace(/,/g, '')) : null,
         salary_max: formData.salary_max ? parseFloat(formData.salary_max.replace(/,/g, '')) : null,
         target_start_date: formData.target_start_date || null,
+        target_fill_date: formData.target_fill_date || null,
+        openings: formData.openings || 1,
+        job_description_id: formData.job_description_id || null,
       };
       const result = await apiPost<{ id: number; requisition_id: string }>(
         '/portal/hiring-manager/requisitions',
@@ -615,16 +776,77 @@ export default function NewRequisitionRequestPage() {
         <div className={sectionClass}>
           <h2 className="text-lg font-semibold text-gray-900 dark:text-white">Position Details</h2>
 
-          <div>
+          <div className="relative" ref={jdRef}>
             <label className={labelClass}>Position Title *</label>
-            <input
-              type="text"
-              value={formData.title}
-              onChange={e => handleChange('title', e.target.value)}
-              className={inputClass}
-              placeholder="e.g., Senior Software Engineer"
-              required
-            />
+            {selectedJD ? (
+              <div className={`${inputClass} flex items-center justify-between`}>
+                <span>{selectedJD.position_title}</span>
+                <button type="button" onClick={clearJD}>
+                  <X className="w-4 h-4 text-gray-400 hover:text-gray-600" />
+                </button>
+              </div>
+            ) : (
+              <>
+                <input
+                  type="text"
+                  value={jdOpen ? jdSearch : formData.title}
+                  onChange={e => {
+                    if (jdOpen) {
+                      setJdSearch(e.target.value);
+                    } else {
+                      handleChange('title', e.target.value);
+                    }
+                  }}
+                  onFocus={() => { setJdOpen(true); setJdSearch(formData.title); }}
+                  onKeyDown={makeKeyHandler(jdResults.length + 1, jdHighlight, setJdHighlight, idx => {
+                    if (idx < jdResults.length) {
+                      selectJD(jdResults[idx]);
+                    }
+                    // Last option = "Create new position" — just close dropdown and keep typed text
+                    if (idx === jdResults.length) {
+                      handleChange('title', jdSearch);
+                      setJdOpen(false);
+                    }
+                  })}
+                  className={inputClass}
+                  placeholder="Search existing positions or type a new title..."
+                  required
+                />
+                {jdOpen && (
+                  <div className="absolute z-20 mt-1 w-full bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg max-h-60 overflow-y-auto">
+                    {jdResults.map((jd, i) => (
+                      <button
+                        key={jd.id}
+                        type="button"
+                        onClick={() => selectJD(jd)}
+                        className={`w-full text-left px-3 py-2 text-sm ${
+                          i === jdHighlight
+                            ? 'bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300'
+                            : 'text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700'
+                        }`}
+                      >
+                        <div className="font-medium">{jd.position_title}</div>
+                        {jd.description && (
+                          <div className="text-xs text-gray-500 dark:text-gray-400 line-clamp-1">{jd.description}</div>
+                        )}
+                      </button>
+                    ))}
+                    <button
+                      type="button"
+                      onClick={() => { handleChange('title', jdSearch); setJdOpen(false); }}
+                      className={`w-full text-left px-3 py-2 text-sm border-t border-gray-200 dark:border-gray-700 flex items-center gap-2 ${
+                        jdHighlight === jdResults.length
+                          ? 'bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300'
+                          : 'text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-700'
+                      }`}
+                    >
+                      <Plus className="w-4 h-4" />
+                      {jdSearch ? `Create new position "${jdSearch}"` : 'Create new position'}
+                    </button>
+                  </div>
+                )}
+              </>
+            )}
           </div>
 
           <div className="grid grid-cols-2 gap-4">
@@ -644,17 +866,21 @@ export default function NewRequisitionRequestPage() {
                     value={departmentFilter}
                     onChange={e => { setDepartmentFilter(e.target.value); setDepartmentOpen(true); }}
                     onFocus={() => setDepartmentOpen(true)}
+                    onKeyDown={makeKeyHandler(filteredDepartments.length, deptHighlight, setDeptHighlight, idx => {
+                      const d = filteredDepartments[idx];
+                      if (d) { handleChange('department', d); setDepartmentOpen(false); setDepartmentFilter(''); }
+                    })}
                     className={inputClass}
                     placeholder="Search departments..."
                   />
                   {departmentOpen && filteredDepartments.length > 0 && (
                     <div className="absolute z-10 w-full mt-1 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg shadow-lg max-h-48 overflow-y-auto">
-                      {filteredDepartments.map(d => (
+                      {filteredDepartments.map((d, i) => (
                         <button
                           key={d}
                           type="button"
                           onClick={() => { handleChange('department', d); setDepartmentOpen(false); setDepartmentFilter(''); }}
-                          className="w-full text-left px-3 py-2 text-sm hover:bg-gray-100 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-300"
+                          className={`w-full text-left px-3 py-2 text-sm text-gray-700 dark:text-gray-300 ${i === deptHighlight ? 'bg-blue-50 dark:bg-blue-900/30' : 'hover:bg-gray-100 dark:hover:bg-gray-600'}`}
                         >
                           {d}
                         </button>
@@ -685,17 +911,41 @@ export default function NewRequisitionRequestPage() {
                     value={teamFilter}
                     onChange={e => { setTeamFilter(e.target.value); setTeamOpen(true); }}
                     onFocus={() => setTeamOpen(true)}
+                    onKeyDown={e => {
+                      // Include the "Create new team" option in the navigable count
+                      const hasCreate = teamFilter.trim() && !teamFilterExactMatch;
+                      const totalItems = filteredTeams.length + (hasCreate ? 1 : 0);
+                      const handler = makeKeyHandler(totalItems, teamHighlight, setTeamHighlight, idx => {
+                        if (idx < filteredTeams.length) {
+                          // Select existing team
+                          handleChange('team', filteredTeams[idx]);
+                          setTeamOpen(false);
+                          setTeamFilter('');
+                        } else if (hasCreate) {
+                          // Create new team
+                          const newTeam = teamFilter.trim();
+                          handleChange('team', newTeam);
+                          setTeamOpen(false);
+                          setTeamFilter('');
+                          apiPost('/portal/hiring-manager/custom-team-request', {
+                            team_name: newTeam,
+                            position_title: formData.title || 'Untitled Position',
+                          }).then(() => setTeamRequestSent(true)).catch(() => {});
+                        }
+                      });
+                      handler(e);
+                    }}
                     className={inputClass}
                     placeholder="Search teams..."
                   />
                   {teamOpen && (filteredTeams.length > 0 || (teamFilter.trim() && !teamFilterExactMatch)) && (
                     <div className="absolute z-10 w-full mt-1 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg shadow-lg max-h-48 overflow-y-auto">
-                      {filteredTeams.map(t => (
+                      {filteredTeams.map((t, i) => (
                         <button
                           key={t}
                           type="button"
                           onClick={() => { handleChange('team', t); setTeamOpen(false); setTeamFilter(''); }}
-                          className="w-full text-left px-3 py-2 text-sm hover:bg-gray-100 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-300"
+                          className={`w-full text-left px-3 py-2 text-sm text-gray-700 dark:text-gray-300 ${i === teamHighlight ? 'bg-blue-50 dark:bg-blue-900/30' : 'hover:bg-gray-100 dark:hover:bg-gray-600'}`}
                         >
                           {t}
                         </button>
@@ -718,7 +968,7 @@ export default function NewRequisitionRequestPage() {
                               // still keep the value, just skip notification
                             }
                           }}
-                          className="w-full text-left px-3 py-2 text-sm hover:bg-blue-50 dark:hover:bg-blue-900/20 text-blue-600 dark:text-blue-400 font-medium border-t border-gray-200 dark:border-gray-600 flex items-center gap-1"
+                          className={`w-full text-left px-3 py-2 text-sm text-blue-600 dark:text-blue-400 font-medium border-t border-gray-200 dark:border-gray-600 flex items-center gap-1 ${teamHighlight === filteredTeams.length ? 'bg-blue-50 dark:bg-blue-900/30' : 'hover:bg-blue-50 dark:hover:bg-blue-900/20'}`}
                         >
                           <Plus className="w-3.5 h-3.5" />
                           Create new team "{teamFilter.trim()}"
@@ -750,17 +1000,21 @@ export default function NewRequisitionRequestPage() {
                     value={costCenterFilter}
                     onChange={e => { setCostCenterFilter(e.target.value); setCostCenterOpen(true); }}
                     onFocus={() => setCostCenterOpen(true)}
+                    onKeyDown={makeKeyHandler(filteredCostCenters.length, ccHighlight, setCcHighlight, idx => {
+                      const cc = filteredCostCenters[idx];
+                      if (cc) { handleChange('cost_center', cc); setCostCenterOpen(false); setCostCenterFilter(''); }
+                    })}
                     className={inputClass}
                     placeholder="Search cost centers..."
                   />
                   {costCenterOpen && filteredCostCenters.length > 0 && (
                     <div className="absolute z-10 w-full mt-1 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg shadow-lg max-h-48 overflow-y-auto">
-                      {filteredCostCenters.map(cc => (
+                      {filteredCostCenters.map((cc, i) => (
                         <button
                           key={cc}
                           type="button"
                           onClick={() => { handleChange('cost_center', cc); setCostCenterOpen(false); setCostCenterFilter(''); }}
-                          className="w-full text-left px-3 py-2 text-sm hover:bg-gray-100 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-300"
+                          className={`w-full text-left px-3 py-2 text-sm text-gray-700 dark:text-gray-300 ${i === ccHighlight ? 'bg-blue-50 dark:bg-blue-900/30' : 'hover:bg-gray-100 dark:hover:bg-gray-600'}`}
                         >
                           {cc}
                         </button>
@@ -790,7 +1044,42 @@ export default function NewRequisitionRequestPage() {
             </div>
           </div>
 
-          <div>
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className={labelClass}>Location *</label>
+              <div className="flex gap-4 mt-2">
+                {['Hawaii', 'Remote'].map(loc => (
+                  <label key={loc} className="flex items-center gap-2 cursor-pointer">
+                    <input
+                      type="radio"
+                      name="location_choice"
+                      value={loc}
+                      checked={formData.location === loc}
+                      onChange={() => {
+                        handleChange('location', loc);
+                        handleChange('remote_type', loc === 'Remote' ? 'Remote' : 'On-site');
+                      }}
+                      className="text-blue-600"
+                    />
+                    <span className="text-sm text-gray-700 dark:text-gray-300">{loc}</span>
+                  </label>
+                ))}
+              </div>
+            </div>
+            <div>
+              <label className={labelClass}>Number of Openings</label>
+              <input
+                type="number"
+                min={1}
+                max={99}
+                value={formData.openings}
+                onChange={e => handleChange('openings', Math.max(1, parseInt(e.target.value) || 1))}
+                className={inputClass}
+              />
+            </div>
+          </div>
+
+          <div ref={supervisorRef}>
             <label className={labelClass}>Intended Supervisor *</label>
             {selectedSupervisor ? (
               <div className="flex items-center gap-2">
@@ -812,18 +1101,22 @@ export default function NewRequisitionRequestPage() {
                     type="text"
                     value={supervisorSearch}
                     onChange={e => setSupervisorSearch(e.target.value)}
+                    onKeyDown={makeKeyHandler(supervisorResults.length, supHighlight, setSupHighlight, idx => {
+                      const m = supervisorResults[idx];
+                      if (m) selectSupervisor(m);
+                    })}
                     className={`${inputClass} pl-9`}
                     placeholder="Search employees..."
                   />
                 </div>
                 {supervisorResults.length > 0 && (
                   <div className="absolute z-10 w-full mt-1 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg shadow-lg max-h-40 overflow-y-auto">
-                    {supervisorResults.map(m => (
+                    {supervisorResults.map((m, i) => (
                       <button
                         key={m.employee_id}
                         type="button"
                         onClick={() => selectSupervisor(m)}
-                        className="w-full text-left px-3 py-2 hover:bg-gray-100 dark:hover:bg-gray-600"
+                        className={`w-full text-left px-3 py-2 ${i === supHighlight ? 'bg-blue-50 dark:bg-blue-900/30' : 'hover:bg-gray-100 dark:hover:bg-gray-600'}`}
                       >
                         <div className="text-sm font-medium text-gray-700 dark:text-gray-300">
                           {m.first_name} {m.last_name}
@@ -1025,6 +1318,11 @@ export default function NewRequisitionRequestPage() {
                 value={skillInput}
                 onChange={e => setSkillInput(e.target.value)}
                 onKeyDown={e => {
+                  if (skillSuggestions.length > 0) {
+                    if (e.key === 'ArrowDown') { e.preventDefault(); setSkillHighlight(h => Math.min(h + 1, skillSuggestions.length - 1)); return; }
+                    if (e.key === 'ArrowUp') { e.preventDefault(); setSkillHighlight(h => Math.max(h - 1, 0)); return; }
+                    if (e.key === 'Enter') { e.preventDefault(); addSkill(skillSuggestions[skillHighlight]); return; }
+                  }
                   if (e.key === 'Enter' && skillInput.trim()) {
                     e.preventDefault();
                     addSkill(skillInput.trim());
@@ -1035,12 +1333,12 @@ export default function NewRequisitionRequestPage() {
               />
               {skillSuggestions.length > 0 && (
                 <div className="absolute z-10 w-full mt-1 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg shadow-lg max-h-40 overflow-y-auto">
-                  {skillSuggestions.map(s => (
+                  {skillSuggestions.map((s, i) => (
                     <button
                       key={s}
                       type="button"
                       onClick={() => addSkill(s)}
-                      className="w-full text-left px-3 py-2 text-sm hover:bg-gray-100 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-300"
+                      className={`w-full text-left px-3 py-2 text-sm text-gray-700 dark:text-gray-300 ${i === skillHighlight ? 'bg-blue-50 dark:bg-blue-900/30' : 'hover:bg-gray-100 dark:hover:bg-gray-600'}`}
                     >
                       {s}
                     </button>
@@ -1054,7 +1352,7 @@ export default function NewRequisitionRequestPage() {
         {/* Section 5: Timeline & Urgency */}
         <div className={sectionClass}>
           <h2 className="text-lg font-semibold text-gray-900 dark:text-white">Timeline & Urgency</h2>
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-3 gap-4">
             <div>
               <label className={labelClass}>Target Start Date *</label>
               <input
@@ -1065,8 +1363,17 @@ export default function NewRequisitionRequestPage() {
               />
             </div>
             <div>
+              <label className={labelClass}>Target Fill Date</label>
+              <input
+                type="date"
+                value={formData.target_fill_date}
+                onChange={e => handleChange('target_fill_date', e.target.value)}
+                className={inputClass}
+              />
+            </div>
+            <div>
               <label className={labelClass}>Urgency *</label>
-              <div className="flex gap-2 mt-1">
+              <div className="grid grid-cols-2 gap-2 mt-1">
                 {urgencyOptions.map(opt => (
                   <button
                     key={opt.value}
@@ -1094,43 +1401,103 @@ export default function NewRequisitionRequestPage() {
             <p className="text-xs text-gray-500 dark:text-gray-400 mb-2">
               These people will be able to follow the hiring process and receive updates.
             </p>
+
+            {/* Chain of command suggestions */}
+            {supervisorChain.length > 0 && (
+              <div className="mb-3">
+                <p className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-1.5">
+                  Suggested — Chain of Command
+                </p>
+                <div className="border-l-2 border-purple-200 dark:border-purple-700 pl-3 space-y-1">
+                  {supervisorChain.map(m => {
+                    const alreadyAdded = selectedMembers.some(s => s.employee_id === m.employee_id);
+                    return (
+                      <div
+                        key={m.employee_id}
+                        className="flex items-center justify-between py-1.5 px-2 rounded-md hover:bg-gray-50 dark:hover:bg-gray-700/50"
+                      >
+                        <div className="min-w-0">
+                          <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                            {m.first_name} {m.last_name}
+                          </span>
+                          {m.position && (
+                            <span className="text-xs text-gray-500 dark:text-gray-400 ml-1.5">
+                              {m.position}
+                            </span>
+                          )}
+                        </div>
+                        {alreadyAdded ? (
+                          <span className="flex items-center gap-1 text-xs text-green-600 dark:text-green-400 shrink-0">
+                            <Check className="w-3.5 h-3.5" />
+                            Added
+                          </span>
+                        ) : (
+                          <button
+                            type="button"
+                            onClick={() => addMember(m)}
+                            className="flex items-center gap-1 text-xs text-purple-600 dark:text-purple-400 hover:text-purple-700 dark:hover:text-purple-300 font-medium shrink-0"
+                          >
+                            <UserPlus className="w-3.5 h-3.5" />
+                            Add
+                          </button>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+
             <div className="flex flex-wrap gap-2 mb-2">
               {selectedMembers.map(m => (
                 <span
-                  key={m.user_id}
+                  key={m.employee_id}
                   className="inline-flex items-center gap-1 px-2.5 py-1 bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-300 rounded-full text-sm"
                 >
                   {m.first_name} {m.last_name}
-                  <button type="button" onClick={() => removeMember(m.user_id!)}>
+                  <button type="button" onClick={() => removeMember(m.employee_id)}>
                     <X className="w-3 h-3" />
                   </button>
                 </span>
               ))}
             </div>
-            <div className="relative">
+            <div className="relative" ref={visibilityRef}>
               <div className="flex items-center">
                 <Search className="w-4 h-4 text-gray-400 absolute left-3" />
                 <input
                   type="text"
                   value={memberSearch}
                   onChange={e => setMemberSearch(e.target.value)}
+                  onKeyDown={makeKeyHandler(memberResults.length, memberHighlight, setMemberHighlight, idx => {
+                    const m = memberResults[idx];
+                    if (m) addMember(m);
+                  })}
                   className={`${inputClass} pl-9`}
                   placeholder="Search by name..."
                 />
               </div>
               {memberResults.length > 0 && (
-                <div className="absolute z-10 w-full mt-1 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg shadow-lg max-h-40 overflow-y-auto">
-                  {memberResults.map(m => (
+                <div className="absolute z-10 w-full mt-1 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg shadow-lg max-h-48 overflow-y-auto">
+                  {memberResults.map((m, i) => (
                     <button
                       key={m.employee_id}
                       type="button"
                       onClick={() => addMember(m)}
-                      className="w-full text-left px-3 py-2 hover:bg-gray-100 dark:hover:bg-gray-600"
+                      className={`w-full text-left px-3 py-2 ${i === memberHighlight ? 'bg-blue-50 dark:bg-blue-900/30' : 'hover:bg-gray-100 dark:hover:bg-gray-600'}`}
                     >
-                      <div className="text-sm font-medium text-gray-700 dark:text-gray-300">
-                        {m.first_name} {m.last_name}
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                            {m.first_name} {m.last_name}
+                          </span>
+                        </div>
+                        {!m.is_hiring_manager && (
+                          <span className="text-[10px] px-1.5 py-0.5 rounded bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400 shrink-0">
+                            Non-HM
+                          </span>
+                        )}
                       </div>
-                      <div className="text-xs text-gray-500">{m.position} - {m.department}</div>
+                      <div className="text-xs text-gray-500">{m.position} · {m.department}</div>
                     </button>
                   ))}
                 </div>
@@ -1190,6 +1557,47 @@ export default function NewRequisitionRequestPage() {
           </button>
         </div>
       </form>
+
+      {/* Non-hiring-manager warning modal */}
+      {showHmWarning && pendingMember && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
+          <div className="bg-white dark:bg-gray-800 rounded-xl shadow-xl border border-gray-200 dark:border-gray-700 max-w-md w-full mx-4 p-6">
+            <div className="flex items-start gap-3 mb-4">
+              <div className="p-2 bg-amber-100 dark:bg-amber-900/30 rounded-full shrink-0">
+                <svg className="w-5 h-5 text-amber-600 dark:text-amber-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v2m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+              </div>
+              <div>
+                <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
+                  Not a Hiring Manager
+                </h3>
+                <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
+                  <span className="font-medium">{pendingMember.first_name} {pendingMember.last_name}</span>
+                  {pendingMember.position && <> ({pendingMember.position})</>}
+                  {' '}does not currently have hiring manager access. They will be able to view this requisition but may not be able to take actions on it.
+                </p>
+              </div>
+            </div>
+            <div className="flex justify-end gap-2">
+              <button
+                type="button"
+                onClick={() => { setShowHmWarning(false); setPendingMember(null); }}
+                className="px-4 py-2 text-sm text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={() => confirmAddMember(pendingMember)}
+                className="px-4 py-2 text-sm text-white bg-amber-600 rounded-lg hover:bg-amber-700"
+              >
+                Add Anyway
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
