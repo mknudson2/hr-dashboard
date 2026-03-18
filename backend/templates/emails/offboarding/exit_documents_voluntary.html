@@ -1,0 +1,86 @@
+{% extends "base/base.html" %}
+
+{% block title %}Exit Documents - {{ employee_name }}{% endblock %}
+
+{% block header_title %}NBS HR Notification{% endblock %}
+{% block header_subtitle %}Exit Documentation - Voluntary Separation{% endblock %}
+
+{% block greeting %}
+<p style="font-size: 18px;">Hey {{ employee_first_name }}!</p>
+{% endblock %}
+
+{% block content %}
+<p style="font-size: 15px;">
+    Attached are some exit documents for you to help you as you transition away from NBS. They are as follows:
+</p>
+
+<ul style="margin: 15px 0;">
+    <li>
+        <strong>Important Information for Terminating Employee</strong> &mdash; This document goes over a few things, but just know that Paylocity self-service portal access will remain available through May 2027 for you to retrieve pay stubs, tax documents, etc. Your W-2 for this year will also be available there in January.
+    </li>
+    <li>
+        <strong>Signed Confidentiality Agreement</strong> &mdash; This is a copy of the confidentiality and non-solicitation agreement you signed. Please review and keep for your records.
+    </li>
+    {% if is_full_time %}
+    <li>
+        <strong>Equitable Life Insurance Forms</strong> &mdash; Attached is a comparison handout along with portability and conversion applications for your life insurance. If you wish to continue coverage, you must submit the appropriate application to Equitable within 31 days of your termination date. Contact Equitable directly at 1-888-952-4834 for questions about these options.
+    </li>
+    {% endif %}
+</ul>
+
+<h3 style="color: #3b82f6; margin-top: 30px;">Exit Survey</h3>
+<p style="font-size: 15px;">
+    You will receive an Exit Survey through Paylocity. We would really appreciate it if you could take a few minutes to fill it out. Your feedback helps us improve the experience for current and future team members.
+</p>
+
+<h3 style="color: #3b82f6; margin-top: 30px;">Final Paycheck</h3>
+<p style="font-size: 15px;">
+    <strong>You can expect your final paycheck, including hours worked as well as all PTO hours accrued, will be paid out and deposited into your account on or before {{ final_pay_day_of_week }}, {{ final_pay_date }}.</strong>
+</p>
+
+{% if has_medical or has_dental or has_vision %}
+<h3 style="color: #3b82f6; margin-top: 30px;">Benefits Continuation</h3>
+<p style="font-size: 15px;">
+    Your {{ benefit_list }} insurance will continue through the end of the month ({{ last_coverage_date }}). Otherwise, all other insurances will end effective {{ termination_date }}.
+</p>
+{% endif %}
+
+{% if has_retirement %}
+<p style="font-size: 15px;">
+    Any questions regarding your 401(k) can be directed to {{ retirement_contact_name }} (see the Important Information document for additional details).
+</p>
+{% endif %}
+
+{% if custom_message %}
+<div class="info-box">
+    <p><strong>Additional Note from HR:</strong></p>
+    <p>{{ custom_message }}</p>
+</div>
+{% endif %}
+
+<p style="font-size: 15px; margin-top: 25px;">
+    If you have any questions about any of the above or about your transition, please do not hesitate to contact me.
+</p>
+{% endblock %}
+
+{% block closing %}
+<div class="divider"></div>
+<p style="margin-top: 30px; margin-bottom: 5px;">
+    All the best,
+</p>
+<table style="margin-top: 20px; border: 0; padding: 0;">
+    <tr>
+        <td style="padding: 0; border: 0;">
+            <p style="margin: 0; color: #FFFFFF; font-size: 16px; font-weight: 600;">Michael Knudson, Ph.D.</p>
+            <p style="margin: 5px 0; color: #9ca3af; font-size: 14px;">Manager, Payroll & Benefits, Human Resources</p>
+            <p style="margin: 15px 0 5px 0; color: #3b82f6; font-size: 14px; font-weight: 600;">Comprehensive Benefit and Retirement Plan Administration</p>
+            <p style="margin: 5px 0; color: #9ca3af; font-size: 13px;">Mountain Time Zone</p>
+            <p style="margin: 5px 0; color: #9ca3af; font-size: 13px;">Phone (801) 858-0266 | Fax (801) 858-0252</p>
+            <p style="margin: 5px 0; color: #9ca3af; font-size: 13px;">
+                <a href="mailto:{{ hr_contact_email }}" style="color: #3b82f6; text-decoration: none;">{{ hr_contact_email }}</a> |
+                <a href="https://www.nbsbenefits.com" style="color: #3b82f6; text-decoration: none;">www.nbsbenefits.com</a>
+            </p>
+        </td>
+    </tr>
+</table>
+{% endblock %}

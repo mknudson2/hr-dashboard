@@ -1,0 +1,116 @@
+{% extends "base/base.html" %}
+
+{% block title %}Happy Work Anniversary {{ employee_name }}!{% endblock %}
+
+{% block header_title %}🎊 Celebrating Your Work Anniversary! 🎊{% endblock %}
+{% block header_subtitle %}Thank you for {{ years }} {{ 'year' if years == 1 else 'years' }} of dedication{% endblock %}
+
+{% block greeting %}
+<p style="font-size: 18px;">Dear {{ employee_name }},</p>
+{% endblock %}
+
+{% block content %}
+<div style="text-align: center; padding: 20px 0;">
+    <p style="font-size: 48px; margin: 0; color: #2563eb; font-weight: bold;">{{ years }}</p>
+    <h2 style="color: #2563eb; margin: 10px 0;">{{ 'Year' if years == 1 else 'Years' }} of Excellence!</h2>
+</div>
+
+<p style="font-size: 18px; text-align: center;">
+    Congratulations on reaching your {{ years }}-{{ 'year' if years == 1 else 'years' }} work anniversary at NBS!
+</p>
+
+<div class="info-box info-box-success">
+    <strong>Your Journey with NBS:</strong>
+    <ul style="margin: 10px 0 0 0;">
+        <li><strong>Start Date:</strong> {{ start_date }}</li>
+        <li><strong>Position:</strong> {{ current_role }}</li>
+        {% if department %}<li><strong>Department:</strong> {{ department }}</li>{% endif %}
+        <li><strong>Years of Service:</strong> {{ years }} {{ 'year' if years == 1 else 'years' }}</li>
+    </ul>
+</div>
+
+<p style="font-size: 18px;">
+    {% if years == 1 %}
+    One year ago, you joined the NBS family, and what a year it's been! Your contributions have already made a significant impact on our team.
+    {% elif years == 5 %}
+    Five years of dedication, innovation, and excellence! Your commitment to NBS has been truly remarkable.
+    {% elif years == 10 %}
+    A decade of outstanding service! Your loyalty and contributions over the past 10 years have been instrumental to our success.
+    {% elif years == 15 %}
+    Fifteen years of exceptional dedication! You've been a cornerstone of NBS, and we're incredibly grateful for your long-standing commitment.
+    {% elif years == 20 %}
+    Two decades of excellence! Your 20 years of service represent an extraordinary commitment that has shaped our organization.
+    {% elif years >= 25 %}
+    What an incredible milestone! {{ years }} years of service is a testament to your exceptional dedication and the lasting impact you've made at NBS.
+    {% else %}
+    Your dedication and hard work over the past {{ years }} years have been invaluable to our team and our success.
+    {% endif %}
+</p>
+
+{% if achievements %}
+<h3>Some of Your Notable Achievements:</h3>
+<ul>
+    {% for achievement in achievements %}
+    <li>{{ achievement }}</li>
+    {% endfor %}
+</ul>
+{% endif %}
+
+{% if anniversary_message %}
+<div class="info-box info-box-info">
+    <strong>A Message from Leadership:</strong>
+    <p style="margin: 10px 0 0 0; font-style: italic;">{{ anniversary_message }}</p>
+    {% if message_from %}<p style="margin: 10px 0 0 0; text-align: right;"><em>- {{ message_from }}</em></p>{% endif %}
+</div>
+{% endif %}
+
+{% if celebration %}
+<h3 style="text-align: center;">Join Us in Celebrating!</h3>
+<div class="info-box info-box-warning">
+    <strong>Celebration Details:</strong>
+    <ul style="margin: 10px 0 0 0;">
+        <li><strong>Date:</strong> {{ celebration_date }}</li>
+        <li><strong>Time:</strong> {{ celebration_time }}</li>
+        <li><strong>Location:</strong> {{ celebration_location }}</li>
+    </ul>
+</div>
+{% endif %}
+
+{% if gift_info %}
+<div class="info-box info-box-success">
+    <strong>Anniversary Recognition:</strong>
+    <p style="margin: 10px 0 0 0;">{{ gift_info }}</p>
+</div>
+{% endif %}
+
+<p style="font-size: 18px; text-align: center; margin-top: 30px;">
+    Thank you for your continued dedication, professionalism, and the positive impact you bring to NBS every day.
+    We look forward to many more years of working together!
+</p>
+
+<div style="text-align: center; padding: 20px 0;">
+    <p style="font-size: 24px; margin: 0;">🌟 🏆 🎉</p>
+</div>
+{% endblock %}
+
+{% block closing %}
+<div class="divider"></div>
+<p style="margin-top: 30px; margin-bottom: 5px;">
+    All the best,
+</p>
+<table style="margin-top: 20px; border: 0; padding: 0;">
+    <tr>
+        <td style="padding: 0; border: 0;">
+            <p style="margin: 0; color: #FFFFFF; font-size: 16px; font-weight: 600;">Michael Knudson, Ph.D.</p>
+            <p style="margin: 5px 0; color: #9ca3af; font-size: 14px;">Manager, Payroll & Benefits, Human Resources</p>
+            <p style="margin: 15px 0 5px 0; color: #3b82f6; font-size: 14px; font-weight: 600;">Comprehensive Benefit and Retirement Plan Administration</p>
+            <p style="margin: 5px 0; color: #9ca3af; font-size: 13px;">Mountain Time Zone</p>
+            <p style="margin: 5px 0; color: #9ca3af; font-size: 13px;">Phone (801) 858-0266 | Fax (801) 858-0252</p>
+            <p style="margin: 5px 0; color: #9ca3af; font-size: 13px;">
+                <a href="mailto:{{ hr_contact_email }}" style="color: #F4DC5E; text-decoration: none;">{{ hr_contact_email }}</a> |
+                <a href="https://www.nbsbenefits.com" style="color: #F4DC5E; text-decoration: none;">www.nbsbenefits.com</a>
+            </p>
+        </td>
+    </tr>
+</table>
+{% endblock %}

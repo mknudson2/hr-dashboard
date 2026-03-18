@@ -1,0 +1,135 @@
+{% extends "base/base.html" %}
+
+{% block title %}Week One Checklist - {{ employee_name }}{% endblock %}
+
+{% block header_title %}Your First Week at NBS{% endblock %}
+{% block header_subtitle %}Week One Checklist{% endblock %}
+
+{% block greeting %}
+<p style="font-size: 18px;">Hi {{ employee_name }}!</p>
+{% endblock %}
+
+{% block content %}
+<p style="font-size: 18px;">
+    Congratulations on completing your first day! Here's a checklist to help you navigate your first week at NBS.
+</p>
+
+<h3>Administrative Tasks</h3>
+<div class="checklist-item">
+    <span class="checkbox"></span> Complete I-9 verification with HR
+</div>
+<div class="checklist-item">
+    <span class="checkbox"></span> Submit direct deposit information
+</div>
+<div class="checklist-item">
+    <span class="checkbox"></span> Review and select benefits options
+</div>
+<div class="checklist-item">
+    <span class="checkbox"></span> Complete tax withholding forms (W-4)
+</div>
+<div class="checklist-item">
+    <span class="checkbox"></span> Sign employee handbook acknowledgment
+</div>
+<div class="checklist-item">
+    <span class="checkbox"></span> Set up emergency contact information
+</div>
+
+<h3>IT & Systems Access</h3>
+<div class="checklist-item">
+    <span class="checkbox"></span> Set up email account and password
+</div>
+<div class="checklist-item">
+    <span class="checkbox"></span> Configure multi-factor authentication
+</div>
+<div class="checklist-item">
+    <span class="checkbox"></span> Access company intranet/portal
+</div>
+<div class="checklist-item">
+    <span class="checkbox"></span> Complete required security training
+</div>
+<div class="checklist-item">
+    <span class="checkbox"></span> Install necessary software and tools
+</div>
+{% if system_access %}
+<div class="checklist-item">
+    <span class="checkbox"></span> Request access to: {{ system_access }}
+</div>
+{% endif %}
+
+<h3>Learning & Development</h3>
+<div class="checklist-item">
+    <span class="checkbox"></span> Review employee handbook
+</div>
+<div class="checklist-item">
+    <span class="checkbox"></span> Complete compliance training modules
+</div>
+<div class="checklist-item">
+    <span class="checkbox"></span> Review company organizational chart
+</div>
+<div class="checklist-item">
+    <span class="checkbox"></span> Meet with your manager for role expectations
+</div>
+<div class="checklist-item">
+    <span class="checkbox"></span> Review team processes and workflows
+</div>
+
+<h3>Team Integration</h3>
+<div class="checklist-item">
+    <span class="checkbox"></span> Schedule 1-on-1s with team members
+</div>
+<div class="checklist-item">
+    <span class="checkbox"></span> Join relevant team channels/groups
+</div>
+<div class="checklist-item">
+    <span class="checkbox"></span> Attend team meetings
+</div>
+<div class="checklist-item">
+    <span class="checkbox"></span> Set up recurring meetings with manager
+</div>
+
+<div class="info-box info-box-success">
+    <strong>Key Resources:</strong>
+    <ul style="margin: 10px 0 0 0;">
+        <li><strong>HR Portal:</strong> {{ hr_portal_url|default('[Portal URL]') }}</li>
+        <li><strong>IT Help Desk:</strong> {{ it_helpdesk|default('[Help Desk Info]') }}</li>
+        <li><strong>Employee Handbook:</strong> {{ handbook_url|default('[Handbook URL]') }}</li>
+        {% if onboarding_buddy %}<li><strong>Your Onboarding Buddy:</strong> {{ onboarding_buddy }}</li>{% endif %}
+    </ul>
+</div>
+
+<h3>End of Week One Goals</h3>
+<p>By the end of your first week, you should:</p>
+<ul>
+    <li>Have all administrative paperwork completed</li>
+    <li>Have access to all necessary systems and tools</li>
+    <li>Understand your role and initial responsibilities</li>
+    <li>Know who to go to for different types of questions</li>
+    <li>Feel welcomed and integrated into your team</li>
+</ul>
+
+<p style="font-size: 18px;">
+    Remember, we're here to support you every step of the way. Don't hesitate to ask questions!
+</p>
+{% endblock %}
+
+{% block closing %}
+<div class="divider"></div>
+<p style="margin-top: 30px; margin-bottom: 5px;">
+    All the best,
+</p>
+<table style="margin-top: 20px; border: 0; padding: 0;">
+    <tr>
+        <td style="padding: 0; border: 0;">
+            <p style="margin: 0; color: #FFFFFF; font-size: 16px; font-weight: 600;">Michael Knudson, Ph.D.</p>
+            <p style="margin: 5px 0; color: #9ca3af; font-size: 14px;">Manager, Payroll & Benefits, Human Resources</p>
+            <p style="margin: 15px 0 5px 0; color: #3b82f6; font-size: 14px; font-weight: 600;">Comprehensive Benefit and Retirement Plan Administration</p>
+            <p style="margin: 5px 0; color: #9ca3af; font-size: 13px;">Mountain Time Zone</p>
+            <p style="margin: 5px 0; color: #9ca3af; font-size: 13px;">Phone (801) 858-0266 | Fax (801) 858-0252</p>
+            <p style="margin: 5px 0; color: #9ca3af; font-size: 13px;">
+                <a href="mailto:{{ hr_contact_email }}" style="color: #F4DC5E; text-decoration: none;">{{ hr_contact_email }}</a> |
+                <a href="https://www.nbsbenefits.com" style="color: #F4DC5E; text-decoration: none;">www.nbsbenefits.com</a>
+            </p>
+        </td>
+    </tr>
+</table>
+{% endblock %}

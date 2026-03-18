@@ -1,0 +1,112 @@
+{% extends "base/base.html" %}
+
+{% block title %}FMLA Leave Approved - {{ employee_name }}{% endblock %}
+
+{% block header_title %}FMLA Leave Approved{% endblock %}
+{% block header_subtitle %}Your leave request has been processed{% endblock %}
+
+{% block greeting %}
+<p style="font-size: 18px;">Hi {{ employee_name }}!</p>
+{% endblock %}
+
+{% block content %}
+<p style="font-size: 18px;">
+    Your Family and Medical Leave Act (FMLA) request has been approved. Please review the details below carefully.
+</p>
+
+<div class="info-box info-box-success">
+    <strong>FMLA Leave Details:</strong>
+    <ul style="margin: 10px 0 0 0;">
+        <li><strong>Leave Type:</strong> {{ leave_type }}</li>
+        <li><strong>Start Date:</strong> {{ start_date }}</li>
+        <li><strong>Expected Return Date:</strong> {{ return_date }}</li>
+        <li><strong>Duration:</strong> {{ duration }} weeks</li>
+        {% if intermittent %}<li><strong>Intermittent Leave:</strong> {{ intermittent }}</li>{% endif %}
+    </ul>
+</div>
+
+<h3>Important Information</h3>
+
+<div class="info-box info-box-info">
+    <strong>Benefits During Leave:</strong>
+    <ul style="margin: 10px 0 0 0;">
+        <li>Your health insurance benefits will continue during your leave</li>
+        <li>You are responsible for your portion of premium payments</li>
+        <li>{{ premium_payment_info|default('Premium payment arrangements have been made') }}</li>
+    </ul>
+</div>
+
+<h3>What You Need to Do</h3>
+<div class="checklist-item">
+    <span class="checkbox"></span> Review and sign the attached FMLA certification documents
+</div>
+<div class="checklist-item">
+    <span class="checkbox"></span> Return signed documents to HR by {{ document_deadline|default('your leave start date') }}
+</div>
+<div class="checklist-item">
+    <span class="checkbox"></span> Coordinate with your manager regarding work handoff
+</div>
+<div class="checklist-item">
+    <span class="checkbox"></span> Set up out-of-office email and voicemail messages
+</div>
+{% if medical_certification_required %}
+<div class="checklist-item">
+    <span class="checkbox"></span> Submit medical certification from your healthcare provider
+</div>
+{% endif %}
+<div class="checklist-item">
+    <span class="checkbox"></span> Notify HR at least one week before your planned return date
+</div>
+
+<div class="info-box info-box-warning">
+    <strong>Recertification Requirements:</strong>
+    <p style="margin: 10px 0 0 0;">
+        {% if recertification_date %}
+        You will need to provide updated medical certification by {{ recertification_date }}.
+        {% else %}
+        If your leave extends beyond the initial approval period, additional medical certification may be required.
+        {% endif %}
+    </p>
+</div>
+
+<h3>During Your Leave</h3>
+<ul>
+    <li>Keep HR informed of any changes to your expected return date</li>
+    <li>Maintain contact with HR regarding benefits and status updates</li>
+    <li>Notify HR immediately if you are able to return to work earlier than expected</li>
+    {% if intermittent %}<li>Submit weekly timesheets documenting intermittent leave hours</li>{% endif %}
+</ul>
+
+<h3>Contact Information</h3>
+<p>If you have any questions during your leave, please contact:</p>
+<ul>
+    <li><strong>HR Contact:</strong> {{ hr_contact|default('HR Department') }} - {{ support_email }}</li>
+    <li><strong>Benefits Questions:</strong> {{ benefits_contact|default('Benefits Team') }}</li>
+</ul>
+
+<p style="font-size: 18px;">
+    We wish you all the best during your leave and look forward to your return.
+</p>
+{% endblock %}
+
+{% block closing %}
+<div class="divider"></div>
+<p style="margin-top: 30px; margin-bottom: 5px;">
+    All the best,
+</p>
+<table style="margin-top: 20px; border: 0; padding: 0;">
+    <tr>
+        <td style="padding: 0; border: 0;">
+            <p style="margin: 0; color: #FFFFFF; font-size: 16px; font-weight: 600;">Michael Knudson, Ph.D.</p>
+            <p style="margin: 5px 0; color: #9ca3af; font-size: 14px;">Manager, Payroll & Benefits, Human Resources</p>
+            <p style="margin: 15px 0 5px 0; color: #3b82f6; font-size: 14px; font-weight: 600;">Comprehensive Benefit and Retirement Plan Administration</p>
+            <p style="margin: 5px 0; color: #9ca3af; font-size: 13px;">Mountain Time Zone</p>
+            <p style="margin: 5px 0; color: #9ca3af; font-size: 13px;">Phone (801) 858-0266 | Fax (801) 858-0252</p>
+            <p style="margin: 5px 0; color: #9ca3af; font-size: 13px;">
+                <a href="mailto:{{ hr_contact_email }}" style="color: #F4DC5E; text-decoration: none;">{{ hr_contact_email }}</a> |
+                <a href="https://www.nbsbenefits.com" style="color: #F4DC5E; text-decoration: none;">www.nbsbenefits.com</a>
+            </p>
+        </td>
+    </tr>
+</table>
+{% endblock %}

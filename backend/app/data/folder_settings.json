@@ -1,0 +1,9 @@
+{
+  "base_path": "./data",
+  "subfolders": [
+    "Application",
+    "Notes",
+    "Onboarding"
+  ],
+  "enabled": true
+}
