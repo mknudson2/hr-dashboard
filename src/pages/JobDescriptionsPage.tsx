@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
-import { Plus, Search, Upload, CheckCircle, Archive, FileText, X, Pencil, ChevronRight, Save, Briefcase } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import { Plus, Search, Upload, CheckCircle, Archive, FileText, X, Pencil, ChevronLeft, ChevronRight, Save, Briefcase } from 'lucide-react';
 
 interface JobDescription {
   id: number;
@@ -29,6 +30,7 @@ const statusColors: Record<string, string> = {
 };
 
 export default function JobDescriptionsPage() {
+  const navigate = useNavigate();
   const [jds, setJds] = useState<JobDescription[]>([]);
   const [total, setTotal] = useState(0);
   const [search, setSearch] = useState('');
@@ -271,9 +273,18 @@ export default function JobDescriptionsPage() {
     <div className="space-y-6">
       {/* Header */}
       <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Job Description Library</h1>
-          <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">{total} job descriptions</p>
+        <div className="flex items-center gap-3">
+          <button
+            onClick={() => navigate('/recruiting')}
+            className="p-1.5 rounded-lg text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+            title="Back to Recruiting"
+          >
+            <ChevronLeft className="w-5 h-5" />
+          </button>
+          <div>
+            <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Job Description Library</h1>
+            <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">{total} job descriptions</p>
+          </div>
         </div>
         <div className="flex gap-2">
           <button

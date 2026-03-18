@@ -140,7 +140,11 @@ export default function RecruitingPage() {
             </div>
           )}
           {data?.recent_applications?.map(app => (
-            <div key={app.id} className="p-4 flex items-center justify-between hover:bg-gray-50 dark:hover:bg-gray-700/50">
+            <div
+              key={app.id}
+              onClick={() => navigate(`/recruiting/applications/${app.id}`)}
+              className="p-4 flex items-center justify-between hover:bg-gray-50 dark:hover:bg-gray-700/50 cursor-pointer"
+            >
               <div>
                 <p className="font-medium text-gray-900 dark:text-white">{app.applicant_name}</p>
                 <p className="text-sm text-gray-500 dark:text-gray-400">{app.requisition_title}</p>
@@ -164,7 +168,7 @@ export default function RecruitingPage() {
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
         <button
           onClick={() => navigate('/recruiting/requisitions')}
-          className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-4 hover:bg-gray-50 dark:hover:bg-gray-700 text-left transition-colors"
+          className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-4 hover:bg-gray-50 dark:hover:bg-gray-700 text-left transition-colors cursor-pointer"
         >
           <Briefcase className="w-6 h-6 text-blue-600 dark:text-blue-400 mb-2" />
           <h3 className="font-medium text-gray-900 dark:text-white">Requisitions</h3>
@@ -172,7 +176,7 @@ export default function RecruitingPage() {
         </button>
         <button
           onClick={() => navigate('/recruiting/job-descriptions')}
-          className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-4 hover:bg-gray-50 dark:hover:bg-gray-700 text-left transition-colors"
+          className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-4 hover:bg-gray-50 dark:hover:bg-gray-700 text-left transition-colors cursor-pointer"
         >
           <BookOpen className="w-6 h-6 text-teal-600 dark:text-teal-400 mb-2" />
           <h3 className="font-medium text-gray-900 dark:text-white">Job Descriptions</h3>
@@ -180,7 +184,7 @@ export default function RecruitingPage() {
         </button>
         <button
           onClick={() => navigate('/recruiting/pipelines')}
-          className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-4 hover:bg-gray-50 dark:hover:bg-gray-700 text-left transition-colors"
+          className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-4 hover:bg-gray-50 dark:hover:bg-gray-700 text-left transition-colors cursor-pointer"
         >
           <Users className="w-6 h-6 text-indigo-600 dark:text-indigo-400 mb-2" />
           <h3 className="font-medium text-gray-900 dark:text-white">Pipeline Templates</h3>
@@ -190,7 +194,7 @@ export default function RecruitingPage() {
           href="http://localhost:5175/jobs"
           target="_blank"
           rel="noopener noreferrer"
-          className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-4 hover:bg-gray-50 dark:hover:bg-gray-700 text-left transition-colors block"
+          className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-4 hover:bg-gray-50 dark:hover:bg-gray-700 text-left transition-colors block cursor-pointer"
         >
           <Eye className="w-6 h-6 text-green-600 dark:text-green-400 mb-2" />
           <h3 className="font-medium text-gray-900 dark:text-white">Applicant Portal</h3>
@@ -198,7 +202,7 @@ export default function RecruitingPage() {
         </a>
         <button
           onClick={() => navigate('/recruiting/analytics')}
-          className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-4 hover:bg-gray-50 dark:hover:bg-gray-700 text-left transition-colors"
+          className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-4 hover:bg-gray-50 dark:hover:bg-gray-700 text-left transition-colors cursor-pointer"
         >
           <TrendingUp className="w-6 h-6 text-purple-600 dark:text-purple-400 mb-2" />
           <h3 className="font-medium text-gray-900 dark:text-white">Analytics</h3>

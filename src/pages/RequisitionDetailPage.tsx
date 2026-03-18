@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import {
-  ChevronLeft, Edit, Plus, Eye, Users, FileText, Globe, Lock, Upload, UserPlus, Star
+  ChevronLeft, Edit, Plus, Eye, Users, FileText, Globe, Lock, Upload, UserPlus, Star, Trash2
 } from 'lucide-react';
 import LifecycleTracker, { type LifecycleStage } from '@/components/recruiting/LifecycleTracker';
 import StageDetailPanel from '@/components/recruiting/StageDetailPanel';
@@ -115,6 +115,21 @@ export default function RequisitionDetailPage() {
       }
     } catch (error) {
       console.error('Failed to load applications:', error);
+    }
+  };
+
+  const handleRemoveApplication = async (appId: number, appName: string) => {
+    if (!confirm(`Remove application from ${appName}? This cannot be undone.`)) return;
+    try {
+      const res = await fetch(`${BASE_URL}/recruiting/applications/${appId}`, {
+        method: 'DELETE',
+        credentials: 'include',
+      });
+      if (res.ok) {
+        setApplications(prev => prev.filter(a => a.id !== appId));
+      }
+    } catch (error) {
+      console.error('Failed to remove application:', error);
     }
   };
 
@@ -506,6 +521,7 @@ export default function RequisitionDetailPage() {
                         <th className="text-left px-4 py-3 text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">Rating</th>
                         <th className="text-left px-4 py-3 text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">AI Score</th>
                         <th className="text-left px-4 py-3 text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">Submitted</th>
+                        <th className="px-4 py-3 w-10"></th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
@@ -548,6 +564,15 @@ export default function RequisitionDetailPage() {
                           </td>
                           <td className="px-4 py-3 text-sm text-gray-500 dark:text-gray-400">
                             {app.submitted_at ? new Date(app.submitted_at).toLocaleDateString() : '—'}
+                          </td>
+                          <td className="px-4 py-3">
+                            <button
+                              onClick={(e) => { e.stopPropagation(); handleRemoveApplication(app.id, app.applicant.name); }}
+                              className="p-1 text-gray-400 hover:text-red-500 dark:hover:text-red-400 transition-colors"
+                              title="Remove application"
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </button>
                           </td>
                         </tr>
                       ))}
