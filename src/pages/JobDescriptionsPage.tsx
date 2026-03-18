@@ -328,7 +328,7 @@ export default function JobDescriptionsPage() {
           <p>No job descriptions found</p>
         </div>
       ) : (
-        <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 overflow-hidden" style={{ backdropFilter: 'none', WebkitBackdropFilter: 'none' }}>
+        <div className="bg-white dark:bg-gray-800 no-glass rounded-lg border border-gray-200 dark:border-gray-700 overflow-hidden">
           <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
             <thead className="bg-gray-50 dark:bg-gray-900/30">
               <tr>
@@ -418,7 +418,7 @@ export default function JobDescriptionsPage() {
 
       {/* Detail / Edit Panel */}
       {(selectedJD || detailLoading) && (
-        <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 overflow-hidden" style={{ backdropFilter: 'none', WebkitBackdropFilter: 'none' }}>
+        <div className="bg-white dark:bg-gray-800 no-glass rounded-lg border border-gray-200 dark:border-gray-700 overflow-hidden">
           {detailLoading ? (
             <div className="p-6 animate-pulse space-y-4">
               <div className="h-6 bg-gray-200 dark:bg-gray-700 rounded w-1/3" />

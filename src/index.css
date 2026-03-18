@@ -149,6 +149,21 @@ body,
   border-color: rgba(255, 255, 255, 0.1) !important;
 }
 
+/* ===== No-glass opt-out — MUST come AFTER glassmorphic rules ===== */
+/* Higher specificity: .dark-aurora-main .no-glass .X beats .dark-aurora-main .X */
+.dark-aurora-main:is(.dark *) .no-glass,
+.dark-aurora-main:is(.dark *) .no-glass .bg-gray-800,
+.dark-aurora-main:is(.dark *) .no-glass .dark\:bg-gray-800,
+.dark-aurora-main:is(.dark *) .no-glass .bg-gray-700,
+.dark-aurora-main:is(.dark *) .no-glass .dark\:bg-gray-700,
+.dark-aurora-main:is(.dark *) .no-glass .dark\:bg-gray-700\/50,
+.dark-aurora-main:is(.dark *) .no-glass .bg-gray-900,
+.dark-aurora-main:is(.dark *) .no-glass .dark\:bg-gray-900 {
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+  background-color: rgb(30, 30, 55) !important;
+}
+
 /* ===== Bifröst admin global overrides — blue → violet ===== */
 .bg-blue-600 { background-color: var(--bifrost-violet) !important; }
 .bg-blue-500 { background-color: var(--bifrost-violet) !important; }
