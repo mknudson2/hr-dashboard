@@ -90,10 +90,35 @@ def _get_employee_for_user(db: Session, user: models.User) -> Optional[models.Em
     ).first()
 
 
+_HM_TITLE_KEYWORDS = [
+    "supervisor", "director", "vice president", "president",
+    "chief executive officer", "ceo", "coo", "cfo", "cto", "chro",
+]
+
+_HM_DEPARTMENTS = ["human resources"]
+
+
+def _position_grants_hm(employee: Optional[models.Employee]) -> bool:
+    """Return True if the employee's position title or department auto-grants HM access."""
+    if not employee:
+        return False
+    pos = (employee.position or "").lower()
+    dept = (employee.department or "").lower()
+    if any(kw in pos for kw in _HM_TITLE_KEYWORDS):
+        return True
+    if any(kw in dept for kw in _HM_DEPARTMENTS):
+        return True
+    return False
+
+
 def is_hiring_manager(user: models.User, employee: Optional[models.Employee], db: Session) -> bool:
     """Check if the current user qualifies as a hiring manager."""
     # Auto: user role is manager or admin
     if hasattr(user, 'role') and user.role in ("manager", "admin"):
+        return True
+
+    # Auto: position title includes leadership keywords or employee is in HR
+    if _position_grants_hm(employee):
         return True
 
     # Auto: user is a supervisor of active employees
@@ -793,6 +818,12 @@ def search_team_members(
             models.User.employee_id == emp.employee_id
         ).first() if hasattr(models.User, 'employee_id') else None
 
+        emp_is_hm = False
+        if user:
+            emp_is_hm = is_hiring_manager(user, emp, db)
+        else:
+            emp_is_hm = _position_grants_hm(emp)
+
         results.append({
             "employee_id": emp.employee_id,
             "user_id": user.id if user else None,
@@ -800,9 +831,77 @@ def search_team_members(
             "last_name": emp.last_name,
             "department": emp.department,
             "position": emp.position,
+            "is_hiring_manager": emp_is_hm,
         })
 
     return {"employees": results}
+
+
+@router.get("/supervisor-chain")
+def get_supervisor_chain(
+    employee_id: str = Query(...),
+    current_user: models.User = Depends(_require_hiring_manager),
+    db: Session = Depends(get_db),
+):
+    """Walk up the supervisor chain for an employee, returning each level."""
+    emp = db.query(models.Employee).filter(
+        models.Employee.employee_id == employee_id,
+    ).first()
+    if not emp:
+        return {"chain": []}
+
+    chain = []
+    visited = {emp.employee_id}
+    current = emp
+    max_depth = 10
+
+    for _ in range(max_depth):
+        sup_name = (current.supervisor or "").strip()
+        if not sup_name:
+            break
+
+        # Find supervisor employee record by name match
+        parts = sup_name.rsplit(" ", 1)
+        if len(parts) == 2:
+            sup = db.query(models.Employee).filter(
+                models.Employee.first_name.ilike(parts[0]),
+                models.Employee.last_name.ilike(parts[1]),
+                models.Employee.status == "Active",
+            ).first()
+        else:
+            sup = db.query(models.Employee).filter(
+                func.lower(
+                    models.Employee.first_name + " " + models.Employee.last_name
+                ) == sup_name.lower(),
+                models.Employee.status == "Active",
+            ).first()
+
+        if not sup or sup.employee_id in visited:
+            break
+        visited.add(sup.employee_id)
+
+        sup_user = db.query(models.User).filter(
+            models.User.employee_id == sup.employee_id,
+        ).first() if hasattr(models.User, 'employee_id') else None
+
+        sup_is_hm = False
+        if sup_user:
+            sup_is_hm = is_hiring_manager(sup_user, sup, db)
+        else:
+            sup_is_hm = _position_grants_hm(sup)
+
+        chain.append({
+            "employee_id": sup.employee_id,
+            "user_id": sup_user.id if sup_user else None,
+            "first_name": sup.first_name,
+            "last_name": sup.last_name,
+            "department": sup.department,
+            "position": sup.position,
+            "is_hiring_manager": sup_is_hm,
+        })
+        current = sup
+
+    return {"chain": chain}
 
 
 @router.get("/skills-suggestions")

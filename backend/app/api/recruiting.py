@@ -806,6 +806,116 @@ def list_requisition_applications(
     }
 
 
+@router.post("/requisitions/{req_id}/applications")
+async def create_application_for_requisition(
+    req_id: int,
+    background_tasks: BackgroundTasks,
+    first_name: str = Form(...),
+    last_name: str = Form(...),
+    email: str = Form(...),
+    phone: Optional[str] = Form(None),
+    source: str = Form("Applicant Pool"),
+    cover_letter: Optional[str] = Form(None),
+    resume: Optional[UploadFile] = File(None),
+    current_user: models.User = Depends(require_any_permission(
+        Permissions.RECRUITING_WRITE, Permissions.RECRUITING_ADMIN
+    )),
+    db: Session = Depends(get_db),
+):
+    """Add an applicant and create an application for a requisition."""
+    req = db.query(models.JobRequisition).filter(models.JobRequisition.id == req_id).first()
+    if not req:
+        raise HTTPException(status_code=404, detail="Requisition not found")
+
+    # Find or create applicant by email
+    applicant = db.query(models.Applicant).filter(
+        func.lower(models.Applicant.email) == email.strip().lower()
+    ).first()
+
+    if not applicant:
+        # Generate applicant ID
+        max_app = db.query(func.max(models.Applicant.id)).scalar() or 0
+        applicant_id = f"APP-{datetime.now().year}-{str(max_app + 1).zfill(5)}"
+        applicant = models.Applicant(
+            applicant_id=applicant_id,
+            first_name=first_name.strip(),
+            last_name=last_name.strip(),
+            email=email.strip(),
+            phone=phone.strip() if phone else None,
+            source=source,
+        )
+        db.add(applicant)
+        db.flush()
+
+    # Save resume file if provided
+    resume_file_id = None
+    if resume and resume.filename:
+        from app.services.file_upload_service import FileUploadService
+        try:
+            file_record = await FileUploadService.upload_and_validate(
+                upload_file=resume,
+                uploaded_by=current_user.username,
+                db=db,
+                file_category="resume",
+            )
+            resume_file_id = file_record.id
+        except Exception:
+            pass  # Non-critical — application can proceed without resume
+
+    # Generate application ID
+    max_application = db.query(func.max(models.Application.id)).scalar() or 0
+    application_id = f"APPLICATION-{datetime.now().year}-{str(max_application + 1).zfill(5)}"
+
+    # Get first pipeline stage if available
+    first_stage = None
+    if req.pipeline_template_id:
+        first_stage = db.query(models.PipelineStage).filter(
+            models.PipelineStage.template_id == req.pipeline_template_id,
+        ).order_by(models.PipelineStage.stage_order).first()
+
+    application = models.Application(
+        application_id=application_id,
+        applicant_id=applicant.id,
+        requisition_id=req_id,
+        status="New",
+        source=source,
+        cover_letter=cover_letter,
+        resume_file_id=resume_file_id,
+        current_stage_id=first_stage.id if first_stage else None,
+        submitted_at=datetime.utcnow(),
+    )
+    db.add(application)
+    db.commit()
+    db.refresh(application)
+
+    # Trigger AI resume analysis in background if resume was uploaded
+    if resume_file_id:
+        background_tasks.add_task(_run_resume_analysis, application.id)
+
+    return {
+        "id": application.id,
+        "application_id": application.application_id,
+        "applicant_id": applicant.id,
+        "status": application.status,
+    }
+
+
+def _run_resume_analysis(application_id: int):
+    """Background task: run AI resume analysis with its own DB session."""
+    import logging
+    logger = logging.getLogger(__name__)
+    try:
+        from app.db.database import SessionLocal
+        from app.services.resume_analysis_service import resume_analysis_service
+        db = SessionLocal()
+        try:
+            resume_analysis_service.analyze_resume(db, application_id)
+        finally:
+            db.close()
+    except Exception as e:
+        logger.error(f"Background resume analysis failed for app {application_id}: {e}")
+
+
 # ============================================================================
 # POSTING ENDPOINTS
 # ============================================================================
@@ -991,6 +1101,7 @@ def recruiting_dashboard(
             {
                 "id": a.id,
                 "application_id": a.application_id,
+                "requisition_id": a.requisition_id,
                 "applicant_name": f"{a.applicant.first_name} {a.applicant.last_name}" if a.applicant else "Unknown",
                 "requisition_title": a.requisition.title if a.requisition else "Unknown",
                 "status": a.status,
@@ -1639,6 +1750,43 @@ def toggle_favorite(
     app.is_favorite = not app.is_favorite
     db.commit()
     return {"message": f"Application {'favorited' if app.is_favorite else 'unfavorited'}", "is_favorite": app.is_favorite}
+
+
+@router.delete("/applications/{app_id}")
+def delete_application(
+    app_id: int,
+    current_user: models.User = Depends(require_any_permission(
+        Permissions.RECRUITING_WRITE, Permissions.RECRUITING_ADMIN
+    )),
+    db: Session = Depends(get_db),
+):
+    """Remove an application and its related records."""
+    app = db.query(models.Application).filter(models.Application.id == app_id).first()
+    if not app:
+        raise HTTPException(status_code=404, detail="Application not found")
+
+    # Delete related records
+    db.query(models.ApplicationActivity).filter(
+        models.ApplicationActivity.application_id == app_id
+    ).delete()
+    db.query(models.ApplicationStageHistory).filter(
+        models.ApplicationStageHistory.application_id == app_id
+    ).delete()
+    db.query(models.ApplicantDocument).filter(
+        models.ApplicantDocument.application_id == app_id
+    ).delete()
+    if hasattr(models, 'InterviewScorecard'):
+        db.query(models.InterviewScorecard).filter(
+            models.InterviewScorecard.application_id == app_id
+        ).delete()
+    if hasattr(models, 'ResumeAnalysis'):
+        db.query(models.ResumeAnalysis).filter(
+            models.ResumeAnalysis.application_id == app_id
+        ).delete()
+
+    db.delete(app)
+    db.commit()
+    return {"message": "Application removed"}
 
 
 # ============================================================================
