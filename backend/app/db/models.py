@@ -4063,7 +4063,7 @@ class InterviewScorecard(Base):
 
     id = Column(Integer, primary_key=True, index=True, autoincrement=True)
     application_id = Column(Integer, ForeignKey("applications.id"), nullable=False, index=True)
-    stage_id = Column(Integer, ForeignKey("pipeline_stages.id"), nullable=False, index=True)
+    stage_id = Column(Integer, ForeignKey("pipeline_stages.id"), nullable=True, index=True)
     interviewer_id = Column(Integer, ForeignKey("users.id"), nullable=False)
 
     # Ratings
@@ -4101,7 +4101,7 @@ class Interview(Base):
     id = Column(Integer, primary_key=True, index=True, autoincrement=True)
     interview_id = Column(String, unique=True, index=True)  # "INT-2026-001"
     application_id = Column(Integer, ForeignKey("applications.id"), nullable=False, index=True)
-    stage_id = Column(Integer, ForeignKey("pipeline_stages.id"), nullable=False)
+    stage_id = Column(Integer, ForeignKey("pipeline_stages.id"), nullable=True)
 
     # Scheduling
     scheduled_at = Column(DateTime, nullable=False)

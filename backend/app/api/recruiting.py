@@ -1153,7 +1153,7 @@ class RejectApplication(BaseModel):
 
 class ScorecardCreate(BaseModel):
     application_id: int
-    stage_id: int
+    stage_id: Optional[int] = None
     interviewer_id: int
     due_date: Optional[str] = None
 
@@ -1169,7 +1169,7 @@ class ScorecardSubmit(BaseModel):
 
 class InterviewCreate(BaseModel):
     application_id: int
-    stage_id: int
+    stage_id: Optional[int] = None
     scheduled_at: str
     duration_minutes: int = 60
     time_zone: Optional[str] = None
@@ -1802,20 +1802,22 @@ def create_scorecard(
     db: Session = Depends(get_db),
 ):
     """Assign a scorecard to an interviewer for a specific stage."""
-    # Verify application and stage exist
+    # Verify application exists
     app = db.query(models.Application).filter(models.Application.id == data.application_id).first()
     if not app:
         raise HTTPException(status_code=404, detail="Application not found")
 
-    stage = db.query(models.PipelineStage).filter(models.PipelineStage.id == data.stage_id).first()
-    if not stage:
-        raise HTTPException(status_code=404, detail="Pipeline stage not found")
+    stage = None
+    if data.stage_id:
+        stage = db.query(models.PipelineStage).filter(models.PipelineStage.id == data.stage_id).first()
+        if not stage:
+            raise HTTPException(status_code=404, detail="Pipeline stage not found")
 
     due_date = datetime.fromisoformat(data.due_date) if data.due_date else None
 
     # Get scorecard criteria from stage template
     criteria_template = None
-    if stage.scorecard_template and "criteria" in stage.scorecard_template:
+    if stage and stage.scorecard_template and "criteria" in stage.scorecard_template:
         criteria_template = [
             {"criteria": c["name"], "rating": None, "notes": ""}
             for c in stage.scorecard_template["criteria"]
@@ -1916,9 +1918,13 @@ def schedule_interview(
     if not app:
         raise HTTPException(status_code=404, detail="Application not found")
 
-    stage = db.query(models.PipelineStage).filter(models.PipelineStage.id == data.stage_id).first()
-    if not stage:
-        raise HTTPException(status_code=404, detail="Pipeline stage not found")
+    stage = None
+    stage_name = "Interview"
+    if data.stage_id:
+        stage = db.query(models.PipelineStage).filter(models.PipelineStage.id == data.stage_id).first()
+        if not stage:
+            raise HTTPException(status_code=404, detail="Pipeline stage not found")
+        stage_name = stage.name
 
     interview = models.Interview(
         interview_id=recruiting_service.generate_interview_id(db),
@@ -1939,7 +1945,7 @@ def schedule_interview(
     # Log activity
     recruiting_service.log_activity(
         db, data.application_id, "interview_scheduled",
-        f"Interview scheduled: {stage.name} on {data.scheduled_at}",
+        f"Interview scheduled: {stage_name} on {data.scheduled_at}",
         details={
             "stage_id": data.stage_id,
             "format": data.format,
