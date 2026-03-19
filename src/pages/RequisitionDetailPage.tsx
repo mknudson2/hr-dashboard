@@ -546,7 +546,7 @@ export default function RequisitionDetailPage() {
                           </td>
                           <td className="px-4 py-3 text-sm text-gray-600 dark:text-gray-400">{app.source || '—'}</td>
                           <td className="px-4 py-3 text-sm text-gray-600 dark:text-gray-400">
-                            {app.overall_rating ? `${app.overall_rating}/5` : '—'}
+                            {app.overall_rating ? `${Math.round((app.overall_rating / 5) * 100)}%` : '—'}
                           </td>
                           <td className="px-4 py-3">
                             {app.resume_analysis_label ? (
