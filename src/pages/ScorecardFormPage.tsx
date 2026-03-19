@@ -183,13 +183,13 @@ export default function ScorecardFormPage() {
 
   // Auto-set overall rating and recommendation when composite changes
   useEffect(() => {
-    if (hasSections && compositeScore?.score) {
+    if (hasSections && compositeScore?.score && !submitted) {
       setOverallRating(compositeScore.score);
-      if (suggestedRecommendation && !recommendation) {
+      if (suggestedRecommendation) {
         setRecommendation(suggestedRecommendation.label);
       }
     }
-  }, [compositeScore, suggestedRecommendation, hasSections]);
+  }, [compositeScore, suggestedRecommendation, hasSections, submitted]);
 
   useEffect(() => { loadScorecard(); }, [scorecardId]);
 
@@ -388,7 +388,7 @@ export default function ScorecardFormPage() {
                 {rating}
               </button>
               {hasRubric && rubric[String(rating)] && (
-                <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-64 p-2 bg-gray-900 dark:bg-gray-700 text-white text-xs rounded-lg shadow-lg opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-10">
+                <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-64 p-2 bg-gray-900 dark:bg-gray-700 text-white text-xs rounded-lg shadow-lg opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-50">
                   <div className="font-semibold mb-0.5">Rating {rating}</div>
                   {rubric[String(rating)]}
                   <div className="absolute top-full left-1/2 -translate-x-1/2 w-2 h-2 bg-gray-900 dark:bg-gray-700 rotate-45 -mt-1" />
@@ -506,9 +506,9 @@ export default function ScorecardFormPage() {
         {template.sections.map((section, sectionIdx) => {
           const sectionScore = sectionScores[section.name];
           return (
-            <div key={sectionIdx} className="bg-white dark:bg-gray-800 rounded-lg border dark:border-gray-700 overflow-hidden">
+            <div key={sectionIdx} className="bg-white dark:bg-gray-800 rounded-lg border dark:border-gray-700 overflow-visible">
               {/* Section header */}
-              <div className="bg-gray-50 dark:bg-gray-700/50 px-6 py-4 border-b dark:border-gray-700">
+              <div className="bg-gray-50 dark:bg-gray-700/50 px-6 py-4 border-b dark:border-gray-700 rounded-t-lg">
                 <div className="flex items-center justify-between">
                   <h2 className="font-semibold text-gray-900 dark:text-white">
                     Domain {sectionIdx + 1}: {section.name}
@@ -618,14 +618,15 @@ export default function ScorecardFormPage() {
             <div className="space-y-1.5">
               <p className="text-xs font-medium text-gray-500 dark:text-gray-400">Recommendation Thresholds</p>
               {thresholds.map((t, ti) => {
-                const isActive = suggestedRecommendation?.label === t.label;
+                const isSelected = recommendation === t.label;
+                const isSuggested = !recommendation && suggestedRecommendation?.label === t.label;
                 return (
                   <div
                     key={ti}
                     className={`flex items-center gap-3 text-xs px-3 py-2 rounded-lg border transition-colors cursor-pointer ${
-                      recommendation === t.label
+                      isSelected
                         ? (THRESHOLD_COLORS[t.label] || 'bg-blue-50 dark:bg-blue-900/30 text-blue-700 border-blue-200') + ' ring-2 ring-blue-400 ring-offset-1'
-                        : isActive
+                        : isSuggested
                         ? (THRESHOLD_COLORS[t.label] || 'bg-gray-50 border-gray-200') + ' ring-1 ring-blue-300'
                         : 'bg-gray-50 dark:bg-gray-700/30 border-gray-200 dark:border-gray-600 text-gray-600 dark:text-gray-400'
                     }`}

@@ -3666,6 +3666,7 @@ class PipelineStage(Base):
     auto_advance = Column(Boolean, default=False)
     scorecard_template = Column(JSON, nullable=True)  # {"criteria": [{"name": "...", "weight": 1.0}], "recommendation_options": [...]}
     days_sla = Column(Integer, nullable=True)  # Expected days to complete this stage
+    lifecycle_stage_key = Column(String, nullable=True)  # Maps to RequisitionLifecycleStage.stage_key for auto-advance
 
     # Relationships
     template = relationship("PipelineTemplate", back_populates="stages")
@@ -3937,6 +3938,11 @@ class Application(Base):
     rejected_at = Column(DateTime, nullable=True)
     rejected_by = Column(Integer, ForeignKey("users.id"), nullable=True)
 
+    # Disposition tracking (where/why candidate exited the pipeline)
+    disposition_stage_id = Column(Integer, ForeignKey("pipeline_stages.id"), nullable=True)
+    withdrawn_at = Column(DateTime, nullable=True)
+    withdrawn_reason = Column(String, nullable=True)
+
     # Offer tracking
     offer_extended_at = Column(DateTime, nullable=True)
     offer_accepted_at = Column(DateTime, nullable=True)
@@ -3960,6 +3966,7 @@ class Application(Base):
     requisition = relationship("JobRequisition", back_populates="applications")
     posting = relationship("JobPosting", back_populates="applications")
     current_stage = relationship("PipelineStage", foreign_keys=[current_stage_id])
+    disposition_stage = relationship("PipelineStage", foreign_keys=[disposition_stage_id])
     resume_file = relationship("FileUpload", foreign_keys=[resume_file_id])
     status_changed_by_user = relationship("User", foreign_keys=[status_changed_by])
     rejected_by_user = relationship("User", foreign_keys=[rejected_by])

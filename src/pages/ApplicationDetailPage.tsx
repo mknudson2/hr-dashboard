@@ -31,6 +31,7 @@ interface PipelineStageInfo {
   is_required: boolean;
   scorecard_template: Record<string, unknown> | null;
   days_sla: number | null;
+  lifecycle_stage_key: string | null;
   completion: StageCompletion;
 }
 
@@ -78,6 +79,11 @@ interface ApplicationDetail {
   is_favorite: boolean;
   is_internal_transfer: boolean;
   rejection_reason: string | null;
+  rejection_notes: string | null;
+  disposition_stage_id: number | null;
+  disposition_stage: { id: number; name: string } | null;
+  withdrawn_at: string | null;
+  withdrawn_reason: string | null;
   submitted_at: string | null;
   created_at: string | null;
   activities: {
@@ -154,6 +160,9 @@ export default function ApplicationDetailPage() {
   const [showRejectModal, setShowRejectModal] = useState(false);
   const [rejectReason, setRejectReason] = useState('');
   const [rejectNotes, setRejectNotes] = useState('');
+  const [showWithdrawModal, setShowWithdrawModal] = useState(false);
+  const [withdrawReason, setWithdrawReason] = useState('');
+  const [withdrawNotes, setWithdrawNotes] = useState('');
 
   // Inline interview scheduling state
   const [scheduledDate, setScheduledDate] = useState('');
@@ -337,6 +346,36 @@ export default function ApplicationDetailPage() {
     }
   };
 
+  const withdrawApp = async () => {
+    try {
+      const res = await fetch(`${BASE_URL}/recruiting/applications/${id}/withdraw`, {
+        method: 'PATCH',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ reason: withdrawReason, notes: withdrawNotes }),
+      });
+      if (res.ok) {
+        setShowWithdrawModal(false);
+        loadApplication();
+      }
+    } catch (error) {
+      console.error('Withdraw failed:', error);
+    }
+  };
+
+  // Stage-specific rejection reasons
+  const getStageReasons = (): string[] => {
+    const stageType = app?.current_stage?.stage_type || '';
+    const stageReasons: Record<string, string[]> = {
+      application_review: ['Not Qualified', 'Incomplete Application', 'Position Filled', 'Duplicate Application'],
+      interview: ['Failed Interview', 'Communication Concerns', 'Culture Fit', 'No Show', 'Salary Mismatch'],
+      assessment: ['Did Not Pass Assessment', 'Insufficient Score', 'Incomplete Assessment'],
+      offer: ['Declined Offer', 'Salary Negotiation Failed', 'Position Rescinded'],
+      offer_accepted: ['Background Check Failed', 'Failed to Start'],
+    };
+    return stageReasons[stageType] || ['Not Qualified', 'Position Filled', 'Other'];
+  };
+
   if (loading) {
     return (
       <div className="p-6">
@@ -367,7 +406,7 @@ export default function ApplicationDetailPage() {
   return (
     <div className="p-6 space-y-6">
       {/* Header */}
-      <button onClick={() => navigate(-1)} className="flex items-center gap-1 text-sm text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300">
+      <button onClick={() => navigate(app.requisition ? `/recruiting/requisitions/${app.requisition.id}` : '/recruiting')} className="flex items-center gap-1 text-sm text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300">
         <ChevronLeft className="w-4 h-4" /> Back
       </button>
 
@@ -390,13 +429,21 @@ export default function ApplicationDetailPage() {
           </p>
         </div>
         <div className="flex gap-2">
-          {app.status !== 'Rejected' && app.status !== 'Hired' && (
-            <button
-              onClick={() => setShowRejectModal(true)}
-              className="flex items-center gap-1 px-3 py-2 border border-red-200 dark:border-red-800 text-red-600 dark:text-red-400 rounded-lg text-sm hover:bg-red-50 dark:hover:bg-red-900/20"
-            >
-              <XCircle className="w-4 h-4" /> Reject
-            </button>
+          {app.status !== 'Rejected' && app.status !== 'Hired' && app.status !== 'Withdrawn' && (
+            <>
+              <button
+                onClick={() => setShowWithdrawModal(true)}
+                className="flex items-center gap-1 px-3 py-2 border border-amber-200 dark:border-amber-800 text-amber-600 dark:text-amber-400 rounded-lg text-sm hover:bg-amber-50 dark:hover:bg-amber-900/20"
+              >
+                <XCircle className="w-4 h-4" /> Withdraw
+              </button>
+              <button
+                onClick={() => setShowRejectModal(true)}
+                className="flex items-center gap-1 px-3 py-2 border border-red-200 dark:border-red-800 text-red-600 dark:text-red-400 rounded-lg text-sm hover:bg-red-50 dark:hover:bg-red-900/20"
+              >
+                <XCircle className="w-4 h-4" /> Reject
+              </button>
+            </>
           )}
         </div>
       </div>
@@ -409,18 +456,39 @@ export default function ApplicationDetailPage() {
             {app.pipeline_stages.map((stage, idx) => {
               const isCurrent = app.current_stage?.id === stage.id;
               const isPast = app.stage_history.some(h => h.stage?.id === stage.id && h.exited_at);
-              const isNext = !isCurrent && !isPast && app.pipeline_stages.findIndex(s => s.id === app.current_stage?.id) < idx;
+              const isDisposition = app.disposition_stage_id === stage.id;
+              const isRejected = isDisposition && app.status === 'Rejected';
+              const isWithdrawn = isDisposition && app.status === 'Withdrawn';
+              const dispositionIdx = app.disposition_stage_id
+                ? app.pipeline_stages.findIndex(s => s.id === app.disposition_stage_id)
+                : -1;
+              const isAfterDisposition = dispositionIdx >= 0 && idx > dispositionIdx;
+              const isTerminal = app.status === 'Rejected' || app.status === 'Withdrawn';
+              const isNext = !isTerminal && !isCurrent && !isPast && app.pipeline_stages.findIndex(s => s.id === app.current_stage?.id) < idx;
 
               return (
                 <div key={stage.id} className="flex items-center">
                   {idx > 0 && (
-                    <div className={`w-6 h-0.5 ${isPast ? 'bg-green-400' : isCurrent ? 'bg-blue-400' : 'bg-gray-200 dark:bg-gray-600'}`} />
+                    <div className={`w-6 h-0.5 ${
+                      isRejected ? 'bg-red-300 dark:bg-red-700' :
+                      isWithdrawn ? 'bg-amber-300 dark:bg-amber-700' :
+                      isAfterDisposition ? 'bg-gray-200 dark:bg-gray-700' :
+                      isPast ? 'bg-green-400' :
+                      isCurrent ? 'bg-blue-400' :
+                      'bg-gray-200 dark:bg-gray-600'
+                    }`} />
                   )}
                   <button
                     onClick={() => isNext && advanceStage(stage.id)}
                     disabled={!isNext}
                     className={`flex-shrink-0 px-3 py-2 rounded-lg text-xs font-medium border transition-colors ${
-                      isCurrent
+                      isRejected
+                        ? 'bg-red-100 border-red-400 text-red-800 dark:bg-red-900/30 dark:border-red-600 dark:text-red-300'
+                        : isWithdrawn
+                        ? 'bg-amber-100 border-amber-400 text-amber-800 dark:bg-amber-900/30 dark:border-amber-600 dark:text-amber-300'
+                        : isAfterDisposition
+                        ? 'bg-gray-50 dark:bg-gray-700/50 border-gray-200 dark:border-gray-600 text-gray-300 dark:text-gray-500'
+                        : isCurrent
                         ? 'bg-blue-100 border-blue-300 text-blue-800 dark:bg-blue-900/30 dark:border-blue-700 dark:text-blue-300'
                         : isPast
                         ? 'bg-green-50 border-green-200 text-green-700 dark:bg-green-900/30 dark:border-green-800 dark:text-green-300'
@@ -428,8 +496,13 @@ export default function ApplicationDetailPage() {
                         ? 'bg-white dark:bg-gray-700 border-gray-300 dark:border-gray-600 text-gray-600 dark:text-gray-300 hover:border-blue-400 hover:text-blue-600 cursor-pointer'
                         : 'bg-gray-50 dark:bg-gray-700/50 border-gray-200 dark:border-gray-600 text-gray-400'
                     }`}
-                    title={isNext ? `Advance to ${stage.name}` : undefined}
+                    title={
+                      isRejected ? `Rejected: ${app.rejection_reason || 'No reason given'}` :
+                      isWithdrawn ? `Withdrawn: ${app.withdrawn_reason || 'No reason given'}` :
+                      isNext ? `Advance to ${stage.name}` : undefined
+                    }
                   >
+                    {(isRejected || isWithdrawn) && <XCircle className="w-3 h-3 inline mr-1" />}
                     {stage.name}
                     {isNext && <ChevronRight className="w-3 h-3 inline ml-1" />}
                   </button>
@@ -437,6 +510,21 @@ export default function ApplicationDetailPage() {
               );
             })}
           </div>
+          {/* Disposition banner */}
+          {(app.status === 'Rejected' || app.status === 'Withdrawn') && app.disposition_stage && (
+            <div className={`mt-3 px-3 py-2 rounded-lg text-sm flex items-center gap-2 ${
+              app.status === 'Rejected'
+                ? 'bg-red-50 border border-red-200 text-red-800 dark:bg-red-900/20 dark:border-red-800 dark:text-red-300'
+                : 'bg-amber-50 border border-amber-200 text-amber-800 dark:bg-amber-900/20 dark:border-amber-800 dark:text-amber-300'
+            }`}>
+              <XCircle className="w-4 h-4 flex-shrink-0" />
+              <span>
+                {app.status === 'Rejected' ? 'Rejected' : 'Withdrawn'} at <strong>{app.disposition_stage.name}</strong>
+                {app.status === 'Rejected' && app.rejection_reason ? `: ${app.rejection_reason}` : ''}
+                {app.status === 'Withdrawn' && app.withdrawn_reason ? `: ${app.withdrawn_reason}` : ''}
+              </span>
+            </div>
+          )}
         </div>
       )}
 
@@ -840,6 +928,11 @@ export default function ApplicationDetailPage() {
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
           <div className="bg-white dark:bg-gray-800 rounded-lg p-6 w-full max-w-md space-y-4">
             <h2 className="text-lg font-semibold text-gray-900 dark:text-white">Reject Application</h2>
+            {app.current_stage && (
+              <p className="text-sm text-gray-500 dark:text-gray-400">
+                Current stage: <strong>{app.current_stage.name}</strong>
+              </p>
+            )}
             <div>
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Reason</label>
               <select
@@ -848,11 +941,9 @@ export default function ApplicationDetailPage() {
                 className="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 text-sm dark:bg-gray-700 dark:text-white"
               >
                 <option value="">Select reason...</option>
-                <option>Not Qualified</option>
-                <option>Position Filled</option>
-                <option>Failed Interview</option>
-                <option>Salary Mismatch</option>
-                <option>Culture Fit</option>
+                {getStageReasons().map(reason => (
+                  <option key={reason}>{reason}</option>
+                ))}
                 <option>Other</option>
               </select>
             </div>
@@ -869,6 +960,51 @@ export default function ApplicationDetailPage() {
               <button onClick={() => setShowRejectModal(false)} className="px-4 py-2 border border-gray-200 dark:border-gray-700 rounded-lg text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700">Cancel</button>
               <button onClick={rejectApp} className="px-4 py-2 bg-red-600 text-white rounded-lg text-sm hover:bg-red-700">
                 Reject Application
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Withdraw Modal */}
+      {showWithdrawModal && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+          <div className="bg-white dark:bg-gray-800 rounded-lg p-6 w-full max-w-md space-y-4">
+            <h2 className="text-lg font-semibold text-gray-900 dark:text-white">Withdraw Application</h2>
+            {app.current_stage && (
+              <p className="text-sm text-gray-500 dark:text-gray-400">
+                Current stage: <strong>{app.current_stage.name}</strong>
+              </p>
+            )}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Reason</label>
+              <select
+                value={withdrawReason}
+                onChange={e => setWithdrawReason(e.target.value)}
+                className="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 text-sm dark:bg-gray-700 dark:text-white"
+              >
+                <option value="">Select reason...</option>
+                <option>Accepted Another Offer</option>
+                <option>No Longer Interested</option>
+                <option>Relocation</option>
+                <option>Personal Reasons</option>
+                <option>Salary Expectations</option>
+                <option>Other</option>
+              </select>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Notes (optional)</label>
+              <textarea
+                value={withdrawNotes}
+                onChange={e => setWithdrawNotes(e.target.value)}
+                className="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 text-sm dark:bg-gray-700 dark:text-white"
+                rows={3}
+              />
+            </div>
+            <div className="flex gap-2 justify-end">
+              <button onClick={() => setShowWithdrawModal(false)} className="px-4 py-2 border border-gray-200 dark:border-gray-700 rounded-lg text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700">Cancel</button>
+              <button onClick={withdrawApp} className="px-4 py-2 bg-amber-600 text-white rounded-lg text-sm hover:bg-amber-700">
+                Withdraw Application
               </button>
             </div>
           </div>

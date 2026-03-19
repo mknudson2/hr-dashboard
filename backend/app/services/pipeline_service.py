@@ -75,6 +75,17 @@ class PipelineService:
             is_internal=False,
         )
 
+        # Auto-advance requisition lifecycle if the pipeline stage has a mapping
+        if target_stage and target_stage.lifecycle_stage_key and application.requisition_id:
+            from app.services.lifecycle_service import lifecycle_service
+            try:
+                lifecycle_service.auto_advance_by_key(
+                    db, application.requisition_id,
+                    target_stage.lifecycle_stage_key, moved_by,
+                )
+            except Exception:
+                pass  # Don't fail pipeline advance if lifecycle hook fails
+
         db.flush()
         return new_history
 
@@ -105,6 +116,7 @@ class PipelineService:
         application.rejection_notes = notes
         application.rejected_at = datetime.utcnow()
         application.rejected_by = rejected_by
+        application.disposition_stage_id = application.current_stage_id
 
         recruiting_service.log_activity(
             db,
@@ -113,6 +125,45 @@ class PipelineService:
             f"Application rejected{f': {reason}' if reason else ''}",
             details={"reason": reason, "notes": notes},
             performed_by=rejected_by,
+            is_internal=False,
+        )
+
+        db.flush()
+
+    def withdraw_application(
+        self,
+        db: Session,
+        application: models.Application,
+        withdrawn_by: int,
+        reason: Optional[str] = None,
+        notes: Optional[str] = None,
+    ) -> None:
+        """Mark an application as withdrawn by the candidate."""
+        # Close current stage history
+        if application.current_stage_id:
+            current_history = db.query(models.ApplicationStageHistory).filter(
+                models.ApplicationStageHistory.application_id == application.id,
+                models.ApplicationStageHistory.stage_id == application.current_stage_id,
+                models.ApplicationStageHistory.exited_at.is_(None),
+            ).first()
+            if current_history:
+                current_history.exited_at = datetime.utcnow()
+                current_history.outcome = "withdrawn"
+
+        application.status = "Withdrawn"
+        application.status_changed_at = datetime.utcnow()
+        application.status_changed_by = withdrawn_by
+        application.disposition_stage_id = application.current_stage_id
+        application.withdrawn_at = datetime.utcnow()
+        application.withdrawn_reason = reason
+
+        recruiting_service.log_activity(
+            db,
+            application.id,
+            "status_change",
+            f"Application withdrawn{f': {reason}' if reason else ''}",
+            details={"reason": reason, "notes": notes},
+            performed_by=withdrawn_by,
             is_internal=False,
         )
 
@@ -384,7 +435,7 @@ class PipelineService:
 
         template = models.PipelineTemplate(
             name="Standard Hiring Pipeline",
-            description="Default hiring pipeline: Application Review → HR Screening → Technical Interview → Team Interview → Reference Check → Offer",
+            description="Default hiring pipeline: Application Review → HR Screening → HM Interview → Tech Screen → Offer Extended → Offer Accepted",
             is_default=True,
             is_active=True,
         )
@@ -393,20 +444,18 @@ class PipelineService:
 
         from app.db.migrations.add_hr_screening_scorecard import HR_SCREENING_TEMPLATE
 
+        # Stages aligned with requisition lifecycle:
+        # (name, stage_type, order, required, auto_advance, scorecard, sla, lifecycle_stage_key)
         stages = [
-            ("Application Review", "application_review", 1, True, False, None, 3),
-            ("HR Screening Interview", "interview", 2, True, False, HR_SCREENING_TEMPLATE, 5),
-            ("Technical Interview", "interview", 3, True, False,
-             {"criteria": [{"name": "Technical Skills", "weight": 1.5}, {"name": "Problem Solving", "weight": 1.5}, {"name": "Communication", "weight": 1.0}]},
-             7),
-            ("Team Interview", "interview", 4, True, False,
-             {"criteria": [{"name": "Culture Fit", "weight": 1.0}, {"name": "Collaboration", "weight": 1.0}, {"name": "Leadership", "weight": 0.5}]},
-             5),
-            ("Reference Check", "reference_check", 5, False, False, None, 5),
-            ("Offer", "offer", 6, True, False, None, 3),
+            ("Application Review", "application_review", 1, True, False, None, 3, None),
+            ("HR Screening Interview", "interview", 2, True, False, HR_SCREENING_TEMPLATE, 5, "hr_interview"),
+            ("HM Interview", "interview", 3, True, False, self.HM_INTERVIEW_TEMPLATE, 5, "hiring_manager_interview"),
+            ("Tech Screen", "assessment", 4, False, False, None, 5, "tech_screen"),
+            ("Offer Extended", "offer", 5, True, False, None, 3, "offer_extended"),
+            ("Offer Accepted", "offer_accepted", 6, True, False, None, 3, "offer_response"),
         ]
 
-        for name, stage_type, order, required, auto, scorecard, sla in stages:
+        for name, stage_type, order, required, auto, scorecard, sla, lifecycle_key in stages:
             stage = models.PipelineStage(
                 template_id=template.id,
                 name=name,
@@ -416,6 +465,7 @@ class PipelineService:
                 auto_advance=auto,
                 scorecard_template=scorecard,
                 days_sla=sla,
+                lifecycle_stage_key=lifecycle_key,
             )
             db.add(stage)
 

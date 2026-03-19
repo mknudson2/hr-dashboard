@@ -1153,6 +1153,11 @@ class RejectApplication(BaseModel):
     notes: Optional[str] = None
 
 
+class WithdrawApplication(BaseModel):
+    reason: Optional[str] = None
+    notes: Optional[str] = None
+
+
 class ScorecardCreate(BaseModel):
     application_id: int
     stage_id: Optional[int] = None
@@ -1516,7 +1521,8 @@ def get_application_detail(
     pipeline_stages = []
     if app.requisition and app.requisition.pipeline_template_id:
         stages = db.query(models.PipelineStage).filter(
-            models.PipelineStage.template_id == app.requisition.pipeline_template_id
+            models.PipelineStage.template_id == app.requisition.pipeline_template_id,
+            models.PipelineStage.order_index < 99,  # Exclude soft-deprecated stages
         ).order_by(models.PipelineStage.order_index).all()
         pipeline_stages = [
             {
@@ -1527,6 +1533,7 @@ def get_application_detail(
                 "is_required": s.is_required,
                 "scorecard_template": s.scorecard_template,
                 "days_sla": s.days_sla,
+                "lifecycle_stage_key": s.lifecycle_stage_key,
                 "completion": pipeline_service.get_stage_completion_status(db, app.id, s.id),
             }
             for s in stages
@@ -1629,6 +1636,13 @@ def get_application_detail(
         "rejection_reason": app.rejection_reason,
         "rejection_notes": app.rejection_notes,
         "rejected_at": app.rejected_at.isoformat() if app.rejected_at else None,
+        "disposition_stage_id": app.disposition_stage_id,
+        "disposition_stage": {
+            "id": app.disposition_stage.id,
+            "name": app.disposition_stage.name,
+        } if app.disposition_stage else None,
+        "withdrawn_at": app.withdrawn_at.isoformat() if app.withdrawn_at else None,
+        "withdrawn_reason": app.withdrawn_reason,
         "submitted_at": app.submitted_at.isoformat() if app.submitted_at else None,
         "created_at": app.created_at.isoformat() if app.created_at else None,
         "activities": [
@@ -1729,6 +1743,7 @@ def advance_application_stage(
         "assessment": "Interview",
         "reference_check": "Interview",
         "offer": "Offer",
+        "offer_accepted": "Hired",
     }
     new_status = stage_status_map.get(stage.stage_type, app.status)
     if new_status != app.status:
@@ -1760,6 +1775,28 @@ def reject_application(
     pipeline_service.reject_application(db, app, current_user.id, data.reason, data.notes)
     db.commit()
     return {"message": "Application rejected"}
+
+
+@router.patch("/applications/{app_id}/withdraw")
+def withdraw_application(
+    app_id: int,
+    data: WithdrawApplication,
+    current_user: models.User = Depends(require_any_permission(
+        Permissions.RECRUITING_WRITE, Permissions.RECRUITING_ADMIN
+    )),
+    db: Session = Depends(get_db),
+):
+    """Mark an application as withdrawn by the candidate."""
+    app = db.query(models.Application).filter(models.Application.id == app_id).first()
+    if not app:
+        raise HTTPException(status_code=404, detail="Application not found")
+
+    if app.status in ("Rejected", "Withdrawn", "Hired"):
+        raise HTTPException(status_code=400, detail=f"Cannot withdraw application with status '{app.status}'")
+
+    pipeline_service.withdraw_application(db, app, current_user.id, data.reason, data.notes)
+    db.commit()
+    return {"message": "Application withdrawn"}
 
 
 @router.patch("/applications/{app_id}/favorite")
@@ -1912,9 +1949,12 @@ def submit_scorecard(
     if not sc:
         raise HTTPException(status_code=404, detail="Scorecard not found")
 
-    valid_recommendations = {"Strong Hire", "Hire", "Lean Hire", "Lean No Hire", "No Hire"}
+    valid_recommendations = {
+        "Strong Hire", "Hire", "Lean Hire", "Lean No Hire", "No Hire",
+        "Strong Advance", "Advance", "Hold / Discuss", "Do Not Advance",
+    }
     if data.recommendation not in valid_recommendations:
-        raise HTTPException(status_code=400, detail=f"Invalid recommendation. Must be one of: {', '.join(valid_recommendations)}")
+        raise HTTPException(status_code=400, detail=f"Invalid recommendation. Must be one of: {', '.join(sorted(valid_recommendations))}")
 
     pipeline_service.submit_scorecard(
         db, sc,
