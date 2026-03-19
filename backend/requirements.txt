@@ -60,6 +60,14 @@ python-magic==0.4.27
 # PostgreSQL driver (for production deployments)
 psycopg2-binary==2.9.9
 
+# Calendar integration (Microsoft 365 + Google Workspace)
+msal>=1.28.0
+httpx>=0.27.0
+google-auth>=2.29.0
+google-auth-oauthlib>=1.2.0
+google-api-python-client>=2.125.0
+icalendar>=5.0.0
+
 # Mímir AI Assistant (RAG pipeline)
 anthropic>=0.40.0
 chromadb>=0.5.0

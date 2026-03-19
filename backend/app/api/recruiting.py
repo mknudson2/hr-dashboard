@@ -23,6 +23,8 @@ from app.services.recruiting_analytics_service import recruiting_analytics_servi
 from app.services.rbac_service import require_any_permission, require_permission, Permissions
 from app.services.lifecycle_service import lifecycle_service
 from app.services.resume_analysis_service import resume_analysis_service
+from app.services.calendar_service import calendar_service, CreateEventRequest
+from app.services.ics_service import ics_service
 
 
 router = APIRouter(prefix="/recruiting", tags=["recruiting"])
@@ -1558,6 +1560,27 @@ def get_application_detail(
         models.ApplicationStageHistory.application_id == app_id,
     ).order_by(models.ApplicationStageHistory.entered_at).all()
 
+    # Resolve hiring team from requisition
+    hiring_team = []
+    if app.requisition:
+        req = app.requisition
+        if req.hiring_manager_id:
+            hm = db.query(models.User).filter(models.User.id == req.hiring_manager_id).first()
+            if hm:
+                hiring_team.append({"user_id": hm.id, "full_name": hm.full_name, "email": hm.email, "role": "Hiring Manager"})
+        if req.recruiter_id:
+            rec = db.query(models.User).filter(models.User.id == req.recruiter_id).first()
+            if rec:
+                hiring_team.append({"user_id": rec.id, "full_name": rec.full_name, "email": rec.email, "role": "Recruiter"})
+        visibility_ids = req.visibility_user_ids or []
+        if visibility_ids:
+            existing_ids = {m["user_id"] for m in hiring_team}
+            stakeholder_ids = [uid for uid in visibility_ids if uid not in existing_ids]
+            if stakeholder_ids:
+                stakeholders = db.query(models.User).filter(models.User.id.in_(stakeholder_ids)).all()
+                for s in stakeholders:
+                    hiring_team.append({"user_id": s.id, "full_name": s.full_name, "email": s.email, "role": "Stakeholder"})
+
     return {
         "id": app.id,
         "application_id": app.application_id,
@@ -1585,6 +1608,7 @@ def get_application_detail(
             "department": app.requisition.department,
             "location": app.requisition.location,
         } if app.requisition else None,
+        "hiring_team": hiring_team,
         "posting": {
             "id": app.posting.id,
             "title": app.posting.title,
@@ -1651,6 +1675,10 @@ def get_application_detail(
                 "video_link": iv.video_link,
                 "interviewers": iv.interviewers,
                 "status": iv.status,
+                "calendar_event_id": iv.calendar_event_id,
+                "calendar_provider": iv.calendar_provider,
+                "meeting_link_auto": iv.meeting_link_auto,
+                "ics_sent": iv.ics_sent,
             }
             for iv in interviews
         ],
@@ -1906,14 +1934,19 @@ def submit_scorecard(
 # ============================================================================
 
 @router.post("/interviews")
-def schedule_interview(
+async def schedule_interview(
     data: InterviewCreate,
     current_user: models.User = Depends(require_any_permission(
         Permissions.RECRUITING_WRITE, Permissions.RECRUITING_ADMIN
     )),
     db: Session = Depends(get_db),
 ):
-    """Schedule an interview for an application."""
+    """Schedule an interview for an application.
+
+    If the organizer has a calendar connection:
+    - Creates a calendar event (with auto Teams/Meet link for Video format)
+    - Generates and sends an .ics calendar invitation to the candidate
+    """
     app = db.query(models.Application).filter(models.Application.id == data.application_id).first()
     if not app:
         raise HTTPException(status_code=404, detail="Application not found")
@@ -1926,11 +1959,13 @@ def schedule_interview(
             raise HTTPException(status_code=404, detail="Pipeline stage not found")
         stage_name = stage.name
 
+    scheduled_dt = datetime.fromisoformat(data.scheduled_at)
+
     interview = models.Interview(
         interview_id=recruiting_service.generate_interview_id(db),
         application_id=data.application_id,
         stage_id=data.stage_id,
-        scheduled_at=datetime.fromisoformat(data.scheduled_at),
+        scheduled_at=scheduled_dt,
         duration_minutes=data.duration_minutes,
         time_zone=data.time_zone,
         format=data.format,
@@ -1942,6 +1977,100 @@ def schedule_interview(
     )
     db.add(interview)
 
+    # --- Calendar integration ---
+    calendar_event_id = None
+    calendar_provider = None
+    auto_video_link = None
+
+    conn = calendar_service.get_user_connection(db, current_user.id)
+    if conn:
+        provider = calendar_service.get_provider(conn.provider)
+        access_token = await calendar_service.get_valid_access_token(db, conn) if provider else None
+
+        if provider and access_token:
+            try:
+                # Get job title for the event subject
+                job_title = ""
+                if app.requisition:
+                    job_title = app.requisition.title or ""
+
+                # Gather attendee emails
+                attendee_emails = []
+                if data.interviewers:
+                    for iv in data.interviewers:
+                        if iv.get("user_id"):
+                            user = db.query(models.User).filter(models.User.id == iv["user_id"]).first()
+                            if user and user.email:
+                                attendee_emails.append(user.email)
+
+                event_req = CreateEventRequest(
+                    subject=f"Interview: {job_title} - {stage_name}" if job_title else f"Interview - {stage_name}",
+                    start=scheduled_dt,
+                    end=scheduled_dt + __import__("datetime").timedelta(minutes=data.duration_minutes),
+                    time_zone=data.time_zone or "UTC",
+                    attendees=attendee_emails,
+                    body=f"Interview for {job_title} position. Stage: {stage_name}.",
+                    location=data.location,
+                    create_video_meeting=(data.format == "Video"),
+                )
+
+                cal_event = await provider.create_event(access_token, event_req)
+                calendar_event_id = cal_event.event_id
+                calendar_provider = conn.provider
+
+                # If provider auto-generated a video link, use it
+                if cal_event.video_link:
+                    auto_video_link = cal_event.video_link
+                    interview.video_link = auto_video_link
+                    interview.meeting_link_auto = True
+
+                interview.calendar_event_id = calendar_event_id
+                interview.calendar_provider = calendar_provider
+
+            except Exception as e:
+                import logging
+                logging.getLogger(__name__).warning(f"Calendar event creation failed (non-blocking): {e}")
+
+    # --- ICS generation + email ---
+    try:
+        # Get applicant info for the email
+        applicant = app.applicant if app.applicant else None
+        job_title = app.requisition.title if app.requisition else "Position"
+
+        if applicant and applicant.email:
+            ics_bytes = ics_service.generate_interview_ics(
+                summary=f"Interview - {job_title}",
+                description=f"Interview for {job_title} position. Stage: {stage_name}.",
+                start=scheduled_dt,
+                duration_minutes=data.duration_minutes,
+                time_zone=data.time_zone or "UTC",
+                location=data.location,
+                video_link=interview.video_link,
+                organizer_email=current_user.email if hasattr(current_user, "email") else None,
+                organizer_name=current_user.full_name if hasattr(current_user, "full_name") else None,
+                uid=f"interview-{interview.interview_id}@hr-dashboard",
+            )
+
+            interviewer_names = ", ".join([iv["name"] for iv in (data.interviewers or [])]) or None
+
+            await recruiting_email_service.send_interview_invitation(
+                to_email=applicant.email,
+                applicant_name=applicant.first_name or applicant.name or "Candidate",
+                job_title=job_title,
+                interview_date=scheduled_dt.strftime("%B %d, %Y"),
+                interview_time=scheduled_dt.strftime("%I:%M %p"),
+                duration_minutes=data.duration_minutes,
+                format=data.format,
+                location=data.location,
+                video_link=interview.video_link,
+                interviewers=interviewer_names,
+                ics_bytes=ics_bytes,
+            )
+            interview.ics_sent = True
+    except Exception as e:
+        import logging
+        logging.getLogger(__name__).warning(f"ICS email sending failed (non-blocking): {e}")
+
     # Log activity
     recruiting_service.log_activity(
         db, data.application_id, "interview_scheduled",
@@ -1950,6 +2079,7 @@ def schedule_interview(
             "stage_id": data.stage_id,
             "format": data.format,
             "scheduled_at": data.scheduled_at,
+            "calendar_synced": calendar_event_id is not None,
         },
         performed_by=current_user.id,
         is_internal=False,
@@ -1957,11 +2087,25 @@ def schedule_interview(
 
     db.commit()
     db.refresh(interview)
-    return {"message": "Interview scheduled", "id": interview.id, "interview_id": interview.interview_id}
+
+    response = {
+        "message": "Interview scheduled",
+        "id": interview.id,
+        "interview_id": interview.interview_id,
+    }
+    if auto_video_link:
+        response["video_link"] = auto_video_link
+        response["meeting_link_auto"] = True
+    if calendar_event_id:
+        response["calendar_synced"] = True
+    if interview.ics_sent:
+        response["ics_sent"] = True
+
+    return response
 
 
 @router.put("/interviews/{interview_id}")
-def update_interview(
+async def update_interview(
     interview_id: int,
     data: InterviewUpdate,
     current_user: models.User = Depends(require_any_permission(
@@ -1969,7 +2113,7 @@ def update_interview(
     )),
     db: Session = Depends(get_db),
 ):
-    """Reschedule or update an interview."""
+    """Reschedule or update an interview. Updates calendar event if synced."""
     interview = db.query(models.Interview).filter(models.Interview.id == interview_id).first()
     if not interview:
         raise HTTPException(status_code=404, detail="Interview not found")
@@ -1980,6 +2124,68 @@ def update_interview(
 
     for key, value in update_data.items():
         setattr(interview, key, value)
+
+    # --- Update calendar event if synced ---
+    if interview.calendar_event_id and interview.calendar_provider:
+        conn = calendar_service.get_user_connection(db, current_user.id)
+        if conn:
+            provider = calendar_service.get_provider(conn.provider)
+            access_token = await calendar_service.get_valid_access_token(db, conn) if provider else None
+            if provider and access_token:
+                try:
+                    app = db.query(models.Application).filter(models.Application.id == interview.application_id).first()
+                    job_title = app.requisition.title if app and app.requisition else "Position"
+
+                    event_req = CreateEventRequest(
+                        subject=f"Interview: {job_title}",
+                        start=interview.scheduled_at,
+                        end=interview.scheduled_at + __import__("datetime").timedelta(minutes=interview.duration_minutes),
+                        time_zone=interview.time_zone or "UTC",
+                        body=f"Interview for {job_title} (rescheduled).",
+                        location=interview.location,
+                    )
+                    await provider.update_event(access_token, interview.calendar_event_id, event_req)
+                except Exception as e:
+                    import logging
+                    logging.getLogger(__name__).warning(f"Calendar event update failed (non-blocking): {e}")
+
+    # --- Re-send ICS to candidate ---
+    try:
+        app = db.query(models.Application).filter(models.Application.id == interview.application_id).first()
+        applicant = app.applicant if app else None
+        job_title = app.requisition.title if app and app.requisition else "Position"
+
+        if applicant and applicant.email:
+            ics_bytes = ics_service.generate_interview_ics(
+                summary=f"Interview - {job_title} (Updated)",
+                description=f"Interview rescheduled for {job_title}.",
+                start=interview.scheduled_at,
+                duration_minutes=interview.duration_minutes,
+                time_zone=interview.time_zone or "UTC",
+                location=interview.location,
+                video_link=interview.video_link,
+                organizer_email=current_user.email if hasattr(current_user, "email") else None,
+                organizer_name=current_user.full_name if hasattr(current_user, "full_name") else None,
+                uid=f"interview-{interview.interview_id}@hr-dashboard",
+                sequence=1,
+            )
+
+            await recruiting_email_service.send_interview_invitation(
+                to_email=applicant.email,
+                applicant_name=applicant.first_name or applicant.name or "Candidate",
+                job_title=job_title,
+                interview_date=interview.scheduled_at.strftime("%B %d, %Y"),
+                interview_time=interview.scheduled_at.strftime("%I:%M %p"),
+                duration_minutes=interview.duration_minutes,
+                format=interview.format or "Video",
+                location=interview.location,
+                video_link=interview.video_link,
+                ics_bytes=ics_bytes,
+            )
+            interview.ics_sent = True
+    except Exception as e:
+        import logging
+        logging.getLogger(__name__).warning(f"Reschedule ICS email failed (non-blocking): {e}")
 
     recruiting_service.log_activity(
         db, interview.application_id, "interview_rescheduled",
@@ -1992,7 +2198,7 @@ def update_interview(
 
 
 @router.patch("/interviews/{interview_id}/cancel")
-def cancel_interview(
+async def cancel_interview(
     interview_id: int,
     reason: Optional[str] = Query(None),
     current_user: models.User = Depends(require_any_permission(
@@ -2000,13 +2206,63 @@ def cancel_interview(
     )),
     db: Session = Depends(get_db),
 ):
-    """Cancel an interview."""
+    """Cancel an interview. Deletes calendar event and sends cancellation ICS if synced."""
     interview = db.query(models.Interview).filter(models.Interview.id == interview_id).first()
     if not interview:
         raise HTTPException(status_code=404, detail="Interview not found")
 
     interview.status = "Cancelled"
     interview.cancelled_reason = reason
+
+    # --- Delete calendar event if synced ---
+    if interview.calendar_event_id and interview.calendar_provider:
+        conn = calendar_service.get_user_connection(db, current_user.id)
+        if conn:
+            provider = calendar_service.get_provider(conn.provider)
+            access_token = await calendar_service.get_valid_access_token(db, conn) if provider else None
+            if provider and access_token:
+                try:
+                    await provider.delete_event(access_token, interview.calendar_event_id)
+                    interview.calendar_event_id = None
+                except Exception as e:
+                    import logging
+                    logging.getLogger(__name__).warning(f"Calendar event deletion failed (non-blocking): {e}")
+
+    # --- Send cancellation ICS to candidate ---
+    try:
+        app = db.query(models.Application).filter(models.Application.id == interview.application_id).first()
+        applicant = app.applicant if app else None
+        job_title = app.requisition.title if app and app.requisition else "Position"
+
+        if applicant and applicant.email:
+            cancel_ics = ics_service.generate_cancellation_ics(
+                summary=f"Interview - {job_title}",
+                start=interview.scheduled_at,
+                duration_minutes=interview.duration_minutes,
+                uid=f"interview-{interview.interview_id}@hr-dashboard",
+                organizer_email=current_user.email if hasattr(current_user, "email") else None,
+                organizer_name=current_user.full_name if hasattr(current_user, "full_name") else None,
+            )
+
+            await recruiting_email_service._send(
+                to_email=applicant.email,
+                subject=f"Interview Cancelled - {job_title}",
+                body_html=f"""
+                <h2>Interview Cancelled</h2>
+                <p>Hi {applicant.first_name or applicant.name or 'Candidate'},</p>
+                <p>The interview for <strong>{job_title}</strong> previously scheduled for
+                {interview.scheduled_at.strftime("%B %d, %Y at %I:%M %p")} has been cancelled.</p>
+                {f"<p><strong>Reason:</strong> {reason}</p>" if reason else ""}
+                <p>We apologize for any inconvenience. A cancellation calendar update is attached.</p>
+                <br>
+                <p>Best regards,<br>HR Team</p>
+                """,
+                email_type="interview_cancellation",
+                ics_bytes=cancel_ics,
+            )
+    except Exception as e:
+        import logging
+        logging.getLogger(__name__).warning(f"Cancellation ICS email failed (non-blocking): {e}")
 
     recruiting_service.log_activity(
         db, interview.application_id, "interview_cancelled",

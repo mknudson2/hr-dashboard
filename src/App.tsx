@@ -38,7 +38,6 @@ import PipelineTemplatePage from "./pages/PipelineTemplatePage";
 import ApplicationDetailPage from "./pages/ApplicationDetailPage";
 import PipelineKanbanView from "./pages/PipelineKanbanView";
 import ScorecardFormPage from "./pages/ScorecardFormPage";
-import InterviewSchedulerPage from "./pages/InterviewSchedulerPage";
 import CandidateComparisonPage from "./pages/CandidateComparisonPage";
 import OfferBuilderPage from "./pages/OfferBuilderPage";
 import DocumentRequestPanel from "./pages/DocumentRequestPanel";
@@ -98,7 +97,6 @@ export default function App() {
         <Route path="/recruiting/applications/:id" element={<ApplicationDetailPage />} />
         <Route path="/recruiting/requisitions/:reqId/kanban" element={<PipelineKanbanView />} />
         <Route path="/recruiting/scorecards/:scorecardId" element={<ScorecardFormPage />} />
-        <Route path="/recruiting/schedule-interview" element={<InterviewSchedulerPage />} />
         <Route path="/recruiting/compare" element={<CandidateComparisonPage />} />
         <Route path="/recruiting/offers/new" element={<OfferBuilderPage />} />
         <Route path="/recruiting/offers/:offerId" element={<OfferBuilderPage />} />

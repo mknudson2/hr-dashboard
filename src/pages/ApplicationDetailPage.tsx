@@ -3,9 +3,12 @@ import { useParams, useNavigate } from 'react-router-dom';
 import {
   ChevronLeft, Star, Mail, Phone, Linkedin, Globe, Building,
   MapPin, Clock, FileText, MessageSquare, Calendar, ClipboardList,
-  XCircle, ChevronRight, ExternalLink, Plus
+  XCircle, ChevronRight, ExternalLink, Plus, CalendarCheck, Link2,
+  Video, Users, Check
 } from 'lucide-react';
 import ResumeAnalysisPanel from '../components/recruiting/ResumeAnalysisPanel';
+import UserSearchSelect from '../components/UserSearchSelect';
+import AvailabilityGrid from '../components/AvailabilityGrid';
 
 const BASE_URL = '';
 
@@ -107,7 +110,12 @@ interface ApplicationDetail {
     video_link: string | null;
     interviewers: { user_id: number; name: string; role: string }[] | null;
     status: string;
+    calendar_event_id: string | null;
+    calendar_provider: string | null;
+    meeting_link_auto: boolean;
+    ics_sent: boolean;
   }[];
+  hiring_team: { user_id: number; full_name: string; email: string; role: string }[];
   stage_history: {
     id: number;
     stage: { id: number; name: string } | null;
@@ -147,6 +155,18 @@ export default function ApplicationDetailPage() {
   const [rejectReason, setRejectReason] = useState('');
   const [rejectNotes, setRejectNotes] = useState('');
 
+  // Inline interview scheduling state
+  const [scheduledDate, setScheduledDate] = useState('');
+  const [scheduledTime, setScheduledTime] = useState('');
+  const [duration, setDuration] = useState(60);
+  const [timeZone] = useState(Intl.DateTimeFormat().resolvedOptions().timeZone);
+  const [interviewers, setInterviewers] = useState<{ user_id: number; name: string; email: string; role: string }[]>([]);
+  const [autoCreateScorecard, setAutoCreateScorecard] = useState(true);
+  const [scheduleSubmitting, setScheduleSubmitting] = useState(false);
+  const [scheduleError, setScheduleError] = useState('');
+  const [scheduleSuccess, setScheduleSuccess] = useState(false);
+  const [calendarConnected, setCalendarConnected] = useState(false);
+
   useEffect(() => { loadApplication(); }, [id]);
 
   const loadApplication = async () => {
@@ -157,6 +177,95 @@ export default function ApplicationDetailPage() {
       console.error('Failed to load application:', error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  // Auto-populate interviewers from hiring team
+  useEffect(() => {
+    if (app?.hiring_team && app.hiring_team.length > 0 && interviewers.length === 0) {
+      setInterviewers(
+        app.hiring_team.map((member, idx) => ({
+          user_id: member.user_id,
+          name: member.full_name,
+          email: member.email,
+          role: idx === 0 ? 'lead' : 'interviewer',
+        }))
+      );
+    }
+  }, [app?.hiring_team]);
+
+  // Check calendar connection
+  useEffect(() => {
+    const checkCalendar = async () => {
+      try {
+        const res = await fetch(`${BASE_URL}/calendar/connection`, { credentials: 'include' });
+        if (res.ok) {
+          const data = await res.json();
+          setCalendarConnected(data.connected);
+        }
+      } catch { /* ignore */ }
+    };
+    checkCalendar();
+  }, []);
+
+  const handleScheduleInterview = async () => {
+    if (!scheduledDate || !scheduledTime) return;
+    setScheduleSubmitting(true);
+    setScheduleError('');
+
+    const scheduledAt = `${scheduledDate}T${scheduledTime}:00`;
+    const stageId = app?.current_stage?.id || app?.pipeline_stages?.[0]?.id || null;
+
+    try {
+      const res = await fetch(`${BASE_URL}/recruiting/interviews`, {
+        method: 'POST',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          application_id: Number(id),
+          stage_id: stageId,
+          scheduled_at: scheduledAt,
+          duration_minutes: duration,
+          time_zone: timeZone,
+          format: 'Video',
+          interviewers: interviewers.length > 0
+            ? interviewers.map(i => ({ user_id: i.user_id, name: i.name, role: i.role }))
+            : null,
+        }),
+      });
+
+      if (!res.ok) {
+        const data = await res.json();
+        throw new Error(data.detail || 'Failed to schedule interview');
+      }
+
+      if (autoCreateScorecard && interviewers.length > 0) {
+        for (const int of interviewers) {
+          if (int.user_id > 0) {
+            await fetch(`${BASE_URL}/recruiting/scorecards`, {
+              method: 'POST',
+              credentials: 'include',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                application_id: Number(id),
+                stage_id: stageId,
+                interviewer_id: int.user_id,
+              }),
+            });
+          }
+        }
+      }
+
+      setScheduleSuccess(true);
+      setScheduledDate('');
+      setScheduledTime('');
+      setDuration(60);
+      loadApplication();
+      setTimeout(() => setScheduleSuccess(false), 3000);
+    } catch (err) {
+      setScheduleError(err instanceof Error ? err.message : 'Something went wrong');
+    } finally {
+      setScheduleSubmitting(false);
     }
   };
 
@@ -209,12 +318,6 @@ export default function ApplicationDetailPage() {
     } catch (error) {
       console.error('Failed to create scorecard:', error);
     }
-  };
-
-  const scheduleInterview = () => {
-    const stageId = app?.current_stage?.id || app?.pipeline_stages?.[0]?.id || '';
-    const stageName = app?.current_stage?.name || app?.pipeline_stages?.[0]?.name || 'Interview';
-    navigate(`/recruiting/schedule-interview?applicationId=${id}&stageId=${stageId}&stageName=${encodeURIComponent(stageName)}`);
   };
 
   const rejectApp = async () => {
@@ -519,61 +622,215 @@ export default function ApplicationDetailPage() {
       )}
 
       {activeTab === 'interviews' && (
-        <div className="space-y-4">
-          <div className="flex justify-end">
-            <button
-              onClick={scheduleInterview}
-              className="flex items-center gap-2 bg-blue-600 text-white px-4 py-2 rounded-lg text-sm hover:bg-blue-700"
-            >
-              <Plus className="w-4 h-4" /> Schedule Interview
-            </button>
-          </div>
-          {app.interviews.length === 0 ? (
-            <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-8 text-center">
-              <Calendar className="w-10 h-10 text-gray-300 dark:text-gray-600 mx-auto mb-2" />
-              <p className="text-gray-500 dark:text-gray-400">No interviews scheduled yet.</p>
-            </div>
-          ) : (
-            app.interviews.map(iv => (
-              <div key={iv.id} className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-5">
-                <div className="flex items-start justify-between">
-                  <div>
-                    <div className="flex items-center gap-2">
-                      <span className="font-medium text-gray-900 dark:text-white">{iv.stage?.name || 'Interview'}</span>
-                      <span className={`text-xs px-2 py-0.5 rounded ${
-                        iv.status === 'Completed' ? 'bg-green-100 text-green-800 dark:bg-green-900/40 dark:text-green-300' :
-                        iv.status === 'Cancelled' ? 'bg-red-100 text-red-800 dark:bg-red-900/40 dark:text-red-300' :
-                        iv.status === 'Confirmed' ? 'bg-blue-100 text-blue-800 dark:bg-blue-900/40 dark:text-blue-300' :
-                        'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/40 dark:text-yellow-300'
-                      }`}>
-                        {iv.status}
-                      </span>
-                    </div>
-                    <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
-                      {iv.scheduled_at && new Date(iv.scheduled_at).toLocaleString()}
-                      {iv.duration_minutes && ` (${iv.duration_minutes} min)`}
-                    </p>
+        <div className="space-y-6">
+          {/* Two-column scheduling layout */}
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+
+            {/* Left 1/3: Compact Scheduling Form */}
+            <div className="lg:col-span-1 space-y-4">
+              <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-5 space-y-4">
+                <h3 className="font-semibold text-gray-900 dark:text-white flex items-center gap-2">
+                  <Calendar className="w-4 h-4" /> Schedule Interview
+                </h3>
+
+                {scheduleError && (
+                  <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 text-red-700 dark:text-red-400 px-3 py-2 rounded-lg text-sm">
+                    {scheduleError}
                   </div>
-                  <div className="text-sm text-gray-500 dark:text-gray-400">
-                    <span className="bg-gray-100 dark:bg-gray-700 px-2 py-1 rounded text-xs">{iv.format}</span>
-                  </div>
-                </div>
-                {iv.video_link && (
-                  <a href={iv.video_link} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1 text-sm text-blue-600 dark:text-blue-400 mt-2 hover:text-blue-800 dark:hover:text-blue-300">
-                    <ExternalLink className="w-3.5 h-3.5" /> Join Video
-                  </a>
                 )}
-                {iv.interviewers && iv.interviewers.length > 0 && (
-                  <div className="mt-2 flex gap-2">
-                    {iv.interviewers.map((int, idx) => (
-                      <span key={idx} className="text-xs bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 px-2 py-1 rounded">
-                        {int.name}
-                      </span>
-                    ))}
+
+                {scheduleSuccess && (
+                  <div className="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 text-green-700 dark:text-green-400 px-3 py-2 rounded-lg text-sm flex items-center gap-2">
+                    <Check className="w-4 h-4" /> Interview scheduled successfully!
                   </div>
+                )}
+
+                {/* Date */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Date *</label>
+                  <input
+                    type="date"
+                    value={scheduledDate}
+                    onChange={e => setScheduledDate(e.target.value)}
+                    className="w-full border dark:border-gray-600 rounded-lg px-3 py-2 text-sm dark:bg-gray-700 dark:text-white"
+                  />
+                </div>
+
+                {/* Time */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Time *</label>
+                  <input
+                    type="time"
+                    value={scheduledTime}
+                    onChange={e => setScheduledTime(e.target.value)}
+                    className="w-full border dark:border-gray-600 rounded-lg px-3 py-2 text-sm dark:bg-gray-700 dark:text-white"
+                  />
+                </div>
+
+                {/* Duration */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Duration</label>
+                  <select
+                    value={duration}
+                    onChange={e => setDuration(parseInt(e.target.value))}
+                    className="w-full border dark:border-gray-600 rounded-lg px-3 py-2 text-sm dark:bg-gray-700 dark:text-white"
+                  >
+                    <option value={15}>15 minutes</option>
+                    <option value={30}>30 minutes</option>
+                    <option value={45}>45 minutes</option>
+                    <option value={60}>1 hour</option>
+                    <option value={90}>1.5 hours</option>
+                    <option value={120}>2 hours</option>
+                  </select>
+                </div>
+
+                {/* Format badge — hardcoded Video/Teams */}
+                <div className="flex items-center gap-2 p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-800">
+                  <Video className="w-4 h-4 text-blue-600 dark:text-blue-400" />
+                  <span className="text-sm text-blue-700 dark:text-blue-300">Microsoft Teams (auto-generated)</span>
+                </div>
+
+                {/* Interviewers */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1 flex items-center gap-1">
+                    <Users className="w-3.5 h-3.5" /> Interviewers
+                  </label>
+                  <UserSearchSelect
+                    selected={interviewers}
+                    onChange={setInterviewers}
+                    placeholder="Add or remove interviewers..."
+                  />
+                </div>
+
+                {/* Auto-create scorecards */}
+                <label className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400">
+                  <input
+                    type="checkbox"
+                    checked={autoCreateScorecard}
+                    onChange={e => setAutoCreateScorecard(e.target.checked)}
+                    className="rounded"
+                  />
+                  Auto-create scorecards
+                </label>
+
+                {/* Submit */}
+                <button
+                  onClick={handleScheduleInterview}
+                  disabled={scheduleSubmitting || !scheduledDate || !scheduledTime}
+                  className="w-full flex items-center justify-center gap-2 bg-blue-600 text-white px-4 py-2.5 rounded-lg text-sm hover:bg-blue-700 disabled:opacity-50"
+                >
+                  <Calendar className="w-4 h-4" />
+                  {scheduleSubmitting ? 'Scheduling...' : 'Schedule Interview'}
+                </button>
+              </div>
+            </div>
+
+            {/* Right 2/3: Availability Grid */}
+            <div className="lg:col-span-2">
+              <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-5 space-y-4">
+                <h3 className="font-semibold text-gray-900 dark:text-white flex items-center gap-2">
+                  <Clock className="w-4 h-4" /> Team Availability
+                  {scheduledDate && (
+                    <span className="text-sm font-normal text-gray-500 dark:text-gray-400">
+                      — {new Date(scheduledDate + 'T00:00').toLocaleDateString(undefined, {
+                        weekday: 'long', month: 'long', day: 'numeric'
+                      })}
+                    </span>
+                  )}
+                </h3>
+
+                {!scheduledDate ? (
+                  <div className="text-center py-12 text-gray-400 dark:text-gray-500">
+                    <Calendar className="w-10 h-10 mx-auto mb-2 opacity-50" />
+                    <p className="text-sm">Select a date to view team availability</p>
+                  </div>
+                ) : interviewers.filter(i => i.email).length === 0 ? (
+                  <div className="text-center py-12 text-gray-400 dark:text-gray-500">
+                    <Users className="w-10 h-10 mx-auto mb-2 opacity-50" />
+                    <p className="text-sm">Add interviewers to view their availability</p>
+                  </div>
+                ) : !calendarConnected ? (
+                  <div className="text-center py-12 text-gray-400 dark:text-gray-500">
+                    <CalendarCheck className="w-10 h-10 mx-auto mb-2 opacity-50" />
+                    <p className="text-sm">Connect your calendar in Settings to view availability</p>
+                  </div>
+                ) : (
+                  <AvailabilityGrid
+                    emails={interviewers.filter(i => i.email).map(i => i.email)}
+                    names={interviewers.filter(i => i.email).map(i => i.name)}
+                    date={scheduledDate}
+                    timeZone={timeZone}
+                    onSlotClick={(time) => setScheduledTime(time)}
+                  />
                 )}
               </div>
-            ))
+            </div>
+          </div>
+
+          {/* Existing Interviews */}
+          {app.interviews.length > 0 && (
+            <div className="space-y-4">
+              <h3 className="font-semibold text-gray-900 dark:text-white">Scheduled Interviews</h3>
+              {app.interviews.map(iv => (
+                <div key={iv.id} className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-5">
+                  <div className="flex items-start justify-between">
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <span className="font-medium text-gray-900 dark:text-white">{iv.stage?.name || 'Interview'}</span>
+                        <span className={`text-xs px-2 py-0.5 rounded ${
+                          iv.status === 'Completed' ? 'bg-green-100 text-green-800 dark:bg-green-900/40 dark:text-green-300' :
+                          iv.status === 'Cancelled' ? 'bg-red-100 text-red-800 dark:bg-red-900/40 dark:text-red-300' :
+                          iv.status === 'Confirmed' ? 'bg-blue-100 text-blue-800 dark:bg-blue-900/40 dark:text-blue-300' :
+                          'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/40 dark:text-yellow-300'
+                        }`}>
+                          {iv.status}
+                        </span>
+                      </div>
+                      <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
+                        {iv.scheduled_at && new Date(iv.scheduled_at).toLocaleString()}
+                        {iv.duration_minutes && ` (${iv.duration_minutes} min)`}
+                      </p>
+                    </div>
+                    <div className="text-sm text-gray-500 dark:text-gray-400">
+                      <span className="bg-gray-100 dark:bg-gray-700 px-2 py-1 rounded text-xs">{iv.format}</span>
+                    </div>
+                  </div>
+                  {iv.video_link && (
+                    <a href={iv.video_link} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1 text-sm text-blue-600 dark:text-blue-400 mt-2 hover:text-blue-800 dark:hover:text-blue-300">
+                      <ExternalLink className="w-3.5 h-3.5" /> Join Video
+                      {iv.meeting_link_auto && (
+                        <span className="text-xs text-gray-400 dark:text-gray-500 ml-1">(auto-generated)</span>
+                      )}
+                    </a>
+                  )}
+                  {iv.interviewers && iv.interviewers.length > 0 && (
+                    <div className="mt-2 flex gap-2">
+                      {iv.interviewers.map((int, idx) => (
+                        <span key={idx} className="text-xs bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 px-2 py-1 rounded">
+                          {int.name}
+                        </span>
+                      ))}
+                    </div>
+                  )}
+                  {(iv.calendar_event_id || iv.ics_sent) && (
+                    <div className="mt-2 flex gap-2">
+                      {iv.calendar_event_id && (
+                        <span className="flex items-center gap-1 text-xs bg-green-50 dark:bg-green-900/20 text-green-700 dark:text-green-300 px-2 py-1 rounded">
+                          <CalendarCheck className="w-3 h-3" />
+                          {iv.calendar_provider === 'microsoft' ? 'Outlook' : iv.calendar_provider === 'google' ? 'Google' : 'Calendar'} synced
+                        </span>
+                      )}
+                      {iv.ics_sent && (
+                        <span className="flex items-center gap-1 text-xs bg-purple-50 dark:bg-purple-900/20 text-purple-700 dark:text-purple-300 px-2 py-1 rounded">
+                          <Mail className="w-3 h-3" />
+                          .ics sent
+                        </span>
+                      )}
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
           )}
         </div>
       )}

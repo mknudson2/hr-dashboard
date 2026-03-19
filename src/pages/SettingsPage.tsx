@@ -23,6 +23,11 @@ import {
   AlertTriangle,
   Loader,
   Users,
+  CalendarDays,
+  Link2,
+  Unlink,
+  CheckCircle2,
+  XCircle,
 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import TwoFactorSetupModal from "@/components/TwoFactorSetupModal";
@@ -46,6 +51,18 @@ export default function SettingsPage() {
     const [twoFAEnabled, setTwoFAEnabled] = useState(false);
     const [loading2FA, setLoading2FA] = useState(false);
     const [isInitialLoad, setIsInitialLoad] = useState(true);
+
+    // Calendar integration state
+    const [calendarProviders, setCalendarProviders] = useState<string[]>([]);
+    const [calendarConnection, setCalendarConnection] = useState<{
+        connected: boolean;
+        provider?: string;
+        calendar_email?: string;
+        is_active?: boolean;
+        last_sync_error?: string | null;
+    }>({ connected: false });
+    const [calendarLoading, setCalendarLoading] = useState(false);
+    const [showDisconnectConfirm, setShowDisconnectConfirm] = useState(false);
 
     const [notifications, setNotifications] = useState({
         emailAlerts: true,
@@ -229,6 +246,40 @@ export default function SettingsPage() {
         };
 
         loadIntlSettings();
+
+        // Load calendar integration status
+        const loadCalendarStatus = async () => {
+            try {
+                const [providersRes, connectionRes] = await Promise.all([
+                    fetch(`${API_URL}/calendar/providers`, { credentials: 'include' }),
+                    fetch(`${API_URL}/calendar/connection`, { credentials: 'include' }),
+                ]);
+                if (providersRes.ok) {
+                    const data = await providersRes.json();
+                    setCalendarProviders(data.providers || []);
+                }
+                if (connectionRes.ok) {
+                    const data = await connectionRes.json();
+                    setCalendarConnection(data);
+                }
+            } catch (error) {
+                console.error('Failed to load calendar status:', error);
+            }
+        };
+
+        loadCalendarStatus();
+
+        // Check URL params for calendar connection result
+        const params = new URLSearchParams(window.location.search);
+        if (params.get('calendar_connected')) {
+            loadCalendarStatus();
+            // Clean URL
+            window.history.replaceState({}, '', window.location.pathname);
+        }
+        if (params.get('calendar_error')) {
+            // Clean URL
+            window.history.replaceState({}, '', window.location.pathname);
+        }
     }, []);
 
     // Save notifications to localStorage whenever they change
@@ -279,6 +330,47 @@ export default function SettingsPage() {
     const handleSave = () => {
         localStorage.setItem("hr_dashboard_profile", JSON.stringify(profile));
         alert("Profile settings saved!");
+    };
+
+    const handleCalendarConnect = async (provider: string) => {
+        setCalendarLoading(true);
+        try {
+            const res = await fetch(`${API_URL}/calendar/${provider}/auth-url`, { credentials: 'include' });
+            if (!res.ok) throw new Error('Failed to get auth URL');
+            const data = await res.json();
+            // Open OAuth in popup
+            const popup = window.open(data.auth_url, 'calendar_auth', 'width=600,height=700,scrollbars=yes');
+            // Poll for popup close, then refresh connection status
+            const pollTimer = setInterval(async () => {
+                if (!popup || popup.closed) {
+                    clearInterval(pollTimer);
+                    setCalendarLoading(false);
+                    // Refresh connection status
+                    try {
+                        const connRes = await fetch(`${API_URL}/calendar/connection`, { credentials: 'include' });
+                        if (connRes.ok) setCalendarConnection(await connRes.json());
+                    } catch {}
+                }
+            }, 500);
+        } catch (error) {
+            console.error('Calendar connect error:', error);
+            setCalendarLoading(false);
+        }
+    };
+
+    const handleCalendarDisconnect = async () => {
+        setCalendarLoading(true);
+        try {
+            const res = await fetch(`${API_URL}/calendar/disconnect`, { method: 'DELETE', credentials: 'include' });
+            if (res.ok) {
+                setCalendarConnection({ connected: false });
+            }
+        } catch (error) {
+            console.error('Calendar disconnect error:', error);
+        } finally {
+            setCalendarLoading(false);
+            setShowDisconnectConfirm(false);
+        }
     };
 
     const handleExportSettings = () => {
@@ -1432,6 +1524,136 @@ export default function SettingsPage() {
                     </div>
                 </section>
             )}
+
+            {/* Calendar Integration Section */}
+            <section className="rounded-2xl border dark:border-gray-700 bg-white dark:bg-gray-800 shadow-sm p-6 transition hover:shadow-lg">
+                <div className="flex items-center gap-3 mb-4">
+                    <CalendarDays className="w-5 h-5 text-gray-600 dark:text-gray-300" />
+                    <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
+                        Calendar Integration
+                    </h3>
+                </div>
+
+                <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">
+                    Connect your Microsoft 365 or Google Workspace calendar to auto-create interview events, generate video meeting links, and send .ics calendar invitations to candidates.
+                </p>
+
+                {/* Connection Status */}
+                {calendarConnection.connected ? (
+                    <div className="space-y-3">
+                        <div className="flex items-center gap-3 p-4 bg-green-50 dark:bg-green-900/20 rounded-xl border border-green-200 dark:border-green-800">
+                            <CheckCircle2 className="w-5 h-5 text-green-600 dark:text-green-400 flex-shrink-0" />
+                            <div className="flex-1">
+                                <p className="text-sm font-medium text-green-800 dark:text-green-300">
+                                    Connected to {calendarConnection.provider === 'microsoft' ? 'Microsoft 365' : 'Google Workspace'}
+                                </p>
+                                {calendarConnection.calendar_email && (
+                                    <p className="text-xs text-green-600 dark:text-green-400 mt-0.5">
+                                        {calendarConnection.calendar_email}
+                                    </p>
+                                )}
+                            </div>
+                            <span className={`text-xs px-2 py-0.5 rounded-full ${
+                                calendarConnection.is_active
+                                    ? 'bg-green-100 dark:bg-green-900/40 text-green-700 dark:text-green-300'
+                                    : 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400'
+                            }`}>
+                                {calendarConnection.is_active ? 'Active' : 'Inactive'}
+                            </span>
+                        </div>
+
+                        {calendarConnection.last_sync_error && (
+                            <div className="flex items-center gap-2 p-3 bg-yellow-50 dark:bg-yellow-900/20 rounded-lg border border-yellow-200 dark:border-yellow-800">
+                                <AlertTriangle className="w-4 h-4 text-yellow-600 dark:text-yellow-400 flex-shrink-0" />
+                                <p className="text-xs text-yellow-700 dark:text-yellow-300">
+                                    Last sync error: {calendarConnection.last_sync_error}
+                                </p>
+                            </div>
+                        )}
+
+                        {showDisconnectConfirm ? (
+                            <div className="flex items-center gap-2 p-3 bg-red-50 dark:bg-red-900/20 rounded-lg border border-red-200 dark:border-red-800">
+                                <p className="text-sm text-red-700 dark:text-red-300 flex-1">
+                                    Disconnect calendar? Future interviews won't auto-sync.
+                                </p>
+                                <button
+                                    onClick={handleCalendarDisconnect}
+                                    disabled={calendarLoading}
+                                    className="px-3 py-1.5 bg-red-600 text-white text-xs rounded-lg hover:bg-red-700 disabled:opacity-50"
+                                >
+                                    {calendarLoading ? 'Disconnecting...' : 'Confirm'}
+                                </button>
+                                <button
+                                    onClick={() => setShowDisconnectConfirm(false)}
+                                    className="px-3 py-1.5 border border-gray-300 dark:border-gray-600 text-xs rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 dark:text-gray-300"
+                                >
+                                    Cancel
+                                </button>
+                            </div>
+                        ) : (
+                            <button
+                                onClick={() => setShowDisconnectConfirm(true)}
+                                className="flex items-center gap-2 px-4 py-2 text-sm text-red-600 dark:text-red-400 border border-red-200 dark:border-red-800 rounded-lg hover:bg-red-50 dark:hover:bg-red-900/20"
+                            >
+                                <Unlink className="w-4 h-4" />
+                                Disconnect Calendar
+                            </button>
+                        )}
+                    </div>
+                ) : (
+                    <div className="space-y-3">
+                        {calendarProviders.length === 0 ? (
+                            <div className="p-4 bg-gray-50 dark:bg-gray-700/50 rounded-xl border border-gray-200 dark:border-gray-600 text-center">
+                                <XCircle className="w-8 h-8 text-gray-400 mx-auto mb-2" />
+                                <p className="text-sm text-gray-500 dark:text-gray-400">
+                                    No calendar providers configured. Ask your administrator to set up Microsoft 365 or Google Workspace credentials.
+                                </p>
+                            </div>
+                        ) : (
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                                {calendarProviders.includes('microsoft') && (
+                                    <button
+                                        onClick={() => handleCalendarConnect('microsoft')}
+                                        disabled={calendarLoading}
+                                        className="flex items-center gap-3 p-4 rounded-xl border border-gray-200 dark:border-gray-600 hover:border-blue-300 dark:hover:border-blue-600 hover:bg-blue-50/50 dark:hover:bg-blue-900/20 transition disabled:opacity-50"
+                                    >
+                                        <div className="w-10 h-10 bg-[#0078D4] rounded-lg flex items-center justify-center flex-shrink-0">
+                                            <span className="text-white font-bold text-sm">M</span>
+                                        </div>
+                                        <div className="text-left">
+                                            <p className="text-sm font-medium text-gray-900 dark:text-white">
+                                                {calendarLoading ? 'Connecting...' : 'Connect Microsoft 365'}
+                                            </p>
+                                            <p className="text-xs text-gray-500 dark:text-gray-400">
+                                                Outlook calendar + Teams meetings
+                                            </p>
+                                        </div>
+                                    </button>
+                                )}
+                                {calendarProviders.includes('google') && (
+                                    <button
+                                        onClick={() => handleCalendarConnect('google')}
+                                        disabled={calendarLoading}
+                                        className="flex items-center gap-3 p-4 rounded-xl border border-gray-200 dark:border-gray-600 hover:border-blue-300 dark:hover:border-blue-600 hover:bg-blue-50/50 dark:hover:bg-blue-900/20 transition disabled:opacity-50"
+                                    >
+                                        <div className="w-10 h-10 bg-white border border-gray-200 rounded-lg flex items-center justify-center flex-shrink-0">
+                                            <span className="font-bold text-sm" style={{ color: '#4285F4' }}>G</span>
+                                        </div>
+                                        <div className="text-left">
+                                            <p className="text-sm font-medium text-gray-900 dark:text-white">
+                                                {calendarLoading ? 'Connecting...' : 'Connect Google Workspace'}
+                                            </p>
+                                            <p className="text-xs text-gray-500 dark:text-gray-400">
+                                                Google Calendar + Meet meetings
+                                            </p>
+                                        </div>
+                                    </button>
+                                )}
+                            </div>
+                        )}
+                    </div>
+                )}
+            </section>
 
             {/* 2FA Setup Modal */}
             <TwoFactorSetupModal

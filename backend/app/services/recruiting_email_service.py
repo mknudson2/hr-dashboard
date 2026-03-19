@@ -36,20 +36,47 @@ class RecruitingEmailService:
         subject: str,
         body_html: str,
         email_type: str = "recruiting",
+        ics_bytes: Optional[bytes] = None,
     ) -> bool:
-        """Send an email using the global email_service. Returns True if sent."""
+        """Send an email using the global email_service. Returns True if sent.
+
+        Args:
+            ics_bytes: Optional .ics calendar file content to attach as 'invite.ics'.
+        """
         self._log_email(email_type, to_email, {"subject": subject})
 
         if not HAS_EMAIL_SERVICE:
-            logger.info(f"[DEV] Would send '{subject}' to {to_email}")
+            logger.info(f"[DEV] Would send '{subject}' to {to_email}" +
+                         (" (with .ics attachment)" if ics_bytes else ""))
             return False
 
         try:
+            # If ICS bytes provided, write to temp file for attachment
+            attachments = []
+            ics_path = None
+            if ics_bytes:
+                import tempfile
+                import os
+                fd, ics_path = tempfile.mkstemp(suffix=".ics", prefix="interview_")
+                with os.fdopen(fd, "wb") as f:
+                    f.write(ics_bytes)
+                attachments.append(ics_path)
+
             await email_service.send_email(
                 to_emails=[to_email],
                 subject=subject,
                 body_html=body_html,
+                attachments=attachments if attachments else None,
             )
+
+            # Clean up temp file
+            if ics_path:
+                import os
+                try:
+                    os.unlink(ics_path)
+                except OSError:
+                    pass
+
             return True
         except Exception as e:
             logger.error(f"Failed to send {email_type} email to {to_email}: {e}")
@@ -115,8 +142,9 @@ class RecruitingEmailService:
         location: Optional[str] = None,
         video_link: Optional[str] = None,
         interviewers: Optional[str] = None,
+        ics_bytes: Optional[bytes] = None,
     ) -> bool:
-        """Send interview invitation to candidate."""
+        """Send interview invitation to candidate with optional .ics calendar attachment."""
         subject = f"Interview Invitation - {job_title}"
         location_info = ""
         if format == "Video" and video_link:
@@ -125,6 +153,10 @@ class RecruitingEmailService:
             location_info = f"<p><strong>Location:</strong> {location}</p>"
         elif format == "Phone":
             location_info = "<p>You will receive a phone call at the scheduled time.</p>"
+
+        calendar_note = ""
+        if ics_bytes:
+            calendar_note = "<p><em>A calendar invitation (.ics) is attached to this email.</em></p>"
 
         body_html = f"""
         <h2>Interview Invitation</h2>
@@ -136,11 +168,12 @@ class RecruitingEmailService:
         <p><strong>Format:</strong> {format}</p>
         {location_info}
         {f"<p><strong>Interviewer(s):</strong> {interviewers}</p>" if interviewers else ""}
+        {calendar_note}
         <p>Please confirm your availability by signing in to the applicant portal.</p>
         <br>
         <p>Best regards,<br>HR Team</p>
         """
-        return await self._send(to_email, subject, body_html, "interview_invitation")
+        return await self._send(to_email, subject, body_html, "interview_invitation", ics_bytes=ics_bytes)
 
     async def send_interview_reminder(
         self,

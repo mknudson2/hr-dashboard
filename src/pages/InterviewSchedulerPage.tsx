@@ -1,8 +1,16 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { ChevronLeft, Calendar, Clock, Video, Phone, MapPin, Users, Check } from 'lucide-react';
+import { ChevronLeft, Calendar, Clock, Video, Phone, MapPin, Users, Check, Link2, CalendarCheck, Mail } from 'lucide-react';
+import UserSearchSelect from '../components/UserSearchSelect';
+import AvailabilityGrid from '../components/AvailabilityGrid';
 
 const BASE_URL = '';
+
+interface CalendarConnectionStatus {
+  connected: boolean;
+  provider?: string;
+  calendar_email?: string;
+}
 
 export default function InterviewSchedulerPage() {
   const navigate = useNavigate();
@@ -23,23 +31,43 @@ export default function InterviewSchedulerPage() {
   const [format, setFormat] = useState('Video');
   const [location, setLocation] = useState('');
   const [videoLink, setVideoLink] = useState('');
-  const [interviewerName, setInterviewerName] = useState('');
-  const [interviewers, setInterviewers] = useState<{ user_id: number; name: string; role: string }[]>([]);
+  const [interviewers, setInterviewers] = useState<{ user_id: number; name: string; email: string; role: string }[]>([]);
 
   // Also create a scorecard checkbox
   const [createScorecard, setCreateScorecard] = useState(true);
 
-  const addInterviewer = () => {
+  // Calendar integration state
+  const [calendarConnection, setCalendarConnection] = useState<CalendarConnectionStatus>({ connected: false });
+  const [scheduleResult, setScheduleResult] = useState<{
+    video_link?: string;
+    meeting_link_auto?: boolean;
+    calendar_synced?: boolean;
+    ics_sent?: boolean;
+  } | null>(null);
+
+  // Legacy: fallback interviewer name entry for when user search isn't sufficient
+  const [interviewerName, setInterviewerName] = useState('');
+
+  // Check calendar connection on mount
+  useEffect(() => {
+    const checkCalendar = async () => {
+      try {
+        const res = await fetch(`${BASE_URL}/calendar/connection`, { credentials: 'include' });
+        if (res.ok) {
+          setCalendarConnection(await res.json());
+        }
+      } catch {}
+    };
+    checkCalendar();
+  }, []);
+
+  const addManualInterviewer = () => {
     if (!interviewerName.trim()) return;
     setInterviewers([
       ...interviewers,
-      { user_id: 0, name: interviewerName.trim(), role: interviewers.length === 0 ? 'lead' : 'interviewer' },
+      { user_id: 0, name: interviewerName.trim(), email: '', role: interviewers.length === 0 ? 'lead' : 'interviewer' },
     ]);
     setInterviewerName('');
-  };
-
-  const removeInterviewer = (idx: number) => {
-    setInterviewers(interviewers.filter((_, i) => i !== idx));
   };
 
   const handleSubmit = async () => {
@@ -65,7 +93,11 @@ export default function InterviewSchedulerPage() {
           format,
           location: location || null,
           video_link: videoLink || null,
-          interviewers: interviewers.length > 0 ? interviewers : null,
+          interviewers: interviewers.length > 0 ? interviewers.map(i => ({
+            user_id: i.user_id,
+            name: i.name,
+            role: i.role,
+          })) : null,
         }),
       });
 
@@ -73,6 +105,9 @@ export default function InterviewSchedulerPage() {
         const data = await res.json();
         throw new Error(data.detail || 'Failed to schedule interview');
       }
+
+      const result = await res.json();
+      setScheduleResult(result);
 
       // Optionally create scorecards for interviewers
       if (createScorecard && interviewers.length > 0) {
@@ -114,9 +149,39 @@ export default function InterviewSchedulerPage() {
       <div className="p-6 max-w-2xl mx-auto text-center py-16">
         <Check className="w-16 h-16 text-green-500 mx-auto mb-4" />
         <h1 className="text-2xl font-bold mb-2">Interview Scheduled</h1>
-        <p className="text-gray-500 dark:text-gray-400 mb-6">
+        <p className="text-gray-500 dark:text-gray-400 mb-4">
           {stageName} scheduled for {new Date(`${scheduledDate}T${scheduledTime}`).toLocaleString()}
         </p>
+
+        {/* Calendar integration results */}
+        {scheduleResult && (
+          <div className="flex flex-wrap justify-center gap-3 mb-6">
+            {scheduleResult.calendar_synced && (
+              <span className="flex items-center gap-1.5 text-sm bg-green-50 dark:bg-green-900/20 text-green-700 dark:text-green-300 px-3 py-1.5 rounded-full">
+                <CalendarCheck className="w-4 h-4" />
+                Calendar event created
+              </span>
+            )}
+            {scheduleResult.meeting_link_auto && scheduleResult.video_link && (
+              <a
+                href={scheduleResult.video_link}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center gap-1.5 text-sm bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300 px-3 py-1.5 rounded-full hover:bg-blue-100 dark:hover:bg-blue-900/40"
+              >
+                <Link2 className="w-4 h-4" />
+                Video link auto-generated
+              </a>
+            )}
+            {scheduleResult.ics_sent && (
+              <span className="flex items-center gap-1.5 text-sm bg-purple-50 dark:bg-purple-900/20 text-purple-700 dark:text-purple-300 px-3 py-1.5 rounded-full">
+                <Mail className="w-4 h-4" />
+                .ics invitation sent to candidate
+              </span>
+            )}
+          </div>
+        )}
+
         <button
           onClick={() => navigate(`/recruiting/applications/${applicationId}`)}
           className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
@@ -132,6 +197,13 @@ export default function InterviewSchedulerPage() {
     { value: 'Phone', icon: Phone, label: 'Phone Call' },
     { value: 'In-Person', icon: MapPin, label: 'In-Person' },
   ];
+
+  // Determine if we should show auto-video badge
+  const showAutoVideoBadge = calendarConnection.connected && format === 'Video';
+
+  // Get interviewer emails for availability grid
+  const interviewerEmails = interviewers.filter(i => i.email).map(i => i.email);
+  const interviewerNames = interviewers.filter(i => i.email).map(i => i.name);
 
   return (
     <div className="p-6 max-w-2xl mx-auto space-y-6">
@@ -233,16 +305,25 @@ export default function InterviewSchedulerPage() {
         )}
 
         {format === 'Video' && (
-          <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Video Link</label>
-            <input
-              type="url"
-              value={videoLink}
-              onChange={e => setVideoLink(e.target.value)}
-              className="w-full border dark:border-gray-600 rounded-lg px-3 py-2 text-sm dark:bg-gray-700 dark:text-white"
-              placeholder="https://zoom.us/j/..."
-            />
-          </div>
+          showAutoVideoBadge ? (
+            <div className="flex items-center gap-2 p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-800">
+              <Link2 className="w-4 h-4 text-blue-600 dark:text-blue-400" />
+              <span className="text-sm text-blue-700 dark:text-blue-300">
+                {calendarConnection.provider === 'microsoft' ? 'Teams' : 'Google Meet'} link will be auto-generated
+              </span>
+            </div>
+          ) : (
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Video Link</label>
+              <input
+                type="url"
+                value={videoLink}
+                onChange={e => setVideoLink(e.target.value)}
+                className="w-full border dark:border-gray-600 rounded-lg px-3 py-2 text-sm dark:bg-gray-700 dark:text-white"
+                placeholder="https://zoom.us/j/..."
+              />
+            </div>
+          )
         )}
       </div>
 
@@ -250,40 +331,32 @@ export default function InterviewSchedulerPage() {
       <div className="bg-white dark:bg-gray-800 rounded-lg border dark:border-gray-700 p-6 space-y-4">
         <h2 className="font-semibold flex items-center gap-2"><Users className="w-4 h-4" /> Interviewers</h2>
 
-        {interviewers.length > 0 && (
-          <div className="space-y-2">
-            {interviewers.map((int, idx) => (
-              <div key={idx} className="flex items-center justify-between bg-gray-50 dark:bg-gray-700 rounded-lg p-3">
-                <div className="flex items-center gap-2">
-                  <span className="text-sm font-medium dark:text-gray-200">{int.name}</span>
-                  <span className="text-xs text-gray-400 dark:text-gray-500">({int.role})</span>
-                </div>
-                <button
-                  onClick={() => removeInterviewer(idx)}
-                  className="text-red-400 hover:text-red-600 text-sm"
-                >
-                  Remove
-                </button>
-              </div>
-            ))}
-          </div>
-        )}
+        {/* User search-based selection */}
+        <UserSearchSelect
+          selected={interviewers}
+          onChange={(selected) => setInterviewers(selected)}
+          placeholder="Search for interviewers by name..."
+        />
 
-        <div className="flex gap-2">
-          <input
-            type="text"
-            value={interviewerName}
-            onChange={e => setInterviewerName(e.target.value)}
-            onKeyDown={e => e.key === 'Enter' && addInterviewer()}
-            className="flex-1 border dark:border-gray-600 rounded-lg px-3 py-2 text-sm dark:bg-gray-700 dark:text-white"
-            placeholder="Interviewer name"
-          />
-          <button
-            onClick={addInterviewer}
-            className="px-4 py-2 bg-gray-100 dark:bg-gray-600 rounded-lg text-sm hover:bg-gray-200 dark:hover:bg-gray-500"
-          >
-            Add
-          </button>
+        {/* Fallback: manual name entry */}
+        <div className="border-t dark:border-gray-700 pt-3 mt-3">
+          <p className="text-xs text-gray-400 dark:text-gray-500 mb-2">Or add by name (without user account):</p>
+          <div className="flex gap-2">
+            <input
+              type="text"
+              value={interviewerName}
+              onChange={e => setInterviewerName(e.target.value)}
+              onKeyDown={e => e.key === 'Enter' && addManualInterviewer()}
+              className="flex-1 border dark:border-gray-600 rounded-lg px-3 py-2 text-sm dark:bg-gray-700 dark:text-white"
+              placeholder="Interviewer name"
+            />
+            <button
+              onClick={addManualInterviewer}
+              className="px-4 py-2 bg-gray-100 dark:bg-gray-600 rounded-lg text-sm hover:bg-gray-200 dark:hover:bg-gray-500 dark:text-gray-200"
+            >
+              Add
+            </button>
+          </div>
         </div>
 
         <label className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400">
@@ -296,6 +369,22 @@ export default function InterviewSchedulerPage() {
           Auto-create scorecards for interviewers
         </label>
       </div>
+
+      {/* Availability Grid */}
+      {interviewerEmails.length > 0 && scheduledDate && calendarConnection.connected && (
+        <div className="bg-white dark:bg-gray-800 rounded-lg border dark:border-gray-700 p-6 space-y-4">
+          <h2 className="font-semibold flex items-center gap-2">
+            <Clock className="w-4 h-4" /> Availability — {new Date(scheduledDate + 'T00:00').toLocaleDateString(undefined, { weekday: 'long', month: 'long', day: 'numeric' })}
+          </h2>
+          <AvailabilityGrid
+            emails={interviewerEmails}
+            names={interviewerNames}
+            date={scheduledDate}
+            timeZone={timeZone}
+            onSlotClick={(time) => setScheduledTime(time)}
+          />
+        </div>
+      )}
 
       {/* Submit */}
       <div className="flex gap-2">
