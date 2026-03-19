@@ -590,8 +590,8 @@ export default function ApplicationDetailPage() {
                 <div className="flex items-start justify-between">
                   <div>
                     <div className="flex items-center gap-2">
-                      <span className="font-medium text-gray-900 dark:text-white">{sc.interviewer?.name || 'Unknown'}</span>
-                      {sc.stage && <span className="text-xs text-gray-400 dark:text-gray-500">- {sc.stage.name}</span>}
+                      <span className="font-medium text-gray-900 dark:text-white">{sc.stage?.name || 'Scorecard'}</span>
+                      {sc.interviewer?.name && <span className="text-xs text-gray-400 dark:text-gray-500">- {sc.interviewer.name}</span>}
                     </div>
                     <span className={`inline-block mt-1 text-xs px-2 py-0.5 rounded ${
                       sc.status === 'Submitted' ? 'bg-green-100 text-green-800 dark:bg-green-900/40 dark:text-green-300' :

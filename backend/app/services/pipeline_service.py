@@ -384,18 +384,18 @@ class PipelineService:
 
         template = models.PipelineTemplate(
             name="Standard Hiring Pipeline",
-            description="Default hiring pipeline: Application Review → Phone Screen → Technical Interview → Team Interview → Reference Check → Offer",
+            description="Default hiring pipeline: Application Review → HR Screening → Technical Interview → Team Interview → Reference Check → Offer",
             is_default=True,
             is_active=True,
         )
         db.add(template)
         db.flush()
 
+        from app.db.migrations.add_hr_screening_scorecard import HR_SCREENING_TEMPLATE
+
         stages = [
             ("Application Review", "application_review", 1, True, False, None, 3),
-            ("Phone Screen", "phone_screen", 2, True, False,
-             {"criteria": [{"name": "Communication Skills", "weight": 1.0}, {"name": "Role Fit", "weight": 1.0}, {"name": "Motivation", "weight": 1.0}]},
-             5),
+            ("HR Screening Interview", "interview", 2, True, False, HR_SCREENING_TEMPLATE, 5),
             ("Technical Interview", "interview", 3, True, False,
              {"criteria": [{"name": "Technical Skills", "weight": 1.5}, {"name": "Problem Solving", "weight": 1.5}, {"name": "Communication", "weight": 1.0}]},
              7),
