@@ -187,9 +187,8 @@ export default function ApplicationDetailPage() {
   };
 
   const createScorecard = async () => {
-    // Use current stage, or first pipeline stage if no current stage set
-    const stageId = app?.current_stage?.id || app?.pipeline_stages?.[0]?.id;
-    if (!stageId) return;
+    // Use current stage, or first pipeline stage if available
+    const stageId = app?.current_stage?.id || app?.pipeline_stages?.[0]?.id || null;
     try {
       const res = await fetch(`${BASE_URL}/recruiting/scorecards`, {
         method: 'POST',
@@ -210,6 +209,12 @@ export default function ApplicationDetailPage() {
     } catch (error) {
       console.error('Failed to create scorecard:', error);
     }
+  };
+
+  const scheduleInterview = () => {
+    const stageId = app?.current_stage?.id || app?.pipeline_stages?.[0]?.id || '';
+    const stageName = app?.current_stage?.name || app?.pipeline_stages?.[0]?.name || 'Interview';
+    navigate(`/recruiting/schedule-interview?applicationId=${id}&stageId=${stageId}&stageName=${encodeURIComponent(stageName)}`);
   };
 
   const rejectApp = async () => {
@@ -461,8 +466,7 @@ export default function ApplicationDetailPage() {
           <div className="flex justify-end">
             <button
               onClick={createScorecard}
-              disabled={!app.current_stage && (!app.pipeline_stages || app.pipeline_stages.length === 0)}
-              className="flex items-center gap-2 bg-blue-600 text-white px-4 py-2 rounded-lg text-sm hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
+              className="flex items-center gap-2 bg-blue-600 text-white px-4 py-2 rounded-lg text-sm hover:bg-blue-700"
             >
               <Plus className="w-4 h-4" /> Add Scorecard
             </button>
@@ -516,6 +520,14 @@ export default function ApplicationDetailPage() {
 
       {activeTab === 'interviews' && (
         <div className="space-y-4">
+          <div className="flex justify-end">
+            <button
+              onClick={scheduleInterview}
+              className="flex items-center gap-2 bg-blue-600 text-white px-4 py-2 rounded-lg text-sm hover:bg-blue-700"
+            >
+              <Plus className="w-4 h-4" /> Schedule Interview
+            </button>
+          </div>
           {app.interviews.length === 0 ? (
             <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-8 text-center">
               <Calendar className="w-10 h-10 text-gray-300 dark:text-gray-600 mx-auto mb-2" />

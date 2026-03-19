@@ -43,7 +43,7 @@ export default function InterviewSchedulerPage() {
   };
 
   const handleSubmit = async () => {
-    if (!scheduledDate || !scheduledTime || !applicationId || !stageId) return;
+    if (!scheduledDate || !scheduledTime || !applicationId) return;
 
     setSubmitting(true);
     setError('');
@@ -58,7 +58,7 @@ export default function InterviewSchedulerPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           application_id: parseInt(applicationId),
-          stage_id: parseInt(stageId),
+          stage_id: stageId ? parseInt(stageId) : null,
           scheduled_at: scheduledAt,
           duration_minutes: duration,
           time_zone: timeZone,
@@ -84,7 +84,7 @@ export default function InterviewSchedulerPage() {
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({
                 application_id: parseInt(applicationId),
-                stage_id: parseInt(stageId),
+                stage_id: stageId ? parseInt(stageId) : null,
                 interviewer_id: int.user_id,
               }),
             });
@@ -100,10 +100,10 @@ export default function InterviewSchedulerPage() {
     }
   };
 
-  if (!applicationId || !stageId) {
+  if (!applicationId) {
     return (
       <div className="p-6 text-center">
-        <p className="text-gray-500 dark:text-gray-400">Missing application or stage information.</p>
+        <p className="text-gray-500 dark:text-gray-400">Missing application information.</p>
         <button onClick={() => navigate(-1)} className="text-blue-600 dark:text-blue-400 mt-2">Go back</button>
       </div>
     );
