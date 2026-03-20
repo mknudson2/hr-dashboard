@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import {
   Plus, Search, Filter, ChevronLeft, ArrowUpDown
 } from 'lucide-react';
@@ -27,7 +27,8 @@ export default function RequisitionListPage() {
   const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
-  const [statusFilter, setStatusFilter] = useState('');
+  const [searchParams] = useSearchParams();
+  const [statusFilter, setStatusFilter] = useState(searchParams.get('status') || '');
   const [departmentFilter, setDepartmentFilter] = useState('');
   const [showCreateModal, setShowCreateModal] = useState(false);
   const navigate = useNavigate();

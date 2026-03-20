@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
-import { Plus, Trash2, GripVertical, Edit2, Check, X, Star } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import { Plus, Trash2, GripVertical, Edit2, Check, X, Star, ChevronLeft } from 'lucide-react';
 
 const BASE_URL = '';
 
@@ -36,6 +37,7 @@ const STAGE_TYPES = [
 ];
 
 export default function PipelineTemplatePage() {
+  const navigate = useNavigate();
   const [templates, setTemplates] = useState<PipelineTemplate[]>([]);
   const [loading, setLoading] = useState(true);
   const [showCreate, setShowCreate] = useState(false);
@@ -182,6 +184,13 @@ export default function PipelineTemplatePage() {
     <div className="p-6 space-y-6">
       <div className="flex items-center justify-between">
         <div>
+          <button
+            onClick={() => navigate('/recruiting')}
+            className="flex items-center gap-1 text-sm text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 mb-2"
+          >
+            <ChevronLeft className="w-4 h-4" />
+            Back to Recruiting
+          </button>
           <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Pipeline Templates</h1>
           <p className="text-gray-500 dark:text-gray-400 mt-1">Configure hiring pipeline stages and scorecards</p>
         </div>

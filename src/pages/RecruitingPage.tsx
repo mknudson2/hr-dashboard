@@ -58,7 +58,7 @@ export default function RecruitingPage() {
   }
 
   const statCards = [
-    { label: 'Open Requisitions', value: data?.open_requisitions ?? 0, icon: Briefcase, color: 'bg-blue-50 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400' },
+    { label: 'Open Requisitions', value: data?.open_requisitions ?? 0, icon: Briefcase, color: 'bg-blue-50 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400', link: '/recruiting/requisitions?status=Open' },
     { label: 'Active Postings', value: data?.active_postings ?? 0, icon: Eye, color: 'bg-green-50 text-green-600 dark:bg-green-900/30 dark:text-green-400' },
     { label: 'Total Applications', value: data?.total_applications ?? 0, icon: FileText, color: 'bg-purple-50 text-purple-600 dark:bg-purple-900/30 dark:text-purple-400' },
     { label: 'New Applications', value: data?.new_applications ?? 0, icon: Clock, color: 'bg-amber-50 text-amber-600 dark:bg-amber-900/30 dark:text-amber-400' },
@@ -93,19 +93,26 @@ export default function RecruitingPage() {
 
       {/* Stats */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        {statCards.map(card => (
-          <div key={card.label} className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-4">
-            <div className="flex items-center gap-3">
-              <div className={`p-2 rounded-lg ${card.color}`}>
-                <card.icon className="w-5 h-5" />
+        {statCards.map(card => {
+          const Wrapper = card.link ? 'button' : 'div';
+          return (
+            <Wrapper
+              key={card.label}
+              className={`bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-4 text-left${card.link ? ' cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors' : ''}`}
+              {...(card.link ? { onClick: () => navigate(card.link!) } : {})}
+            >
+              <div className="flex items-center gap-3">
+                <div className={`p-2 rounded-lg ${card.color}`}>
+                  <card.icon className="w-5 h-5" />
+                </div>
+                <div>
+                  <p className="text-sm text-gray-500 dark:text-gray-400">{card.label}</p>
+                  <p className="text-2xl font-bold text-gray-900 dark:text-white">{card.value}</p>
+                </div>
               </div>
-              <div>
-                <p className="text-sm text-gray-500 dark:text-gray-400">{card.label}</p>
-                <p className="text-2xl font-bold text-gray-900 dark:text-white">{card.value}</p>
-              </div>
-            </div>
-          </div>
-        ))}
+            </Wrapper>
+          );
+        })}
       </div>
 
       {/* Pipeline Overview */}

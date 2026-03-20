@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
+import { ChevronLeft } from 'lucide-react';
 import { apiGet } from '@/utils/api';
 
 interface OverviewStats {
@@ -23,6 +24,10 @@ interface SourceData {
   applications: number;
   hires: number;
   hire_rate: number;
+  avg_score: number | null;
+  avg_tenure_months: number | null;
+  retained_count: number | null;
+  retained_total: number | null;
 }
 
 interface TimeToFill {
@@ -41,6 +46,7 @@ interface InterviewerStats {
 }
 
 export default function RecruitingAnalyticsPage() {
+  const navigate = useNavigate();
   const [overview, setOverview] = useState<OverviewStats | null>(null);
   const [funnel, setFunnel] = useState<FunnelData | null>(null);
   const [sources, setSources] = useState<SourceData[]>([]);
@@ -89,17 +95,19 @@ export default function RecruitingAnalyticsPage() {
     <div className="p-6">
       <div className="flex items-center justify-between mb-6">
         <div>
+          <button
+            onClick={() => navigate('/recruiting')}
+            className="flex items-center gap-1 text-sm text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 mb-2"
+          >
+            <ChevronLeft className="w-4 h-4" />
+            Back to Recruiting
+          </button>
           <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Recruiting Analytics</h1>
           <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">Pipeline performance and hiring metrics</p>
         </div>
-        <div className="flex gap-2">
-          <Link to="/recruiting/analytics/eeo" className="px-4 py-2 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 text-sm font-medium rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700">
-            EEO Report
-          </Link>
-          <Link to="/recruiting" className="px-4 py-2 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 text-sm font-medium rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700">
-            Back to Recruiting
-          </Link>
-        </div>
+        <Link to="/recruiting/analytics/eeo" className="px-4 py-2 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 text-sm font-medium rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700">
+          EEO Report
+        </Link>
       </div>
 
       {/* Overview Stats */}
@@ -164,6 +172,9 @@ export default function RecruitingAnalyticsPage() {
                     <th className="pb-2 text-right">Apps</th>
                     <th className="pb-2 text-right">Hires</th>
                     <th className="pb-2 text-right">Rate</th>
+                    <th className="pb-2 text-right">Avg Score</th>
+                    <th className="pb-2 text-right">Avg Tenure</th>
+                    <th className="pb-2 text-right">Retained</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -173,6 +184,9 @@ export default function RecruitingAnalyticsPage() {
                       <td className="py-2 text-right dark:text-gray-300">{s.applications}</td>
                       <td className="py-2 text-right dark:text-gray-300">{s.hires}</td>
                       <td className="py-2 text-right font-medium dark:text-gray-200">{s.hire_rate}%</td>
+                      <td className="py-2 text-right dark:text-gray-300">{s.avg_score != null ? `${s.avg_score}%` : '\u2014'}</td>
+                      <td className="py-2 text-right dark:text-gray-300">{s.avg_tenure_months != null ? `${s.avg_tenure_months} mo` : '\u2014'}</td>
+                      <td className="py-2 text-right dark:text-gray-300">{s.retained_total != null ? `${s.retained_count}/${s.retained_total}` : '\u2014'}</td>
                     </tr>
                   ))}
                 </tbody>

@@ -99,21 +99,68 @@ class RecruitingAnalyticsService:
         }
 
     def get_source_effectiveness(self, db: Session) -> list:
-        """Get application and hire counts by source."""
+        """Get application and hire counts by source with quality metrics."""
         source_stats = db.query(
             models.Application.source,
             func.count(models.Application.id).label("applications"),
             func.sum(case((models.Application.status == "Hired", 1), else_=0)).label("hires"),
         ).group_by(models.Application.source).all()
 
+        # Avg interview scorecard rating by source (submitted only)
+        score_stats = db.query(
+            models.Application.source,
+            func.avg(models.InterviewScorecard.overall_rating).label("avg_score"),
+        ).join(
+            models.InterviewScorecard,
+            models.InterviewScorecard.application_id == models.Application.id,
+        ).filter(
+            models.InterviewScorecard.status == "Submitted",
+            models.InterviewScorecard.overall_rating.isnot(None),
+        ).group_by(models.Application.source).all()
+        score_by_source = {src: avg for src, avg in score_stats}
+
+        # Tenure and retention by source for hired applications with employee records
+        hired_with_employee = db.query(
+            models.Application.source,
+            models.Employee.hire_date,
+            models.Employee.termination_date,
+        ).join(
+            models.Employee,
+            models.Employee.employee_id == models.Application.hired_employee_id,
+        ).filter(
+            models.Application.status == "Hired",
+            models.Employee.hire_date.isnot(None),
+        ).all()
+
+        tenure_by_source: dict[str, list[float]] = {}
+        retention_by_source: dict[str, dict] = {}
+        today = datetime.utcnow().date()
+        for source, hire_date, term_date in hired_with_employee:
+            src = source or "Unknown"
+            end = term_date if term_date else today
+            months = round((end - hire_date).days / 30.44, 1)
+            tenure_by_source.setdefault(src, []).append(months)
+            retention_by_source.setdefault(src, {"active": 0, "total": 0})
+            retention_by_source[src]["total"] += 1
+            if term_date is None:
+                retention_by_source[src]["active"] += 1
+
         results = []
         for source, apps, hires in source_stats:
+            src = source or "Unknown"
             hire_rate = round((hires or 0) / apps * 100, 1) if apps > 0 else 0
+            avg_score_raw = score_by_source.get(source)
+            tenure_list = tenure_by_source.get(src)
+            retention = retention_by_source.get(src)
             results.append({
-                "source": source or "Unknown",
+                "source": src,
                 "applications": apps,
                 "hires": hires or 0,
                 "hire_rate": hire_rate,
+                "avg_score": round(float(avg_score_raw) / 5 * 100, 1) if avg_score_raw else None,
+                "avg_tenure_months": round(sum(tenure_list) / len(tenure_list), 1) if tenure_list else None,
+                "retained_count": retention["active"] if retention else None,
+                "retained_total": retention["total"] if retention else None,
             })
 
         results.sort(key=lambda x: x["applications"], reverse=True)
