@@ -554,7 +554,7 @@ def create_requisition(
     db: Session = Depends(get_db),
 ):
     """Create a new job requisition."""
-    from datetime import date
+    from datetime import date, timedelta
 
     req = models.JobRequisition(
         requisition_id=recruiting_service.generate_requisition_id(db),
@@ -584,7 +584,9 @@ def create_requisition(
         benefits_summary=data.benefits_summary,
         eeo_job_category=data.eeo_job_category,
         target_start_date=date.fromisoformat(data.target_start_date) if data.target_start_date else None,
-        target_fill_date=date.fromisoformat(data.target_fill_date) if data.target_fill_date else None,
+        target_fill_date=date.fromisoformat(data.target_fill_date) if data.target_fill_date else (
+            date.fromisoformat(data.target_start_date) - timedelta(days=14) if data.target_start_date else None
+        ),
         hiring_manager_id=data.hiring_manager_id,
         recruiter_id=data.recruiter_id,
         notes=data.notes,

@@ -61,7 +61,7 @@ export default function RequisitionListPage() {
     loadRequisitions();
   };
 
-  const handleCreate = async (formData: { title: string; department: string; location: string; employment_type: string; description: string }) => {
+  const handleCreate = async (formData: { title: string; department: string; location: string; employment_type: string; description: string; target_start_date?: string; target_fill_date?: string }) => {
     try {
       const res = await fetch(`${BASE_URL}/recruiting/requisitions`, {
         method: 'POST',
@@ -207,13 +207,15 @@ export default function RequisitionListPage() {
 
 function CreateRequisitionModal({ onClose, onCreate }: {
   onClose: () => void;
-  onCreate: (data: { title: string; department: string; location: string; employment_type: string; description: string }) => void;
+  onCreate: (data: { title: string; department: string; location: string; employment_type: string; description: string; target_start_date?: string; target_fill_date?: string }) => void;
 }) {
   const [title, setTitle] = useState('');
   const [department, setDepartment] = useState('');
   const [location, setLocation] = useState('');
   const [employmentType, setEmploymentType] = useState('Full Time');
   const [description, setDescription] = useState('');
+  const [targetStartDate, setTargetStartDate] = useState('');
+  const [targetFillDate, setTargetFillDate] = useState('');
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50" onClick={onClose}>
@@ -273,11 +275,31 @@ function CreateRequisitionModal({ onClose, onCreate }: {
               placeholder="Brief job description..."
             />
           </div>
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Target Start Date</label>
+              <input
+                type="date"
+                value={targetStartDate}
+                onChange={e => setTargetStartDate(e.target.value)}
+                className="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 text-sm dark:bg-gray-700 dark:text-white"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Target Fill Date</label>
+              <input
+                type="date"
+                value={targetFillDate}
+                onChange={e => setTargetFillDate(e.target.value)}
+                className="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 text-sm dark:bg-gray-700 dark:text-white"
+              />
+            </div>
+          </div>
         </div>
         <div className="flex gap-3 mt-6 justify-end">
           <button onClick={onClose} className="px-4 py-2 border border-gray-200 dark:border-gray-700 rounded-lg text-sm hover:bg-gray-50 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300">Cancel</button>
           <button
-            onClick={() => onCreate({ title, department, location, employment_type: employmentType, description })}
+            onClick={() => onCreate({ title, department, location, employment_type: employmentType, description, ...(targetStartDate && { target_start_date: targetStartDate }), ...(targetFillDate && { target_fill_date: targetFillDate }) })}
             disabled={!title}
             className="px-4 py-2 bg-blue-600 text-white rounded-lg text-sm hover:bg-blue-700 disabled:opacity-50"
           >
