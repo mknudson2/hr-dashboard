@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
-  Briefcase, Users, FileText, TrendingUp, Plus, Eye, Clock, BookOpen
+  Briefcase, Users, FileText, TrendingUp, Plus, Eye, Clock, BookOpen, FileSignature, ChevronDown, LayoutTemplate
 } from 'lucide-react';
 
 const BASE_URL = '';
@@ -25,6 +25,7 @@ interface DashboardData {
 export default function RecruitingPage() {
   const [data, setData] = useState<DashboardData | null>(null);
   const [loading, setLoading] = useState(true);
+  const [showTemplatesMenu, setShowTemplatesMenu] = useState(false);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -82,13 +83,44 @@ export default function RecruitingPage() {
           <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Recruiting</h1>
           <p className="text-gray-500 dark:text-gray-400 mt-1">Manage job requisitions, postings, and applications</p>
         </div>
-        <button
-          onClick={() => navigate('/recruiting/requisitions')}
-          className="flex items-center gap-2 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors"
-        >
-          <Plus className="w-4 h-4" />
-          New Requisition
-        </button>
+        <div className="flex items-center gap-2">
+          <div className="relative">
+            <button
+              onClick={() => setShowTemplatesMenu(prev => !prev)}
+              onBlur={() => setTimeout(() => setShowTemplatesMenu(false), 150)}
+              className="flex items-center gap-2 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 px-4 py-2 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+            >
+              <LayoutTemplate className="w-4 h-4" />
+              Templates
+              <ChevronDown className="w-3.5 h-3.5" />
+            </button>
+            {showTemplatesMenu && (
+              <div className="absolute right-0 mt-1 w-52 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg z-20">
+                <button
+                  onClick={() => { navigate('/recruiting/pipelines'); setShowTemplatesMenu(false); }}
+                  className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 rounded-t-lg"
+                >
+                  <Users className="w-4 h-4 text-indigo-500" />
+                  Pipeline Templates
+                </button>
+                <button
+                  onClick={() => { navigate('/recruiting/offer-letter-templates'); setShowTemplatesMenu(false); }}
+                  className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 rounded-b-lg"
+                >
+                  <FileSignature className="w-4 h-4 text-amber-500" />
+                  Offer Letter Templates
+                </button>
+              </div>
+            )}
+          </div>
+          <button
+            onClick={() => navigate('/recruiting/requisitions')}
+            className="flex items-center gap-2 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors"
+          >
+            <Plus className="w-4 h-4" />
+            New Requisition
+          </button>
+        </div>
       </div>
 
       {/* Stats */}
@@ -190,12 +222,12 @@ export default function RecruitingPage() {
           <p className="text-sm text-gray-500 dark:text-gray-400">Manage the JD library</p>
         </button>
         <button
-          onClick={() => navigate('/recruiting/pipelines')}
+          onClick={() => navigate('/recruiting/offers')}
           className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-4 hover:bg-gray-50 dark:hover:bg-gray-700 text-left transition-colors cursor-pointer"
         >
-          <Users className="w-6 h-6 text-indigo-600 dark:text-indigo-400 mb-2" />
-          <h3 className="font-medium text-gray-900 dark:text-white">Pipeline Templates</h3>
-          <p className="text-sm text-gray-500 dark:text-gray-400">Configure hiring stages</p>
+          <FileSignature className="w-6 h-6 text-amber-600 dark:text-amber-400 mb-2" />
+          <h3 className="font-medium text-gray-900 dark:text-white">Offers</h3>
+          <p className="text-sm text-gray-500 dark:text-gray-400">View and manage all offers</p>
         </button>
         <a
           href="http://localhost:5175/jobs"
@@ -203,7 +235,7 @@ export default function RecruitingPage() {
           rel="noopener noreferrer"
           className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-4 hover:bg-gray-50 dark:hover:bg-gray-700 text-left transition-colors block cursor-pointer"
         >
-          <Eye className="w-6 h-6 text-green-600 dark:text-green-400 mb-2" />
+          <Eye className="w-6 h-6 text-emerald-600 dark:text-emerald-400 mb-2" />
           <h3 className="font-medium text-gray-900 dark:text-white">Applicant Portal</h3>
           <p className="text-sm text-gray-500 dark:text-gray-400">Preview the public job board</p>
         </a>

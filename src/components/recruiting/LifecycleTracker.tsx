@@ -37,12 +37,12 @@ const statusConfig: Record<string, { icon: typeof CheckCircle; color: string; bg
   completed: {
     icon: CheckCircle,
     color: 'text-green-600 dark:text-green-400',
-    bgColor: 'bg-green-100 dark:bg-green-900/30 border-green-300 dark:border-green-600',
+    bgColor: 'bg-green-100 dark:bg-green-950 border-green-300 dark:border-green-600',
   },
   active: {
     icon: Clock,
     color: 'text-blue-600 dark:text-blue-400',
-    bgColor: 'bg-blue-100 dark:bg-blue-900/30 border-blue-300 dark:border-blue-600',
+    bgColor: 'bg-blue-100 dark:bg-blue-950 border-blue-300 dark:border-blue-600',
   },
   pending: {
     icon: Circle,
@@ -57,7 +57,7 @@ const statusConfig: Record<string, { icon: typeof CheckCircle; color: string; bg
   blocked: {
     icon: AlertCircle,
     color: 'text-red-600 dark:text-red-400',
-    bgColor: 'bg-red-50 dark:bg-red-900/20 border-red-300 dark:border-red-600',
+    bgColor: 'bg-red-50 dark:bg-red-950 border-red-300 dark:border-red-600',
   },
 };
 

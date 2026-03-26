@@ -10,7 +10,7 @@ from slowapi.middleware import SlowAPIMiddleware
 from app.db import models, database, crud
 from app.db import mimir_models  # noqa: F401 — ensures Mímir tables are created
 from app.db import pto_calendar_models  # noqa: F401 — ensures PTO calendar tables are created
-from app.api import analytics, employees, notifications, fmla, garnishments, turnover, events, compensation, market_data, performance, onboarding, offboarding, equipment, contribution_limits, pto, auth, users, aca, eeo, settings, emails, email_templates, file_uploads, sftp, payroll, capitalized_labor, capitalized_labor_admin, roles, fmla_portal, garnishment_portal, employee_portal, pto_portal, pto_calendar, resources_portal, team_portal, portal_features, hr_admin, in_app_notifications, content_management, review_templates, recruiting, applicant_portal, internal_jobs, mimir, recruiting_lifecycle, hiring_manager_portal, calendar
+from app.api import analytics, employees, notifications, fmla, garnishments, turnover, events, compensation, market_data, performance, onboarding, offboarding, equipment, contribution_limits, pto, auth, users, aca, eeo, settings, emails, email_templates, file_uploads, sftp, payroll, capitalized_labor, capitalized_labor_admin, roles, fmla_portal, garnishment_portal, employee_portal, pto_portal, pto_calendar, resources_portal, team_portal, portal_features, hr_admin, in_app_notifications, content_management, review_templates, recruiting, applicant_portal, internal_jobs, mimir, recruiting_lifecycle, hiring_manager_portal, calendar, offer_letter_templates, screening, scorecard_templates, recruiting_messaging, approval_chains, applicant_pool, integrations
 from app.services.scheduler import start_scheduler, stop_scheduler
 from app.services.scheduler_service import scheduler as sftp_scheduler
 from app.services.csrf_service import csrf_service, should_validate_csrf
@@ -274,6 +274,21 @@ def backfill_international_flag():
 
 backfill_international_flag()
 
+# Seed default ATS data (scorecard templates, approval chains)
+def seed_ats_defaults():
+    """Seed default scorecard templates and approval chains (idempotent)."""
+    try:
+        db = database.SessionLocal()
+        from app.api.scorecard_templates import seed_default_scorecard_templates
+        from app.api.approval_chains import seed_default_approval_chains
+        seed_default_scorecard_templates(db)
+        seed_default_approval_chains(db)
+        db.close()
+    except Exception as e:
+        print(f"Warning: ATS default seed skipped: {e}")
+
+seed_ats_defaults()
+
 # Dependency to get DB session
 
 
@@ -346,9 +361,21 @@ app.include_router(applicant_portal.router)
 app.include_router(internal_jobs.router)
 app.include_router(recruiting_lifecycle.router)
 app.include_router(hiring_manager_portal.router)
+app.include_router(offer_letter_templates.router)
 
 # Calendar Integration
 app.include_router(calendar.router)
+
+# Background Screening (TazWorks)
+app.include_router(screening.router)
+app.include_router(screening.webhook_router)
+
+# ATS Phase 0 — new routers
+app.include_router(scorecard_templates.router)
+app.include_router(recruiting_messaging.router)
+app.include_router(approval_chains.router)
+app.include_router(applicant_pool.router)
+app.include_router(integrations.router)
 
 # Mímir AI Assistant
 app.include_router(mimir.router)

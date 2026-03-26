@@ -1,0 +1,38 @@
+{% extends "recruiting/base_recruiting.html" %}
+
+{% block title %}Application Update — {{ job_title }}{% endblock %}
+{% block header_title %}Application Update{% endblock %}
+
+{% block greeting %}
+<p>Dear {{ applicant_name }},</p>
+{% endblock %}
+
+{% block content %}
+<p>Thank you for your interest in the <strong>{{ job_title }}</strong> position{% if department %} in {{ department }}{% endif %} and for the time you invested in our interview process.</p>
+
+<p>After careful consideration, we have decided to move forward with other candidates whose qualifications more closely align with the current needs of this role.</p>
+
+{% if feedback %}
+<div style="background: #1e293b; border-left: 4px solid #6366f1; border-radius: 4px; padding: 16px; margin: 16px 0;">
+    <p style="color: #a5b4fc; font-size: 12px; margin: 0 0 4px 0;">Feedback</p>
+    <p style="color: #d1d5db; font-size: 14px; margin: 0;">{{ feedback }}</p>
+</div>
+{% endif %}
+
+<p>We encourage you to apply for future openings that match your skills and experience. Your profile will remain in our talent pool for consideration.</p>
+
+<table role="presentation" cellpadding="0" cellspacing="0" style="margin: 24px 0;">
+    <tr>
+        <td style="background: #2563eb; border-radius: 6px; padding: 12px 24px;">
+            <a href="{{ portal_url | default('#') }}/jobs" style="color: #ffffff; text-decoration: none; font-weight: 600; font-size: 14px;">
+                View Open Positions
+            </a>
+        </td>
+    </tr>
+</table>
+{% endblock %}
+
+{% block closing %}
+<p>We wish you the very best in your career search.</p>
+<p>— The Recruiting Team</p>
+{% endblock %}

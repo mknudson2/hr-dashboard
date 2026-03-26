@@ -1,0 +1,14 @@
+{% extends "base/base.html" %}
+
+{% block header_title %}{{ header_title | default("Careers") }}{% endblock %}
+{% block header_subtitle %}{{ header_subtitle | default("") }}{% endblock %}
+
+{% block footer_disclaimer %}
+<p style="color: #9ca3af; font-size: 11px; margin: 0;">
+    This email was sent regarding your application with {{ company_name | default("our company") }}.
+    {% if application_id %}Application ID: {{ application_id }}{% endif %}
+</p>
+<p style="color: #9ca3af; font-size: 11px; margin: 8px 0 0 0;">
+    {{ company_name | default("Our Company") }} is an equal opportunity employer.
+</p>
+{% endblock %}

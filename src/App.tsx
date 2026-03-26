@@ -47,6 +47,8 @@ import HireConversionList from "./pages/HireConversionList";
 import RecruitingAnalyticsPage from "./pages/RecruitingAnalyticsPage";
 import EEOApplicantReportPage from "./pages/EEOApplicantReportPage";
 import JobDescriptionsPage from "./pages/JobDescriptionsPage";
+import OfferLetterTemplatesPage from "./pages/OfferLetterTemplatesPage";
+import OfferListPage from "./pages/OfferListPage";
 import LoginPage from "./pages/LoginPage";
 import ProtectedRoute from "./components/ProtectedRoute";
 import { AuthProvider } from "./contexts/AuthContext";
@@ -98,6 +100,7 @@ export default function App() {
         <Route path="/recruiting/requisitions/:reqId/kanban" element={<PipelineKanbanView />} />
         <Route path="/recruiting/scorecards/:scorecardId" element={<ScorecardFormPage />} />
         <Route path="/recruiting/compare" element={<CandidateComparisonPage />} />
+        <Route path="/recruiting/offers" element={<OfferListPage />} />
         <Route path="/recruiting/offers/new" element={<OfferBuilderPage />} />
         <Route path="/recruiting/offers/:offerId" element={<OfferBuilderPage />} />
         <Route path="/recruiting/document-requests" element={<DocumentRequestPanel />} />
@@ -107,6 +110,7 @@ export default function App() {
         <Route path="/recruiting/analytics" element={<RecruitingAnalyticsPage />} />
         <Route path="/recruiting/analytics/eeo" element={<EEOApplicantReportPage />} />
         <Route path="/recruiting/job-descriptions" element={<JobDescriptionsPage />} />
+        <Route path="/recruiting/offer-letter-templates" element={<OfferLetterTemplatesPage />} />
         <Route path="/settings" element={<SettingsPage />} />
         </Route>
       </Routes>

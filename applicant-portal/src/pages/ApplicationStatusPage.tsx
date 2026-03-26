@@ -3,6 +3,8 @@ import { useParams, Link, useNavigate } from 'react-router-dom';
 import { ChevronLeft, Clock, CheckCircle, XCircle } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { apiGet } from '@/utils/api';
+import ApplicantPipelineTracker from '@/components/ApplicantPipelineTracker';
+import type { ApplicantFacingStage } from '@/types/ats';
 
 interface TimelineEvent {
   activity_type: string;
@@ -26,6 +28,7 @@ export default function ApplicationStatusPage() {
   const { isAuthenticated, loading: authLoading } = useAuth();
   const navigate = useNavigate();
   const [application, setApplication] = useState<ApplicationDetail | null>(null);
+  const [pipelineStages, setPipelineStages] = useState<ApplicantFacingStage[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -38,8 +41,12 @@ export default function ApplicationStatusPage() {
 
   const loadApplication = async () => {
     try {
-      const data = await apiGet<ApplicationDetail>(`/applicant-portal/my-applications/${id}`);
+      const [data, stages] = await Promise.all([
+        apiGet<ApplicationDetail>(`/applicant-portal/my-applications/${id}`),
+        apiGet<ApplicantFacingStage[]>(`/applicant-portal/my-applications/${id}/pipeline`).catch(() => []),
+      ]);
       setApplication(data);
+      setPipelineStages(stages);
     } catch (error) {
       console.error('Failed to load application:', error);
     } finally {
@@ -109,34 +116,29 @@ export default function ApplicationStatusPage() {
         </div>
       </div>
 
-      {/* Status Progress */}
-      <div className="bg-white rounded-lg border p-6">
-        <h2 className="font-semibold mb-4">Application Progress</h2>
-        <div className="flex items-center gap-1">
-          {['New', 'Screening', 'Interview', 'Offer', 'Hired'].map((step, i) => {
-            const steps = ['New', 'Screening', 'Interview', 'Offer', 'Hired'];
-            const currentIdx = steps.indexOf(application.status);
-            const isActive = i <= currentIdx && application.status !== 'Rejected' && application.status !== 'Withdrawn';
-            const isRejected = application.status === 'Rejected' || application.status === 'Withdrawn';
+      {/* Pipeline Progress */}
+      {pipelineStages.length > 0 && (
+        <div className="bg-white rounded-lg border p-6">
+          <h2 className="font-semibold mb-4">Application Progress</h2>
+          <ApplicantPipelineTracker stages={pipelineStages} />
+        </div>
+      )}
 
-            return (
-              <div key={step} className="flex items-center flex-1">
-                <div className={`h-2 w-full rounded-full ${
-                  isActive ? 'bg-blue-500' :
-                  isRejected ? 'bg-gray-200' : 'bg-gray-200'
-                }`} />
-              </div>
-            );
-          })}
+      {/* Interview Scheduling CTA */}
+      {pipelineStages.some(s => s.status === 'current' && s.label.toLowerCase().includes('interview')) && (
+        <div className="bg-bifrost-violet/5 border border-bifrost-violet/10 rounded-lg p-5 flex items-center justify-between">
+          <div>
+            <h3 className="font-semibold text-[#1A1A2E]">Schedule Your Interview</h3>
+            <p className="text-sm text-[#4A4A62] mt-0.5">Choose a time that works best for you.</p>
+          </div>
+          <Link
+            to={`/my-applications/${application.id}/schedule-interview`}
+            className="px-5 py-2.5 bg-bifrost-violet text-white rounded-xl text-sm font-medium hover:bg-bifrost-violet-dark transition-colors"
+          >
+            Choose a Time
+          </Link>
         </div>
-        <div className="flex justify-between mt-2 text-xs text-gray-500">
-          <span>Applied</span>
-          <span>Screening</span>
-          <span>Interview</span>
-          <span>Offer</span>
-          <span>Hired</span>
-        </div>
-      </div>
+      )}
 
       {/* Timeline */}
       <div className="bg-white rounded-lg border p-6">

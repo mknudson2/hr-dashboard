@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { ChevronLeft, MapPin, Clock, Building, DollarSign } from 'lucide-react';
 import { API_URL } from '@/config/api';
+import BifrostLightCard from '@/components/bifrost-light/BifrostLightCard';
 
 interface JobDetail {
   id: number;
@@ -64,7 +65,7 @@ export default function JobDetailPage() {
     return (
       <div className="text-center py-12">
         <p className="text-gray-500 mb-4">Job not found.</p>
-        <Link to="/jobs" className="text-blue-600 hover:text-blue-800">Back to job listings</Link>
+        <Link to="/jobs" className="text-bifrost-violet hover:text-bifrost-violet-dark">Back to job listings</Link>
       </div>
     );
   }
@@ -78,7 +79,7 @@ export default function JobDetailPage() {
 
       {/* Header */}
       <div>
-        <h1 className="text-3xl font-bold text-gray-900 mb-3">{job.title}</h1>
+        <h1 className="text-3xl font-bold text-[#1A1A2E] mb-3">{job.title}</h1>
         <div className="flex flex-wrap gap-4 text-sm text-gray-600">
           {job.department && (
             <span className="flex items-center gap-1"><Building className="w-4 h-4" /> {job.department}</span>
@@ -109,17 +110,17 @@ export default function JobDetailPage() {
       </div>
 
       {/* Apply CTA */}
-      <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 flex items-center justify-between">
+      <div className="bg-[rgba(108,63,160,0.06)] border border-[rgba(108,63,160,0.15)] rounded-2xl p-4 flex items-center justify-between">
         <div>
-          <p className="font-medium text-blue-900">Interested in this role?</p>
-          <p className="text-sm text-blue-700">
+          <p className="font-medium text-[#1A1A2E]">Interested in this role?</p>
+          <p className="text-sm text-[#4A4A62]">
             {job.requires_resume ? 'Resume required' : 'No resume required'}
             {job.requires_cover_letter ? ' + cover letter' : ''}
           </p>
         </div>
         <button
           onClick={() => navigate(`/apply/${job.id}`)}
-          className="bg-blue-600 text-white px-6 py-2.5 rounded-lg font-medium hover:bg-blue-700 transition-colors"
+          className="bg-bifrost-violet text-white px-6 py-2.5 rounded-lg font-medium hover:bg-bifrost-violet-dark transition-colors"
         >
           Apply Now
         </button>
@@ -127,51 +128,51 @@ export default function JobDetailPage() {
 
       {/* Description */}
       {job.description_html && (
-        <div className="bg-white rounded-lg border p-6">
+        <BifrostLightCard className="p-6">
           <h2 className="text-xl font-semibold mb-4">About This Role</h2>
           <div className="prose prose-sm max-w-none text-gray-700 whitespace-pre-wrap">
             {job.description_html}
           </div>
-        </div>
+        </BifrostLightCard>
       )}
 
       {/* Responsibilities */}
       {job.responsibilities && (
-        <div className="bg-white rounded-lg border p-6">
+        <BifrostLightCard className="p-6">
           <h2 className="text-xl font-semibold mb-4">Responsibilities</h2>
           <div className="text-sm text-gray-700 whitespace-pre-wrap">{job.responsibilities}</div>
-        </div>
+        </BifrostLightCard>
       )}
 
       {/* Requirements */}
       {job.requirements && (
-        <div className="bg-white rounded-lg border p-6">
+        <BifrostLightCard className="p-6">
           <h2 className="text-xl font-semibold mb-4">Requirements</h2>
           <div className="text-sm text-gray-700 whitespace-pre-wrap">{job.requirements}</div>
-        </div>
+        </BifrostLightCard>
       )}
 
       {/* Preferred */}
       {job.preferred_qualifications && (
-        <div className="bg-white rounded-lg border p-6">
+        <BifrostLightCard className="p-6">
           <h2 className="text-xl font-semibold mb-4">Preferred Qualifications</h2>
           <div className="text-sm text-gray-700 whitespace-pre-wrap">{job.preferred_qualifications}</div>
-        </div>
+        </BifrostLightCard>
       )}
 
       {/* Benefits */}
       {job.benefits_summary && (
-        <div className="bg-white rounded-lg border p-6">
+        <BifrostLightCard className="p-6">
           <h2 className="text-xl font-semibold mb-4">Benefits</h2>
           <div className="text-sm text-gray-700 whitespace-pre-wrap">{job.benefits_summary}</div>
-        </div>
+        </BifrostLightCard>
       )}
 
       {/* Bottom CTA */}
       <div className="text-center py-6">
         <button
           onClick={() => navigate(`/apply/${job.id}`)}
-          className="bg-blue-600 text-white px-8 py-3 rounded-lg font-medium hover:bg-blue-700 transition-colors text-lg"
+          className="bg-bifrost-violet text-white px-8 py-3 rounded-lg font-medium hover:bg-bifrost-violet-dark transition-colors text-lg"
         >
           Apply for this Position
         </button>

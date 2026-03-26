@@ -8,7 +8,7 @@ Uses the existing email_service singleton for actual email delivery.
 """
 
 import logging
-from typing import Optional, Dict, Any
+from typing import Optional, Dict, Any, List
 from sqlalchemy.orm import Session
 from app.db import models
 
@@ -37,22 +37,24 @@ class RecruitingEmailService:
         body_html: str,
         email_type: str = "recruiting",
         ics_bytes: Optional[bytes] = None,
+        attachment_paths: Optional[List[str]] = None,
     ) -> bool:
         """Send an email using the global email_service. Returns True if sent.
 
         Args:
             ics_bytes: Optional .ics calendar file content to attach as 'invite.ics'.
+            attachment_paths: Optional list of file paths to attach.
         """
         self._log_email(email_type, to_email, {"subject": subject})
 
         if not HAS_EMAIL_SERVICE:
             logger.info(f"[DEV] Would send '{subject}' to {to_email}" +
-                         (" (with .ics attachment)" if ics_bytes else ""))
+                         (" (with attachments)" if ics_bytes or attachment_paths else ""))
             return False
 
         try:
-            # If ICS bytes provided, write to temp file for attachment
-            attachments = []
+            # Build attachments list
+            attachments = list(attachment_paths) if attachment_paths else []
             ics_path = None
             if ics_bytes:
                 import tempfile
@@ -69,7 +71,7 @@ class RecruitingEmailService:
                 attachments=attachments if attachments else None,
             )
 
-            # Clean up temp file
+            # Clean up temp ICS file only (other attachments managed by caller)
             if ics_path:
                 import os
                 try:
@@ -236,25 +238,36 @@ class RecruitingEmailService:
         salary: Optional[float] = None,
         start_date: Optional[str] = None,
         expires_at: Optional[str] = None,
+        custom_subject: Optional[str] = None,
+        custom_body_html: Optional[str] = None,
+        attachment_paths: Optional[List[str]] = None,
     ) -> bool:
-        """Send offer notification to applicant."""
-        subject = f"Offer Letter - {job_title}"
-        salary_info = f"<p><strong>Compensation:</strong> ${salary:,.2f}</p>" if salary else ""
-        start_info = f"<p><strong>Proposed Start Date:</strong> {start_date}</p>" if start_date else ""
-        expiry_info = f"<p>This offer expires on <strong>{expires_at}</strong>.</p>" if expires_at else ""
+        """Send offer notification to applicant.
 
-        body_html = f"""
-        <h2>Congratulations, {applicant_name}!</h2>
-        <p>We are pleased to extend an offer for the <strong>{job_title}</strong> position.</p>
-        <p><strong>Offer ID:</strong> {offer_id}</p>
-        {salary_info}
-        {start_info}
-        {expiry_info}
-        <p>Please sign in to our applicant portal to review the full offer details and respond.</p>
-        <br>
-        <p>Best regards,<br>HR Team</p>
+        If custom_subject/custom_body_html are provided (from a template),
+        they override the default hardcoded email content.
         """
-        return await self._send(to_email, subject, body_html, "offer_notification")
+        if custom_subject and custom_body_html:
+            subject = custom_subject
+            body_html = custom_body_html
+        else:
+            subject = f"Offer Letter - {job_title}"
+            salary_info = f"<p><strong>Compensation:</strong> ${salary:,.2f}</p>" if salary else ""
+            start_info = f"<p><strong>Proposed Start Date:</strong> {start_date}</p>" if start_date else ""
+            expiry_info = f"<p>This offer expires on <strong>{expires_at}</strong>.</p>" if expires_at else ""
+
+            body_html = f"""
+            <h2>Congratulations, {applicant_name}!</h2>
+            <p>We are pleased to extend an offer for the <strong>{job_title}</strong> position.</p>
+            <p><strong>Offer ID:</strong> {offer_id}</p>
+            {salary_info}
+            {start_info}
+            {expiry_info}
+            <p>Please sign in to our applicant portal to review the full offer details and respond.</p>
+            <br>
+            <p>Best regards,<br>HR Team</p>
+            """
+        return await self._send(to_email, subject, body_html, "offer_notification", attachment_paths=attachment_paths)
 
     async def send_offer_response_notification(
         self,

@@ -87,6 +87,22 @@ export async function apiPut<T>(endpoint: string, body?: unknown): Promise<T> {
   return response.json();
 }
 
+// PATCH request
+export async function apiPatch<T>(endpoint: string, body?: unknown): Promise<T> {
+  const response = await apiFetch(endpoint, {
+    method: 'PATCH',
+    body: body ? JSON.stringify(body) : undefined,
+  });
+  if (!response.ok) {
+    if (response.status === 401) {
+      handleUnauthorized();
+    }
+    const error = await response.json().catch(() => ({ detail: 'Request failed' }));
+    throw new Error(extractErrorMessage(error));
+  }
+  return response.json();
+}
+
 // DELETE request
 export async function apiDelete<T>(endpoint: string): Promise<T> {
   const response = await apiFetch(endpoint, {

@@ -1,5 +1,21 @@
 import { useState, useRef, useEffect } from 'react';
-import { ChevronDown, User, Briefcase, Calendar, DollarSign, Heart, Building, FileText } from 'lucide-react';
+import { ChevronDown, User, Briefcase, Calendar, DollarSign, Heart, Building, FileText, Award } from 'lucide-react';
+
+const OFFER_PLACEHOLDERS = [
+  { key: 'offer.position_title', label: 'Position Title' },
+  { key: 'offer.department', label: 'Department' },
+  { key: 'offer.location', label: 'Location' },
+  { key: 'offer.salary', label: 'Salary' },
+  { key: 'offer.wage_type', label: 'Wage Type' },
+  { key: 'offer.start_date', label: 'Start Date' },
+  { key: 'offer.reports_to', label: 'Reports To' },
+  { key: 'offer.signing_bonus', label: 'Signing Bonus' },
+  { key: 'offer.equity_details', label: 'Equity Details' },
+  { key: 'offer.benefits_summary', label: 'Benefits Summary' },
+  { key: 'offer.employment_type', label: 'Employment Type' },
+  { key: 'offer.offer_id', label: 'Offer ID' },
+  { key: 'offer.expires_at', label: 'Expiration Date' },
+];
 
 const PREDEFINED_PLACEHOLDERS = [
   {
@@ -73,11 +89,13 @@ const PREDEFINED_PLACEHOLDERS = [
 interface PlaceholderDropdownProps {
   onInsert: (placeholder: string) => void;
   customPlaceholders?: Array<{ key: string; label: string }>;
+  showOfferPlaceholders?: boolean;
 }
 
 export default function PlaceholderDropdown({
   onInsert,
   customPlaceholders = [],
+  showOfferPlaceholders = false,
 }: PlaceholderDropdownProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [expandedCategory, setExpandedCategory] = useState<string | null>(null);
@@ -113,6 +131,43 @@ export default function PlaceholderDropdown({
 
       {isOpen && (
         <div className="absolute right-0 top-full mt-2 w-80 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-xl z-50 max-h-[400px] overflow-y-auto">
+          {/* Offer Placeholders */}
+          {showOfferPlaceholders && (
+            <div className="border-b border-gray-100 dark:border-gray-700">
+              <button
+                type="button"
+                onClick={() => setExpandedCategory(expandedCategory === 'Offer' ? null : 'Offer')}
+                className="w-full flex items-center justify-between px-4 py-2.5 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors"
+              >
+                <div className="flex items-center gap-2">
+                  <Award className="w-4 h-4 text-purple-500 dark:text-purple-400" />
+                  <span className="text-sm font-medium text-gray-900 dark:text-white">Offer</span>
+                  <span className="text-xs text-gray-500 dark:text-gray-400">({OFFER_PLACEHOLDERS.length})</span>
+                </div>
+                <ChevronDown className={`w-4 h-4 text-gray-400 transition-transform ${expandedCategory === 'Offer' ? 'rotate-180' : ''}`} />
+              </button>
+              {expandedCategory === 'Offer' && (
+                <div className="bg-gray-50 dark:bg-gray-900/50 py-1">
+                  {OFFER_PLACEHOLDERS.map((item) => (
+                    <button
+                      key={item.key}
+                      type="button"
+                      onClick={() => handleInsert(item.key)}
+                      className="w-full text-left px-6 py-2 hover:bg-purple-50 dark:hover:bg-purple-900/30 transition-colors group"
+                    >
+                      <span className="text-sm text-gray-900 dark:text-white group-hover:text-purple-700 dark:group-hover:text-purple-300">
+                        {item.label}
+                      </span>
+                      <span className="block text-xs text-gray-500 dark:text-gray-400 font-mono mt-0.5">
+                        {`{{${item.key}}}`}
+                      </span>
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+
           {/* Predefined Placeholders */}
           {PREDEFINED_PLACEHOLDERS.map((category) => {
             const Icon = category.icon;

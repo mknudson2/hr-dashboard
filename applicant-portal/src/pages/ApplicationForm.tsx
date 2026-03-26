@@ -27,6 +27,9 @@ export default function ApplicationForm() {
   const [eeoDisability, setEeoDisability] = useState('');
   const [eeoDeclined, setEeoDeclined] = useState(false);
 
+  // Cross-role consideration
+  const [openToOtherRoles, setOpenToOtherRoles] = useState(false);
+
   const totalSteps = 4; // Contact, Resume, EEO, Review
 
   const handleSubmit = async () => {
@@ -42,7 +45,7 @@ export default function ApplicationForm() {
       if (phone) formData.append('phone', phone);
       if (coverLetter) formData.append('cover_letter', coverLetter);
       if (resume) formData.append('resume', resume);
-      // Custom answers can be added when custom questions are loaded
+      if (openToOtherRoles) formData.append('open_to_other_roles', 'true');
 
       const res = await fetch(`${API_URL}/applicant-portal/apply`, {
         method: 'POST',
@@ -318,12 +321,33 @@ export default function ApplicationForm() {
             </div>
           </div>
 
+          {/* Cross-Role Consideration */}
+          <div className="bg-bifrost-violet/[0.04] border border-bifrost-violet/10 rounded-lg p-4">
+            <label className="flex items-start gap-3 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={openToOtherRoles}
+                onChange={e => setOpenToOtherRoles(e.target.checked)}
+                className="mt-0.5 rounded border-gray-300"
+              />
+              <div>
+                <span className="text-sm font-medium text-gray-900">
+                  Consider me for other roles
+                </span>
+                <p className="text-xs text-gray-500 mt-1">
+                  If this position isn't the right fit, I'd like to be considered for other
+                  opportunities that match my skills and experience.
+                </p>
+              </div>
+            </label>
+          </div>
+
           <div className="flex justify-between">
             <button onClick={() => setStep(3)} className="px-4 py-2 border rounded-lg text-sm hover:bg-gray-50">Back</button>
             <button
               onClick={handleSubmit}
               disabled={submitting}
-              className="px-6 py-2 bg-blue-600 text-white rounded-lg text-sm hover:bg-blue-700 disabled:opacity-50"
+              className="px-6 py-2 bg-bifrost-violet text-white rounded-lg text-sm hover:bg-bifrost-violet-dark disabled:opacity-50"
             >
               {submitting ? 'Submitting...' : 'Submit Application'}
             </button>

@@ -75,6 +75,13 @@ export default function PipelineKanbanView() {
 
   const handleDrop = (stageId: number) => {
     if (dragApp) {
+      // If dropping on an offer-type stage, redirect to offer builder
+      const targetStage = data?.stages.find(s => s.id === stageId);
+      if (targetStage?.stage_type === 'offer') {
+        navigate(`/recruiting/offers/new?applicationId=${dragApp}`);
+        setDragApp(null);
+        return;
+      }
       moveToStage(dragApp, stageId);
       setDragApp(null);
     }

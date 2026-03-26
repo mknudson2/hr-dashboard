@@ -1,0 +1,38 @@
+{% extends "recruiting/base_recruiting.html" %}
+
+{% block title %}Application Received — {{ job_title }}{% endblock %}
+{% block header_title %}Application Received{% endblock %}
+
+{% block greeting %}
+<p>Dear {{ applicant_name }},</p>
+{% endblock %}
+
+{% block content %}
+<p>Thank you for applying for the <strong>{{ job_title }}</strong> position{% if department %} in {{ department }}{% endif %}.</p>
+
+<p>We have received your application and our team will review it carefully. You can track the status of your application at any time through your applicant portal.</p>
+
+{% if application_id %}
+<table role="presentation" cellpadding="0" cellspacing="0" style="margin: 24px 0;">
+    <tr>
+        <td style="background: #2563eb; border-radius: 6px; padding: 12px 24px;">
+            <a href="{{ portal_url | default('#') }}/my-applications" style="color: #ffffff; text-decoration: none; font-weight: 600; font-size: 14px;">
+                View Application Status
+            </a>
+        </td>
+    </tr>
+</table>
+{% endif %}
+
+<p><strong>What happens next:</strong></p>
+<ul style="color: #d1d5db; padding-left: 20px;">
+    <li>Our recruiting team will review your qualifications</li>
+    <li>If your profile is a match, we'll reach out to schedule next steps</li>
+    <li>You'll receive updates via email as your application progresses</li>
+</ul>
+{% endblock %}
+
+{% block closing %}
+<p>We appreciate your interest and wish you the best.</p>
+<p>— The Recruiting Team</p>
+{% endblock %}

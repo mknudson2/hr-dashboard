@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { Search, MapPin, Clock, Building, Briefcase } from 'lucide-react';
 import { API_URL } from '@/config/api';
+import BifrostLightCard from '@/components/bifrost-light/BifrostLightCard';
 
 interface Job {
   id: number;
@@ -70,7 +71,7 @@ export default function JobListPage() {
     <div className="space-y-6">
       {/* Hero */}
       <div className="text-center py-8">
-        <h1 className="text-3xl font-bold text-gray-900 mb-2">Join Our Team</h1>
+        <h1 className="text-3xl font-bold text-[#1A1A2E] mb-2">Join Our Team</h1>
         <p className="text-gray-600 max-w-xl mx-auto">
           Explore open positions and find the right fit for your career.
         </p>
@@ -85,7 +86,7 @@ export default function JobListPage() {
             placeholder="Search jobs..."
             value={search}
             onChange={e => setSearch(e.target.value)}
-            className="w-full pl-11 pr-4 py-3 border rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            className="w-full pl-11 pr-4 py-3 border rounded-lg text-sm focus:ring-2 focus:ring-bifrost-violet focus:border-transparent"
           />
         </div>
         <select
@@ -98,68 +99,70 @@ export default function JobListPage() {
         </select>
         <button
           type="submit"
-          className="bg-blue-600 text-white px-6 py-3 rounded-lg text-sm font-medium hover:bg-blue-700 transition-colors"
+          className="bg-bifrost-violet text-white px-6 py-3 rounded-lg text-sm font-medium hover:bg-bifrost-violet-dark transition-colors"
         >
           Search
         </button>
       </form>
 
       {/* Results */}
-      <div className="text-sm text-gray-500">{total} position{total !== 1 ? 's' : ''} available</div>
+      <div className="text-sm text-[#4A4A62]">{total} position{total !== 1 ? 's' : ''} available</div>
 
       {loading ? (
         <div className="space-y-4">
           {[1, 2, 3].map(i => (
-            <div key={i} className="animate-pulse bg-white rounded-lg border p-6">
+            <BifrostLightCard key={i} className="animate-pulse p-6">
               <div className="h-5 bg-gray-200 rounded w-1/3 mb-3" />
               <div className="h-4 bg-gray-200 rounded w-1/2 mb-2" />
               <div className="h-4 bg-gray-200 rounded w-2/3" />
-            </div>
+            </BifrostLightCard>
           ))}
         </div>
       ) : jobs.length === 0 ? (
-        <div className="bg-white rounded-lg border p-12 text-center text-gray-500">
+        <BifrostLightCard className="p-12 text-center text-[#4A4A62]">
           <Briefcase className="w-12 h-12 mx-auto mb-4 text-gray-300" />
           <p className="text-lg font-medium">No positions found</p>
           <p className="mt-1">Try adjusting your search or check back later.</p>
-        </div>
+        </BifrostLightCard>
       ) : (
         <div className="space-y-4">
           {jobs.map(job => (
             <Link
               key={job.id}
               to={`/jobs/${job.slug}`}
-              className="block bg-white rounded-lg border p-6 hover:shadow-md hover:border-blue-200 transition-all"
+              className="block"
             >
-              <h2 className="text-lg font-semibold text-gray-900 mb-2">{job.title}</h2>
-              <div className="flex flex-wrap gap-4 text-sm text-gray-500 mb-3">
-                {job.department && (
-                  <span className="flex items-center gap-1">
-                    <Building className="w-4 h-4" /> {job.department}
-                  </span>
+              <BifrostLightCard className="p-6">
+                <h2 className="text-lg font-semibold text-[#1A1A2E] mb-2">{job.title}</h2>
+                <div className="flex flex-wrap gap-4 text-sm text-gray-500 mb-3">
+                  {job.department && (
+                    <span className="flex items-center gap-1">
+                      <Building className="w-4 h-4" /> {job.department}
+                    </span>
+                  )}
+                  {job.location && (
+                    <span className="flex items-center gap-1">
+                      <MapPin className="w-4 h-4" /> {job.location}
+                      {job.remote_type && job.remote_type !== 'On-site' && (
+                        <span className="text-bifrost-violet ml-1">({job.remote_type})</span>
+                      )}
+                    </span>
+                  )}
+                  {job.employment_type && (
+                    <span className="flex items-center gap-1">
+                      <Clock className="w-4 h-4" /> {job.employment_type}
+                    </span>
+                  )}
+                  {formatSalary(job.salary_min, job.salary_max) && (
+                    <span className="text-green-600 font-medium">
+                      {formatSalary(job.salary_min, job.salary_max)}
+                    </span>
+                  )}
+                </div>
+                {job.short_description && (
+                  <p className="text-sm text-gray-600 line-clamp-2">{job.short_description}</p>
                 )}
-                {job.location && (
-                  <span className="flex items-center gap-1">
-                    <MapPin className="w-4 h-4" /> {job.location}
-                    {job.remote_type && job.remote_type !== 'On-site' && (
-                      <span className="text-blue-600 ml-1">({job.remote_type})</span>
-                    )}
-                  </span>
-                )}
-                {job.employment_type && (
-                  <span className="flex items-center gap-1">
-                    <Clock className="w-4 h-4" /> {job.employment_type}
-                  </span>
-                )}
-                {formatSalary(job.salary_min, job.salary_max) && (
-                  <span className="text-green-600 font-medium">
-                    {formatSalary(job.salary_min, job.salary_max)}
-                  </span>
-                )}
-              </div>
-              {job.short_description && (
-                <p className="text-sm text-gray-600 line-clamp-2">{job.short_description}</p>
-              )}
+              </BifrostLightCard>
             </Link>
           ))}
         </div>

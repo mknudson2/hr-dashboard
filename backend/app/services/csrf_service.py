@@ -208,6 +208,7 @@ CSRF_EXEMPT_PATHS = frozenset({
     "/applicant-portal/apply",  # Public application submission
     "/applicant-portal/auth",  # Applicant auth (magic link, register, login)
     "/applicant-portal/eeo",  # EEO self-ID submission
+    "/webhooks/tazworks",  # TazWorks webhook (external, no CSRF)
 })
 
 

@@ -1,0 +1,51 @@
+{% extends "recruiting/base_recruiting.html" %}
+
+{% block title %}Approval Required — {{ resource_type | title }}{% endblock %}
+{% block header_title %}Approval Required{% endblock %}
+
+{% block greeting %}
+<p>Dear {{ approver_name }},</p>
+{% endblock %}
+
+{% block content %}
+<p>A <strong>{{ resource_type }}</strong> requires your approval.</p>
+
+<div style="background: #1e293b; border-radius: 8px; padding: 20px; margin: 16px 0;">
+    <table role="presentation" cellpadding="0" cellspacing="0" width="100%">
+        {% if applicant_name %}
+        <tr>
+            <td style="color: #9ca3af; font-size: 12px; padding-bottom: 8px;">Candidate</td>
+            <td style="color: #f3f4f6; font-size: 14px; font-weight: 600; text-align: right; padding-bottom: 8px;">{{ applicant_name }}</td>
+        </tr>
+        {% endif %}
+        {% if job_title %}
+        <tr>
+            <td style="color: #9ca3af; font-size: 12px; padding-bottom: 8px;">Position</td>
+            <td style="color: #f3f4f6; font-size: 14px; text-align: right; padding-bottom: 8px;">{{ job_title }}</td>
+        </tr>
+        {% endif %}
+        <tr>
+            <td style="color: #9ca3af; font-size: 12px; padding-bottom: 8px;">Requested By</td>
+            <td style="color: #f3f4f6; font-size: 14px; text-align: right; padding-bottom: 8px;">{{ requested_by_name }}</td>
+        </tr>
+        <tr>
+            <td style="color: #9ca3af; font-size: 12px;">Step</td>
+            <td style="color: #f3f4f6; font-size: 14px; text-align: right;">{{ step_label | default("Your Review") }}</td>
+        </tr>
+    </table>
+</div>
+
+<table role="presentation" cellpadding="0" cellspacing="0" style="margin: 24px 0;">
+    <tr>
+        <td style="background: #2563eb; border-radius: 6px; padding: 12px 24px;">
+            <a href="{{ hub_url | default('#') }}/recruiting/offers" style="color: #ffffff; text-decoration: none; font-weight: 600; font-size: 14px;">
+                Review & Approve
+            </a>
+        </td>
+    </tr>
+</table>
+{% endblock %}
+
+{% block closing %}
+<p>— The Recruiting Team</p>
+{% endblock %}

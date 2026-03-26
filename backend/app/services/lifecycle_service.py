@@ -20,11 +20,67 @@ DEFAULT_STAGES = [
     {"key": "hr_interview", "label": "HR Interview", "order": 2},
     {"key": "hiring_manager_interview", "label": "Hiring Manager Interview", "order": 3},
     {"key": "tech_screen", "label": "Tech Screen", "order": 4},
-    {"key": "offer_extended", "label": "Offer Extended", "order": 5},
-    {"key": "offer_response", "label": "Offer Result", "order": 6},
-    {"key": "onboarding_date_set", "label": "Onboarding Date Set", "order": 7},
-    {"key": "final_approval", "label": "Final Approval / Next Steps", "order": 8},
+    {"key": "candidate_selection", "label": "Candidate Selection", "order": 5},
+    {"key": "offer_extended", "label": "Offer Extended", "order": 6},
+    {"key": "offer_response", "label": "Offer Result", "order": 7},
+    {"key": "onboarding_date_set", "label": "Onboarding Date Set", "order": 8},
+    {"key": "final_approval", "label": "Final Approval / Next Steps", "order": 9},
 ]
+
+# Applicant-facing stage mapping (ATS §1.2)
+# Maps internal lifecycle stage keys to simplified labels shown to applicants.
+APPLICANT_STAGE_MAPPING = {
+    "request_submitted": {
+        "label": "Application Received",
+        "description": "Your application has been received and is being reviewed",
+        "group_order": 0,
+    },
+    "position_posted": {
+        "label": "Application Received",
+        "description": "Your application has been received and is being reviewed",
+        "group_order": 0,
+    },
+    "hr_interview": {
+        "label": "HR Interview",
+        "description": "Your HR interview is being scheduled / in progress / complete",
+        "group_order": 1,
+    },
+    "hiring_manager_interview": {
+        "label": "Hiring Manager Interview",
+        "description": "Your interview with the hiring team is being scheduled / in progress / complete",
+        "group_order": 2,
+    },
+    "tech_screen": {
+        "label": "Technical Assessment",
+        "description": "Your technical assessment is being scheduled / in progress / complete",
+        "group_order": 3,
+    },
+    "candidate_selection": {
+        "label": "Under Review",
+        "description": "The hiring team is reviewing all candidates",
+        "group_order": 4,
+    },
+    "offer_extended": {
+        "label": "Offer",
+        "description": "An offer has been prepared for you",
+        "group_order": 5,
+    },
+    "offer_response": {
+        "label": "Offer",
+        "description": "An offer has been prepared for you",
+        "group_order": 5,
+    },
+    "onboarding_date_set": {
+        "label": "Onboarding",
+        "description": "Your start date and onboarding details are being finalized",
+        "group_order": 6,
+    },
+    "final_approval": {
+        "label": "Welcome",
+        "description": "Final steps before your first day",
+        "group_order": 7,
+    },
+}
 
 
 class LifecycleService:
@@ -484,6 +540,100 @@ class LifecycleService:
             "file_upload_id": doc.file_upload_id,
             "created_at": doc.created_at.isoformat() if doc.created_at else None,
         }
+
+    def initiate_negotiation_loop(
+        self,
+        db: Session,
+        requisition_id: int,
+        user_id: int,
+        notes: Optional[str] = None,
+    ) -> Optional[models.RequisitionLifecycleStage]:
+        """Return pipeline to offer_extended for a new negotiation round (ATS §3.5).
+
+        Sets offer_response outcome to 'negotiating' and re-activates offer_extended.
+        """
+        now = datetime.utcnow()
+
+        offer_response = (
+            db.query(models.RequisitionLifecycleStage)
+            .filter(
+                models.RequisitionLifecycleStage.requisition_id == requisition_id,
+                models.RequisitionLifecycleStage.stage_key == "offer_response",
+            )
+            .first()
+        )
+        if offer_response:
+            offer_response.outcome = "negotiating"
+            offer_response.outcome_notes = notes
+            offer_response.status = "pending"
+            offer_response.completed_at = None
+
+        offer_extended = (
+            db.query(models.RequisitionLifecycleStage)
+            .filter(
+                models.RequisitionLifecycleStage.requisition_id == requisition_id,
+                models.RequisitionLifecycleStage.stage_key == "offer_extended",
+            )
+            .first()
+        )
+        if offer_extended:
+            offer_extended.status = "active"
+            offer_extended.entered_at = now
+            offer_extended.completed_at = None
+            offer_extended.completed_by = None
+
+        db.flush()
+        return offer_extended
+
+    def get_applicant_facing_pipeline(
+        self,
+        db: Session,
+        requisition_id: int,
+    ) -> list[dict]:
+        """Build the simplified applicant-facing pipeline view.
+
+        Groups internal stages into applicant-facing stages per APPLICANT_STAGE_MAPPING.
+        Returns a list of {label, description, status, completed_at} dicts.
+        """
+        stages = self.get_lifecycle(db, requisition_id)
+
+        # Group stages by applicant-facing label
+        grouped: dict[int, dict] = {}  # group_order -> {label, description, status, completed_at}
+
+        for stage in stages:
+            mapping = APPLICANT_STAGE_MAPPING.get(stage.stage_key)
+            if not mapping:
+                continue
+
+            group_order = mapping["group_order"]
+
+            if group_order not in grouped:
+                grouped[group_order] = {
+                    "label": mapping["label"],
+                    "description": mapping["description"],
+                    "status": "upcoming",
+                    "completed_at": None,
+                }
+
+            group = grouped[group_order]
+
+            # A group is "current" if any stage in it is active
+            if stage.status == "active":
+                group["status"] = "current"
+            # A group is "completed" only if ALL stages in it are completed/skipped
+            elif stage.status in ("completed", "skipped"):
+                if group["status"] == "upcoming":
+                    group["status"] = "completed"
+                if stage.completed_at:
+                    existing = group.get("completed_at")
+                    if not existing or stage.completed_at > datetime.fromisoformat(existing):
+                        group["completed_at"] = stage.completed_at.isoformat()
+            else:
+                # pending/blocked stage in group — can't be fully completed
+                if group["status"] == "completed":
+                    group["status"] = "upcoming"
+
+        return [grouped[k] for k in sorted(grouped.keys())]
 
 
 # Singleton instance

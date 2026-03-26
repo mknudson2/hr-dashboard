@@ -9,7 +9,7 @@ import os
 from datetime import datetime
 from typing import Optional
 from fastapi import APIRouter, Depends, HTTPException, status, UploadFile, File, Form, Request, BackgroundTasks
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, FileResponse
 from pydantic import BaseModel, EmailStr
 from sqlalchemy.orm import Session, joinedload
 from sqlalchemy import func
@@ -18,6 +18,9 @@ from app.db import models, database
 from app.services.recruiting_service import recruiting_service
 from app.services.applicant_auth_service import applicant_auth_service, get_current_applicant
 from app.services.offer_service import offer_service
+from app.services.lifecycle_service import lifecycle_service
+from app.services.messaging_service import messaging_service
+from app.schemas.messaging import ReplyRequest
 
 
 router = APIRouter(prefix="/applicant-portal", tags=["applicant-portal"])
@@ -184,6 +187,7 @@ async def submit_application(
     phone: Optional[str] = Form(None),
     cover_letter: Optional[str] = Form(None),
     custom_answers: Optional[str] = Form(None),  # JSON string
+    open_to_other_roles: Optional[str] = Form(None),
     resume: Optional[UploadFile] = File(None),
     background_tasks: BackgroundTasks = BackgroundTasks(),
     db: Session = Depends(get_db),
@@ -212,6 +216,12 @@ async def submit_application(
         db, email=email, first_name=first_name, last_name=last_name,
         phone=phone, source=posting.channel or "portal",
     )
+
+    # Handle cross-role opt-in
+    if open_to_other_roles and open_to_other_roles.lower() == 'true':
+        if not applicant.open_to_other_roles:
+            applicant.open_to_other_roles = True
+            applicant.pool_opted_in_at = datetime.utcnow()
 
     # Check for duplicate application
     existing = db.query(models.Application).filter(
@@ -675,6 +685,7 @@ def get_my_offer(
     """Get full offer details for the authenticated applicant."""
     offer = db.query(models.OfferLetter).options(
         joinedload(models.OfferLetter.application),
+        joinedload(models.OfferLetter.offer_letter_file),
     ).filter(models.OfferLetter.id == offer_id).first()
 
     if not offer:
@@ -685,7 +696,7 @@ def get_my_offer(
         raise HTTPException(status_code=403, detail="Access denied")
 
     # Only show offers that have been sent
-    if offer.status not in ("Sent", "Accepted", "Declined", "Expired", "Rescinded"):
+    if offer.status not in ("Sent", "Accepted", "Declined", "Expired", "Rescinded", "Negotiating"):
         raise HTTPException(status_code=404, detail="Offer not found")
 
     return {
@@ -707,6 +718,11 @@ def get_my_offer(
         "expires_at": offer.expires_at.isoformat() if offer.expires_at else None,
         "responded_at": offer.responded_at.isoformat() if offer.responded_at else None,
         "contingencies": offer.contingencies,
+        "is_counter_offer": offer.is_counter_offer,
+        "negotiation_notes": offer.negotiation_notes,
+        "offer_letter_file_url": f"/applicant-portal/my-offers/{offer.id}/download-letter" if offer.offer_letter_file_id else None,
+        "version": offer.version or 1,
+        "version_notes": offer.version_notes,
     }
 
 
@@ -875,6 +891,8 @@ def get_applicant_profile(
         "current_title": applicant.current_title,
         "years_of_experience": applicant.years_of_experience,
         "has_account": applicant.has_account,
+        "open_to_other_roles": applicant.open_to_other_roles,
+        "pool_opted_in_at": applicant.pool_opted_in_at.isoformat() if applicant.pool_opted_in_at else None,
         "created_at": applicant.created_at.isoformat() if applicant.created_at else None,
     }
 
@@ -961,3 +979,450 @@ def withdraw_application(
 
     db.commit()
     return {"message": "Application withdrawn"}
+
+
+# ============================================================================
+# ATS PHASE 0 — APPLICANT PORTAL STUBS
+# ============================================================================
+
+@router.get("/my-applications/{app_id}/pipeline")
+def get_applicant_pipeline(
+    app_id: int,
+    applicant: models.Applicant = Depends(get_current_applicant),
+    db: Session = Depends(get_db),
+):
+    """Get the applicant-facing pipeline progress tracker."""
+    # Verify applicant owns this application
+    application = db.query(models.Application).filter(
+        models.Application.id == app_id,
+        models.Application.applicant_id == applicant.id,
+    ).first()
+    if not application:
+        raise HTTPException(status_code=404, detail="Application not found")
+
+    if not application.requisition_id:
+        return []
+
+    pipeline = lifecycle_service.get_applicant_facing_pipeline(db, application.requisition_id)
+    return pipeline
+
+
+@router.get("/my-messages")
+def list_applicant_messages(
+    stage_key: Optional[str] = None,
+    applicant: models.Applicant = Depends(get_current_applicant),
+    db: Session = Depends(get_db),
+):
+    """List message threads for the authenticated applicant.
+    Optionally filter by stage_key to scope threads to a pipeline step.
+    """
+    # Get all application IDs for this applicant
+    app_ids = [
+        a.id for a in db.query(models.Application.id).filter(
+            models.Application.applicant_id == applicant.id
+        ).all()
+    ]
+
+    if not app_ids:
+        return {"threads": []}
+
+    all_threads = []
+    for app_id in app_ids:
+        threads = messaging_service.get_threads(db, app_id, include_internal=False, stage_key=stage_key)
+        # Enrich with application context
+        app = db.query(models.Application).options(
+            joinedload(models.Application.requisition)
+        ).filter(models.Application.id == app_id).first()
+        for thread in threads:
+            # Count unread messages from HR/HM side
+            unread = db.query(models.ApplicantMessage).filter(
+                models.ApplicantMessage.thread_id == thread["thread_id"],
+                models.ApplicantMessage.sender_type != "applicant",
+                models.ApplicantMessage.is_read == False,
+            ).count()
+            thread["unread_count"] = unread
+            thread["application_id"] = app_id
+            thread["applicant_name"] = f"{applicant.first_name} {applicant.last_name}"
+            thread["job_title"] = app.requisition.title if app and app.requisition else None
+        all_threads.extend(threads)
+
+    # Sort by most recent
+    all_threads.sort(key=lambda t: t.get("last_message_at", ""), reverse=True)
+    return {"threads": all_threads}
+
+
+@router.get("/my-messages/{thread_id}")
+def get_applicant_thread(
+    thread_id: str,
+    applicant: models.Applicant = Depends(get_current_applicant),
+    db: Session = Depends(get_db),
+):
+    """Get messages in a thread (excludes internal notes)."""
+    # Verify applicant owns this thread
+    first_msg = db.query(models.ApplicantMessage).filter(
+        models.ApplicantMessage.thread_id == thread_id
+    ).first()
+    if not first_msg:
+        raise HTTPException(status_code=404, detail="Thread not found")
+
+    app = db.query(models.Application).filter(
+        models.Application.id == first_msg.application_id,
+        models.Application.applicant_id == applicant.id,
+    ).first()
+    if not app:
+        raise HTTPException(status_code=404, detail="Thread not found")
+
+    # Mark messages from HR/HM as read
+    messaging_service.mark_read(db, thread_id, "applicant", applicant.id)
+    db.commit()
+
+    messages = messaging_service.get_messages(db, thread_id, include_internal=False)
+
+    result = []
+    for msg in messages:
+        sender_name = "Unknown"
+        if msg.sender_type == "applicant":
+            sender_name = f"{applicant.first_name} {applicant.last_name}"
+        elif msg.sender_user:
+            sender_name = msg.sender_user.full_name or msg.sender_user.username
+
+        result.append({
+            "id": msg.id,
+            "message_id": msg.message_id,
+            "thread_id": msg.thread_id,
+            "sender_type": msg.sender_type,
+            "sender_name": sender_name,
+            "subject": msg.subject,
+            "body": msg.body,
+            "is_internal": False,
+            "is_read": msg.is_read,
+            "read_at": msg.read_at.isoformat() if msg.read_at else None,
+            "created_at": msg.created_at.isoformat() if msg.created_at else None,
+        })
+
+    return {"messages": result}
+
+
+@router.post("/my-messages/{thread_id}/reply")
+def reply_to_thread(
+    thread_id: str,
+    data: ReplyRequest,
+    applicant: models.Applicant = Depends(get_current_applicant),
+    db: Session = Depends(get_db),
+):
+    """Reply to a message thread."""
+    # Verify applicant owns this thread
+    first_msg = db.query(models.ApplicantMessage).filter(
+        models.ApplicantMessage.thread_id == thread_id
+    ).first()
+    if not first_msg:
+        raise HTTPException(status_code=404, detail="Thread not found")
+
+    app = db.query(models.Application).filter(
+        models.Application.id == first_msg.application_id,
+        models.Application.applicant_id == applicant.id,
+    ).first()
+    if not app:
+        raise HTTPException(status_code=404, detail="Thread not found")
+
+    msg = messaging_service.send_message(
+        db, thread_id, "applicant", applicant.id, data.body
+    )
+    db.commit()
+
+    return {
+        "id": msg.id,
+        "message_id": msg.message_id,
+        "thread_id": msg.thread_id,
+        "sender_type": "applicant",
+        "sender_name": f"{applicant.first_name} {applicant.last_name}",
+        "body": msg.body,
+        "is_internal": False,
+        "is_read": False,
+        "created_at": msg.created_at.isoformat() if msg.created_at else None,
+    }
+
+
+@router.get("/interviews/available-slots/{app_id}")
+def get_available_interview_slots(
+    app_id: int,
+    applicant: models.Applicant = Depends(get_current_applicant),
+    db: Session = Depends(get_db),
+):
+    """Get available interview time slots for self-scheduling."""
+    from app.services.availability_service import availability_service
+    from datetime import datetime
+
+    application = db.query(models.Application).filter(
+        models.Application.id == app_id,
+        models.Application.applicant_id == applicant.id,
+    ).first()
+    if not application:
+        raise HTTPException(status_code=404, detail="Application not found")
+
+    slots = availability_service.get_available_slots(
+        db, requisition_id=application.requisition_id, after=datetime.utcnow()
+    )
+
+    return {
+        "slots": [
+            {
+                "id": s.id,
+                "user_id": s.user_id,
+                "user_name": s.user.full_name if s.user else None,
+                "start_time": s.start_time.isoformat() if s.start_time else None,
+                "end_time": s.end_time.isoformat() if s.end_time else None,
+                "time_zone": s.time_zone,
+                "slot_duration_minutes": s.slot_duration_minutes,
+                "is_booked": s.is_booked,
+                "requisition_id": s.requisition_id,
+            }
+            for s in slots
+        ]
+    }
+
+
+@router.post("/interviews/book/{app_id}")
+def book_interview_slot(
+    app_id: int,
+    request: dict,
+    applicant: models.Applicant = Depends(get_current_applicant),
+    db: Session = Depends(get_db),
+):
+    """Book an interview slot (self-scheduling)."""
+    from app.services.availability_service import availability_service
+    from app.services.recruiting_service import recruiting_service
+
+    slot_id = request.get("slot_id")
+    if not slot_id:
+        raise HTTPException(status_code=400, detail="slot_id is required")
+
+    application = db.query(models.Application).filter(
+        models.Application.id == app_id,
+        models.Application.applicant_id == applicant.id,
+    ).first()
+    if not application:
+        raise HTTPException(status_code=404, detail="Application not found")
+
+    # Verify the slot exists and is available
+    slot = db.query(models.InterviewerAvailability).filter(
+        models.InterviewerAvailability.id == slot_id,
+        models.InterviewerAvailability.is_booked == False,
+    ).first()
+    if not slot:
+        raise HTTPException(status_code=400, detail="Slot not available")
+
+    interviewer = slot.user
+
+    # Create the interview record
+    interview = models.Interview(
+        interview_id=recruiting_service.generate_interview_id(db),
+        application_id=app_id,
+        scheduled_at=slot.start_time,
+        duration_minutes=slot.slot_duration_minutes,
+        time_zone=slot.time_zone,
+        format="Video",
+        interviewers=[{
+            "user_id": slot.user_id,
+            "name": interviewer.full_name if interviewer else "Interviewer",
+            "role": "interviewer",
+        }],
+        status="Scheduled",
+        applicant_notified=True,
+    )
+    db.add(interview)
+    db.flush()
+
+    # Book the slot
+    availability_service.book_slot(db, slot_id, interview.id)
+
+    # Log activity
+    recruiting_service.log_activity(
+        db, app_id, "interview_self_scheduled",
+        f"Candidate self-scheduled interview for {slot.start_time.strftime('%b %d at %I:%M %p') if slot.start_time else 'TBD'}",
+        is_internal=False,
+    )
+    db.commit()
+
+    return {
+        "message": "Interview booked successfully",
+        "interview": {
+            "id": interview.id,
+            "interview_id": interview.interview_id,
+            "scheduled_at": interview.scheduled_at.isoformat() if interview.scheduled_at else None,
+            "duration_minutes": interview.duration_minutes,
+            "format": interview.format,
+            "time_zone": interview.time_zone,
+            "status": interview.status,
+            "interviewers": interview.interviewers,
+        },
+    }
+
+
+@router.put("/profile/pool-preference")
+def update_pool_preference(
+    request: dict,
+    applicant: models.Applicant = Depends(get_current_applicant),
+    db: Session = Depends(get_db),
+):
+    """Update cross-role consideration opt-in preference."""
+    from datetime import datetime
+
+    open_to_other_roles = request.get("open_to_other_roles", False)
+
+    if open_to_other_roles and not applicant.open_to_other_roles:
+        applicant.pool_opted_in_at = datetime.utcnow()
+    elif not open_to_other_roles:
+        applicant.pool_opted_in_at = None
+
+    applicant.open_to_other_roles = open_to_other_roles
+    db.commit()
+
+    return {
+        "message": "Pool preference updated",
+        "open_to_other_roles": applicant.open_to_other_roles,
+        "pool_opted_in_at": applicant.pool_opted_in_at.isoformat() if applicant.pool_opted_in_at else None,
+    }
+
+
+class NegotiationRequest(BaseModel):
+    desired_salary: Optional[float] = None
+    desired_signing_bonus: Optional[float] = None
+    desired_start_date: Optional[str] = None
+    notes: str
+
+
+@router.post("/my-offers/{offer_id}/negotiate")
+def submit_counter_proposal(
+    offer_id: int,
+    data: NegotiationRequest,
+    applicant: models.Applicant = Depends(get_current_applicant),
+    db: Session = Depends(get_db),
+):
+    """Submit a counter-proposal for an offer."""
+    from app.services.recruiting_service import recruiting_service
+
+    offer = db.query(models.OfferLetter).options(
+        joinedload(models.OfferLetter.application),
+    ).filter(models.OfferLetter.id == offer_id).first()
+
+    if not offer:
+        raise HTTPException(status_code=404, detail="Offer not found")
+
+    if not offer.application or offer.application.applicant_id != applicant.id:
+        raise HTTPException(status_code=403, detail="Access denied")
+
+    if offer.status != "Sent":
+        raise HTTPException(status_code=400, detail="Can only negotiate an active offer")
+
+    # Check expiration
+    if offer.expires_at:
+        from datetime import datetime
+        if datetime.utcnow() > offer.expires_at:
+            raise HTTPException(status_code=400, detail="Offer has expired")
+
+    # Update offer status
+    offer.status = "Negotiating"
+    offer.negotiation_notes = data.notes
+
+    # Log activity with details
+    details = {
+        "desired_salary": data.desired_salary,
+        "desired_signing_bonus": data.desired_signing_bonus,
+        "desired_start_date": data.desired_start_date,
+        "notes": data.notes,
+    }
+    recruiting_service.log_activity(
+        db, offer.application_id, "negotiation_requested",
+        f"Candidate submitted a counter-proposal: {data.notes[:100]}",
+        details=details,
+        is_internal=False,
+    )
+    db.commit()
+
+    return {
+        "message": "Negotiation request submitted",
+        "status": "Negotiating",
+    }
+
+
+@router.get("/my-offers/{offer_id}/download-letter")
+def download_offer_letter(
+    offer_id: int,
+    applicant: models.Applicant = Depends(get_current_applicant),
+    db: Session = Depends(get_db),
+):
+    """Download the offer letter PDF for the authenticated applicant."""
+    offer = db.query(models.OfferLetter).options(
+        joinedload(models.OfferLetter.application),
+        joinedload(models.OfferLetter.offer_letter_file),
+    ).filter(models.OfferLetter.id == offer_id).first()
+
+    if not offer:
+        raise HTTPException(status_code=404, detail="Offer not found")
+    if not offer.application or offer.application.applicant_id != applicant.id:
+        raise HTTPException(status_code=403, detail="Access denied")
+    if offer.status not in ("Sent", "Accepted", "Declined", "Expired", "Rescinded", "Negotiating"):
+        raise HTTPException(status_code=404, detail="Offer not found")
+
+    if not offer.offer_letter_file:
+        raise HTTPException(status_code=404, detail="Offer letter file not available")
+
+    file_upload = offer.offer_letter_file
+    if not file_upload.file_path or not os.path.exists(file_upload.file_path):
+        raise HTTPException(status_code=404, detail="File not found on disk")
+
+    return FileResponse(
+        path=file_upload.file_path,
+        filename=file_upload.original_filename or f"offer-letter-{offer.offer_id}.pdf",
+        media_type=file_upload.mime_type or "application/pdf",
+    )
+
+
+@router.get("/my-offers/{offer_id}/versions")
+def get_offer_versions(
+    offer_id: int,
+    applicant: models.Applicant = Depends(get_current_applicant),
+    db: Session = Depends(get_db),
+):
+    """Get all versions of an offer letter for the authenticated applicant."""
+    offer = db.query(models.OfferLetter).options(
+        joinedload(models.OfferLetter.application),
+    ).filter(models.OfferLetter.id == offer_id).first()
+
+    if not offer:
+        raise HTTPException(status_code=404, detail="Offer not found")
+    if not offer.application or offer.application.applicant_id != applicant.id:
+        raise HTTPException(status_code=403, detail="Access denied")
+
+    # Walk the version chain
+    versions = []
+    current = offer
+    visited = set()
+
+    while current and current.id not in visited:
+        visited.add(current.id)
+        if current.status not in ("Draft",):  # Only show non-draft versions
+            versions.append({
+                "id": current.id,
+                "version": current.version,
+                "status": current.status,
+                "salary": current.salary,
+                "signing_bonus": current.signing_bonus,
+                "sent_at": current.sent_at.isoformat() if current.sent_at else None,
+                "version_notes": current.version_notes,
+                "is_counter_offer": current.is_counter_offer,
+                "is_current": current.id == offer.id,
+            })
+        # Walk backwards
+        if current.previous_offer_id:
+            current = db.query(models.OfferLetter).filter(
+                models.OfferLetter.id == current.previous_offer_id
+            ).first()
+        else:
+            current = None
+
+    # Reverse to show oldest first
+    versions.reverse()
+
+    return {"versions": versions}

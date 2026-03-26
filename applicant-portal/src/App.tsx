@@ -9,6 +9,8 @@ import ApplicationStatusPage from '@/pages/ApplicationStatusPage';
 import OfferViewPage from '@/pages/OfferViewPage';
 import DocumentUploadPage from '@/pages/DocumentUploadPage';
 import ApplicantProfilePage from '@/pages/ApplicantProfilePage';
+import MessagesPage from '@/pages/MessagesPage';
+import InterviewSchedulingPage from '@/pages/InterviewSchedulingPage';
 import MagicLinkVerify from '@/pages/MagicLinkVerify';
 import PortalLayout from '@/components/PortalLayout';
 
@@ -26,7 +28,9 @@ export default function App() {
             <Route path="/auth/verify/:token" element={<MagicLinkVerify />} />
             <Route path="/my-applications" element={<MyApplicationsPage />} />
             <Route path="/my-applications/:id" element={<ApplicationStatusPage />} />
+            <Route path="/my-applications/:id/schedule-interview" element={<InterviewSchedulingPage />} />
             <Route path="/my-offers/:offerId" element={<OfferViewPage />} />
+            <Route path="/my-messages" element={<MessagesPage />} />
             <Route path="/my-documents" element={<DocumentUploadPage />} />
             <Route path="/profile" element={<ApplicantProfilePage />} />
           </Route>

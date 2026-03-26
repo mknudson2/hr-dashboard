@@ -53,6 +53,10 @@ import InternalApplicationsPage from '@/pages/InternalApplicationsPage';
 import NewRequisitionRequestPage from '@/pages/hiring/NewRequisitionRequestPage';
 import MyRequisitionsPage from '@/pages/hiring/MyRequisitionsPage';
 import RequisitionTrackerPage from '@/pages/hiring/RequisitionTrackerPage';
+import ScorecardTemplatesPage from '@/pages/hiring/ScorecardTemplatesPage';
+import CandidateSelectionPage from '@/pages/hiring/CandidateSelectionPage';
+import NegotiationTimelinePage from '@/pages/hiring/NegotiationTimelinePage';
+import HiringApprovalsPage from '@/pages/hiring/PendingApprovalsPage';
 
 // Redirect component for garnishment detail (handles :id parameter properly)
 function GarnishmentRedirect() {
@@ -168,6 +172,10 @@ function AppRoutes() {
         <Route path="/hiring/new-request" element={<NewRequisitionRequestPage />} />
         <Route path="/hiring/my-requisitions" element={<MyRequisitionsPage />} />
         <Route path="/hiring/requisitions/:id" element={<RequisitionTrackerPage />} />
+        <Route path="/hiring/scorecard-templates" element={<ScorecardTemplatesPage />} />
+        <Route path="/hiring/requisitions/:reqId/selection" element={<CandidateSelectionPage />} />
+        <Route path="/hiring/requisitions/:reqId/negotiation/:offerId" element={<NegotiationTimelinePage />} />
+        <Route path="/hiring/approvals" element={<HiringApprovalsPage />} />
 
         {/* Team Section - Supervisor Only */}
         <Route

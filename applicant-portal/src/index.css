@@ -1,15 +1,113 @@
 @import "tailwindcss";
 
+/* ========================================================================
+   Bifröst Light Design System Tokens
+   ======================================================================== */
+
 :root {
-  --primary: #2563eb;
-  --primary-hover: #1d4ed8;
+  /* Bifröst Core Colors */
+  --bifrost-violet: #6C3FA0;
+  --bifrost-violet-light: #8B5FC4;
+  --bifrost-violet-dark: #5A2E8A;
+  --aurora-teal: #2ABFBF;
+  --aurora-teal-light: #4DD4D4;
+  --aurora-teal-dark: #1F9E9E;
+  --bridge-gold: #E8B84B;
+  --bridge-gold-light: #F0CC73;
+  --bridge-gold-dark: #D4A030;
+
+  /* Bifröst Atmospherics */
+  --realm-white: #F8F7F4;
+  --frost: #EEF2F7;
+
+  /* Bifröst Semantic */
+  --bifrost-text-primary: #1A1A2E;
+  --bifrost-text-secondary: #4A4A62;
+  --bifrost-text-muted: #8E8E9E;
+  --bifrost-card-border: rgba(108, 63, 160, 0.06);
+  --bifrost-card-shadow: 0 1px 3px rgba(26, 26, 46, 0.04), 0 4px 14px rgba(26, 26, 46, 0.03);
+  --bifrost-card-shadow-hover: 0 4px 20px rgba(108, 63, 160, 0.1), 0 8px 30px rgba(26, 26, 46, 0.06);
+}
+
+/* Tailwind v4 theme extension for Bifröst Light */
+@theme {
+  --font-display: 'Jost', 'Montserrat', sans-serif;
+  --font-body: 'DM Sans', system-ui, sans-serif;
+
+  --color-bifrost-violet: #6C3FA0;
+  --color-bifrost-violet-light: #8B5FC4;
+  --color-bifrost-violet-dark: #5A2E8A;
+  --color-aurora-teal: #2ABFBF;
+  --color-aurora-teal-light: #4DD4D4;
+  --color-aurora-teal-dark: #1F9E9E;
+  --color-bridge-gold: #E8B84B;
+  --color-bridge-gold-light: #F0CC73;
+  --color-bridge-gold-dark: #D4A030;
+  --color-realm-white: #F8F7F4;
+  --color-frost: #EEF2F7;
 }
 
 body {
   margin: 0;
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
-    'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue', sans-serif;
+  font-family: 'DM Sans', system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-  background-color: #f9fafb;
+  background-color: var(--realm-white);
+  color: var(--bifrost-text-primary);
 }
+
+/* ========================================================================
+   Bifröst Light Animations
+   ======================================================================== */
+
+@keyframes shimmerSlide {
+  0% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+
+/* ========================================================================
+   Bifröst Light Utility Classes
+   ======================================================================== */
+
+/* Shimmer bar gradient (light variant — same gradient, white rail) */
+.bifrost-shimmer-light {
+  height: 3px;
+  background: linear-gradient(90deg, #6C3FA0, #2ABFBF, #E8B84B, #2ABFBF, #6C3FA0);
+  background-size: 300% 100%;
+  animation: shimmerSlide 6s ease infinite;
+}
+
+/* Light aurora hero gradient (pastel, white-based) */
+.bifrost-aurora-light {
+  background:
+    radial-gradient(ellipse at 20% 80%, rgba(42, 191, 191, 0.08) 0%, transparent 50%),
+    radial-gradient(ellipse at 80% 20%, rgba(232, 184, 75, 0.06) 0%, transparent 50%),
+    radial-gradient(ellipse at 50% 50%, rgba(108, 63, 160, 0.07) 0%, transparent 70%),
+    linear-gradient(135deg, #FAFAF8 0%, #F8F7F4 40%, #F5F3EF 100%);
+}
+
+/* Glass card utility */
+.bifrost-glass-card {
+  backdrop-filter: blur(12px);
+  background: rgba(255, 255, 255, 0.85);
+  border: 1px solid var(--bifrost-card-border);
+  box-shadow: var(--bifrost-card-shadow);
+}
+
+/* ========================================================================
+   Bifröst Light Theme Cascade Overrides
+   Swaps default blue → violet for all child content
+   ======================================================================== */
+
+.bifrost-light .bg-blue-600 { background-color: var(--bifrost-violet) !important; }
+.bifrost-light .bg-blue-700 { background-color: var(--bifrost-violet-dark) !important; }
+.bifrost-light .bg-blue-500 { background-color: var(--bifrost-violet-light) !important; }
+.bifrost-light .text-blue-600 { color: var(--bifrost-violet) !important; }
+.bifrost-light .text-blue-700 { color: var(--bifrost-violet-dark) !important; }
+.bifrost-light .text-blue-500 { color: var(--bifrost-violet-light) !important; }
+.bifrost-light .hover\:text-blue-800:hover { color: var(--bifrost-violet-dark) !important; }
+.bifrost-light .border-blue-600 { border-color: var(--bifrost-violet) !important; }
+.bifrost-light .ring-blue-500 { --tw-ring-color: var(--bifrost-violet-light) !important; }
+.bifrost-light .focus\:ring-blue-500:focus { --tw-ring-color: var(--bifrost-violet-light) !important; }
+.bifrost-light .hover\:bg-blue-700:hover { background-color: var(--bifrost-violet-dark) !important; }

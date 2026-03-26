@@ -172,7 +172,7 @@ export default function RequisitionListPage() {
                   <td className="px-4 py-3 text-sm text-gray-600 dark:text-gray-400">{req.department || '—'}</td>
                   <td className="px-4 py-3 text-sm text-gray-600 dark:text-gray-400">
                     {req.location || '—'}
-                    {req.remote_type !== 'On-site' && (
+                    {req.remote_type !== 'On-site' && req.location?.toLowerCase() !== req.remote_type?.toLowerCase() && (
                       <span className="ml-1 text-xs text-blue-600 dark:text-blue-400">({req.remote_type})</span>
                     )}
                   </td>

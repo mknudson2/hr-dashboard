@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
-import { MessageSquare, FileText, User, Send, Plus, Upload, Download, ChevronDown, ChevronUp } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import { MessageSquare, FileText, User, Send, Plus, Upload, Download, ChevronDown, ChevronUp, FileSignature } from 'lucide-react';
 import type { LifecycleStage } from './LifecycleTracker';
 
 interface StageNote {
@@ -53,10 +54,24 @@ export default function StageDetailPanel({
   const [expandedSection, setExpandedSection] = useState<'notes' | 'documents' | null>('notes');
   const [uploadingDoc, setUploadingDoc] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const navigate = useNavigate();
+
+  // Offer-related state for offer_extended stage
+  interface OfferCandidate {
+    id: number;
+    applicant_name: string;
+    status: string;
+    offer?: { id: number; offer_id: string; status: string; salary: number | null; sent_at: string | null } | null;
+  }
+  const [offerCandidates, setOfferCandidates] = useState<OfferCandidate[]>([]);
+  const [loadingOffers, setLoadingOffers] = useState(false);
 
   useEffect(() => {
     fetchNotes();
     fetchDocuments();
+    if (stage.stage_key === 'offer_extended') {
+      fetchOfferCandidates();
+    }
   }, [stage.id]);
 
   const fetchNotes = async () => {
@@ -84,6 +99,41 @@ export default function StageDetailPanel({
       }
     } catch {
       // silent
+    }
+  };
+
+  const fetchOfferCandidates = async () => {
+    setLoadingOffers(true);
+    try {
+      // Fetch applications for this requisition
+      const appsRes = await fetch(`/recruiting/requisitions/${requisitionId}/applications`, {
+        credentials: 'include',
+      });
+      if (!appsRes.ok) return;
+      const appsData = await appsRes.json();
+      const apps: { id: number; applicant: { name: string }; status: string }[] = appsData.applications || [];
+
+      // Fetch all offers for this requisition's applications
+      const offersRes = await fetch(`/recruiting/offers?limit=200`, { credentials: 'include' });
+      const offersData = offersRes.ok ? await offersRes.json() : { offers: [] };
+      const allOffers: { id: number; offer_id: string; application_id: number; status: string; salary: number | null; sent_at: string | null }[] = offersData.offers || [];
+
+      // Build candidate list — only show non-rejected/withdrawn applications
+      const eligible = apps.filter(a => !['Rejected', 'Withdrawn'].includes(a.status));
+      const candidates: OfferCandidate[] = eligible.map(a => {
+        const offer = allOffers.find(o => o.application_id === a.id);
+        return {
+          id: a.id,
+          applicant_name: a.applicant.name,
+          status: a.status,
+          offer: offer ? { id: offer.id, offer_id: offer.offer_id, status: offer.status, salary: offer.salary, sent_at: offer.sent_at } : null,
+        };
+      });
+      setOfferCandidates(candidates);
+    } catch {
+      // silent
+    } finally {
+      setLoadingOffers(false);
     }
   };
 
@@ -239,6 +289,68 @@ export default function StageDetailPanel({
           </div>
         )}
       </div>
+
+      {/* Offer Candidates Section — shown for offer_extended stage */}
+      {stage.stage_key === 'offer_extended' && (
+        <div className="border-b border-gray-200 dark:border-gray-700">
+          <div className="p-4">
+            <h4 className="flex items-center gap-2 text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3">
+              <FileSignature className="w-4 h-4" />
+              Offer Letters
+            </h4>
+            {loadingOffers ? (
+              <div className="animate-pulse space-y-2">
+                {[1, 2].map(i => <div key={i} className="h-10 bg-gray-200 dark:bg-gray-700 rounded" />)}
+              </div>
+            ) : offerCandidates.length === 0 ? (
+              <p className="text-sm text-gray-400 dark:text-gray-500">No eligible candidates. Add applications to this requisition first.</p>
+            ) : (
+              <div className="space-y-2">
+                {offerCandidates.map(c => (
+                  <div
+                    key={c.id}
+                    className="flex items-center justify-between bg-gray-50 dark:bg-gray-700/50 rounded-lg px-3 py-2.5"
+                  >
+                    <div className="min-w-0">
+                      <p className="text-sm font-medium text-gray-900 dark:text-white truncate">{c.applicant_name}</p>
+                      <p className="text-xs text-gray-400 dark:text-gray-500">
+                        Status: {c.status}
+                        {c.offer && (
+                          <> · Offer: <span className={
+                            c.offer.status === 'Accepted' ? 'text-green-600 dark:text-green-400' :
+                            c.offer.status === 'Sent' ? 'text-purple-600 dark:text-purple-400' :
+                            c.offer.status === 'Declined' ? 'text-red-600 dark:text-red-400' :
+                            ''
+                          }>{c.offer.status}</span>
+                          {c.offer.salary && <> · ${c.offer.salary.toLocaleString()}</>}
+                          </>
+                        )}
+                      </p>
+                    </div>
+                    <div className="flex-shrink-0 ml-3">
+                      {c.offer ? (
+                        <button
+                          onClick={() => navigate(`/recruiting/offers/${c.offer!.id}`)}
+                          className="px-3 py-1.5 text-xs font-medium bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400 rounded-lg hover:bg-green-200 dark:hover:bg-green-900/50"
+                        >
+                          View Offer
+                        </button>
+                      ) : (
+                        <button
+                          onClick={() => navigate(`/recruiting/offers/new?applicationId=${c.id}`)}
+                          className="px-3 py-1.5 text-xs font-medium bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400 rounded-lg hover:bg-blue-200 dark:hover:bg-blue-900/50"
+                        >
+                          Create Offer
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+      )}
 
       {/* Notes Section */}
       <div className="border-b border-gray-200 dark:border-gray-700">

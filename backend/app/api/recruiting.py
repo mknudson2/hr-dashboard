@@ -875,7 +875,7 @@ async def create_application_for_requisition(
     if req.pipeline_template_id:
         first_stage = db.query(models.PipelineStage).filter(
             models.PipelineStage.template_id == req.pipeline_template_id,
-        ).order_by(models.PipelineStage.stage_order).first()
+        ).order_by(models.PipelineStage.order_index).first()
 
     application = models.Application(
         application_id=application_id,
@@ -1090,10 +1090,17 @@ def recruiting_dashboard(
         .group_by(models.Application.status).all()
     )
 
-    recent_apps = db.query(models.Application).options(
-        joinedload(models.Application.applicant),
-        joinedload(models.Application.requisition),
-    ).order_by(models.Application.created_at.desc()).limit(10).all()
+    recent_reqs = db.query(models.JobRequisition).order_by(
+        models.JobRequisition.created_at.desc()
+    ).limit(10).all()
+
+    # Count applications per requisition
+    app_counts = dict(
+        db.query(models.Application.requisition_id, func.count(models.Application.id))
+        .group_by(models.Application.requisition_id)
+        .filter(models.Application.requisition_id.in_([r.id for r in recent_reqs]))
+        .all()
+    ) if recent_reqs else {}
 
     return {
         "open_requisitions": open_reqs,
@@ -1101,17 +1108,17 @@ def recruiting_dashboard(
         "total_applications": total_apps,
         "new_applications": new_apps,
         "applications_by_status": apps_by_status,
-        "recent_applications": [
+        "recent_requisitions": [
             {
-                "id": a.id,
-                "application_id": a.application_id,
-                "requisition_id": a.requisition_id,
-                "applicant_name": f"{a.applicant.first_name} {a.applicant.last_name}" if a.applicant else "Unknown",
-                "requisition_title": a.requisition.title if a.requisition else "Unknown",
-                "status": a.status,
-                "submitted_at": a.submitted_at.isoformat() if a.submitted_at else None,
+                "id": r.id,
+                "requisition_id": r.requisition_id,
+                "title": r.title,
+                "department": r.department,
+                "status": r.status,
+                "application_count": app_counts.get(r.id, 0),
+                "created_at": r.created_at.isoformat() if r.created_at else None,
             }
-            for a in recent_apps
+            for r in recent_reqs
         ],
     }
 
@@ -1616,6 +1623,13 @@ def get_application_detail(
             "title": app.requisition.title,
             "department": app.requisition.department,
             "location": app.requisition.location,
+            "employment_type": app.requisition.employment_type,
+            "salary_min": app.requisition.salary_min,
+            "salary_max": app.requisition.salary_max,
+            "wage_type": app.requisition.wage_type,
+            "target_start_date": app.requisition.target_start_date.isoformat() if app.requisition.target_start_date else None,
+            "position_supervisor": getattr(app.requisition, 'position_supervisor', None),
+            "benefits_summary": app.requisition.benefits_summary,
         } if app.requisition else None,
         "hiring_team": hiring_team,
         "posting": {
@@ -2475,6 +2489,83 @@ def compare_candidates(
 
 
 # ============================================================================
+# AI SCORECARD ANALYSIS (Phase 3 §2.1)
+# ============================================================================
+
+@router.get("/applications/{application_id}/scorecard-analysis")
+def get_scorecard_analysis(
+    application_id: int,
+    current_user: models.User = Depends(require_any_permission(
+        Permissions.RECRUITING_READ, Permissions.RECRUITING_WRITE, Permissions.RECRUITING_ADMIN
+    )),
+    db: Session = Depends(get_db),
+):
+    """Get existing AI scorecard analysis for an application."""
+    analysis = db.query(models.ScorecardAnalysis).filter(
+        models.ScorecardAnalysis.application_id == application_id
+    ).first()
+    if not analysis:
+        raise HTTPException(status_code=404, detail="No scorecard analysis found")
+    return {
+        "id": analysis.id,
+        "application_id": analysis.application_id,
+        "scorecard_count": analysis.scorecard_count,
+        "consensus_strengths": analysis.consensus_strengths,
+        "consensus_concerns": analysis.consensus_concerns,
+        "disagreements": analysis.disagreements,
+        "red_flags": analysis.red_flags,
+        "overall_recommendation": analysis.overall_recommendation,
+        "confidence_level": analysis.confidence_level,
+        "summary": analysis.summary,
+        "suggested_next_steps": analysis.suggested_next_steps,
+        "status": analysis.status,
+        "error_message": analysis.error_message,
+        "completed_at": analysis.completed_at.isoformat() if analysis.completed_at else None,
+        "created_at": analysis.created_at.isoformat() if analysis.created_at else None,
+    }
+
+
+@router.post("/applications/{application_id}/scorecard-analysis")
+def generate_scorecard_analysis(
+    application_id: int,
+    current_user: models.User = Depends(require_any_permission(
+        Permissions.RECRUITING_WRITE, Permissions.RECRUITING_ADMIN
+    )),
+    db: Session = Depends(get_db),
+):
+    """Generate or refresh AI analysis of all submitted scorecards for an application."""
+    from app.services.scorecard_analysis_service import scorecard_analysis_service
+
+    application = db.query(models.Application).filter(
+        models.Application.id == application_id
+    ).first()
+    if not application:
+        raise HTTPException(status_code=404, detail="Application not found")
+
+    analysis = scorecard_analysis_service.analyze_scorecards(db, application_id)
+    if not analysis:
+        raise HTTPException(status_code=400, detail="Could not generate analysis")
+
+    return {
+        "id": analysis.id,
+        "application_id": analysis.application_id,
+        "scorecard_count": analysis.scorecard_count,
+        "consensus_strengths": analysis.consensus_strengths,
+        "consensus_concerns": analysis.consensus_concerns,
+        "disagreements": analysis.disagreements,
+        "red_flags": analysis.red_flags,
+        "overall_recommendation": analysis.overall_recommendation,
+        "confidence_level": analysis.confidence_level,
+        "summary": analysis.summary,
+        "suggested_next_steps": analysis.suggested_next_steps,
+        "status": analysis.status,
+        "error_message": analysis.error_message,
+        "completed_at": analysis.completed_at.isoformat() if analysis.completed_at else None,
+        "created_at": analysis.created_at.isoformat() if analysis.created_at else None,
+    }
+
+
+# ============================================================================
 # OFFER MANAGEMENT ENDPOINTS (Phase 3)
 # ============================================================================
 
@@ -2700,18 +2791,51 @@ def update_offer(
     return {"message": "Offer updated"}
 
 
+@router.patch("/offers/{offer_id}/submit-for-approval")
+def submit_offer_for_approval(
+    offer_id: int,
+    current_user: models.User = Depends(require_any_permission(
+        Permissions.RECRUITING_WRITE, Permissions.RECRUITING_ADMIN,
+    )),
+    db: Session = Depends(get_db),
+):
+    """Submit a draft offer for hiring manager approval."""
+    offer = db.query(models.OfferLetter).filter(models.OfferLetter.id == offer_id).first()
+    if not offer:
+        raise HTTPException(status_code=404, detail="Offer not found")
+    if offer.status != "Draft":
+        raise HTTPException(status_code=400, detail="Only draft offers can be submitted for approval")
+    offer.status = "Pending Approval"
+    db.commit()
+    return {"message": "Offer submitted for approval", "status": offer.status}
+
+
 @router.patch("/offers/{offer_id}/approve")
 def approve_offer(
     offer_id: int,
     current_user: models.User = Depends(require_any_permission(
-        Permissions.RECRUITING_ADMIN,
+        Permissions.RECRUITING_WRITE, Permissions.RECRUITING_ADMIN,
     )),
     db: Session = Depends(get_db),
 ):
-    """Approve an offer letter."""
-    offer = db.query(models.OfferLetter).filter(models.OfferLetter.id == offer_id).first()
+    """Approve an offer letter. Allowed for RECRUITING_ADMIN or the requisition's hiring manager."""
+    offer = db.query(models.OfferLetter).options(
+        joinedload(models.OfferLetter.application).joinedload(models.Application.requisition),
+    ).filter(models.OfferLetter.id == offer_id).first()
     if not offer:
         raise HTTPException(status_code=404, detail="Offer not found")
+
+    # Check authorization: RECRUITING_ADMIN can always approve,
+    # otherwise must be the hiring manager for the requisition
+    is_admin = any(
+        p.permission_name == Permissions.RECRUITING_ADMIN
+        for p in getattr(current_user, 'role_permissions', [])
+    ) if hasattr(current_user, 'role_permissions') else current_user.role == "admin"
+
+    if not is_admin:
+        requisition = offer.application.requisition if offer.application else None
+        if not requisition or requisition.hiring_manager_id != current_user.id:
+            raise HTTPException(status_code=403, detail="Only the hiring manager or a recruiting admin can approve offers")
 
     try:
         offer_service.approve_offer(db, offer, current_user.id)
@@ -2722,15 +2846,29 @@ def approve_offer(
     return {"message": "Offer approved"}
 
 
+class SendOfferRequest(BaseModel):
+    email_template_id: Optional[int] = None
+    offer_letter_template_id: Optional[int] = None
+    custom_values: dict = {}
+
+
 @router.patch("/offers/{offer_id}/send")
 async def send_offer(
     offer_id: int,
+    body: SendOfferRequest = None,
     current_user: models.User = Depends(require_any_permission(
         Permissions.RECRUITING_WRITE, Permissions.RECRUITING_ADMIN
     )),
     db: Session = Depends(get_db),
 ):
-    """Send an approved offer to the candidate."""
+    """Send an approved offer to the candidate, optionally using templates."""
+    from app.services.template_rendering_service import template_rendering_service
+    from app.services.offer_letter_pdf_service import offer_letter_pdf_service
+    import tempfile
+
+    if body is None:
+        body = SendOfferRequest()
+
     offer = db.query(models.OfferLetter).options(
         joinedload(models.OfferLetter.application).joinedload(models.Application.applicant),
     ).filter(models.OfferLetter.id == offer_id).first()
@@ -2743,18 +2881,79 @@ async def send_offer(
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
 
+    applicant = offer.application.applicant if offer.application else None
+    applicant_name = f"{applicant.first_name} {applicant.last_name}".strip() if applicant else "Candidate"
+    attachment_paths = []
+    pdf_temp_path = None
+
+    # Generate PDF from offer letter template if provided
+    if body.offer_letter_template_id:
+        ol_template = db.query(models.OfferLetterTemplate).filter(
+            models.OfferLetterTemplate.id == body.offer_letter_template_id
+        ).first()
+        if ol_template:
+            rendered_content, _ = template_rendering_service.render(
+                ol_template.html_content,
+                custom_values=body.custom_values,
+                offer=offer,
+            )
+            pdf_buffer = offer_letter_pdf_service.generate_offer_letter_pdf(
+                rendered_content=rendered_content,
+                candidate_name=applicant_name,
+                position_title=offer.position_title or "Position",
+            )
+            # Save PDF to temp file for email attachment
+            fd, pdf_temp_path = tempfile.mkstemp(suffix=".pdf", prefix="offer_letter_")
+            import os
+            with os.fdopen(fd, "wb") as f:
+                f.write(pdf_buffer.read())
+            attachment_paths.append(pdf_temp_path)
+            offer.offer_letter_template_id = body.offer_letter_template_id
+
+    # Render email from template if provided
+    custom_subject = None
+    custom_body_html = None
+    if body.email_template_id:
+        email_tpl = db.query(models.CustomEmailTemplate).filter(
+            models.CustomEmailTemplate.id == body.email_template_id
+        ).first()
+        if email_tpl:
+            rendered_subject, _ = template_rendering_service.render(
+                email_tpl.subject_line,
+                custom_values=body.custom_values,
+                offer=offer,
+            )
+            rendered_body, _ = template_rendering_service.render(
+                email_tpl.html_content,
+                custom_values=body.custom_values,
+                offer=offer,
+            )
+            custom_subject = rendered_subject
+            custom_body_html = rendered_body
+            offer.email_template_id = body.email_template_id
+
     # Send email notification
-    if offer.application and offer.application.applicant:
-        applicant = offer.application.applicant
+    if applicant and applicant.email:
         await recruiting_email_service.send_offer_notification(
             to_email=applicant.email,
-            applicant_name=f"{applicant.first_name} {applicant.last_name}",
+            applicant_name=applicant_name,
             job_title=offer.position_title,
             offer_id=offer.offer_id,
             salary=offer.salary,
             start_date=offer.start_date.isoformat() if offer.start_date else None,
             expires_at=offer.expires_at.isoformat() if offer.expires_at else None,
+            custom_subject=custom_subject,
+            custom_body_html=custom_body_html,
+            attachment_paths=attachment_paths if attachment_paths else None,
         )
+
+    # Clean up temp PDF
+    if pdf_temp_path:
+        import os
+        try:
+            os.unlink(pdf_temp_path)
+        except OSError:
+            pass
 
     db.commit()
     return {"message": "Offer sent to candidate"}
@@ -2807,6 +3006,95 @@ def create_counter_offer(
     )
     db.commit()
     return {"message": "Counter-offer created", "id": counter.id, "offer_id": counter.offer_id}
+
+
+@router.get("/offers/{offer_id}/negotiation-history")
+def get_negotiation_history(
+    offer_id: int,
+    current_user: models.User = Depends(require_any_permission(
+        Permissions.RECRUITING_READ, Permissions.RECRUITING_WRITE, Permissions.RECRUITING_ADMIN
+    )),
+    db: Session = Depends(get_db),
+):
+    """Get full negotiation history for an offer including all versions and applicant proposals."""
+    from app.services.offer_service import offer_service
+
+    offer = db.query(models.OfferLetter).filter(models.OfferLetter.id == offer_id).first()
+    if not offer:
+        raise HTTPException(status_code=404, detail="Offer not found")
+
+    # Get the full negotiation chain
+    chain = offer_service.get_negotiation_chain(db, offer)
+
+    # Get application and applicant info
+    application = db.query(models.Application).options(
+        joinedload(models.Application.applicant)
+    ).filter(models.Application.id == offer.application_id).first()
+
+    applicant_name = f"{application.applicant.first_name} {application.applicant.last_name}" if application and application.applicant else "Unknown"
+
+    # Build offer versions
+    offer_versions = []
+    for o in chain:
+        offer_versions.append({
+            "id": o.id,
+            "offer_id": o.offer_id,
+            "version": o.version if hasattr(o, 'version') and o.version else 1,
+            "salary": float(o.salary) if o.salary else None,
+            "signing_bonus": float(o.signing_bonus) if o.signing_bonus else None,
+            "start_date": o.start_date.isoformat() if o.start_date else None,
+            "benefits_summary": o.benefits_summary,
+            "status": o.status,
+            "is_counter_offer": o.is_counter_offer,
+            "negotiation_notes": o.negotiation_notes,
+            "created_at": o.created_at.isoformat() if o.created_at else None,
+        })
+
+    # Get applicant counter-proposals from activity log
+    applicant_proposals = []
+    if application:
+        activities = db.query(models.ApplicationActivity).filter(
+            models.ApplicationActivity.application_id == application.id,
+            models.ApplicationActivity.activity_type == "negotiation_requested",
+        ).order_by(models.ApplicationActivity.created_at).all()
+
+        for act in activities:
+            details = act.details or {}
+            applicant_proposals.append({
+                "desired_salary": details.get("desired_salary"),
+                "desired_signing_bonus": details.get("desired_signing_bonus"),
+                "desired_start_date": details.get("desired_start_date"),
+                "notes": details.get("notes"),
+                "submitted_at": act.created_at.isoformat() if act.created_at else None,
+            })
+
+    # Get approval requests for counter-offers in the chain
+    offer_ids = [o.id for o in chain]
+    approval_requests = db.query(models.ApprovalRequest).filter(
+        models.ApprovalRequest.resource_type == "counter_offer",
+        models.ApprovalRequest.resource_id.in_(offer_ids),
+    ).all()
+
+    approval_data = []
+    for ar in approval_requests:
+        approval_data.append({
+            "id": ar.id,
+            "resource_id": ar.resource_id,
+            "status": ar.status,
+            "notes": ar.notes,
+            "created_at": ar.created_at.isoformat() if ar.created_at else None,
+            "acted_at": ar.acted_at.isoformat() if ar.acted_at else None,
+        })
+
+    return {
+        "application_id": offer.application_id,
+        "applicant_name": applicant_name,
+        "negotiation_round": application.negotiation_round if application else 0,
+        "current_offer": offer_versions[-1] if offer_versions else None,
+        "offer_versions": offer_versions,
+        "applicant_proposals": applicant_proposals,
+        "approval_requests": approval_data,
+    }
 
 
 # ============================================================================
@@ -3450,3 +3738,612 @@ def update_compliance_tip(
 
     db.commit()
     return {"message": "Compliance tip updated"}
+
+
+# ============================================================================
+# ATS PHASE 0 — STAKEHOLDER ENDPOINTS
+# ============================================================================
+
+_DEFAULT_STAKEHOLDER_ACCESS_LEVELS = {
+    "vp_svp": "full_access",
+    "hiring_manager": "full_access",
+    "interviewer": "interview_and_pipeline_view",
+    "observer": "pipeline_view_only",
+}
+
+
+class AddStakeholderRequest(BaseModel):
+    user_id: int
+    role: str  # one of: "vp_svp", "hiring_manager", "interviewer", "observer"
+    access_level: Optional[str] = None
+
+
+class UpdateStakeholderRequest(BaseModel):
+    role: Optional[str] = None
+    access_level: Optional[str] = None
+
+
+@router.get("/requisitions/{requisition_id}/stakeholders")
+def list_requisition_stakeholders(
+    requisition_id: int,
+    current_user: models.User = Depends(require_any_permission(
+        Permissions.RECRUITING_STAKEHOLDER_MANAGE, Permissions.RECRUITING_ADMIN, Permissions.RECRUITING_READ
+    )),
+    db: Session = Depends(get_db),
+):
+    """List stakeholders with roles for a requisition."""
+    stakeholders = (
+        db.query(models.RequisitionStakeholder)
+        .options(
+            joinedload(models.RequisitionStakeholder.user),
+            joinedload(models.RequisitionStakeholder.assigned_by_user),
+        )
+        .filter(
+            models.RequisitionStakeholder.requisition_id == requisition_id,
+            models.RequisitionStakeholder.is_active == True,  # noqa: E712
+        )
+        .all()
+    )
+
+    return [
+        {
+            "id": s.id,
+            "user_id": s.user_id,
+            "user_name": s.user.full_name if s.user else None,
+            "role": s.role,
+            "access_level": s.access_level,
+            "assigned_by_id": s.assigned_by,
+            "assigned_by_name": s.assigned_by_user.full_name if s.assigned_by_user else None,
+            "assigned_at": s.assigned_at.isoformat() if s.assigned_at else None,
+        }
+        for s in stakeholders
+    ]
+
+
+@router.post("/requisitions/{requisition_id}/stakeholders")
+def add_requisition_stakeholder(
+    requisition_id: int,
+    request: AddStakeholderRequest,
+    current_user: models.User = Depends(require_any_permission(
+        Permissions.RECRUITING_STAKEHOLDER_MANAGE, Permissions.RECRUITING_ADMIN
+    )),
+    db: Session = Depends(get_db),
+):
+    """Add a stakeholder to a requisition."""
+    # Validate requisition exists
+    req = db.query(models.JobRequisition).filter(
+        models.JobRequisition.id == requisition_id,
+    ).first()
+    if not req:
+        raise HTTPException(status_code=404, detail="Requisition not found")
+
+    # Validate user exists
+    target_user = db.query(models.User).filter(models.User.id == request.user_id).first()
+    if not target_user:
+        raise HTTPException(status_code=404, detail="User not found")
+
+    # Check not already an active stakeholder
+    existing = (
+        db.query(models.RequisitionStakeholder)
+        .filter(
+            models.RequisitionStakeholder.requisition_id == requisition_id,
+            models.RequisitionStakeholder.user_id == request.user_id,
+            models.RequisitionStakeholder.is_active == True,  # noqa: E712
+        )
+        .first()
+    )
+    if existing:
+        raise HTTPException(
+            status_code=409,
+            detail="User is already an active stakeholder for this requisition",
+        )
+
+    # Determine access level
+    access_level = request.access_level if request.access_level else _DEFAULT_STAKEHOLDER_ACCESS_LEVELS.get(request.role, "pipeline_view_only")
+
+    stakeholder = models.RequisitionStakeholder(
+        requisition_id=requisition_id,
+        user_id=request.user_id,
+        role=request.role,
+        access_level=access_level,
+        assigned_by=current_user.id,
+        is_active=True,
+    )
+    db.add(stakeholder)
+    db.commit()
+    db.refresh(stakeholder)
+
+    return {
+        "id": stakeholder.id,
+        "user_id": stakeholder.user_id,
+        "user_name": target_user.full_name,
+        "role": stakeholder.role,
+        "access_level": stakeholder.access_level,
+        "assigned_by_id": stakeholder.assigned_by,
+        "assigned_by_name": current_user.full_name,
+        "assigned_at": stakeholder.assigned_at.isoformat() if stakeholder.assigned_at else None,
+    }
+
+
+@router.put("/requisitions/{requisition_id}/stakeholders/{stakeholder_id}")
+def update_requisition_stakeholder(
+    requisition_id: int,
+    stakeholder_id: int,
+    request: UpdateStakeholderRequest,
+    current_user: models.User = Depends(require_any_permission(
+        Permissions.RECRUITING_STAKEHOLDER_MANAGE, Permissions.RECRUITING_ADMIN
+    )),
+    db: Session = Depends(get_db),
+):
+    """Update a stakeholder's role."""
+    stakeholder = (
+        db.query(models.RequisitionStakeholder)
+        .options(
+            joinedload(models.RequisitionStakeholder.user),
+            joinedload(models.RequisitionStakeholder.assigned_by_user),
+        )
+        .filter(
+            models.RequisitionStakeholder.id == stakeholder_id,
+            models.RequisitionStakeholder.requisition_id == requisition_id,
+            models.RequisitionStakeholder.is_active == True,  # noqa: E712
+        )
+        .first()
+    )
+    if not stakeholder:
+        raise HTTPException(status_code=404, detail="Stakeholder not found")
+
+    if request.role is not None:
+        stakeholder.role = request.role
+    if request.access_level is not None:
+        stakeholder.access_level = request.access_level
+
+    db.commit()
+    db.refresh(stakeholder)
+
+    return {
+        "id": stakeholder.id,
+        "user_id": stakeholder.user_id,
+        "user_name": stakeholder.user.full_name if stakeholder.user else None,
+        "role": stakeholder.role,
+        "access_level": stakeholder.access_level,
+        "assigned_by_id": stakeholder.assigned_by,
+        "assigned_by_name": stakeholder.assigned_by_user.full_name if stakeholder.assigned_by_user else None,
+        "assigned_at": stakeholder.assigned_at.isoformat() if stakeholder.assigned_at else None,
+    }
+
+
+@router.delete("/requisitions/{requisition_id}/stakeholders/{stakeholder_id}")
+def remove_requisition_stakeholder(
+    requisition_id: int,
+    stakeholder_id: int,
+    current_user: models.User = Depends(require_any_permission(
+        Permissions.RECRUITING_STAKEHOLDER_MANAGE, Permissions.RECRUITING_ADMIN
+    )),
+    db: Session = Depends(get_db),
+):
+    """Remove a stakeholder from a requisition."""
+    stakeholder = (
+        db.query(models.RequisitionStakeholder)
+        .filter(
+            models.RequisitionStakeholder.id == stakeholder_id,
+            models.RequisitionStakeholder.requisition_id == requisition_id,
+            models.RequisitionStakeholder.is_active == True,  # noqa: E712
+        )
+        .first()
+    )
+    if not stakeholder:
+        raise HTTPException(status_code=404, detail="Stakeholder not found")
+
+    stakeholder.is_active = False
+    db.commit()
+
+    return {"message": "Stakeholder removed"}
+
+
+# ============================================================================
+# ATS PHASE 0 — INTERVIEWER AVAILABILITY (Stubs)
+# ============================================================================
+
+@router.get("/availability")
+def list_my_availability(
+    current_user: models.User = Depends(require_any_permission(
+        Permissions.RECRUITING_AVAILABILITY_MANAGE, Permissions.RECRUITING_ADMIN
+    )),
+    db: Session = Depends(get_db),
+):
+    """List current user's availability slots."""
+    from app.services.availability_service import availability_service
+
+    slots = (
+        db.query(models.InterviewerAvailability)
+        .filter(models.InterviewerAvailability.user_id == current_user.id)
+        .order_by(models.InterviewerAvailability.start_time)
+        .all()
+    )
+    return {
+        "slots": [
+            {
+                "id": s.id,
+                "user_id": s.user_id,
+                "user_name": current_user.full_name,
+                "start_time": s.start_time.isoformat() if s.start_time else None,
+                "end_time": s.end_time.isoformat() if s.end_time else None,
+                "time_zone": s.time_zone,
+                "slot_duration_minutes": s.slot_duration_minutes,
+                "is_booked": s.is_booked,
+                "booked_interview_id": s.booked_interview_id,
+                "requisition_id": s.requisition_id,
+                "created_at": s.created_at.isoformat() if s.created_at else None,
+            }
+            for s in slots
+        ]
+    }
+
+
+@router.post("/availability")
+def create_availability_slots(
+    request: dict,
+    current_user: models.User = Depends(require_any_permission(
+        Permissions.RECRUITING_AVAILABILITY_MANAGE, Permissions.RECRUITING_ADMIN
+    )),
+    db: Session = Depends(get_db),
+):
+    """Create availability slots for the current user."""
+    from app.services.availability_service import availability_service
+
+    slots_data = request.get("slots", [])
+    if not slots_data:
+        raise HTTPException(status_code=400, detail="No slots provided")
+
+    requisition_id = request.get("requisition_id")
+    slot_dicts = [
+        {
+            "start_time": s["start_time"],
+            "end_time": s["end_time"],
+            "time_zone": s.get("time_zone"),
+            "slot_duration_minutes": s.get("slot_duration_minutes", 60),
+        }
+        for s in slots_data
+    ]
+
+    created = availability_service.create_slots(db, current_user.id, slot_dicts, requisition_id)
+    db.commit()
+
+    return {
+        "message": f"Created {len(created)} availability slot(s)",
+        "slots": [
+            {
+                "id": s.id,
+                "start_time": s.start_time.isoformat() if s.start_time else None,
+                "end_time": s.end_time.isoformat() if s.end_time else None,
+                "time_zone": s.time_zone,
+                "slot_duration_minutes": s.slot_duration_minutes,
+                "requisition_id": s.requisition_id,
+            }
+            for s in created
+        ],
+    }
+
+
+@router.delete("/availability/{slot_id}")
+def delete_availability_slot(
+    slot_id: int,
+    current_user: models.User = Depends(require_any_permission(
+        Permissions.RECRUITING_AVAILABILITY_MANAGE, Permissions.RECRUITING_ADMIN
+    )),
+    db: Session = Depends(get_db),
+):
+    """Delete an availability slot."""
+    from app.services.availability_service import availability_service
+
+    deleted = availability_service.delete_slot(db, slot_id, current_user.id)
+    if not deleted:
+        raise HTTPException(status_code=404, detail="Slot not found or already booked")
+    db.commit()
+    return {"message": "Slot deleted"}
+
+
+@router.get("/availability/by-requisition/{requisition_id}")
+def get_availability_for_requisition(
+    requisition_id: int,
+    current_user: models.User = Depends(require_any_permission(
+        Permissions.RECRUITING_READ, Permissions.RECRUITING_WRITE, Permissions.RECRUITING_ADMIN
+    )),
+    db: Session = Depends(get_db),
+):
+    """Get all interviewer availability for a requisition."""
+    from app.services.availability_service import availability_service
+
+    slots = availability_service.get_available_slots(db, requisition_id=requisition_id)
+    return {
+        "slots": [
+            {
+                "id": s.id,
+                "user_id": s.user_id,
+                "user_name": s.user.full_name if s.user else None,
+                "start_time": s.start_time.isoformat() if s.start_time else None,
+                "end_time": s.end_time.isoformat() if s.end_time else None,
+                "time_zone": s.time_zone,
+                "slot_duration_minutes": s.slot_duration_minutes,
+                "is_booked": s.is_booked,
+                "requisition_id": s.requisition_id,
+            }
+            for s in slots
+        ]
+    }
+
+
+# ============================================================================
+# ATS PHASE 0 — CANDIDATE SELECTION
+# ============================================================================
+
+@router.get("/requisitions/{requisition_id}/selection-summary")
+def get_candidate_selection_summary(
+    requisition_id: int,
+    current_user: models.User = Depends(require_any_permission(
+        Permissions.RECRUITING_READ, Permissions.RECRUITING_WRITE, Permissions.RECRUITING_ADMIN
+    )),
+    db: Session = Depends(get_db),
+):
+    """Get aggregated candidate data for the selection step."""
+    requisition = db.query(models.JobRequisition).filter(
+        models.JobRequisition.id == requisition_id
+    ).first()
+    if not requisition:
+        raise HTTPException(status_code=404, detail="Requisition not found")
+
+    applications = db.query(models.Application).options(
+        joinedload(models.Application.applicant),
+    ).filter(
+        models.Application.requisition_id == requisition_id,
+        ~models.Application.status.in_(["Rejected", "Withdrawn"]),
+    ).all()
+
+    candidates = []
+    for app in applications:
+        # Gather submitted scorecards
+        scorecards = db.query(models.InterviewScorecard).filter(
+            models.InterviewScorecard.application_id == app.id,
+            models.InterviewScorecard.status == "Submitted",
+        ).all()
+
+        # Build scorecard details with interviewer names
+        scorecard_details = []
+        for sc in scorecards:
+            interviewer = db.query(models.User).filter(models.User.id == sc.interviewer_id).first()
+            scorecard_details.append((sc, interviewer))
+
+        # Aggregate recommendation counts
+        recommendation_counts: dict = {}
+        for sc in scorecards:
+            if sc.recommendation:
+                recommendation_counts[sc.recommendation] = recommendation_counts.get(sc.recommendation, 0) + 1
+
+        # Resume analysis
+        ra = db.query(models.ResumeAnalysis).filter(
+            models.ResumeAnalysis.application_id == app.id
+        ).first()
+
+        # Scorecard analysis
+        sa = db.query(models.ScorecardAnalysis).filter(
+            models.ScorecardAnalysis.application_id == app.id
+        ).first()
+
+        candidates.append({
+            "id": app.id,
+            "application_id": app.application_id,
+            "applicant": {
+                "name": f"{app.applicant.first_name} {app.applicant.last_name}",
+                "email": app.applicant.email,
+                "current_title": app.applicant.current_title,
+                "current_employer": app.applicant.current_employer,
+                "years_of_experience": app.applicant.years_of_experience,
+            },
+            "status": app.status,
+            "overall_rating": app.overall_rating,
+            "scorecard_count": len(scorecards),
+            "recommendation_counts": recommendation_counts,
+            "is_favorite": app.is_favorite,
+            "submitted_at": app.submitted_at.isoformat() if app.submitted_at else None,
+            "resume_analysis": {
+                "overall_score": ra.overall_score,
+                "summary": ra.summary,
+                "strengths": ra.strengths,
+                "weaknesses": ra.weaknesses,
+                "threshold_label": ra.threshold_label,
+            } if ra and ra.status == "Completed" else None,
+            "scorecard_analysis": {
+                "summary": sa.summary,
+                "overall_recommendation": sa.overall_recommendation,
+                "confidence_level": sa.confidence_level,
+            } if sa and sa.status == "Completed" else None,
+            "scorecards": [{
+                "interviewer_name": sc_user.full_name if sc_user else "Unknown",
+                "overall_rating": sc.overall_rating,
+                "recommendation": sc.recommendation,
+                "strengths": sc.strengths,
+                "concerns": sc.concerns,
+            } for sc, sc_user in scorecard_details],
+        })
+
+    return {
+        "requisition_id": requisition.id,
+        "requisition_title": requisition.title,
+        "candidates": candidates,
+    }
+
+
+class SelectionDecision(BaseModel):
+    selected_application_id: int
+    rationale: Optional[str] = None
+    reject_others: bool = True
+
+
+@router.post("/requisitions/{requisition_id}/selection-decision")
+def record_selection_decision(
+    requisition_id: int,
+    data: SelectionDecision,
+    current_user: models.User = Depends(require_any_permission(
+        Permissions.RECRUITING_WRITE, Permissions.RECRUITING_ADMIN
+    )),
+    db: Session = Depends(get_db),
+):
+    """Record a candidate selection decision."""
+    requisition = db.query(models.JobRequisition).filter(
+        models.JobRequisition.id == requisition_id
+    ).first()
+    if not requisition:
+        raise HTTPException(status_code=404, detail="Requisition not found")
+
+    selected_app = db.query(models.Application).filter(
+        models.Application.id == data.selected_application_id,
+        models.Application.requisition_id == requisition_id,
+    ).first()
+    if not selected_app:
+        raise HTTPException(status_code=404, detail="Application not found for this requisition")
+
+    selected_app.status = "Offer"
+
+    if data.reject_others:
+        other_apps = db.query(models.Application).filter(
+            models.Application.requisition_id == requisition_id,
+            models.Application.id != data.selected_application_id,
+            ~models.Application.status.in_(["Rejected", "Withdrawn", "Hired"]),
+        ).all()
+        for app in other_apps:
+            app.status = "Rejected"
+
+    recruiting_service.log_activity(
+        db, data.selected_application_id, "candidate_selected",
+        f"Selected for {requisition.title}",
+        details={"rationale": data.rationale, "rejected_others": data.reject_others},
+        performed_by=current_user.id,
+    )
+
+    db.commit()
+
+    return {
+        "id": selected_app.id,
+        "application_id": selected_app.application_id,
+        "status": selected_app.status,
+        "requisition_id": requisition_id,
+        "message": f"Candidate selected for {requisition.title}",
+    }
+
+
+# ============================================================================
+# ATS — AI CANDIDATE COMPARISON
+# ============================================================================
+
+@router.post("/requisitions/{requisition_id}/ai-comparison")
+def generate_ai_comparison(
+    requisition_id: int,
+    current_user: models.User = Depends(require_any_permission(
+        Permissions.RECRUITING_WRITE, Permissions.RECRUITING_ADMIN
+    )),
+    db: Session = Depends(get_db),
+):
+    """Generate AI-assisted candidate comparison for a requisition."""
+    requisition = db.query(models.JobRequisition).filter(
+        models.JobRequisition.id == requisition_id
+    ).first()
+    if not requisition:
+        raise HTTPException(status_code=404, detail="Requisition not found")
+
+    # Gather candidate data
+    applications = db.query(models.Application).options(
+        joinedload(models.Application.applicant),
+    ).filter(
+        models.Application.requisition_id == requisition_id,
+        ~models.Application.status.in_(["Rejected", "Withdrawn"]),
+    ).all()
+
+    if len(applications) < 2:
+        raise HTTPException(status_code=400, detail="At least 2 candidates required for comparison")
+
+    # Build candidate summaries for Claude
+    candidates_text = []
+    for app in applications:
+        scorecards = db.query(models.InterviewScorecard).filter(
+            models.InterviewScorecard.application_id == app.id,
+            models.InterviewScorecard.status == "Submitted",
+        ).all()
+        resume_analysis = db.query(models.ResumeAnalysis).filter(
+            models.ResumeAnalysis.application_id == app.id,
+            models.ResumeAnalysis.status == "Completed",
+        ).first()
+
+        rec_counts: dict = {}
+        for sc in scorecards:
+            if sc.recommendation:
+                rec_counts[sc.recommendation] = rec_counts.get(sc.recommendation, 0) + 1
+
+        summary = f"Candidate: {app.applicant.first_name} {app.applicant.last_name}\n"
+        summary += f"Current: {app.applicant.current_title or 'N/A'} at {app.applicant.current_employer or 'N/A'}\n"
+        summary += f"Experience: {app.applicant.years_of_experience or 'N/A'} years\n"
+        summary += f"Overall Rating: {app.overall_rating or 'N/A'}\n"
+        summary += f"Recommendations: {rec_counts}\n"
+        if resume_analysis:
+            summary += f"Resume Score: {resume_analysis.overall_score}/100 ({resume_analysis.threshold_label})\n"
+            summary += f"Resume Summary: {resume_analysis.summary}\n"
+        for sc in scorecards:
+            summary += f"Scorecard: rating={sc.overall_rating}, rec={sc.recommendation}, strengths={sc.strengths}, concerns={sc.concerns}\n"
+        candidates_text.append(summary)
+
+    # Call Claude
+    api_key = os.getenv("ANTHROPIC_API_KEY")
+    if not api_key:
+        raise HTTPException(status_code=503, detail="AI service unavailable (API key not configured)")
+
+    try:
+        import anthropic
+        client = anthropic.Anthropic(api_key=api_key)
+    except ImportError:
+        raise HTTPException(status_code=503, detail="AI service unavailable (anthropic package not installed)")
+
+    prompt = f"""You are an expert HR analyst. Compare these candidates for the position of {requisition.title} ({requisition.department or 'N/A'} department).
+
+Job Description: {requisition.description or 'N/A'}
+Requirements: {requisition.requirements or 'N/A'}
+
+## Candidates
+{"---".join(candidates_text)}
+
+## Instructions
+Compare all candidates and provide your analysis as a JSON object:
+{{
+  "ranked_candidates": [
+    {{
+      "name": "candidate name",
+      "rank": 1,
+      "fit_score": 85,
+      "key_strengths": ["..."],
+      "key_concerns": ["..."]
+    }}
+  ],
+  "comparative_analysis": "2-3 paragraph analysis comparing the candidates",
+  "recommendation": "Clear recommendation with rationale"
+}}
+
+Return ONLY the JSON object, no other text."""
+
+    try:
+        import json as json_module
+        response = client.messages.create(
+            model="claude-sonnet-4-20250514",
+            max_tokens=2000,
+            messages=[{"role": "user", "content": prompt}],
+        )
+        response_text = response.content[0].text.strip()
+
+        # Handle markdown code blocks
+        if response_text.startswith("```"):
+            lines = response_text.split("\n")
+            response_text = "\n".join(lines[1:-1])
+
+        result = json_module.loads(response_text)
+        return result
+    except (ValueError, KeyError):
+        raise HTTPException(status_code=500, detail="Failed to parse AI response")
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"AI comparison failed: {str(e)}")

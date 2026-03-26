@@ -3,6 +3,10 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { apiGet, apiPost, apiPostFormData } from '@/utils/api';
 import { ArrowLeft, Send, FileText, MessageSquare, User, Clock, Building, Upload, Download, Paperclip, XCircle } from 'lucide-react';
 import LifecycleTracker, { type LifecycleStage } from '@/components/recruiting/LifecycleTracker';
+import StageCandidatesPanel from '@/components/recruiting/StageCandidatesPanel';
+import StakeholderPanel from '@/components/recruiting/StakeholderPanel';
+
+const INTERVIEW_STAGE_KEYS = new Set(['hr_interview', 'hiring_manager_interview', 'tech_screen']);
 
 interface RequisitionDetail {
   id: number;
@@ -354,6 +358,19 @@ export default function RequisitionTrackerPage() {
             )}
           </div>
 
+          {/* Candidates Panel (for interview-type stages) */}
+          {INTERVIEW_STAGE_KEYS.has(selectedStage.stage_key) && requisition && (
+            <div className="border-t border-gray-200 dark:border-gray-700 pt-4 mb-2">
+              <StageCandidatesPanel
+                requisitionId={requisition.id}
+                stageKey={selectedStage.stage_key}
+                stageId={selectedStage.id}
+                stageLabel={selectedStage.stage_label}
+                onStageAdvanced={() => fetchData()}
+              />
+            </div>
+          )}
+
           {/* Notes */}
           <div className="border-t border-gray-200 dark:border-gray-700 pt-4">
             <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300 flex items-center gap-2 mb-3">
@@ -515,6 +532,7 @@ export default function RequisitionTrackerPage() {
               </>
             )}
           </div>
+          <StakeholderPanel requisitionId={requisition.id} />
         </div>
 
         {/* Position Details */}

@@ -3667,9 +3667,11 @@ class PipelineStage(Base):
     scorecard_template = Column(JSON, nullable=True)  # {"criteria": [{"name": "...", "weight": 1.0}], "recommendation_options": [...]}
     days_sla = Column(Integer, nullable=True)  # Expected days to complete this stage
     lifecycle_stage_key = Column(String, nullable=True)  # Maps to RequisitionLifecycleStage.stage_key for auto-advance
+    scorecard_template_id = Column(Integer, ForeignKey("scorecard_templates.id"), nullable=True)  # Link to reusable template
 
     # Relationships
     template = relationship("PipelineTemplate", back_populates="stages")
+    scorecard_template_ref = relationship("ScorecardTemplate", foreign_keys=[scorecard_template_id])
 
     __table_args__ = (
         Index('ix_pipeline_stage_template_order', 'template_id', 'order_index'),
@@ -3882,6 +3884,10 @@ class Applicant(Base):
     # Resume
     resume_file_id = Column(Integer, ForeignKey("file_uploads.id"), nullable=True)
 
+    # Cross-role consideration (ATS §1.4)
+    open_to_other_roles = Column(Boolean, default=False)
+    pool_opted_in_at = Column(DateTime, nullable=True)
+
     created_at = Column(DateTime, server_default=func.now())
     updated_at = Column(DateTime, onupdate=func.now())
 
@@ -3957,6 +3963,10 @@ class Application(Base):
     is_favorite = Column(Boolean, default=False)
     is_internal_transfer = Column(Boolean, default=False)
 
+    # Cross-role sourcing (ATS §1.4)
+    sourced_from_application_id = Column(Integer, ForeignKey("applications.id"), nullable=True)
+    negotiation_round = Column(Integer, default=0)
+
     submitted_at = Column(DateTime, nullable=True)
     created_at = Column(DateTime, server_default=func.now())
     updated_at = Column(DateTime, onupdate=func.now())
@@ -3971,11 +3981,13 @@ class Application(Base):
     status_changed_by_user = relationship("User", foreign_keys=[status_changed_by])
     rejected_by_user = relationship("User", foreign_keys=[rejected_by])
     hired_employee = relationship("Employee", foreign_keys=[hired_employee_id])
+    sourced_from_application = relationship("Application", remote_side="Application.id", foreign_keys=[sourced_from_application_id])
     activities = relationship("ApplicationActivity", back_populates="application", order_by="ApplicationActivity.created_at.desc()")
     stage_history = relationship("ApplicationStageHistory", back_populates="application", order_by="ApplicationStageHistory.entered_at")
     documents = relationship("ApplicantDocument", back_populates="application")
     scorecards = relationship("InterviewScorecard", back_populates="application")
     interviews = relationship("Interview", back_populates="application")
+    messages = relationship("ApplicantMessage", back_populates="application")
     resume_analysis = relationship("ResumeAnalysis", back_populates="application", uselist=False)
 
     __table_args__ = (
@@ -4221,8 +4233,17 @@ class OfferLetter(Base):
     original_offer_id = Column(Integer, ForeignKey("offer_letters.id"), nullable=True)
     negotiation_notes = Column(Text, nullable=True)
 
+    # Versioning (ATS §3.5)
+    version = Column(Integer, default=1)
+    version_notes = Column(Text, nullable=True)  # What changed from previous version
+    previous_offer_id = Column(Integer, ForeignKey("offer_letters.id"), nullable=True)  # Linear version chain
+
     # Contingencies
     contingencies = Column(JSON, nullable=True)  # {"background_check": true, "drug_test": false, ...}
+
+    # Template references
+    offer_letter_template_id = Column(Integer, ForeignKey("offer_letter_templates.id"), nullable=True)
+    email_template_id = Column(Integer, ForeignKey("custom_email_templates.id"), nullable=True)
 
     created_at = Column(DateTime, server_default=func.now())
     updated_at = Column(DateTime, onupdate=func.now())
@@ -4234,11 +4255,42 @@ class OfferLetter(Base):
     offer_letter_file = relationship("FileUpload", foreign_keys=[offer_letter_file_id])
     signed_file = relationship("FileUpload", foreign_keys=[signed_file_id])
     original_offer = relationship("OfferLetter", remote_side="OfferLetter.id", foreign_keys=[original_offer_id])
+    previous_offer = relationship("OfferLetter", remote_side="OfferLetter.id", foreign_keys=[previous_offer_id])
+    offer_letter_template = relationship("OfferLetterTemplate")
+    email_template = relationship("CustomEmailTemplate")
 
     __table_args__ = (
         Index('ix_offer_application', 'application_id'),
         Index('ix_offer_status', 'status'),
     )
+
+
+class OfferLetterTemplate(Base):
+    """Reusable offer letter templates with placeholder support for PDF generation."""
+    __tablename__ = "offer_letter_templates"
+
+    id = Column(Integer, primary_key=True, index=True, autoincrement=True)
+    template_id = Column(String, unique=True, index=True)  # "OLT-001"
+
+    name = Column(String, nullable=False)
+    description = Column(String, nullable=True)
+
+    # Content (HTML with placeholders: {{offer.*}}, {{custom.*}}, {{company.*}})
+    html_content = Column(Text, nullable=False)
+
+    # Placeholder definitions (JSON)
+    predefined_placeholders = Column(JSON, nullable=True)  # ["offer.position_title", "offer.salary"]
+    fillable_placeholders = Column(JSON, nullable=True)  # [{key, label, type, required, default_value}]
+
+    # Status
+    is_active = Column(Boolean, default=True)
+    is_default = Column(Boolean, default=False)
+
+    # Metadata
+    created_by = Column(String, nullable=True)
+    last_modified_by = Column(String, nullable=True)
+    created_at = Column(DateTime, server_default=func.now())
+    updated_at = Column(DateTime, onupdate=func.now())
 
 
 class DocumentRequest(Base):
@@ -4559,3 +4611,375 @@ class ResumeAnalysis(Base):
 
     # Relationships
     application = relationship("Application", back_populates="resume_analysis")
+
+
+class ScorecardAnalysis(Base):
+    """AI-generated synthesis of multiple interview scorecards for a candidate."""
+    __tablename__ = "scorecard_analyses"
+
+    id = Column(Integer, primary_key=True, index=True, autoincrement=True)
+    application_id = Column(Integer, ForeignKey("applications.id"), unique=True, nullable=False, index=True)
+
+    scorecard_count = Column(Integer, nullable=True)
+
+    # AI analysis results (JSON arrays/objects)
+    consensus_strengths = Column(JSON, nullable=True)
+    consensus_concerns = Column(JSON, nullable=True)
+    disagreements = Column(JSON, nullable=True)
+    red_flags = Column(JSON, nullable=True)
+
+    # Overall assessment
+    overall_recommendation = Column(String, nullable=True)  # "Strong Hire", "Hire", "Lean Hire", etc.
+    confidence_level = Column(String, nullable=True)  # "High", "Medium", "Low"
+    summary = Column(Text, nullable=True)
+    suggested_next_steps = Column(JSON, nullable=True)
+
+    # Processing status
+    status = Column(String, default="Pending")  # "Pending", "Processing", "Completed", "Failed"
+    error_message = Column(Text, nullable=True)
+
+    completed_at = Column(DateTime, nullable=True)
+    created_at = Column(DateTime, server_default=func.now())
+
+    # Relationships
+    application = relationship("Application", backref="scorecard_analysis")
+
+
+# ============================================================================
+# BACKGROUND SCREENING (TazWorks Integration)
+# ============================================================================
+
+class ScreeningOrder(Base):
+    """Tracks background screening orders submitted via TazWorks."""
+    __tablename__ = "screening_orders"
+
+    id = Column(Integer, primary_key=True, index=True, autoincrement=True)
+    candidate_id = Column(Integer, nullable=False, index=True)  # application.id
+    client_guid = Column(String, nullable=False)
+    applicant_guid = Column(String, nullable=False, unique=True)
+    order_guid = Column(String, nullable=True, unique=True, index=True)
+    product_guid = Column(String, nullable=False)
+    product_name = Column(String, nullable=True)
+    status = Column(String, nullable=False, default="initiated")
+    decision = Column(String, nullable=True)  # Approved, Decline, Review
+    report_url = Column(Text, nullable=True)
+    quickapp_link = Column(Text, nullable=True)
+    ordered_by_user_id = Column(Integer, nullable=False)
+    created_at = Column(DateTime, server_default=func.now())
+    updated_at = Column(DateTime, onupdate=func.now())
+    completed_at = Column(DateTime, nullable=True)
+
+    # Relationships
+    searches = relationship("ScreeningSearch", back_populates="order")
+    certifications = relationship("ScreeningCertification", back_populates="order")
+    attachments = relationship("ScreeningAttachment", back_populates="order")
+
+    __table_args__ = (
+        Index("ix_screening_orders_status", "status"),
+    )
+
+
+class ScreeningSearch(Base):
+    """Individual search components within a screening order."""
+    __tablename__ = "screening_searches"
+
+    id = Column(Integer, primary_key=True, index=True, autoincrement=True)
+    order_id = Column(Integer, ForeignKey("screening_orders.id"), nullable=False, index=True)
+    order_search_guid = Column(String, nullable=False, unique=True)
+    search_type = Column(String, nullable=False)
+    status = Column(String, nullable=False, default="processing")
+    display_name = Column(String, nullable=True)
+    display_value = Column(String, nullable=True)
+    modified_date = Column(DateTime, nullable=True)
+
+    # Relationships
+    order = relationship("ScreeningOrder", back_populates="searches")
+
+
+class ScreeningCertification(Base):
+    """FCRA permissible purpose certification audit trail."""
+    __tablename__ = "screening_certifications"
+
+    id = Column(Integer, primary_key=True, index=True, autoincrement=True)
+    order_id = Column(Integer, ForeignKey("screening_orders.id"), nullable=False, index=True)
+    user_id = Column(Integer, nullable=False)
+    certification_text_hash = Column(String, nullable=False)
+    certified_at = Column(DateTime, server_default=func.now())
+    ip_address = Column(String, nullable=False)
+    user_agent = Column(Text, nullable=True)
+
+    # Relationships
+    order = relationship("ScreeningOrder", back_populates="certifications")
+
+
+class ScreeningAttachment(Base):
+    """Attachments and compliance documents from screening orders."""
+    __tablename__ = "screening_attachments"
+
+    id = Column(Integer, primary_key=True, index=True, autoincrement=True)
+    order_id = Column(Integer, ForeignKey("screening_orders.id"), nullable=False, index=True)
+    attachment_guid = Column(String, nullable=True)
+    doc_type = Column(String, nullable=False)
+    file_name = Column(String, nullable=True)
+    storage_path = Column(Text, nullable=True)
+    content_type = Column(String, nullable=True)
+    retrieved_at = Column(DateTime, server_default=func.now())
+
+    # Relationships
+    order = relationship("ScreeningOrder", back_populates="attachments")
+
+
+class ScreeningWebhookLog(Base):
+    """Audit log of incoming TazWorks webhook events."""
+    __tablename__ = "screening_webhook_log"
+
+    id = Column(Integer, primary_key=True, index=True, autoincrement=True)
+    event_type = Column(String, nullable=True)
+    order_guid = Column(String, nullable=True, index=True)
+    payload_hash = Column(String, nullable=False, unique=True)
+    payload_json = Column(Text, nullable=True)
+    received_at = Column(DateTime, server_default=func.now())
+    processed = Column(Boolean, default=False)
+
+
+# ============================================================================
+# ATS ENHANCEMENT MODELS (Phase 0)
+# ============================================================================
+
+class ScorecardTemplate(Base):
+    """Reusable scorecard templates that can be assigned to pipeline stages."""
+    __tablename__ = "scorecard_templates"
+
+    id = Column(Integer, primary_key=True, index=True, autoincrement=True)
+    template_id = Column(String, unique=True, index=True)  # "SCT-001"
+    name = Column(String, nullable=False)
+    description = Column(Text, nullable=True)
+    template_type = Column(String, nullable=False, default="hm")  # "hr", "hm", "tech_screen"
+
+    # Template content
+    sections = Column(JSON, nullable=False)  # [{name, weight, criteria: [{name, description, rubric: {1:"...", 5:"..."}}]}]
+    recommendation_options = Column(JSON, nullable=True)  # ["Strong Hire", "Hire", "Lean Hire", ...]
+    red_flags = Column(JSON, nullable=True)  # ["No-show", "Unprofessional", ...]
+    suggested_questions = Column(JSON, nullable=True)  # ["Tell me about...", ...]
+
+    # Metadata
+    is_active = Column(Boolean, default=True)
+    created_by = Column(Integer, ForeignKey("users.id"), nullable=True)
+    created_at = Column(DateTime, server_default=func.now())
+    updated_at = Column(DateTime, onupdate=func.now())
+
+    # Relationships
+    created_by_user = relationship("User", foreign_keys=[created_by])
+
+
+class RequisitionStakeholder(Base):
+    """Formalized stakeholder access roles on requisitions (ATS §3.6)."""
+    __tablename__ = "requisition_stakeholders"
+
+    id = Column(Integer, primary_key=True, index=True, autoincrement=True)
+    requisition_id = Column(Integer, ForeignKey("job_requisitions.id"), nullable=False, index=True)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
+
+    # Role determines access level:
+    #   "vp_svp"         → Full pipeline, scorecards, offer/comp, messages
+    #   "hiring_manager" → Full pipeline, scorecards, offer/comp, messages
+    #   "interviewer"    → Pipeline view + own stage scorecards only
+    #   "observer"       → Pipeline view only
+    role = Column(String, nullable=False)
+    access_level = Column(String, nullable=True)
+
+    assigned_by = Column(Integer, ForeignKey("users.id"), nullable=True)
+    assigned_at = Column(DateTime, server_default=func.now())
+    is_active = Column(Boolean, default=True)
+
+    # Relationships
+    requisition = relationship("JobRequisition", backref="stakeholders")
+    user = relationship("User", foreign_keys=[user_id])
+    assigned_by_user = relationship("User", foreign_keys=[assigned_by])
+
+    __table_args__ = (
+        Index('ix_stakeholder_unique', 'requisition_id', 'user_id', unique=True),
+    )
+
+
+class ApplicantMessage(Base):
+    """Messages between applicant and HR/HM through the portal (ATS §1.5)."""
+    __tablename__ = "applicant_messages"
+
+    id = Column(Integer, primary_key=True, index=True, autoincrement=True)
+    message_id = Column(String, unique=True, index=True)  # "MSG-2026-00001"
+
+    # Thread grouping
+    application_id = Column(Integer, ForeignKey("applications.id"), nullable=False, index=True)
+    thread_id = Column(String, nullable=False, index=True)
+    parent_message_id = Column(Integer, ForeignKey("applicant_messages.id"), nullable=True)
+
+    # Sender
+    sender_type = Column(String, nullable=False)  # "applicant", "hr", "hiring_manager"
+    sender_applicant_id = Column(Integer, ForeignKey("applicants.id"), nullable=True)
+    sender_user_id = Column(Integer, ForeignKey("users.id"), nullable=True)
+
+    # Content
+    subject = Column(String, nullable=True)  # First message in thread has subject
+    body = Column(Text, nullable=False)
+    body_html = Column(Text, nullable=True)
+
+    stage_key = Column(String, nullable=True)  # Optional pipeline stage context (e.g., "hr_interview")
+
+    # Metadata
+    is_internal = Column(Boolean, default=False)  # Internal notes not visible to applicant
+    is_read = Column(Boolean, default=False)
+    read_at = Column(DateTime, nullable=True)
+
+    created_at = Column(DateTime, server_default=func.now())
+
+    # Relationships
+    application = relationship("Application", back_populates="messages")
+    sender_applicant = relationship("Applicant", foreign_keys=[sender_applicant_id])
+    sender_user = relationship("User", foreign_keys=[sender_user_id])
+    parent_message = relationship("ApplicantMessage", remote_side="ApplicantMessage.id")
+
+    __table_args__ = (
+        Index('ix_message_thread', 'thread_id'),
+    )
+
+
+class ApprovalChain(Base):
+    """Configurable approval chain for offers, negotiations, requisitions (ATS §3.4, §3.5)."""
+    __tablename__ = "approval_chains"
+
+    id = Column(Integer, primary_key=True, index=True, autoincrement=True)
+    name = Column(String, nullable=False)
+    chain_type = Column(String, nullable=False)  # "offer", "negotiation", "requisition"
+    description = Column(Text, nullable=True)
+    is_active = Column(Boolean, default=True)
+    is_default = Column(Boolean, default=False)
+
+    created_by = Column(Integer, ForeignKey("users.id"), nullable=True)
+    created_at = Column(DateTime, server_default=func.now())
+    updated_at = Column(DateTime, onupdate=func.now())
+
+    # Relationships
+    steps = relationship("ApprovalStep", back_populates="chain", order_by="ApprovalStep.order_index")
+    created_by_user = relationship("User", foreign_keys=[created_by])
+
+
+class ApprovalStep(Base):
+    """Individual step in an approval chain."""
+    __tablename__ = "approval_steps"
+
+    id = Column(Integer, primary_key=True, index=True, autoincrement=True)
+    chain_id = Column(Integer, ForeignKey("approval_chains.id"), nullable=False, index=True)
+    order_index = Column(Integer, nullable=False)
+
+    # Who approves
+    approver_type = Column(String, nullable=False)  # "user", "role", "hiring_manager", "department_head"
+    approver_user_id = Column(Integer, ForeignKey("users.id"), nullable=True)
+    approver_role = Column(String, nullable=True)
+
+    # Conditions
+    is_required = Column(Boolean, default=True)
+    timeout_hours = Column(Integer, nullable=True)
+
+    created_at = Column(DateTime, server_default=func.now())
+
+    # Relationships
+    chain = relationship("ApprovalChain", back_populates="steps")
+    approver_user = relationship("User", foreign_keys=[approver_user_id])
+
+    __table_args__ = (
+        Index('ix_approval_step_chain_order', 'chain_id', 'order_index'),
+    )
+
+
+class ApprovalRequest(Base):
+    """A specific approval request instance tied to an offer or requisition."""
+    __tablename__ = "approval_requests"
+
+    id = Column(Integer, primary_key=True, index=True, autoincrement=True)
+
+    # What is being approved
+    resource_type = Column(String, nullable=False)  # "offer", "requisition", "counter_offer"
+    resource_id = Column(Integer, nullable=False)
+
+    chain_id = Column(Integer, ForeignKey("approval_chains.id"), nullable=False)
+    current_step_id = Column(Integer, ForeignKey("approval_steps.id"), nullable=False)
+
+    # Status
+    status = Column(String, default="Pending")  # "Pending", "Approved", "Rejected", "Escalated"
+
+    # Who acted
+    requested_by = Column(Integer, ForeignKey("users.id"), nullable=True)
+    acted_by = Column(Integer, ForeignKey("users.id"), nullable=True)
+    acted_at = Column(DateTime, nullable=True)
+
+    notes = Column(Text, nullable=True)
+
+    created_at = Column(DateTime, server_default=func.now())
+    updated_at = Column(DateTime, onupdate=func.now())
+
+    # Relationships
+    chain = relationship("ApprovalChain")
+    current_step = relationship("ApprovalStep")
+    requested_by_user = relationship("User", foreign_keys=[requested_by])
+    acted_by_user = relationship("User", foreign_keys=[acted_by])
+
+    __table_args__ = (
+        Index('ix_approval_resource', 'resource_type', 'resource_id'),
+    )
+
+
+class InterviewerAvailability(Base):
+    """Time slots when an interviewer is available for candidate self-scheduling (ATS §1.3)."""
+    __tablename__ = "interviewer_availability"
+
+    id = Column(Integer, primary_key=True, index=True, autoincrement=True)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
+
+    # Time slot
+    start_time = Column(DateTime, nullable=False)
+    end_time = Column(DateTime, nullable=False)
+    time_zone = Column(String, nullable=True)
+
+    # Configuration
+    slot_duration_minutes = Column(Integer, default=60)
+
+    # Status
+    is_booked = Column(Boolean, default=False)
+    booked_interview_id = Column(Integer, ForeignKey("interviews.id"), nullable=True)
+
+    # Scope
+    requisition_id = Column(Integer, ForeignKey("job_requisitions.id"), nullable=True)  # Null = all requisitions
+
+    created_at = Column(DateTime, server_default=func.now())
+    updated_at = Column(DateTime, onupdate=func.now())
+
+    # Relationships
+    user = relationship("User", foreign_keys=[user_id])
+    booked_interview = relationship("Interview", foreign_keys=[booked_interview_id])
+    requisition = relationship("JobRequisition")
+
+    __table_args__ = (
+        Index('ix_availability_user_time', 'user_id', 'start_time'),
+    )
+
+
+# ============================================================================
+# INTEGRATION CONFIGURATION (Phase 3 §2.2)
+# ============================================================================
+
+class IntegrationConfig(Base):
+    """Configuration for external integrations (MS Teams, I-9, etc.)."""
+    __tablename__ = "integration_configs"
+
+    id = Column(Integer, primary_key=True, index=True, autoincrement=True)
+    integration_type = Column(String, unique=True, nullable=False)  # "ms_teams_calendar", "ms_teams_notifications", "i9_portal"
+    display_name = Column(String, nullable=False)
+    description = Column(Text, nullable=True)
+    is_enabled = Column(Boolean, default=False)
+    config = Column(JSON, nullable=True)  # Integration-specific config (tenant_id, client_id, etc.)
+    status = Column(String, default="Not Configured")  # "Not Configured", "Configured", "Connected", "Error"
+    last_sync_at = Column(DateTime, nullable=True)
+    error_message = Column(Text, nullable=True)
+    created_at = Column(DateTime, server_default=func.now())
+    updated_at = Column(DateTime, onupdate=func.now())

@@ -451,8 +451,11 @@ class PipelineService:
             ("HR Screening Interview", "interview", 2, True, False, HR_SCREENING_TEMPLATE, 5, "hr_interview"),
             ("HM Interview", "interview", 3, True, False, self.HM_INTERVIEW_TEMPLATE, 5, "hiring_manager_interview"),
             ("Tech Screen", "assessment", 4, False, False, None, 5, "tech_screen"),
-            ("Offer Extended", "offer", 5, True, False, None, 3, "offer_extended"),
-            ("Offer Accepted", "offer_accepted", 6, True, False, None, 3, "offer_response"),
+            ("Candidate Selection", "decision", 5, True, False, None, 5, "candidate_selection"),
+            ("Offer Extended", "offer", 6, True, False, None, 3, "offer_extended"),
+            ("Offer Accepted", "offer_accepted", 7, True, False, None, 3, "offer_response"),
+            ("Onboarding Date Set", "onboarding", 8, True, False, None, 5, "onboarding_date_set"),
+            ("Final Approval", "approval", 9, True, False, None, 3, "final_approval"),
         ]
 
         for name, stage_type, order, required, auto, scorecard, sla, lifecycle_key in stages:

@@ -23,6 +23,7 @@ import {
   History,
   Send,
   UserPlus,
+  ClipboardList,
   type LucideIcon,
 } from 'lucide-react';
 import type { FeatureFlags } from '@/contexts/EmployeeFeaturesContext';
@@ -158,6 +159,18 @@ export const navigationConfig: NavigationConfig = {
           label: 'Hiring',
           path: '/hiring/my-requisitions',
           icon: UserPlus,
+          requiresFeature: 'is_hiring_manager',
+        },
+        {
+          label: 'Scorecard Templates',
+          path: '/hiring/scorecard-templates',
+          icon: ClipboardList,
+          requiresFeature: 'is_hiring_manager',
+        },
+        {
+          label: 'Hiring Approvals',
+          path: '/hiring/approvals',
+          icon: CheckSquare,
           requiresFeature: 'is_hiring_manager',
         },
       ],

@@ -13,8 +13,8 @@ from datetime import date, datetime
 class TemplateRenderingService:
     """Service for rendering custom email templates with placeholders."""
 
-    # Regex pattern to match placeholders: {{employee.field}} or {{custom.field}}
-    PLACEHOLDER_PATTERN = re.compile(r'\{\{(employee|custom|company)\.([a-zA-Z_]+)\}\}')
+    # Regex pattern to match placeholders: {{employee.field}}, {{custom.field}}, {{offer.field}}
+    PLACEHOLDER_PATTERN = re.compile(r'\{\{(employee|custom|company|offer)\.([a-zA-Z_]+)\}\}')
 
     # Mapping from placeholder field names to Employee model attributes
     EMPLOYEE_FIELD_MAP = {
@@ -69,11 +69,29 @@ class TemplateRenderingService:
         "current_year": lambda: str(datetime.now().year),
     }
 
+    # Mapping from placeholder field names to OfferLetter model attributes
+    OFFER_FIELD_MAP = {
+        "position_title": "position_title",
+        "department": "department",
+        "location": "location",
+        "employment_type": "employment_type",
+        "start_date": "start_date",
+        "reports_to": "reports_to",
+        "salary": "salary",
+        "wage_type": "wage_type",
+        "signing_bonus": "signing_bonus",
+        "equity_details": "equity_details",
+        "benefits_summary": "benefits_summary",
+        "offer_id": "offer_id",
+        "expires_at": "expires_at",
+    }
+
     def render(
         self,
         template_content: str,
         employee: Optional[Any] = None,
-        custom_values: Dict[str, Any] = None
+        custom_values: Dict[str, Any] = None,
+        offer: Optional[Any] = None,
     ) -> Tuple[str, List[str]]:
         """
         Render template with placeholder values.
@@ -82,6 +100,7 @@ class TemplateRenderingService:
             template_content: The HTML/text content with placeholders
             employee: Optional Employee model instance for predefined placeholders
             custom_values: Dictionary of custom placeholder values
+            offer: Optional OfferLetter model instance for offer placeholders
 
         Returns:
             Tuple of (rendered_content, list_of_missing_placeholders)
@@ -94,7 +113,6 @@ class TemplateRenderingService:
         def replace_placeholder(match: re.Match) -> str:
             placeholder_type = match.group(1)
             field_name = match.group(2)
-            full_placeholder = f"{placeholder_type}.{field_name}"
 
             if placeholder_type == "employee":
                 return self._get_employee_value(employee, field_name, missing)
@@ -102,6 +120,8 @@ class TemplateRenderingService:
                 return self._get_custom_value(custom_values, field_name, missing)
             elif placeholder_type == "company":
                 return self._get_company_value(field_name, missing)
+            elif placeholder_type == "offer":
+                return self._get_offer_value(offer, field_name, missing)
 
             return match.group(0)
 
@@ -163,6 +183,26 @@ class TemplateRenderingService:
         missing.append(f"company.{field_name}")
         return f"[{field_name}]"
 
+    def _get_offer_value(
+        self,
+        offer: Optional[Any],
+        field_name: str,
+        missing: List[str]
+    ) -> str:
+        """Get value from OfferLetter model."""
+        if offer is None:
+            missing.append(f"offer.{field_name}")
+            return f"[{field_name}]"
+
+        db_field = self.OFFER_FIELD_MAP.get(field_name, field_name)
+        value = getattr(offer, db_field, None)
+
+        if value is None:
+            missing.append(f"offer.{field_name}")
+            return f"[{field_name}]"
+
+        return self._format_value(value, field_name)
+
     def _format_value(self, value: Any, field_name: str = "") -> str:
         """Format value for display in email."""
         if value is None:
@@ -174,7 +214,7 @@ class TemplateRenderingService:
             return value.strftime("%B %d, %Y at %I:%M %p")
         elif isinstance(value, float):
             # Check if it's likely a currency field
-            currency_fields = ["wage", "annual_wage", "hourly_wage", "total_compensation"]
+            currency_fields = ["wage", "annual_wage", "hourly_wage", "total_compensation", "salary", "signing_bonus"]
             if any(cf in field_name.lower() for cf in currency_fields):
                 return f"${value:,.2f}"
             return f"{value:,.2f}"
@@ -195,7 +235,7 @@ class TemplateRenderingService:
             each containing a list of field names used
         """
         matches = self.PLACEHOLDER_PATTERN.findall(content)
-        result = {"employee": [], "custom": [], "company": []}
+        result = {"employee": [], "custom": [], "company": [], "offer": []}
 
         for placeholder_type, field_name in matches:
             if field_name not in result.get(placeholder_type, []):
@@ -277,6 +317,24 @@ class TemplateRenderingService:
             {"key": "company.name", "label": "Company Name", "category": "Company"},
             {"key": "company.current_date", "label": "Current Date", "category": "Company"},
             {"key": "company.current_year", "label": "Current Year", "category": "Company"},
+        ]
+
+    def get_available_offer_placeholders(self) -> List[Dict[str, str]]:
+        """Get list of all available offer placeholders with descriptions."""
+        return [
+            {"key": "offer.position_title", "label": "Position Title", "category": "Offer"},
+            {"key": "offer.department", "label": "Department", "category": "Offer"},
+            {"key": "offer.location", "label": "Location", "category": "Offer"},
+            {"key": "offer.employment_type", "label": "Employment Type", "category": "Offer"},
+            {"key": "offer.salary", "label": "Salary", "category": "Offer"},
+            {"key": "offer.wage_type", "label": "Wage Type", "category": "Offer"},
+            {"key": "offer.start_date", "label": "Start Date", "category": "Offer"},
+            {"key": "offer.reports_to", "label": "Reports To", "category": "Offer"},
+            {"key": "offer.signing_bonus", "label": "Signing Bonus", "category": "Offer"},
+            {"key": "offer.equity_details", "label": "Equity Details", "category": "Offer"},
+            {"key": "offer.benefits_summary", "label": "Benefits Summary", "category": "Offer"},
+            {"key": "offer.offer_id", "label": "Offer ID", "category": "Offer"},
+            {"key": "offer.expires_at", "label": "Expiration Date", "category": "Offer"},
         ]
 
 

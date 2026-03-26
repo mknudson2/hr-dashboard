@@ -172,6 +172,18 @@ class Permissions(str, Enum):
     RECRUITING_ADMIN = "recruiting:admin"
     RECRUITING_EEO_READ = "recruiting:eeo:read"
 
+    # ATS Enhancement (Phase 0)
+    RECRUITING_STAKEHOLDER_MANAGE = "recruiting:stakeholders:manage"
+    RECRUITING_MESSAGES_READ = "recruiting:messages:read"
+    RECRUITING_MESSAGES_WRITE = "recruiting:messages:write"
+    RECRUITING_APPROVALS_READ = "recruiting:approvals:read"
+    RECRUITING_APPROVALS_WRITE = "recruiting:approvals:write"
+    RECRUITING_APPROVALS_ACT = "recruiting:approvals:act"
+    RECRUITING_AVAILABILITY_MANAGE = "recruiting:availability:manage"
+    RECRUITING_SCORECARD_TEMPLATES = "recruiting:scorecard_templates:manage"
+    RECRUITING_POOL_READ = "recruiting:pool:read"
+    RECRUITING_POOL_WRITE = "recruiting:pool:write"
+
 
 # ============================================================================
 # DATABASE SESSION HELPER

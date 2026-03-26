@@ -1,6 +1,14 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
 import { apiGet, apiPost, apiPut, apiFetch } from '@/utils/api';
+import OfferApprovalBadge from '@/components/recruiting/OfferApprovalBadge';
+import OfferSendModal from '@/components/recruiting/OfferSendModal';
+
+interface BenefitsSelection {
+  benefits: string;
+  pto: string;
+  sick_leave: string;
+}
 
 interface OfferForm {
   application_id: number;
@@ -12,11 +20,9 @@ interface OfferForm {
   reports_to: string;
   salary: string;
   wage_type: string;
-  signing_bonus: string;
-  equity_details: string;
-  benefits_summary: string;
+  benefits: BenefitsSelection;
   expires_at: string;
-  contingencies: { background_check: boolean; drug_test: boolean; references: boolean };
+  contingencies: { background_check: boolean; tech_screen: boolean };
 }
 
 interface Offer {
@@ -49,6 +55,45 @@ interface Offer {
   negotiation_notes: string | null;
 }
 
+const emptyBenefits: BenefitsSelection = { benefits: '', pto: '', sick_leave: '' };
+
+function defaultBenefitsForType(empType: string): BenefitsSelection {
+  const tier = empType === 'Part-Time' ? 'Part Time'
+    : empType === 'Contract' || empType === 'Temporary' ? 'International'
+    : 'Full Time';
+  return { benefits: tier, pto: '11 days/year', sick_leave: tier };
+}
+
+function serializeBenefits(b: BenefitsSelection): string {
+  const parts: string[] = [];
+  if (b.benefits) parts.push(`Benefits: ${b.benefits}`);
+  if (b.pto) parts.push(`401k: ${b.pto}`);
+  if (b.sick_leave) parts.push(`Sick Leave: ${b.sick_leave}`);
+  return parts.join(' | ');
+}
+
+function parseBenefits(s: string | null): BenefitsSelection {
+  if (!s) return { ...emptyBenefits };
+  const result = { ...emptyBenefits };
+  for (const part of s.split('|').map(p => p.trim())) {
+    const [key, val] = part.split(':').map(x => x.trim());
+    if (key === 'Benefits') result.benefits = val || '';
+    else if (key === '401k') result.pto = val || '';
+    else if (key === 'Sick Leave') result.sick_leave = val || '';
+  }
+  return result;
+}
+
+function computePerCheck(salary: string, wageType: string, employmentType: string): string {
+  const num = parseFloat(salary);
+  if (!num || num <= 0) return '';
+  if (wageType === 'Hourly') {
+    const hours = employmentType === 'Part-Time' ? 1040 : 2080;
+    return ((num * hours) / 26).toFixed(2);
+  }
+  return (num / 26).toFixed(2);
+}
+
 const emptyForm: OfferForm = {
   application_id: 0,
   position_title: '',
@@ -59,11 +104,9 @@ const emptyForm: OfferForm = {
   reports_to: '',
   salary: '',
   wage_type: 'Annual',
-  signing_bonus: '',
-  equity_details: '',
-  benefits_summary: '',
+  benefits: defaultBenefitsForType('Full-Time'),
   expires_at: '',
-  contingencies: { background_check: true, drug_test: false, references: true },
+  contingencies: { background_check: true, tech_screen: false },
 };
 
 const STATUS_COLORS: Record<string, string> = {
@@ -88,6 +131,10 @@ export default function OfferBuilderPage() {
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
+  const [showSendModal, setShowSendModal] = useState(false);
+  const [applicantName, setApplicantName] = useState('');
+  const [applicantEmail, setApplicantEmail] = useState('');
+  const [salaryRange, setSalaryRange] = useState<{ min: number | null; max: number | null } | null>(null);
 
   const isEditing = !!offerId;
 
@@ -95,9 +142,69 @@ export default function OfferBuilderPage() {
     if (offerId) {
       loadOffer(parseInt(offerId));
     } else if (applicationId) {
-      setForm(prev => ({ ...prev, application_id: parseInt(applicationId) }));
+      loadApplicationAndPrefill(parseInt(applicationId));
     }
   }, [offerId, applicationId]);
+
+  async function loadApplicationAndPrefill(appId: number) {
+    setLoading(true);
+    try {
+      // Check if an offer already exists for this application
+      const offersRes = await apiGet<{ offers: { id: number }[] }>(`/recruiting/offers?application_id=${appId}`);
+      if (offersRes.offers && offersRes.offers.length > 0) {
+        // Redirect to existing offer instead of creating a duplicate
+        navigate(`/recruiting/offers/${offersRes.offers[0].id}`, { replace: true });
+        return;
+      }
+
+      // Fetch application + requisition data for pre-fill
+      const app = await apiGet<{
+        id: number;
+        applicant?: { first_name: string; last_name: string; email: string };
+        requisition?: {
+          title: string;
+          department: string | null;
+          location: string | null;
+          employment_type: string | null;
+          salary_min: number | null;
+          salary_max: number | null;
+          wage_type: string | null;
+          target_start_date: string | null;
+          position_supervisor: string | null;
+          benefits_summary: string | null;
+        };
+      }>(`/recruiting/applications/${appId}`);
+
+      const req = app.requisition;
+      setForm({
+        application_id: appId,
+        position_title: req?.title || '',
+        department: req?.department || '',
+        location: req?.location || '',
+        employment_type: req?.employment_type || 'Full-Time',
+        start_date: req?.target_start_date ? req.target_start_date.split('T')[0] : '',
+        reports_to: req?.position_supervisor || '',
+        salary: req?.salary_max ? String(req.salary_max) : '',
+        wage_type: req?.wage_type || 'Annual',
+        benefits: defaultBenefitsForType(req?.employment_type || 'Full-Time'),
+        expires_at: '',
+        contingencies: { background_check: true, tech_screen: false },
+      });
+
+      if (app.applicant) {
+        setApplicantName(`${app.applicant.first_name} ${app.applicant.last_name}`.trim());
+        setApplicantEmail(app.applicant.email || '');
+      }
+
+      if (req?.salary_min || req?.salary_max) {
+        setSalaryRange({ min: req.salary_min, max: req.salary_max });
+      }
+    } catch {
+      setError('Failed to load application data');
+    } finally {
+      setLoading(false);
+    }
+  }
 
   async function loadOffer(id: number) {
     setLoading(true);
@@ -114,12 +221,25 @@ export default function OfferBuilderPage() {
         reports_to: data.reports_to || '',
         salary: data.salary ? String(data.salary) : '',
         wage_type: data.wage_type || 'Annual',
-        signing_bonus: data.signing_bonus ? String(data.signing_bonus) : '',
-        equity_details: data.equity_details || '',
-        benefits_summary: data.benefits_summary || '',
+        benefits: data.benefits_summary ? parseBenefits(data.benefits_summary) : defaultBenefitsForType(data.employment_type || 'Full-Time'),
         expires_at: data.expires_at ? data.expires_at.split('T')[0] : '',
-        contingencies: data.contingencies || { background_check: true, drug_test: false, references: true },
+        contingencies: data.contingencies as OfferForm['contingencies'] || { background_check: true, tech_screen: false },
       });
+
+      // Load applicant info for the send modal
+      if (data.application_id) {
+        try {
+          const app = await apiGet<{ applicant?: { first_name: string; last_name: string; email: string } }>(
+            `/recruiting/applications/${data.application_id}`,
+          );
+          if (app.applicant) {
+            setApplicantName(`${app.applicant.first_name} ${app.applicant.last_name}`.trim());
+            setApplicantEmail(app.applicant.email || '');
+          }
+        } catch {
+          // Non-critical
+        }
+      }
     } catch {
       setError('Failed to load offer');
     } finally {
@@ -141,9 +261,9 @@ export default function OfferBuilderPage() {
         reports_to: form.reports_to || null,
         salary: form.salary ? parseFloat(form.salary) : null,
         wage_type: form.wage_type || null,
-        signing_bonus: form.signing_bonus ? parseFloat(form.signing_bonus) : null,
-        equity_details: form.equity_details || null,
-        benefits_summary: form.benefits_summary || null,
+        signing_bonus: null,
+        equity_details: null,
+        benefits_summary: serializeBenefits(form.benefits) || null,
         expires_at: form.expires_at ? `${form.expires_at}T23:59:59` : null,
         contingencies: form.contingencies,
       };
@@ -169,7 +289,8 @@ export default function OfferBuilderPage() {
       if (action === 'approve') {
         await apiFetch(`/recruiting/offers/${offer.id}/approve`, { method: 'PATCH' });
       } else if (action === 'send') {
-        await apiFetch(`/recruiting/offers/${offer.id}/send`, { method: 'PATCH' });
+        setShowSendModal(true);
+        return;
       } else if (action === 'rescind') {
         if (!confirm('Are you sure you want to rescind this offer?')) return;
         await apiFetch(`/recruiting/offers/${offer.id}/rescind`, { method: 'PATCH' });
@@ -207,17 +328,36 @@ export default function OfferBuilderPage() {
           <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
             {isEditing ? `Offer ${offer?.offer_id || ''}` : 'Create Offer Letter'}
           </h1>
+          {!isEditing && applicantName && (
+            <p className="text-sm text-gray-500 dark:text-gray-400 mt-0.5">for {applicantName}</p>
+          )}
         </div>
         {offer && (
-          <span className={`px-3 py-1 rounded-full text-sm font-medium ${STATUS_COLORS[offer.status] || 'bg-gray-100 dark:bg-gray-700'}`}>
-            {offer.status}
-          </span>
+          <div className="flex items-center gap-3">
+            <OfferApprovalBadge
+              status={offer.status}
+              approvedBy={offer.approved_by ? String(offer.approved_by) : null}
+              approvedAt={offer.approved_at}
+              offerId={offer.id}
+              onStatusChange={() => loadOffer(offer.id)}
+            />
+            <span className={`px-3 py-1 rounded-full text-sm font-medium ${STATUS_COLORS[offer.status] || 'bg-gray-100 dark:bg-gray-700'}`}>
+              {offer.status}
+            </span>
+          </div>
         )}
       </div>
 
       {error && (
         <div className="mb-4 p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 text-red-700 dark:text-red-400 rounded-lg text-sm">
           {error}
+        </div>
+      )}
+
+      {/* Pre-filled from requisition notice */}
+      {!isEditing && !offer && applicantName && (
+        <div className="mb-4 p-3 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg text-sm text-blue-700 dark:text-blue-400">
+          Pre-filled from requisition data. Review and adjust the details below before saving.
         </div>
       )}
 
@@ -281,7 +421,10 @@ export default function OfferBuilderPage() {
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Employment Type</label>
               <select
                 value={form.employment_type}
-                onChange={e => setForm(p => ({ ...p, employment_type: e.target.value }))}
+                onChange={e => {
+                  const val = e.target.value;
+                  setForm(p => ({ ...p, employment_type: val, benefits: defaultBenefitsForType(val) }));
+                }}
                 disabled={!canEdit}
                 className="w-full border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg px-3 py-2 text-sm disabled:bg-gray-50 dark:disabled:bg-gray-900"
               >
@@ -319,7 +462,14 @@ export default function OfferBuilderPage() {
           <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Compensation</h2>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Salary</label>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                Salary
+                {salaryRange && (
+                  <span className="ml-2 text-xs font-normal text-gray-400 dark:text-gray-500">
+                    Req. range: ${salaryRange.min?.toLocaleString() ?? '—'} – ${salaryRange.max?.toLocaleString() ?? '—'}
+                  </span>
+                )}
+              </label>
               <div className="flex gap-2">
                 <div className="relative flex-1">
                   <span className="absolute left-3 top-2 text-gray-500 dark:text-gray-400 text-sm">$</span>
@@ -344,41 +494,91 @@ export default function OfferBuilderPage() {
               </div>
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Signing Bonus</label>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                Per-Check Amount
+                <span className="ml-2 text-xs font-normal text-gray-400 dark:text-gray-500">
+                  {form.wage_type === 'Hourly'
+                    ? `(${form.employment_type === 'Part-Time' ? 'hourly × 1,040' : 'hourly × 2,080'}) ÷ 26`
+                    : 'salary ÷ 26'}
+                </span>
+              </label>
               <div className="relative">
                 <span className="absolute left-3 top-2 text-gray-500 dark:text-gray-400 text-sm">$</span>
                 <input
-                  type="number"
-                  value={form.signing_bonus}
-                  onChange={e => setForm(p => ({ ...p, signing_bonus: e.target.value }))}
-                  disabled={!canEdit}
-                  className="w-full border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg pl-7 pr-3 py-2 text-sm disabled:bg-gray-50 dark:disabled:bg-gray-900"
-                  placeholder="0.00"
+                  type="text"
+                  value={computePerCheck(form.salary, form.wage_type, form.employment_type)}
+                  readOnly
+                  className="w-full border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg pl-7 pr-3 py-2 text-sm bg-gray-50 dark:bg-gray-900 cursor-not-allowed"
+                  placeholder="—"
                 />
               </div>
             </div>
           </div>
-          <div className="mt-4">
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Equity Details</label>
-            <textarea
-              value={form.equity_details}
-              onChange={e => setForm(p => ({ ...p, equity_details: e.target.value }))}
-              disabled={!canEdit}
-              rows={2}
-              className="w-full border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg px-3 py-2 text-sm disabled:bg-gray-50 dark:disabled:bg-gray-900"
-              placeholder="Stock options, RSUs, etc."
-            />
-          </div>
-          <div className="mt-4">
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Benefits Summary</label>
-            <textarea
-              value={form.benefits_summary}
-              onChange={e => setForm(p => ({ ...p, benefits_summary: e.target.value }))}
-              disabled={!canEdit}
-              rows={3}
-              className="w-full border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg px-3 py-2 text-sm disabled:bg-gray-50 dark:disabled:bg-gray-900"
-              placeholder="Health insurance, 401k match, PTO, etc."
-            />
+
+          {/* Benefits Selection */}
+          <div className="mt-6 space-y-4">
+            <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300">Benefits Package</h3>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              {/* Benefits Tier */}
+              <div>
+                <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-2">Benefits</label>
+                <div className="space-y-1.5">
+                  {['Full Time', 'Part Time', 'International'].map(opt => (
+                    <label key={opt} className="flex items-center gap-2 text-sm text-gray-700 dark:text-gray-300 cursor-pointer">
+                      <input
+                        type="radio"
+                        name="benefits_tier"
+                        checked={form.benefits.benefits === opt}
+                        onChange={() => setForm(p => ({ ...p, benefits: { ...p.benefits, benefits: opt } }))}
+                        disabled={!canEdit}
+                        className="text-blue-600"
+                      />
+                      {opt}
+                    </label>
+                  ))}
+                </div>
+              </div>
+
+              {/* 401k */}
+              <div>
+                <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-2">401k</label>
+                <div className="space-y-1.5">
+                  {['11 days/year', '16 days/year', '21 days/year'].map(opt => (
+                    <label key={opt} className="flex items-center gap-2 text-sm text-gray-700 dark:text-gray-300 cursor-pointer">
+                      <input
+                        type="radio"
+                        name="pto_tier"
+                        checked={form.benefits.pto === opt}
+                        onChange={() => setForm(p => ({ ...p, benefits: { ...p.benefits, pto: opt } }))}
+                        disabled={!canEdit}
+                        className="text-blue-600"
+                      />
+                      {opt}
+                    </label>
+                  ))}
+                </div>
+              </div>
+
+              {/* Sick Leave */}
+              <div>
+                <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-2">Sick Leave</label>
+                <div className="space-y-1.5">
+                  {['Full Time', 'Part Time', 'International'].map(opt => (
+                    <label key={opt} className="flex items-center gap-2 text-sm text-gray-700 dark:text-gray-300 cursor-pointer">
+                      <input
+                        type="radio"
+                        name="sick_leave_tier"
+                        checked={form.benefits.sick_leave === opt}
+                        onChange={() => setForm(p => ({ ...p, benefits: { ...p.benefits, sick_leave: opt } }))}
+                        disabled={!canEdit}
+                        className="text-blue-600"
+                      />
+                      {opt}
+                    </label>
+                  ))}
+                </div>
+              </div>
+            </div>
           </div>
         </div>
 
@@ -400,7 +600,7 @@ export default function OfferBuilderPage() {
           <div className="mt-4">
             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Contingencies</label>
             <div className="flex flex-wrap gap-4">
-              {(['background_check', 'drug_test', 'references'] as const).map(key => (
+              {(['background_check', 'tech_screen'] as const).map(key => (
                 <label key={key} className="flex items-center gap-2 text-sm text-gray-700 dark:text-gray-300">
                   <input
                     type="checkbox"
@@ -487,6 +687,18 @@ export default function OfferBuilderPage() {
             )}
           </div>
         </div>
+      )}
+
+      {/* Send Offer Modal */}
+      {offer && (
+        <OfferSendModal
+          offerId={offer.id}
+          applicantName={applicantName}
+          applicantEmail={applicantEmail}
+          isOpen={showSendModal}
+          onClose={() => setShowSendModal(false)}
+          onSent={() => loadOffer(offer.id)}
+        />
       )}
     </div>
   );

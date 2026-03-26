@@ -120,6 +120,19 @@ class OfferService:
             application.status_changed_by = sent_by
             application.offer_extended_at = datetime.utcnow()
 
+        # Advance pipeline to "Offer Extended" stage
+        if application and application.requisition_id:
+            from app.services.pipeline_service import pipeline_service
+            offer_stage = db.query(models.PipelineStage).filter(
+                models.PipelineStage.template_id == application.requisition.pipeline_template_id,
+                models.PipelineStage.lifecycle_stage_key == "offer_extended",
+            ).first()
+            if offer_stage and application.current_stage_id != offer_stage.id:
+                pipeline_service.advance_to_stage(
+                    db, application, offer_stage.id, sent_by,
+                    notes=f"Offer {offer.offer_id} sent to candidate",
+                )
+
         recruiting_service.log_activity(
             db,
             offer.application_id,
@@ -143,6 +156,19 @@ class OfferService:
         application = db.query(models.Application).get(offer.application_id)
         if application:
             application.offer_accepted_at = datetime.utcnow()
+
+            # Advance pipeline to "Offer Accepted" / offer_response stage
+            if application.requisition_id:
+                from app.services.pipeline_service import pipeline_service
+                accepted_stage = db.query(models.PipelineStage).filter(
+                    models.PipelineStage.template_id == application.requisition.pipeline_template_id,
+                    models.PipelineStage.lifecycle_stage_key == "offer_response",
+                ).first()
+                if accepted_stage and application.current_stage_id != accepted_stage.id:
+                    pipeline_service.advance_to_stage(
+                        db, application, accepted_stage.id, offer.created_by or 0,
+                        notes=f"Offer {offer.offer_id} accepted by candidate",
+                    )
 
         recruiting_service.log_activity(
             db,
@@ -231,6 +257,13 @@ class OfferService:
         db.add(counter)
         db.flush()
 
+        # Increment negotiation round
+        application = db.query(models.Application).filter(
+            models.Application.id == original_offer.application_id
+        ).first()
+        if application:
+            application.negotiation_round = (application.negotiation_round or 0) + 1
+
         recruiting_service.log_activity(
             db,
             original_offer.application_id,
@@ -245,6 +278,37 @@ class OfferService:
         )
 
         return counter
+
+    def get_negotiation_chain(self, db: Session, offer: models.OfferLetter) -> list:
+        """Walk the offer chain to get all versions in order."""
+        # Find the root offer (the one that's not a counter-offer)
+        root = offer
+        while root.original_offer_id:
+            parent = db.query(models.OfferLetter).filter(
+                models.OfferLetter.id == root.original_offer_id
+            ).first()
+            if not parent:
+                break
+            root = parent
+
+        # Now collect all offers in the chain (root + all counter-offers)
+        chain = [root]
+        seen = {root.id}
+
+        # Find all counter-offers that reference offers in our chain
+        while True:
+            next_offers = db.query(models.OfferLetter).filter(
+                models.OfferLetter.original_offer_id.in_([o.id for o in chain]),
+                ~models.OfferLetter.id.in_(seen),
+            ).order_by(models.OfferLetter.created_at).all()
+
+            if not next_offers:
+                break
+            for o in next_offers:
+                chain.append(o)
+                seen.add(o.id)
+
+        return sorted(chain, key=lambda o: o.created_at or datetime.min)
 
 
 # Singleton instance

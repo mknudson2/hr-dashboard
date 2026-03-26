@@ -4,7 +4,7 @@ import {
   ChevronLeft, Star, Mail, Phone, Linkedin, Globe, Building,
   MapPin, Clock, FileText, MessageSquare, Calendar, ClipboardList,
   XCircle, ChevronRight, ExternalLink, Plus, CalendarCheck, Link2,
-  Video, Users, Check
+  Video, Users, Check, FileSignature
 } from 'lucide-react';
 import ResumeAnalysisPanel from '../components/recruiting/ResumeAnalysisPanel';
 import UserSearchSelect from '../components/UserSearchSelect';
@@ -217,6 +217,29 @@ export default function ApplicationDetailPage() {
     checkCalendar();
   }, []);
 
+  // Existing offer for this application
+  const [existingOffer, setExistingOffer] = useState<{
+    id: number; offer_id: string; status: string; position_title: string;
+    salary: number | null; start_date: string | null; sent_at: string | null;
+  } | null>(null);
+
+  useEffect(() => {
+    if (!id) return;
+    const fetchOffer = async () => {
+      try {
+        const res = await fetch(`${BASE_URL}/recruiting/offers?application_id=${id}`, { credentials: 'include' });
+        if (res.ok) {
+          const data = await res.json();
+          if (data.offers && data.offers.length > 0) {
+            const o = data.offers[0];
+            setExistingOffer({ id: o.id, offer_id: o.offer_id, status: o.status, position_title: o.position_title, salary: o.salary, start_date: o.sent_at, sent_at: o.sent_at });
+          }
+        }
+      } catch { /* ignore */ }
+    };
+    fetchOffer();
+  }, [id]);
+
   const handleScheduleInterview = async () => {
     if (!scheduledDate || !scheduledTime) return;
     setScheduleSubmitting(true);
@@ -279,6 +302,14 @@ export default function ApplicationDetailPage() {
   };
 
   const advanceStage = async (stageId: number) => {
+    // If advancing to an offer-type stage, redirect to offer builder
+    // The pipeline will be advanced automatically when the offer is sent
+    const targetStage = app?.pipeline_stages.find(s => s.id === stageId);
+    if (targetStage?.stage_type === 'offer') {
+      navigate(`/recruiting/offers/new?applicationId=${id}`);
+      return;
+    }
+
     try {
       const res = await fetch(`${BASE_URL}/recruiting/applications/${id}/stage`, {
         method: 'PATCH',
@@ -431,6 +462,21 @@ export default function ApplicationDetailPage() {
         <div className="flex gap-2">
           {app.status !== 'Rejected' && app.status !== 'Hired' && app.status !== 'Withdrawn' && (
             <>
+              {existingOffer ? (
+                <button
+                  onClick={() => navigate(`/recruiting/offers/${existingOffer.id}`)}
+                  className="flex items-center gap-1 px-3 py-2 border border-green-200 dark:border-green-800 text-green-600 dark:text-green-400 rounded-lg text-sm hover:bg-green-50 dark:hover:bg-green-900/20"
+                >
+                  <FileSignature className="w-4 h-4" /> View Offer
+                </button>
+              ) : (
+                <button
+                  onClick={() => navigate(`/recruiting/offers/new?applicationId=${app.id}`)}
+                  className="flex items-center gap-1 px-3 py-2 border border-green-200 dark:border-green-800 text-green-600 dark:text-green-400 rounded-lg text-sm hover:bg-green-50 dark:hover:bg-green-900/20"
+                >
+                  <FileSignature className="w-4 h-4" /> Create Offer
+                </button>
+              )}
               <button
                 onClick={() => setShowWithdrawModal(true)}
                 className="flex items-center gap-1 px-3 py-2 border border-amber-200 dark:border-amber-800 text-amber-600 dark:text-amber-400 rounded-lg text-sm hover:bg-amber-50 dark:hover:bg-amber-900/20"
@@ -621,6 +667,45 @@ export default function ApplicationDetailPage() {
                 <span className="text-gray-400 dark:text-gray-500">/5.0</span>
               </div>
               <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">Average across {app.scorecards.filter(s => s.status === 'Submitted').length} scorecard(s)</p>
+            </div>
+          )}
+
+          {existingOffer && (
+            <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-5">
+              <h3 className="font-semibold text-gray-900 dark:text-white mb-3 flex items-center gap-2">
+                <FileSignature className="w-4 h-4 text-green-600 dark:text-green-400" />
+                Offer Letter
+              </h3>
+              <div className="space-y-2 text-sm">
+                <div className="flex items-center justify-between">
+                  <span className="text-gray-500 dark:text-gray-400">Status</span>
+                  <span className={`px-2 py-0.5 rounded text-xs font-medium ${
+                    existingOffer.status === 'Accepted' ? 'bg-green-100 text-green-800 dark:bg-green-900/40 dark:text-green-300' :
+                    existingOffer.status === 'Sent' ? 'bg-purple-100 text-purple-800 dark:bg-purple-900/40 dark:text-purple-300' :
+                    existingOffer.status === 'Approved' ? 'bg-blue-100 text-blue-800 dark:bg-blue-900/40 dark:text-blue-300' :
+                    existingOffer.status === 'Declined' ? 'bg-red-100 text-red-800 dark:bg-red-900/40 dark:text-red-300' :
+                    'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-200'
+                  }`}>
+                    {existingOffer.status}
+                  </span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-gray-500 dark:text-gray-400">Position</span>
+                  <span className="text-gray-700 dark:text-gray-300">{existingOffer.position_title}</span>
+                </div>
+                {existingOffer.salary && (
+                  <div className="flex items-center justify-between">
+                    <span className="text-gray-500 dark:text-gray-400">Salary</span>
+                    <span className="text-gray-700 dark:text-gray-300">${existingOffer.salary.toLocaleString()}</span>
+                  </div>
+                )}
+              </div>
+              <button
+                onClick={() => navigate(`/recruiting/offers/${existingOffer.id}`)}
+                className="mt-3 w-full text-center text-sm text-green-600 dark:text-green-400 hover:text-green-800 dark:hover:text-green-300 font-medium"
+              >
+                Open Offer →
+              </button>
             </div>
           )}
         </div>

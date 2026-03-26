@@ -1,0 +1,60 @@
+{% extends "recruiting/base_recruiting.html" %}
+
+{% block title %}Interview Scheduled — {{ job_title }}{% endblock %}
+{% block header_title %}Interview Scheduled{% endblock %}
+
+{% block greeting %}
+<p>Dear {{ applicant_name }},</p>
+{% endblock %}
+
+{% block content %}
+<p>Your interview for the <strong>{{ job_title }}</strong> position has been scheduled.</p>
+
+<div style="background: #1e293b; border-radius: 8px; padding: 20px; margin: 16px 0;">
+    <table role="presentation" cellpadding="0" cellspacing="0" width="100%">
+        <tr>
+            <td style="color: #9ca3af; font-size: 12px; padding-bottom: 8px;">Date & Time</td>
+            <td style="color: #f3f4f6; font-size: 14px; font-weight: 600; text-align: right; padding-bottom: 8px;">{{ interview_date }} at {{ interview_time }}</td>
+        </tr>
+        <tr>
+            <td style="color: #9ca3af; font-size: 12px; padding-bottom: 8px;">Duration</td>
+            <td style="color: #f3f4f6; font-size: 14px; text-align: right; padding-bottom: 8px;">{{ duration_minutes }} minutes</td>
+        </tr>
+        <tr>
+            <td style="color: #9ca3af; font-size: 12px; padding-bottom: 8px;">Format</td>
+            <td style="color: #f3f4f6; font-size: 14px; text-align: right; padding-bottom: 8px;">{{ format }}</td>
+        </tr>
+        {% if location %}
+        <tr>
+            <td style="color: #9ca3af; font-size: 12px; padding-bottom: 8px;">Location</td>
+            <td style="color: #f3f4f6; font-size: 14px; text-align: right; padding-bottom: 8px;">{{ location }}</td>
+        </tr>
+        {% endif %}
+        {% if interviewers %}
+        <tr>
+            <td style="color: #9ca3af; font-size: 12px;">Interviewer(s)</td>
+            <td style="color: #f3f4f6; font-size: 14px; text-align: right;">{{ interviewers }}</td>
+        </tr>
+        {% endif %}
+    </table>
+</div>
+
+{% if video_link %}
+<table role="presentation" cellpadding="0" cellspacing="0" style="margin: 24px 0;">
+    <tr>
+        <td style="background: #2563eb; border-radius: 6px; padding: 12px 24px;">
+            <a href="{{ video_link }}" style="color: #ffffff; text-decoration: none; font-weight: 600; font-size: 14px;">
+                Join Video Call
+            </a>
+        </td>
+    </tr>
+</table>
+{% endif %}
+
+<p>Please confirm your attendance and contact us if you need to reschedule.</p>
+{% endblock %}
+
+{% block closing %}
+<p>Good luck with your interview!</p>
+<p>— The Recruiting Team</p>
+{% endblock %}

@@ -148,6 +148,18 @@ PERMISSIONS = [
     {"name": "recruiting:write", "display_name": "Manage Recruiting", "category": "Recruiting", "description": "Create and manage requisitions, advance candidates, schedule interviews"},
     {"name": "recruiting:admin", "display_name": "Recruiting Admin", "category": "Recruiting", "description": "Full recruiting access including pipeline and offer management"},
     {"name": "recruiting:eeo:read", "display_name": "View Recruiting EEO", "category": "Recruiting", "description": "View EEO demographic data for recruiting analytics"},
+
+    # ATS Enhancement (Phase 0)
+    {"name": "recruiting:stakeholders:manage", "display_name": "Manage Stakeholders", "category": "Recruiting", "description": "Add/remove stakeholders and assign access roles on requisitions"},
+    {"name": "recruiting:messages:read", "display_name": "Read Candidate Messages", "category": "Recruiting", "description": "View messages between candidates and hiring team"},
+    {"name": "recruiting:messages:write", "display_name": "Send Candidate Messages", "category": "Recruiting", "description": "Send messages to candidates through the portal"},
+    {"name": "recruiting:approvals:read", "display_name": "View Approval Chains", "category": "Recruiting", "description": "View approval chain configurations"},
+    {"name": "recruiting:approvals:write", "display_name": "Manage Approval Chains", "category": "Recruiting", "description": "Create and modify approval chain configurations"},
+    {"name": "recruiting:approvals:act", "display_name": "Act on Approvals", "category": "Recruiting", "description": "Approve or reject pending approval requests"},
+    {"name": "recruiting:availability:manage", "display_name": "Manage Interview Availability", "category": "Recruiting", "description": "Set and manage interviewer availability time slots"},
+    {"name": "recruiting:scorecard_templates:manage", "display_name": "Manage Scorecard Templates", "category": "Recruiting", "description": "Create, edit, and manage reusable scorecard templates"},
+    {"name": "recruiting:pool:read", "display_name": "View Applicant Pool", "category": "Recruiting", "description": "Browse candidates who opted in for cross-role consideration"},
+    {"name": "recruiting:pool:write", "display_name": "Manage Applicant Pool", "category": "Recruiting", "description": "Pull applicant pool candidates into new requisitions"},
 ]
 
 
@@ -197,6 +209,10 @@ ROLES = [
             "par_portal:supervisor",
             "content_management:write",
             "recruiting:read", "recruiting:write", "recruiting:admin", "recruiting:eeo:read",
+            "recruiting:stakeholders:manage", "recruiting:messages:read", "recruiting:messages:write",
+            "recruiting:approvals:read", "recruiting:approvals:act",
+            "recruiting:availability:manage", "recruiting:scorecard_templates:manage",
+            "recruiting:pool:read", "recruiting:pool:write",
         ],
     },
     {
@@ -247,6 +263,9 @@ ROLES = [
             "pto_portal:supervisor",
             "performance_portal:supervisor",
             "par_portal:supervisor",
+            # ATS recruiting (manager as hiring manager)
+            "recruiting:stakeholders:manage", "recruiting:messages:read", "recruiting:messages:write",
+            "recruiting:approvals:act", "recruiting:pool:read",
         ],
     },
     {

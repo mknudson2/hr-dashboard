@@ -28,6 +28,7 @@ interface TipTapEditorProps {
   onChange: (content: string) => void;
   customPlaceholders?: Array<{ key: string; label: string }>;
   placeholder?: string;
+  showOfferPlaceholders?: boolean;
 }
 
 interface ToolbarButtonProps {
@@ -63,6 +64,7 @@ export default function TipTapEditor({
   onChange,
   customPlaceholders = [],
   placeholder = 'Start writing your email template...',
+  showOfferPlaceholders = false,
 }: TipTapEditorProps) {
   const [showLinkInput, setShowLinkInput] = useState(false);
   const [linkUrl, setLinkUrl] = useState('');
@@ -296,6 +298,7 @@ export default function TipTapEditor({
           <PlaceholderDropdown
             onInsert={insertPlaceholder}
             customPlaceholders={customPlaceholders}
+            showOfferPlaceholders={showOfferPlaceholders}
           />
         </div>
       </div>

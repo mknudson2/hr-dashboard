@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import {
-  ChevronLeft, Edit, Plus, Eye, Users, FileText, Globe, Lock, Upload, UserPlus, Star, Trash2
+  ChevronLeft, Edit, Plus, Eye, Users, FileText, Globe, Lock, Upload, UserPlus, Star, Trash2, FileSignature
 } from 'lucide-react';
 import LifecycleTracker, { type LifecycleStage } from '@/components/recruiting/LifecycleTracker';
 import StageDetailPanel from '@/components/recruiting/StageDetailPanel';
@@ -521,6 +521,7 @@ export default function RequisitionDetailPage() {
                         <th className="text-left px-4 py-3 text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">Rating</th>
                         <th className="text-left px-4 py-3 text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">AI Score</th>
                         <th className="text-left px-4 py-3 text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">Submitted</th>
+                        <th className="text-left px-4 py-3 text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">Offer</th>
                         <th className="px-4 py-3 w-10"></th>
                       </tr>
                     </thead>
@@ -564,6 +565,27 @@ export default function RequisitionDetailPage() {
                           </td>
                           <td className="px-4 py-3 text-sm text-gray-500 dark:text-gray-400">
                             {app.submitted_at ? new Date(app.submitted_at).toLocaleDateString() : '—'}
+                          </td>
+                          <td className="px-4 py-3">
+                            {app.status === 'Offer' || app.status === 'Hired' ? (
+                              <button
+                                onClick={(e) => { e.stopPropagation(); navigate(`/recruiting/offers/new?applicationId=${app.id}`); }}
+                                className="p-1 text-green-600 dark:text-green-400 hover:text-green-800 dark:hover:text-green-300 transition-colors"
+                                title="View offer"
+                              >
+                                <FileSignature className="w-4 h-4" />
+                              </button>
+                            ) : app.status !== 'Rejected' && app.status !== 'Withdrawn' ? (
+                              <button
+                                onClick={(e) => { e.stopPropagation(); navigate(`/recruiting/offers/new?applicationId=${app.id}`); }}
+                                className="p-1 text-gray-400 hover:text-green-600 dark:hover:text-green-400 transition-colors"
+                                title="Create offer"
+                              >
+                                <FileSignature className="w-4 h-4" />
+                              </button>
+                            ) : (
+                              <span className="text-gray-300 dark:text-gray-600">—</span>
+                            )}
                           </td>
                           <td className="px-4 py-3">
                             <button

@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { apiGet, apiPost } from '@/utils/api';
+import { apiGet, apiPost, apiPut } from '@/utils/api';
 import { apiFetch } from '@/utils/api';
 
 interface ProfileData {
@@ -16,6 +16,8 @@ interface ProfileData {
   current_title: string | null;
   years_of_experience: number | null;
   has_account: boolean;
+  open_to_other_roles: boolean;
+  pool_opted_in_at: string | null;
   created_at: string | null;
 }
 
@@ -265,6 +267,43 @@ export default function ApplicantProfilePage() {
           )}
         </div>
       )}
+
+      {/* Cross-Role Consideration */}
+      <div className="bg-white border border-gray-200 rounded-lg p-6 mb-6">
+        <h2 className="text-lg font-semibold text-gray-900 mb-3">Cross-Role Consideration</h2>
+        <label className="flex items-start gap-3 cursor-pointer">
+          <input
+            type="checkbox"
+            checked={profile.open_to_other_roles}
+            onChange={async (e) => {
+              const newVal = e.target.checked;
+              try {
+                await apiPut('/applicant-portal/profile/pool-preference', {
+                  open_to_other_roles: newVal,
+                });
+                setProfile(prev => prev ? { ...prev, open_to_other_roles: newVal } : prev);
+                setSuccess(newVal ? 'You are now in the candidate pool for other roles' : 'Removed from candidate pool');
+              } catch {
+                setError('Failed to update preference');
+              }
+            }}
+            className="mt-0.5 rounded border-gray-300"
+          />
+          <div>
+            <span className="text-sm font-medium text-gray-900">
+              I'm open to being considered for other roles
+            </span>
+            <p className="text-xs text-gray-500 mt-1">
+              Our HR team may reach out about positions that match your profile.
+            </p>
+            {profile.pool_opted_in_at && profile.open_to_other_roles && (
+              <p className="text-xs text-gray-400 mt-1">
+                Opted in on {new Date(profile.pool_opted_in_at).toLocaleDateString()}
+              </p>
+            )}
+          </div>
+        </label>
+      </div>
 
       {/* Account Info */}
       <div className="bg-white border border-gray-200 rounded-lg p-6">
