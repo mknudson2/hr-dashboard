@@ -1,51 +1,109 @@
-# HR Hub - Enterprise Human Resources Management System
+# Bifrost HR Hub
 
-A comprehensive HR management platform built for modern enterprises, featuring employee management, payroll processing, compliance tracking, and advanced analytics.
+A comprehensive HRIS platform built for modern enterprises. Three interconnected applications — HR Hub (admin), Employee Portal (self-service), and Applicant Portal (external job seekers) — share a single FastAPI backend.
+
+## Architecture
+
+```
+┌─────────────────┐  ┌─────────────────┐  ┌─────────────────┐
+│    HR Hub        │  │ Employee Portal  │  │Applicant Portal │
+│  (Admin/HR)      │  │ (Self-Service)   │  │  (Job Seekers)  │
+│  :5173           │  │  :5174           │  │  :5175          │
+└────────┬─────────┘  └────────┬─────────┘  └────────┬────────┘
+         │                     │                      │
+         └─────────────────────┼──────────────────────┘
+                               │
+                    ┌──────────▼──────────┐
+                    │  FastAPI Backend     │
+                    │  :8000               │
+                    │  ├─ 57 API modules   │
+                    │  ├─ 70+ services     │
+                    │  └─ SQLAlchemy ORM   │
+                    └──────────┬──────────┘
+                               │
+                    ┌──────────▼──────────┐
+                    │  SQLite (dev)        │
+                    │  PostgreSQL (prod)   │
+                    └─────────────────────┘
+```
 
 ## Features
 
 ### Core HR Management
-- **Employee Directory** - Complete employee profiles with contact info, employment history, and documentation
-- **Onboarding/Offboarding** - Automated task workflows for new hires and departing employees
-- **Equipment Tracking** - Asset management for company equipment assignments
+- **Employee Directory** — Complete profiles with contact info, employment history, and documentation
+- **Onboarding/Offboarding** — Template-based task workflows for new hires and departing employees
+- **Equipment Tracking** — Asset management for company equipment assignments
+- **Performance Management** — Reviews, goals, PIPs, and rating workflows
+- **Time & Attendance** — Time tracking, timesheet approvals, overtime analysis
 
 ### Compensation & Payroll
-- **Payroll Processing** - Semi-monthly payroll period management with approval workflows
-- **Compensation Analysis** - Market data comparisons and salary benchmarking
-- **Wage History** - Complete compensation change tracking with audit trails
+- **Payroll Processing** — Semi-monthly payroll period management with approval workflows
+- **Compensation Analysis** — Market data comparisons and salary benchmarking
+- **Capitalized Labor** — R&D labor cost capitalization tracking and reporting
 
 ### Compliance & Benefits
-- **FMLA Management** - Family Medical Leave Act case tracking with DOL form generation
-- **ACA Compliance** - Affordable Care Act eligibility tracking and 1095-C preparation
-- **Garnishment Processing** - Court-ordered wage garnishment calculations and tracking
-- **401(k) & Benefits** - Contribution tracking with IRS limit monitoring
+- **FMLA Management** — Case tracking with DOL form generation, supervisor workflows, and time submissions
+- **ACA Compliance** — Affordable Care Act eligibility tracking and 1095-C preparation
+- **Garnishment Processing** — Court-ordered wage garnishment calculations and tracking
+- **401(k) & Benefits** — Contribution tracking with IRS limit monitoring
+- **EEO Reporting** — Equal Employment Opportunity compliance reporting
+
+### Recruiting (ATS)
+- **Job Requisitions** — Full lifecycle management with approval workflows
+- **Applicant Portal** — External-facing job search, application submission, and interview scheduling
+- **Pipeline Management** — Kanban board, configurable interview stages, and lifecycle tracking
+- **Interview Scheduling** — Stakeholder availability grid, calendar integration, and automated scheduling
+- **Scorecards** — Structured interview evaluation with templates and candidate comparison
+- **Offers** — Offer builder, letter templates, negotiation tracking, and approval chains
+- **Hire Conversion** — Wizard to convert accepted candidates into employee records
+- **Background Screening** — TazWorks integration for background checks
+- **Analytics** — Recruiting metrics, time-to-fill, source effectiveness, and EEO applicant reports
+
+### Employee Portal (Bifrost)
+- **Self-Service Dashboard** — PTO balances, payroll info, FMLA status, and action items
+- **Hiring Manager Portal** — Requisition tracking, interview participation, scorecards, and approvals
+- **FMLA Portal** — Submit time, view cases, track hours
+- **Garnishment Portal** — View active garnishments and payment history
+- **PTO Requests** — Submit and track time-off requests
+- **AI Assistant (Mimir)** — RAG-powered HR knowledge chatbot
 
 ### Analytics & Reporting
-- **Dashboard** - Real-time workforce metrics and KPIs
-- **Turnover Analysis** - Cost tracking and trend analysis for employee departures
-- **EEO Reporting** - Equal Employment Opportunity compliance reporting
-- **Custom Reports** - Exportable data in Excel and PDF formats
+- **Dashboard** — Real-time workforce metrics and KPIs
+- **Advanced Analytics** — Demographic breakdowns, tenure analysis, compensation distribution
+- **Turnover Analysis** — Cost tracking and trend analysis for employee departures
+- **Custom Reports** — Exportable data in Excel and PDF formats
 
 ### Security & Access Control
-- **Role-Based Access Control (RBAC)** - 40+ granular permissions across 8 role levels
-- **Two-Factor Authentication** - TOTP-based 2FA with backup codes
-- **Audit Logging** - Comprehensive activity tracking for compliance
-- **Session Management** - Secure token-based authentication with automatic expiry
+- **Role-Based Access Control** — 40+ granular permissions across 8 role levels
+- **Two-Factor Authentication** — TOTP-based 2FA with backup codes
+- **Field-Level Encryption** — SSN, bank accounts, and salary data encrypted at rest
+- **Audit Logging** — 5 specialized audit models covering security events, PII changes, FMLA, and performance
+- **Session Management** — JWT tokens in httpOnly cookies with idle timeout and max lifetime
+
+### Integrations
+- **Microsoft 365** — Calendar sync and Azure AD SSO
+- **Google Workspace** — Calendar integration
+- **Paylocity** — Payroll data ingestion
+- **TazWorks** — Background screening with webhook callbacks
+- **SFTP** — Automated file transfers
+- **Anthropic / OpenAI** — AI-powered assistant and resume analysis
 
 ## Technology Stack
 
 ### Frontend
-- **React 18** with TypeScript
-- **Tailwind CSS** for styling
+- **React 19** with TypeScript 5.9 (strict mode)
+- **Vite 7** build tooling with route-level code splitting (`React.lazy`)
+- **Tailwind CSS 4** (`@theme {}` directives, no config file)
 - **Framer Motion** for animations
-- **Recharts** for data visualization
-- **React Router** for navigation
+- **Recharts / Chart.js** for data visualization
+- **React Router 7** for navigation
 
 ### Backend
 - **FastAPI** (Python 3.12)
-- **SQLAlchemy** ORM with SQLite
-- **Pydantic** for data validation
+- **SQLAlchemy 2** ORM — SQLite (dev), PostgreSQL (prod)
+- **Pydantic 2** for data validation
 - **APScheduler** for background jobs
+- **ChromaDB / LangChain** for RAG pipeline (Mimir)
 
 ## Getting Started
 
@@ -86,16 +144,31 @@ A comprehensive HR management platform built for modern enterprises, featuring e
    uvicorn app.main:app --reload --port 8000
    ```
 
-6. **Set up the frontend** (new terminal)
+6. **Set up the HR Hub frontend** (new terminal)
    ```bash
    cd hr-dashboard  # project root
    npm install
    npm run dev
    ```
 
-7. **Access the application**
-   - HR Portal: http://localhost:5173
+7. **Set up the Employee Portal** (new terminal)
+   ```bash
+   cd employee-portal
+   npm install
+   npm run dev
+   ```
+
+8. **Set up the Applicant Portal** (new terminal)
+   ```bash
+   cd applicant-portal
+   npm install
+   npm run dev
+   ```
+
+9. **Access the applications**
+   - HR Hub: http://localhost:5173
    - Employee Portal: http://localhost:5174
+   - Applicant Portal: http://localhost:5175
    - API Documentation: http://localhost:8000/docs
 
 ## Project Structure
@@ -104,42 +177,57 @@ A comprehensive HR management platform built for modern enterprises, featuring e
 hr-dashboard/
 ├── backend/
 │   ├── app/
-│   │   ├── api/           # API route handlers
-│   │   ├── db/            # Database models and migrations
-│   │   ├── services/      # Business logic services
-│   │   └── main.py        # FastAPI application entry
-│   ├── data/              # SQLite database files
+│   │   ├── api/              # 57 API route modules
+│   │   ├── db/               # Models, migrations, seed scripts
+│   │   ├── services/         # Business logic (70+ services)
+│   │   ├── schemas/          # Shared Pydantic schemas
+│   │   └── main.py           # FastAPI application entry
+│   ├── data/                 # SQLite database (dev)
+│   ├── templates/            # Email templates
 │   └── requirements.txt
-├── src/
-│   ├── components/        # Reusable React components
-│   ├── pages/             # Page-level components
-│   ├── contexts/          # React context providers
-│   ├── services/          # API service functions
-│   └── utils/             # Utility functions
-├── employee-portal/       # Separate employee self-service app
-└── package.json
+├── src/                      # HR Hub frontend source
+│   ├── components/           # Reusable React components
+│   ├── pages/                # Page-level components
+│   ├── contexts/             # React context providers
+│   ├── services/             # API service functions
+│   ├── features/             # Feature modules (screening, etc.)
+│   └── utils/                # Utility functions
+├── employee-portal/          # Employee self-service portal
+│   └── src/
+│       ├── components/       # Portal components (bifrost/, mimir/, common/)
+│       ├── pages/            # Portal pages
+│       └── contexts/         # Auth, features, theme contexts
+├── applicant-portal/         # External applicant-facing portal
+│   └── src/
+│       ├── components/       # Portal components
+│       └── pages/            # Job search, application, interview pages
+├── deployment/               # Docker, nginx, setup scripts
+├── docs/                     # Architecture, security, deployment docs
+└── CLAUDE.md                 # Codebase standards and guidelines
 ```
 
-## Security Features
+## Security
 
-- **Authentication**: JWT tokens stored in httpOnly cookies (XSS protection)
-- **Password Security**: bcrypt hashing with configurable work factor
-- **Rate Limiting**: Protection against brute force attacks
-- **CSRF Protection**: Token-based cross-site request forgery prevention
-- **Input Validation**: Server-side validation on all endpoints
-- **Audit Trail**: Comprehensive logging of all data access and modifications
-
-## API Documentation
-
-Interactive API documentation is available at `/docs` when running the backend server. The API follows RESTful conventions with JSON request/response formats.
+- **Authentication** — JWT tokens in httpOnly cookies with CSRF double-submit protection
+- **Password Security** — bcrypt hashing, NIST 800-63B compliant policy with history check
+- **Rate Limiting** — Configurable per-endpoint limits (login: 5/min)
+- **Account Lockout** — Configurable failed attempt threshold (default: 5 attempts, 15-min lockout)
+- **Encryption** — Field-level encryption for PII via `EncryptedString` / `EncryptedText` column types
+- **CORS** — Environment-specific origins (never wildcards in production)
+- **Security Headers** — HSTS, X-Content-Type-Options, X-Frame-Options via middleware
+- **Request Size Limits** — Configurable body size limits via middleware
 
 ## Production Deployment
 
-For production deployment instructions, see the following documentation:
+For production deployment, see:
 
-- **[IT Admin Guide](docs/IT_ADMIN_GUIDE.md)** - Complete configuration reference with all 65+ environment variables, security settings, database setup, and email configuration
-- **[Production Checklist](docs/PRODUCTION_CHECKLIST.md)** - Pre-deployment and post-deployment verification checklists
-- **[Database Migration](docs/DATABASE_MIGRATION.md)** - Guide for migrating from SQLite to PostgreSQL
+- **[IT Admin Guide](docs/IT_ADMIN_GUIDE.md)** — Complete configuration reference with 65+ environment variables
+- **[Production Checklist](docs/PRODUCTION_CHECKLIST.md)** — Pre/post-deployment verification
+- **[Database Migration](docs/DATABASE_MIGRATION.md)** — SQLite to PostgreSQL migration guide
+- **[Azure AD Integration](docs/AZURE_AD_INTEGRATION.md)** — Microsoft SSO setup
+- **[Security Architecture](docs/Security_Architecture_Overview.md)** — Security design overview
+- **[Deployment Guide](deployment/DEPLOYMENT_GUIDE.md)** — Server setup, nginx, and automation
+- **[Self-Hosting Guide](deployment/SELF_HOSTING_GUIDE.md)** — Self-hosted deployment instructions
 
 ### Quick Production Setup
 
@@ -147,20 +235,23 @@ For production deployment instructions, see the following documentation:
 2. Generate secure keys for `JWT_SECRET_KEY` and `FIELD_ENCRYPTION_KEY`
 3. Configure `DATABASE_URL` for PostgreSQL
 4. Set `ENVIRONMENT=production`
-5. Configure HTTPS via reverse proxy
+5. Configure HTTPS via reverse proxy (nginx config provided in `deployment/`)
 6. See [IT Admin Guide](docs/IT_ADMIN_GUIDE.md) for detailed instructions
 
-## Enterprise Integration
+## Documentation
 
-### Microsoft Azure AD / SSO
-
-For organizations using Microsoft 365, the application supports integration with Azure Active Directory for Single Sign-On (SSO).
-
-See **[Azure AD Integration Guide](docs/AZURE_AD_INTEGRATION.md)** for:
-- Azure AD app registration setup
-- User provisioning and role mapping
-- Implementation approach and timeline
-- Configuration reference
+| Document | Description |
+|---|---|
+| [IT Admin Guide](docs/IT_ADMIN_GUIDE.md) | Environment variables, security settings, database, email config |
+| [Production Checklist](docs/PRODUCTION_CHECKLIST.md) | Deployment verification checklists |
+| [Database Migration](docs/DATABASE_MIGRATION.md) | SQLite to PostgreSQL guide |
+| [Azure AD Integration](docs/AZURE_AD_INTEGRATION.md) | Microsoft SSO setup |
+| [Security Architecture](docs/Security_Architecture_Overview.md) | Security design overview |
+| [Security Technical](docs/security/SECURITY_TECHNICAL.md) | Detailed security implementation |
+| [ATS Specification](docs/ats/BIFROST-ATS-SPEC.md) | Recruiting system design spec |
+| [FMLA User Guide](docs/FMLA_Portal_User_Guide.md) | FMLA portal usage guide |
+| [Tech Stack](docs/TECH_STACK.md) | Technology choices and rationale |
+| [CLAUDE.md](CLAUDE.md) | Codebase standards and coding guidelines |
 
 ## License
 
