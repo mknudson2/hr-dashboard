@@ -579,7 +579,7 @@ def add_note(garnishment_id: int, note_data: GarnishmentNoteCreate, db: Session 
 
 
 @router.post("/cases/{garnishment_id}/documents")
-async def upload_document(
+def upload_document(
     garnishment_id: int,
     file: UploadFile = File(...),
     document_type: str = "Writ",

@@ -7,6 +7,9 @@ from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 from app.db.database import SQLALCHEMY_DATABASE_URL
 from app.db import models
+import logging
+
+logger = logging.getLogger(__name__)
 
 
 def fix_employee_status():
@@ -21,7 +24,7 @@ def fix_employee_status():
             (models.OffboardingTask.archived == False) | (models.OffboardingTask.archived == None)
         ).distinct().all()
 
-        print(f"Found {len(offboarding_employee_ids)} employees with offboarding tasks")
+        logger.info(f"Found {len(offboarding_employee_ids)} employees with offboarding tasks")
 
         updated_count = 0
 
@@ -31,21 +34,21 @@ def fix_employee_status():
             ).first()
 
             if employee and employee.status != "Terminated":
-                print(f"  Updating {employee.first_name} {employee.last_name} ({emp_id}) from '{employee.status}' to 'Terminated'")
+                logger.info(f"Updating {employee.first_name} {employee.last_name} ({emp_id}) from '{employee.status}' to 'Terminated'")
                 employee.status = "Terminated"
                 updated_count += 1
 
         db.commit()
-        print(f"\n✅ Successfully updated {updated_count} employees to 'Terminated' status")
+        logger.info(f"\n Successfully updated {updated_count} employees to 'Terminated' status")
 
     except Exception as e:
-        print(f"❌ Error: {e}")
+        logger.error(f"Error: {e}")
         db.rollback()
     finally:
         db.close()
 
 
 if __name__ == "__main__":
-    print("Fixing employee status for those with offboarding tasks...")
-    print("=" * 60)
+    logger.info("Fixing employee status for those with offboarding tasks...")
+    logger.info("=" * 60)
     fix_employee_status()

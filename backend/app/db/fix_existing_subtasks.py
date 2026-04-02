@@ -2,16 +2,19 @@
 Fix existing offboarding tasks to properly set parent_task_id, has_subtasks, and is_subtask flags
 This script identifies subtasks based on task names and updates the database accordingly
 """
+import logging
 from sqlalchemy import create_engine, text
 from app.db.database import SQLALCHEMY_DATABASE_URL
+
+logger = logging.getLogger(__name__)
 
 def fix_existing_subtasks():
     """Identify and fix subtask relationships for existing tasks"""
     engine = create_engine(SQLALCHEMY_DATABASE_URL, connect_args={"check_same_thread": False})
 
     try:
-        print("\n🔧 Fixing existing offboarding task relationships...")
-        print("=" * 60)
+        logger.info("Fixing existing offboarding task relationships...")
+        logger.info("=" * 60)
 
         with engine.connect() as connection:
             # Get all offboarding tasks
@@ -23,10 +26,10 @@ def fix_existing_subtasks():
             all_tasks = result.fetchall()
 
             if not all_tasks:
-                print("No offboarding tasks found.")
+                logger.info("No offboarding tasks found.")
                 return
 
-            print(f"Found {len(all_tasks)} tasks to analyze...\n")
+            logger.info(f"Found {len(all_tasks)} tasks to analyze...")
 
             # Parent task names that should have subtasks
             parent_task_names = [
@@ -70,7 +73,7 @@ def fix_existing_subtasks():
 
             # Process each employee's tasks
             for emp_id, emp_tasks in tasks_by_employee.items():
-                print(f"Processing employee {emp_id}...")
+                logger.info(f"Processing employee {emp_id}...")
 
                 # Find parent tasks
                 for task in emp_tasks:
@@ -83,7 +86,7 @@ def fix_existing_subtasks():
                             SET has_subtasks = 1, is_subtask = 0
                             WHERE id = :task_id
                         """), {"task_id": task_id})
-                        print(f"  ✓ Marked '{task_name}' as parent task (has_subtasks)")
+                        logger.info(f"Marked '{task_name}' as parent task (has_subtasks)")
                         updates_made += 1
 
                 # Find and link subtasks
@@ -113,17 +116,17 @@ def fix_existing_subtasks():
                                 SET parent_task_id = :parent_id, is_subtask = 1, has_subtasks = 0
                                 WHERE id = :task_id
                             """), {"parent_id": parent_id, "task_id": task_id})
-                            print(f"  ✓ Linked subtask '{task_name}' to parent")
+                            logger.info(f"Linked subtask '{task_name}' to parent")
                             updates_made += 1
 
             connection.commit()
 
-            print("\n" + "=" * 60)
-            print(f"✅ Migration completed! Made {updates_made} updates.")
-            print("=" * 60)
+            logger.info("=" * 60)
+            logger.info(f"Migration completed! Made {updates_made} updates.")
+            logger.info("=" * 60)
 
     except Exception as e:
-        print(f"\n❌ Error fixing subtask relationships: {e}")
+        logger.error(f"Error fixing subtask relationships: {e}")
         import traceback
         traceback.print_exc()
 

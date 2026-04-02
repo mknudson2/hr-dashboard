@@ -1,12 +1,15 @@
 """
 Populate Overtime/PTO Data with realistic dummy data
 """
+import logging
 from sqlalchemy import create_engine, text
 from sqlalchemy.orm import sessionmaker
 from datetime import datetime, date, timedelta
 import random
 from app.db.database import SQLALCHEMY_DATABASE_URL
 from app.db import models
+
+logger = logging.getLogger(__name__)
 
 def populate_overtime_data():
     """Populate comprehensive overtime/PTO tracking data"""
@@ -15,8 +18,8 @@ def populate_overtime_data():
     db = SessionLocal()
 
     try:
-        print("\n⏰ Populating Overtime Tracking Data...")
-        print("=" * 60)
+        logger.info("Populating Overtime Tracking Data...")
+        logger.info("=" * 60)
 
         # Get all active employees
         employees = db.query(models.Employee).filter(
@@ -24,15 +27,15 @@ def populate_overtime_data():
         ).all()
 
         if not employees:
-            print("⚠ No active employees found. Please populate employees first.")
+            logger.warning("No active employees found. Please populate employees first.")
             return
 
-        print(f"✓ Found {len(employees)} active employees")
+        logger.info(f"Found {len(employees)} active employees")
 
         # ============================================================
         # OVERTIME/PTO RECORDS
         # ============================================================
-        print("\n📊 Populating Overtime Records...")
+        logger.info("Populating Overtime Records...")
 
         records_added = 0
         current_year = 2026
@@ -46,14 +49,14 @@ def populate_overtime_data():
             pay_periods.append(start_date)
             start_date += timedelta(days=14)  # Bi-weekly
 
-        print(f"✓ Generating data for {len(pay_periods)} pay periods")
+        logger.info(f"Generating data for {len(pay_periods)} pay periods")
 
         # Categorize employees by type for realistic overtime distribution
         hourly_employees = [e for e in employees if e.wage_type == "Hourly"]
         salary_employees = [e for e in employees if e.wage_type == "Salary"]
 
-        print(f"  • Hourly employees: {len(hourly_employees)}")
-        print(f"  • Salary employees: {len(salary_employees)}")
+        logger.info(f"• Hourly employees: {len(hourly_employees)}")
+        logger.info(f"• Salary employees: {len(salary_employees)}")
 
         # Hourly employees have more frequent overtime
         for pay_period in pay_periods:
@@ -151,12 +154,12 @@ def populate_overtime_data():
                 records_added += 1
 
         db.commit()
-        print(f"✓ Added {records_added} overtime records")
+        logger.info(f"Added {records_added} overtime records")
 
         # ============================================================
         # IMPORT HISTORY
         # ============================================================
-        print("\n📝 Creating Import History...")
+        logger.info("Creating Import History...")
 
         # Add a few import history records to show the system has been used
         import_dates = [
@@ -193,28 +196,28 @@ def populate_overtime_data():
         db.commit()
 
         import_history_count = db.query(models.PTOImportHistory).count()
-        print(f"✓ Added {import_history_count} import history records")
+        logger.info(f"Added {import_history_count} import history records")
 
         # ============================================================
         # SUMMARY STATISTICS
         # ============================================================
-        print("\n" + "=" * 60)
-        print("✅ Overtime Data Population Complete!")
-        print("=" * 60)
-        print(f"  ⏰ Overtime Records: {records_added}")
-        print(f"  📝 Import History: {import_history_count}")
-        print(f"  📅 Pay Periods Covered: {len(pay_periods)}")
-        print("=" * 60)
+        logger.info("=" * 60)
+        logger.info("Overtime Data Population Complete!")
+        logger.info("=" * 60)
+        logger.info(f"Overtime Records: {records_added}")
+        logger.info(f"Import History: {import_history_count}")
+        logger.info(f"Pay Periods Covered: {len(pay_periods)}")
+        logger.info("=" * 60)
 
         # Display some statistics
-        print("\n📈 Overtime Statistics:")
+        logger.info("Overtime Statistics:")
 
         from sqlalchemy import func as sql_func
         total_ot_hours = db.query(sql_func.sum(models.PTORecord.pto_hours)).scalar() or 0
         total_ot_cost = db.query(sql_func.sum(models.PTORecord.pto_cost)).scalar() or 0
 
-        print(f"  • Total OT Hours: {round(total_ot_hours, 2):,}")
-        print(f"  • Total OT Cost: ${round(total_ot_cost, 2):,}")
+        logger.info(f"• Total OT Hours: {round(total_ot_hours, 2):,}")
+        logger.info(f"• Total OT Cost: ${round(total_ot_cost, 2):,}")
 
         # Top cost centers by OT
         top_cost_centers = db.query(
@@ -227,15 +230,15 @@ def populate_overtime_data():
         ).limit(5).all()
 
         if top_cost_centers:
-            print("\n  Top 5 Cost Centers by OT Cost:")
+            logger.info("Top 5 Cost Centers by OT Cost:")
             for cc, cost in top_cost_centers:
-                print(f"    • {cc}: ${round(cost, 2):,}")
+                logger.info(f"• {cc}: ${round(cost, 2):,}")
 
-        print("\n✓ Ready to view in Overtime Tracking page!")
+        logger.info("Ready to view in Overtime Tracking page!")
 
     except Exception as e:
         db.rollback()
-        print(f"\n❌ Error populating overtime data: {e}")
+        logger.error(f"\n Error populating overtime data: {e}")
         import traceback
         traceback.print_exc()
     finally:

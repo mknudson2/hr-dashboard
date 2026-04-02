@@ -174,6 +174,19 @@ def get_public_job(slug: str, db: Session = Depends(get_db)):
     }
 
 
+@router.get("/postings/{posting_id}/requirements")
+def get_posting_requirements(posting_id: int, db: Session = Depends(get_db)):
+    """Get resume/cover letter requirements for a posting — used by the application form."""
+    posting = db.query(models.JobPosting).filter(models.JobPosting.id == posting_id).first()
+    if not posting:
+        raise HTTPException(status_code=404, detail="Posting not found")
+    return {
+        "title": posting.title,
+        "requires_resume": posting.requires_resume,
+        "requires_cover_letter": posting.requires_cover_letter,
+    }
+
+
 # ============================================================================
 # APPLICATION SUBMISSION (public, no account required)
 # ============================================================================
@@ -1214,10 +1227,31 @@ def book_interview_slot(
 
     interviewer = slot.user
 
+    # Find the HR interview stage for this application's pipeline
+    hr_stage = None
+    if application.current_stage_id:
+        hr_stage = db.query(models.PipelineStage).filter(
+            models.PipelineStage.id == application.current_stage_id,
+        ).first()
+    # If current stage isn't an interview stage, look for the first hr_interview stage
+    if not hr_stage or hr_stage.lifecycle_stage_key != "hr_interview":
+        template_id = application.requisition.pipeline_template_id if application.requisition else None
+        if template_id:
+            hr_stage = db.query(models.PipelineStage).filter(
+                models.PipelineStage.template_id == template_id,
+                models.PipelineStage.lifecycle_stage_key == "hr_interview",
+            ).first()
+        # Fallback: find any hr_interview stage in the system
+        if not hr_stage:
+            hr_stage = db.query(models.PipelineStage).filter(
+                models.PipelineStage.lifecycle_stage_key == "hr_interview",
+            ).first()
+
     # Create the interview record
     interview = models.Interview(
         interview_id=recruiting_service.generate_interview_id(db),
         application_id=app_id,
+        stage_id=hr_stage.id if hr_stage else None,
         scheduled_at=slot.start_time,
         duration_minutes=slot.slot_duration_minutes,
         time_zone=slot.time_zone,
@@ -1229,9 +1263,24 @@ def book_interview_slot(
         }],
         status="Scheduled",
         applicant_notified=True,
+        video_link=None,  # Set below after flush
+        meeting_link_auto=True,
     )
     db.add(interview)
     db.flush()
+
+    # Auto-generate Teams meeting link
+    interview.video_link = f"https://teams.microsoft.com/l/meetup-join/{interview.interview_id}"
+
+    # Auto-create HR Interview scorecard for the interviewer
+    if slot.user_id and hr_stage:
+        scorecard = models.InterviewScorecard(
+            application_id=app_id,
+            stage_id=hr_stage.id,
+            interviewer_id=slot.user_id,
+            status="Pending",
+        )
+        db.add(scorecard)
 
     # Book the slot
     availability_service.book_slot(db, slot_id, interview.id)
@@ -1255,8 +1304,263 @@ def book_interview_slot(
             "time_zone": interview.time_zone,
             "status": interview.status,
             "interviewers": interview.interviewers,
+            "video_link": interview.video_link,
         },
     }
+
+
+@router.get("/my-applications/{app_id}/interviews")
+def get_application_interviews(
+    app_id: int,
+    applicant: models.Applicant = Depends(get_current_applicant),
+    db: Session = Depends(get_db),
+):
+    """Get all scheduled/completed interviews for an application."""
+    application = db.query(models.Application).filter(
+        models.Application.id == app_id,
+        models.Application.applicant_id == applicant.id,
+    ).first()
+    if not application:
+        raise HTTPException(status_code=404, detail="Application not found")
+
+    interviews = db.query(models.Interview).filter(
+        models.Interview.application_id == app_id,
+        models.Interview.status.in_(["Scheduled", "Confirmed", "Completed"]),
+    ).order_by(models.Interview.scheduled_at).all()
+
+    return {
+        "interviews": [
+            {
+                "id": iv.id,
+                "interview_id": iv.interview_id,
+                "scheduled_at": iv.scheduled_at.isoformat() if iv.scheduled_at else None,
+                "duration_minutes": iv.duration_minutes,
+                "format": iv.format,
+                "time_zone": iv.time_zone,
+                "status": iv.status,
+                "interviewers": iv.interviewers or [],
+                "stage_name": iv.stage.name if iv.stage else None,
+                "stage_lifecycle_key": iv.stage.lifecycle_stage_key if iv.stage else None,
+                "video_link": iv.video_link,
+                "applicant_confirmed": iv.applicant_confirmed,
+                "alternative_times": iv.alternative_times,
+                "meeting_link_auto": iv.meeting_link_auto,
+            }
+            for iv in interviews
+        ],
+    }
+
+
+@router.post("/interviews/{interview_id}/confirm")
+def confirm_interview(
+    interview_id: int,
+    applicant: models.Applicant = Depends(get_current_applicant),
+    db: Session = Depends(get_db),
+):
+    """Applicant confirms attendance for a scheduled interview."""
+    interview = db.query(models.Interview).filter(models.Interview.id == interview_id).first()
+    if not interview:
+        raise HTTPException(status_code=404, detail="Interview not found")
+
+    # Verify interview belongs to this applicant
+    app = db.query(models.Application).filter(
+        models.Application.id == interview.application_id,
+        models.Application.applicant_id == applicant.id,
+    ).first()
+    if not app:
+        raise HTTPException(status_code=403, detail="Not authorized")
+
+    interview.applicant_confirmed = True
+    interview.status = "Confirmed"
+    db.flush()
+
+    # Log activity
+    recruiting_service.log_activity(
+        db, interview.application_id, "interview_confirmed",
+        "Candidate confirmed interview attendance",
+        is_internal=False,
+    )
+    db.commit()
+
+    return {"message": "Interview confirmed", "status": "Confirmed"}
+
+
+@router.post("/interviews/{interview_id}/select-alternative")
+def select_alternative_time(
+    interview_id: int,
+    request: dict,
+    applicant: models.Applicant = Depends(get_current_applicant),
+    db: Session = Depends(get_db),
+):
+    """Applicant selects an alternative interview time (2nd or 3rd choice)."""
+    interview = db.query(models.Interview).filter(models.Interview.id == interview_id).first()
+    if not interview:
+        raise HTTPException(status_code=404, detail="Interview not found")
+
+    app = db.query(models.Application).filter(
+        models.Application.id == interview.application_id,
+        models.Application.applicant_id == applicant.id,
+    ).first()
+    if not app:
+        raise HTTPException(status_code=403, detail="Not authorized")
+
+    alt_index = request.get("alternative_index", 0)
+    if not interview.alternative_times or alt_index >= len(interview.alternative_times):
+        raise HTTPException(status_code=400, detail="Invalid alternative time selection")
+
+    alt = interview.alternative_times[alt_index]
+    new_scheduled_at = datetime.fromisoformat(alt["scheduled_at"])
+    new_duration = alt.get("duration_minutes", interview.duration_minutes)
+
+    # Cancel original interview
+    interview.status = "Cancelled"
+    interview.cancelled_reason = "Candidate selected alternative time"
+
+    # Create new interview at alternative time
+    new_interview = models.Interview(
+        interview_id=recruiting_service.generate_interview_id(db),
+        application_id=interview.application_id,
+        stage_id=interview.stage_id,
+        scheduled_at=new_scheduled_at,
+        duration_minutes=new_duration,
+        time_zone=interview.time_zone,
+        format=interview.format,
+        interviewers=interview.interviewers,
+        organizer_id=interview.organizer_id,
+        status="Confirmed",
+        applicant_confirmed=True,
+        applicant_notified=True,
+        video_link=f"https://teams.microsoft.com/l/meetup-join/{recruiting_service.generate_interview_id(db)}-alt",
+        meeting_link_auto=True,
+    )
+    db.add(new_interview)
+    db.flush()
+
+    recruiting_service.log_activity(
+        db, interview.application_id, "interview_rescheduled",
+        f"Candidate selected alternative time: {new_scheduled_at.strftime('%b %d at %I:%M %p')}",
+        is_internal=False,
+    )
+    db.commit()
+
+    return {
+        "message": "Interview rescheduled to alternative time",
+        "new_interview_id": new_interview.id,
+        "scheduled_at": new_scheduled_at.isoformat(),
+    }
+
+
+@router.post("/interviews/{interview_id}/cancel-for-reschedule")
+def cancel_for_reschedule(
+    interview_id: int,
+    applicant: models.Applicant = Depends(get_current_applicant),
+    db: Session = Depends(get_db),
+):
+    """Applicant cancels their self-scheduled HR interview to pick a new time."""
+    interview = db.query(models.Interview).filter(models.Interview.id == interview_id).first()
+    if not interview:
+        raise HTTPException(status_code=404, detail="Interview not found")
+
+    app = db.query(models.Application).filter(
+        models.Application.id == interview.application_id,
+        models.Application.applicant_id == applicant.id,
+    ).first()
+    if not app:
+        raise HTTPException(status_code=403, detail="Not authorized")
+
+    # Cancel the interview
+    interview.status = "Cancelled"
+    interview.cancelled_reason = "Candidate rescheduling"
+
+    # Unbook the slot so it's available again
+    slot = db.query(models.InterviewerAvailability).filter(
+        models.InterviewerAvailability.interview_id == interview.id,
+    ).first()
+    if slot:
+        slot.is_booked = False
+        slot.interview_id = None
+
+    recruiting_service.log_activity(
+        db, interview.application_id, "interview_rescheduled",
+        "Candidate cancelled interview to reschedule",
+        is_internal=False,
+    )
+
+    # Notify HR/recruiter
+    if hasattr(models, 'InAppNotification') and app.requisition:
+        recruiter_id = app.requisition.recruiter_id or app.requisition.hiring_manager_id
+        if recruiter_id:
+            notification = models.InAppNotification(
+                user_id=recruiter_id,
+                title="Interview Rescheduled by Candidate",
+                message=f"{applicant.first_name} {applicant.last_name} has rescheduled their HR screening interview for {app.requisition.title}.",
+                notification_type="recruiting",
+                priority="medium",
+                resource_type="interview",
+                resource_id=interview.id,
+                action_url=f"/recruiting/applications/{app.id}",
+            )
+            db.add(notification)
+
+    db.commit()
+
+    return {"message": "Interview cancelled. Please select a new time."}
+
+
+@router.post("/interviews/{interview_id}/request-reschedule")
+def request_reschedule(
+    interview_id: int,
+    request: dict,
+    applicant: models.Applicant = Depends(get_current_applicant),
+    db: Session = Depends(get_db),
+):
+    """Applicant requests a reschedule — none of the offered times work."""
+    interview = db.query(models.Interview).filter(models.Interview.id == interview_id).first()
+    if not interview:
+        raise HTTPException(status_code=404, detail="Interview not found")
+
+    app = db.query(models.Application).filter(
+        models.Application.id == interview.application_id,
+        models.Application.applicant_id == applicant.id,
+    ).first()
+    if not app:
+        raise HTTPException(status_code=403, detail="Not authorized")
+
+    reason = request.get("reason", "")
+    suggested_times = request.get("suggested_times", "")
+
+    if not reason:
+        raise HTTPException(status_code=400, detail="Please explain why and offer suggestions")
+
+    # Cancel original interview
+    interview.status = "Cancelled"
+    interview.cancelled_reason = f"Candidate requested reschedule: {reason}"
+
+    recruiting_service.log_activity(
+        db, interview.application_id, "interview_reschedule_requested",
+        f"Candidate requested reschedule. Reason: {reason}. Suggested times: {suggested_times}",
+        is_internal=False,
+    )
+
+    # Notify HR/recruiter via in-app notification
+    if hasattr(models, 'InAppNotification') and app.requisition:
+        recruiter_id = app.requisition.recruiter_id or app.requisition.hiring_manager_id
+        if recruiter_id:
+            notification = models.InAppNotification(
+                user_id=recruiter_id,
+                title="Interview Reschedule Requested",
+                message=f"{applicant.first_name} {applicant.last_name} needs a new interview time for {app.requisition.title}. Reason: {reason}",
+                notification_type="recruiting",
+                priority="high",
+                resource_type="interview",
+                resource_id=interview.id,
+                action_url=f"/recruiting/applications/{app.id}",
+            )
+            db.add(notification)
+
+    db.commit()
+
+    return {"message": "Reschedule request submitted. HR will contact you with new options."}
 
 
 @router.put("/profile/pool-preference")

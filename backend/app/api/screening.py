@@ -189,7 +189,7 @@ async def submit_order(
 
 
 @router.get("/orders")
-async def list_orders(
+def list_orders(
     db: Session = Depends(get_db),
     current_user: models.User = Depends(get_current_user),
 ):
@@ -235,7 +235,7 @@ async def list_orders(
 
 
 @router.get("/orders/{order_id}")
-async def get_order(
+def get_order(
     order_id: int,
     db: Session = Depends(get_db),
     current_user: models.User = Depends(get_current_user),

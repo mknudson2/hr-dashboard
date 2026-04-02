@@ -4,6 +4,9 @@ Create ACA (Affordable Care Act) compliance tables
 from sqlalchemy import create_engine
 from app.db.database import SQLALCHEMY_DATABASE_URL
 from app.db.models import Base, ACAMeasurementPeriod, ACAEmployeeStatus, ACAMonthlyHours, ACACoverageOffer, ACAForm1095C, ACAForm1094C, ACAAlert
+import logging
+
+logger = logging.getLogger(__name__)
 
 def create_aca_tables():
     """Create all ACA-related tables"""
@@ -20,14 +23,14 @@ def create_aca_tables():
         ACAAlert.__table__,
     ])
 
-    print("✓ ACA tables created successfully")
-    print("  - aca_measurement_periods")
-    print("  - aca_employee_status")
-    print("  - aca_monthly_hours")
-    print("  - aca_coverage_offers")
-    print("  - aca_form_1095c")
-    print("  - aca_form_1094c")
-    print("  - aca_alerts")
+    logger.info("ACA tables created successfully")
+    logger.info("- aca_measurement_periods")
+    logger.info("- aca_employee_status")
+    logger.info("- aca_monthly_hours")
+    logger.info("- aca_coverage_offers")
+    logger.info("- aca_form_1095c")
+    logger.info("- aca_form_1094c")
+    logger.info("- aca_alerts")
 
 if __name__ == "__main__":
     create_aca_tables()

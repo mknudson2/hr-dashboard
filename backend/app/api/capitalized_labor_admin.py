@@ -172,7 +172,7 @@ class ProjectAnalytics(BaseModel):
 # ==================== LABOR RATE ENDPOINTS ====================
 
 @router.get("/rates")
-async def get_labor_rates(
+def get_labor_rates(
     db: Session = Depends(get_db),
     employee_id: Optional[int] = None,
     effective_date: Optional[str] = None,
@@ -237,7 +237,7 @@ async def get_labor_rates(
 
 
 @router.post("/rates")
-async def create_labor_rate(
+def create_labor_rate(
     rate_data: LaborRateCreate,
     user_id: int = Query(..., description="ID of user creating the rate"),
     db: Session = Depends(get_db)
@@ -298,7 +298,7 @@ async def create_labor_rate(
 
 
 @router.put("/rates/{rate_id}")
-async def update_labor_rate(
+def update_labor_rate(
     rate_id: int,
     rate_data: LaborRateUpdate,
     user_id: int = Query(..., description="ID of user updating the rate"),
@@ -356,7 +356,7 @@ async def update_labor_rate(
 
 
 @router.post("/rates/calculate-from-compensation")
-async def calculate_rates_from_compensation(
+def calculate_rates_from_compensation(
     employee_ids: Optional[List[int]] = None,
     effective_date: str = Query(..., description="Effective date for new rates"),
     overhead_percentage: float = Query(default=15.0, description="Overhead allocation percentage"),
@@ -445,7 +445,7 @@ async def calculate_rates_from_compensation(
 # ==================== PERIOD MANAGEMENT ENDPOINTS ====================
 
 @router.get("/periods")
-async def get_periods(
+def get_periods(
     db: Session = Depends(get_db),
     year: Optional[int] = None,
     period_type: Optional[str] = None,
@@ -494,7 +494,7 @@ async def get_periods(
 
 
 @router.get("/periods/{period_id}")
-async def get_period(period_id: int, db: Session = Depends(get_db)):
+def get_period(period_id: int, db: Session = Depends(get_db)):
     """Get a specific period with details."""
     period = db.query(CapitalizationPeriod).filter(CapitalizationPeriod.id == period_id).first()
 
@@ -555,7 +555,7 @@ async def get_period(period_id: int, db: Session = Depends(get_db)):
 
 
 @router.post("/periods/{period_id}/calculate")
-async def calculate_period(
+def calculate_period(
     period_id: int,
     recalculate: bool = False,
     user_id: int = Query(..., description="ID of user running calculation"),
@@ -760,7 +760,7 @@ async def calculate_period(
 
 
 @router.post("/periods/{period_id}/lock")
-async def lock_period(
+def lock_period(
     period_id: int,
     user_id: int = Query(..., description="ID of user locking the period"),
     reason: Optional[str] = None,
@@ -810,7 +810,7 @@ async def lock_period(
 
 
 @router.post("/periods/{period_id}/unlock")
-async def unlock_period(
+def unlock_period(
     period_id: int,
     user_id: int = Query(..., description="ID of user unlocking the period"),
     reason: str = Query(..., description="Reason for unlocking"),
@@ -852,7 +852,7 @@ async def unlock_period(
 # ==================== ANALYTICS ENDPOINTS ====================
 
 @router.get("/analytics/company-summary")
-async def get_company_summary(
+def get_company_summary(
     db: Session = Depends(get_db),
     period_id: Optional[str] = None,
     start_date: Optional[str] = None,
@@ -1005,7 +1005,7 @@ async def get_company_summary(
 
 
 @router.get("/analytics/by-employee")
-async def get_analytics_by_employee(
+def get_analytics_by_employee(
     db: Session = Depends(get_db),
     period_id: Optional[str] = None,
     start_date: Optional[str] = None,
@@ -1124,7 +1124,7 @@ async def get_analytics_by_employee(
 
 
 @router.get("/analytics/by-project")
-async def get_analytics_by_project(
+def get_analytics_by_project(
     db: Session = Depends(get_db),
     period_id: Optional[str] = None,
     start_date: Optional[str] = None,
@@ -1216,7 +1216,7 @@ async def get_analytics_by_project(
 
 
 @router.get("/analytics/employee/{employee_id}/history")
-async def get_employee_history(
+def get_employee_history(
     employee_id: int,
     periods: int = Query(default=12, description="Number of periods to return"),
     labor_type: Optional[str] = None,
@@ -1351,7 +1351,7 @@ async def get_employee_history(
 # ==================== EXPORT ENDPOINTS ====================
 
 @router.get("/export/period-report/{period_id}")
-async def export_period_report(
+def export_period_report(
     period_id: int,
     format: str = Query(default="csv", description="Export format: csv, excel"),
     db: Session = Depends(get_db)
@@ -1425,14 +1425,14 @@ async def export_period_report(
 
 
 @router.get("/export/employee-breakdown")
-async def export_employee_breakdown(
+def export_employee_breakdown(
     period_id: Optional[int] = None,
     start_date: Optional[str] = None,
     end_date: Optional[str] = None,
     db: Session = Depends(get_db)
 ):
     """Export employee-level breakdown."""
-    analytics = await get_analytics_by_employee(
+    analytics = get_analytics_by_employee(
         db=db,
         period_id=period_id,
         start_date=start_date,
@@ -1479,14 +1479,14 @@ async def export_employee_breakdown(
 
 
 @router.get("/export/project-breakdown")
-async def export_project_breakdown(
+def export_project_breakdown(
     period_id: Optional[int] = None,
     start_date: Optional[str] = None,
     end_date: Optional[str] = None,
     db: Session = Depends(get_db)
 ):
     """Export project-level breakdown."""
-    analytics = await get_analytics_by_project(
+    analytics = get_analytics_by_project(
         db=db,
         period_id=period_id,
         start_date=start_date,
@@ -1531,7 +1531,7 @@ async def export_project_breakdown(
 # ==================== AUDIT LOG ENDPOINTS ====================
 
 @router.get("/audit-log")
-async def get_audit_log(
+def get_audit_log(
     db: Session = Depends(get_db),
     entity_type: Optional[str] = None,
     entity_id: Optional[int] = None,
@@ -1587,7 +1587,7 @@ async def get_audit_log(
 # ==================== SAMPLE FILE DOWNLOAD ENDPOINTS ====================
 
 @router.get("/sample-files")
-async def list_sample_files():
+def list_sample_files():
     """List available sample files for download."""
     import os
     sample_dir = os.path.join(os.path.dirname(os.path.dirname(__file__)), "static", "sample_files")
@@ -1607,7 +1607,7 @@ async def list_sample_files():
 
 
 @router.get("/sample-files/{filename}")
-async def download_sample_file(filename: str):
+def download_sample_file(filename: str):
     """Download a sample file for upload demonstration."""
     import os
     sample_dir = os.path.join(os.path.dirname(os.path.dirname(__file__)), "static", "sample_files")

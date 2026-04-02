@@ -1,8 +1,11 @@
 """Add wage_type column and populate it."""
+import logging
+import random
 from sqlalchemy import text
 from .database import SessionLocal, engine
 from . import models
-import random
+
+logger = logging.getLogger(__name__)
 
 # Create tables if needed
 models.Base.metadata.create_all(bind=engine)
@@ -13,14 +16,14 @@ def add_wage_type_column():
 
     try:
         # Add column if it doesn't exist
-        print("Adding wage_type column...")
+        logger.info("Adding wage_type column...")
         try:
             db.execute(text("ALTER TABLE employees ADD COLUMN wage_type VARCHAR"))
             db.commit()
-            print("✅ Column added successfully")
+            logger.info("Column added successfully")
         except Exception as e:
             if "already exists" in str(e) or "duplicate column" in str(e).lower():
-                print("ℹ️  Column already exists")
+                logger.info("Column already exists")
                 db.rollback()
             else:
                 raise
@@ -29,7 +32,7 @@ def add_wage_type_column():
         # Simple rule: FT = mix of Salary/Hourly, PT = Hourly
         employees = db.query(models.Employee).all()
 
-        print(f"Updating wage_type for {len(employees)} employees...")
+        logger.info("Updating wage_type for %d employees...", len(employees))
 
         for emp in employees:
             if emp.type == "PT":
@@ -41,17 +44,17 @@ def add_wage_type_column():
                 emp.wage_type = "Salary"  # Default
 
         db.commit()
-        print(f"✅ Updated wage_type for all employees")
+        logger.info("Updated wage_type for all employees")
 
         # Show distribution
         salary_count = db.query(models.Employee).filter(models.Employee.wage_type == "Salary").count()
         hourly_count = db.query(models.Employee).filter(models.Employee.wage_type == "Hourly").count()
-        print(f"\nDistribution:")
-        print(f"  Salary: {salary_count}")
-        print(f"  Hourly: {hourly_count}")
+        logger.info("Distribution:")
+        logger.info("  Salary: %d", salary_count)
+        logger.info("  Hourly: %d", hourly_count)
 
     except Exception as e:
-        print(f"❌ Error: {e}")
+        logger.error("Error: %s", e)
         db.rollback()
     finally:
         db.close()

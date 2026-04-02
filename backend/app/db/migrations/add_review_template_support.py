@@ -18,8 +18,11 @@ from pathlib import Path
 # Add parent directory to path
 sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 
+import logging
 from sqlalchemy import text
 from app.db.database import engine
+
+logger = logging.getLogger(__name__)
 
 
 def upgrade():
@@ -50,14 +53,14 @@ def upgrade():
             existing_columns = {row[1] for row in result}
 
             if column_name in existing_columns:
-                print(f"⊘ Skipped (already exists): {table_name}.{column_name}")
+                logger.info(f"⊘ Skipped (already exists): {table_name}.{column_name}")
             else:
                 try:
                     conn.execute(text(migration_sql))
                     conn.commit()
-                    print(f"✓ Added column: {table_name}.{column_name}")
+                    logger.info(f"Added column: {table_name}.{column_name}")
                 except Exception as e:
-                    print(f"✗ Error adding {table_name}.{column_name}: {e}")
+                    logger.error(f"Error adding {table_name}.{column_name}: {e}")
                     conn.rollback()
 
 
@@ -77,9 +80,9 @@ def downgrade():
             try:
                 conn.execute(text(rollback))
                 conn.commit()
-                print(f"✓ Rolled back: {rollback.strip()[:60]}...")
+                logger.info(f"Rolled back: {rollback.strip()[:60]}...")
             except Exception as e:
-                print(f"✗ Error: {e}")
+                logger.error(f"Error: {e}")
 
 
 if __name__ == "__main__":
@@ -95,10 +98,10 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     if args.rollback:
-        print("Rolling back migration...")
+        logger.info("Rolling back migration...")
         downgrade()
-        print("Migration rolled back successfully!")
+        logger.info("Migration rolled back successfully!")
     else:
-        print("Running migration...")
+        logger.info("Running migration...")
         upgrade()
-        print("Migration completed successfully!")
+        logger.info("Migration completed successfully!")

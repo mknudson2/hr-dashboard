@@ -3,12 +3,15 @@ Background Scheduler Service for automated tasks
 """
 
 import asyncio
+import logging
 from datetime import datetime, timedelta
 from typing import Dict
 import threading
 
 from app.db import database, models
 from app.services.sftp_service import SFTPService
+
+logger = logging.getLogger(__name__)
 
 
 class SchedulerService:
@@ -22,20 +25,20 @@ class SchedulerService:
     def start(self):
         """Start the background scheduler"""
         if self.is_running:
-            print("Scheduler already running")
+            logger.info("Scheduler already running")
             return
 
         self.is_running = True
         self.thread = threading.Thread(target=self._run_scheduler, daemon=True)
         self.thread.start()
-        print("SFTP Scheduler started")
+        logger.info("SFTP Scheduler started")
 
     def stop(self):
         """Stop the background scheduler"""
         self.is_running = False
         if self.thread:
             self.thread.join(timeout=5)
-        print("SFTP Scheduler stopped")
+        logger.info("SFTP Scheduler stopped")
 
     def _run_scheduler(self):
         """Main scheduler loop (runs in background thread)"""
@@ -43,7 +46,7 @@ class SchedulerService:
             try:
                 self._check_and_poll()
             except Exception as e:
-                print(f"Scheduler error: {str(e)}")
+                logger.error("Scheduler error: %s", str(e))
 
             # Sleep for 1 minute between checks
             for _ in range(60):
@@ -72,7 +75,7 @@ class SchedulerService:
                 next_poll_time = self.poll_tasks.get(config.id)
 
                 if next_poll_time and now >= next_poll_time:
-                    print(f"⏰ Polling SFTP: {config.name}")
+                    logger.info("Polling SFTP: %s", config.name)
 
                     # Poll for files
                     success, message, count = SFTPService.poll_for_files(config, db)
@@ -81,9 +84,9 @@ class SchedulerService:
                     SFTPService.update_poll_status(config.id, success, message, db)
 
                     if success:
-                        print(f"[OK] {config.name}: {message}")
+                        logger.info("SFTP poll succeeded for %s: %s", config.name, message)
                     else:
-                        print(f"[ERROR] {config.name}: {message}")
+                        logger.error("SFTP poll failed for %s: %s", config.name, message)
 
                     # Schedule next poll
                     self.poll_tasks[config.id] = now + timedelta(minutes=config.poll_frequency)

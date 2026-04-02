@@ -10,8 +10,11 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 
+import logging
 from sqlalchemy import text
 from app.db.database import engine
+
+logger = logging.getLogger(__name__)
 
 
 def upgrade():
@@ -37,7 +40,7 @@ def upgrade():
             )
         """))
         conn.commit()
-        print("  Created table: job_descriptions")
+        logger.info("Created table: job_descriptions")
 
         # Index on position_title
         conn.execute(text("""
@@ -45,7 +48,7 @@ def upgrade():
             ON job_descriptions(position_title)
         """))
         conn.commit()
-        print("  Created index: ix_job_description_position_title")
+        logger.info("Created index: ix_job_description_position_title")
 
         # --- 2. Add company_position column to job_descriptions ---
         try:
@@ -57,11 +60,11 @@ def upgrade():
                     "ALTER TABLE job_descriptions ADD COLUMN company_position VARCHAR;"
                 ))
                 conn.commit()
-                print("  Added column: job_descriptions.company_position")
+                logger.info("Added column: job_descriptions.company_position")
             else:
-                print("  Skipped (already exists): job_descriptions.company_position")
+                logger.info("Skipped (already exists): job_descriptions.company_position")
         except Exception as e:
-            print(f"  Skipped company_position column: {e}")
+            logger.info(f"Skipped company_position column: {e}")
             conn.rollback()
 
         # --- 3. Add job_description_id FK to job_requisitions ---
@@ -74,11 +77,11 @@ def upgrade():
                     "ALTER TABLE job_requisitions ADD COLUMN job_description_id INTEGER REFERENCES job_descriptions(id);"
                 ))
                 conn.commit()
-                print("  Added column: job_requisitions.job_description_id")
+                logger.info("Added column: job_requisitions.job_description_id")
             else:
-                print("  Skipped (already exists): job_requisitions.job_description_id")
+                logger.info("Skipped (already exists): job_requisitions.job_description_id")
         except Exception as e:
-            print(f"  Skipped FK column (table may not exist yet): {e}")
+            logger.info(f"Skipped FK column (table may not exist yet): {e}")
             conn.rollback()
 
 
@@ -87,8 +90,8 @@ def downgrade():
     with engine.connect() as conn:
         conn.execute(text("DROP TABLE IF EXISTS job_descriptions"))
         conn.commit()
-        print("  Dropped table: job_descriptions")
-        print("  Note: job_requisitions.job_description_id column retained (SQLite).")
+        logger.info("Dropped table: job_descriptions")
+        logger.warning("Note: job_requisitions.job_description_id column retained (SQLite).")
 
 
 if __name__ == "__main__":
@@ -99,9 +102,9 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     if args.rollback:
-        print("Rolling back migration...")
+        logger.info("Rolling back migration...")
         downgrade()
     else:
-        print("Running migration...")
+        logger.info("Running migration...")
         upgrade()
-    print("Done!")
+    logger.info("Done!")

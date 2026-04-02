@@ -13,11 +13,14 @@ from datetime import date, timedelta
 from sqlalchemy.orm import Session
 from app.db.database import SessionLocal, engine
 from app.db import models
+import logging
+
+logger = logging.getLogger(__name__)
 
 
 def seed_garnishment_portal_permission(db: Session) -> models.Permission:
     """Create the garnishment_portal:employee permission if it doesn't exist."""
-    print("Creating garnishment portal permission...")
+    logger.info("Creating garnishment portal permission...")
 
     permission = db.query(models.Permission).filter(
         models.Permission.name == "garnishment_portal:employee"
@@ -34,16 +37,16 @@ def seed_garnishment_portal_permission(db: Session) -> models.Permission:
         db.add(permission)
         db.commit()
         db.refresh(permission)
-        print(f"  + Created permission 'garnishment_portal:employee' (ID: {permission.id})")
+        logger.info(f"+ Created permission 'garnishment_portal:employee' (ID: {permission.id})")
     else:
-        print(f"  - Permission already exists (ID: {permission.id})")
+        logger.info(f"- Permission already exists (ID: {permission.id})")
 
     return permission
 
 
 def seed_fmla_portal_employee_permission(db: Session) -> models.Permission:
     """Create the fmla_portal:employee permission if it doesn't exist."""
-    print("Creating FMLA portal permission...")
+    logger.info("Creating FMLA portal permission...")
 
     permission = db.query(models.Permission).filter(
         models.Permission.name == "fmla_portal:employee"
@@ -60,37 +63,37 @@ def seed_fmla_portal_employee_permission(db: Session) -> models.Permission:
         db.add(permission)
         db.commit()
         db.refresh(permission)
-        print(f"  + Created permission 'fmla_portal:employee' (ID: {permission.id})")
+        logger.info(f"+ Created permission 'fmla_portal:employee' (ID: {permission.id})")
     else:
-        print(f"  - Permission already exists (ID: {permission.id})")
+        logger.info(f"- Permission already exists (ID: {permission.id})")
 
     return permission
 
 
 def assign_permission_to_employee_role(db: Session, permission: models.Permission):
     """Add the permission to the employee role."""
-    print("Assigning permission to employee role...")
+    logger.info("Assigning permission to employee role...")
 
     employee_role = db.query(models.Role).filter(
         models.Role.name == "employee"
     ).first()
 
     if not employee_role:
-        print("  ! Employee role not found")
+        logger.info("! Employee role not found")
         return
 
     # Check if permission is already assigned
     if permission in employee_role.permissions:
-        print(f"  - Permission already assigned to employee role")
+        logger.info(f"- Permission already assigned to employee role")
     else:
         employee_role.permissions.append(permission)
         db.commit()
-        print(f"  + Added permission to employee role")
+        logger.info(f"+ Added permission to employee role")
 
 
 def seed_test_garnishments(db: Session, employee_id: str):
     """Create test garnishment data for an employee."""
-    print(f"Creating test garnishments for employee {employee_id}...")
+    logger.info(f"Creating test garnishments for employee {employee_id}...")
 
     # Check if employee already has garnishments
     existing = db.query(models.Garnishment).filter(
@@ -98,7 +101,7 @@ def seed_test_garnishments(db: Session, employee_id: str):
     ).count()
 
     if existing > 0:
-        print(f"  - Employee already has {existing} garnishment(s)")
+        logger.info(f"- Employee already has {existing} garnishment(s)")
         return
 
     today = date.today()
@@ -161,7 +164,7 @@ def seed_test_garnishments(db: Session, employee_id: str):
     )
     db.add(note1)
 
-    print(f"  + Created Child Support garnishment (ID: {garnishment1.id}) with 6 payments")
+    logger.info(f"+ Created Child Support garnishment (ID: {garnishment1.id}) with 6 payments")
 
     # Create a satisfied creditor garnishment
     garnishment2 = models.Garnishment(
@@ -218,16 +221,16 @@ def seed_test_garnishments(db: Session, employee_id: str):
     db.add(note2a)
     db.add(note2b)
 
-    print(f"  + Created Creditor garnishment (ID: {garnishment2.id}) with 20 payments (Satisfied)")
+    logger.info(f"+ Created Creditor garnishment (ID: {garnishment2.id}) with 20 payments (Satisfied)")
 
     db.commit()
 
 
 def seed_garnishment_portal():
     """Main function to seed garnishment portal data."""
-    print("=" * 60)
-    print("Garnishment Portal Test Data Seeding")
-    print("=" * 60)
+    logger.info("=" * 60)
+    logger.info("Garnishment Portal Test Data Seeding")
+    logger.info("=" * 60)
 
     # Ensure tables exist
     models.Base.metadata.create_all(bind=engine)
@@ -247,20 +250,20 @@ def seed_garnishment_portal():
         # Create test garnishment data for test_employee (employee_id: 1003)
         seed_test_garnishments(db, "1003")
 
-        print("\n" + "=" * 60)
-        print("Seeding completed!")
-        print("=" * 60)
-        print("\nTest Account Details:")
-        print("-" * 40)
-        print("Username: test_employee")
-        print("Password: password123")
-        print("Employee ID: 1003")
-        print("-" * 40)
-        print("\nEmployee Portal URL: http://localhost:5174")
-        print("(Make sure backend is running on http://localhost:8000)")
+        logger.info("=" * 60)
+        logger.info("Seeding completed!")
+        logger.info("=" * 60)
+        logger.info("Test Account Details:")
+        logger.info("-" * 40)
+        logger.info("Username: test_employee")
+        logger.info("Password: password123")
+        logger.info("Employee ID: 1003")
+        logger.info("-" * 40)
+        logger.info("Employee Portal URL: http://localhost:5174")
+        logger.info("(Make sure backend is running on http://localhost:8000)")
 
     except Exception as e:
-        print(f"\n! Error during seeding: {e}")
+        logger.error(f"\n! Error during seeding: {e}")
         db.rollback()
         raise
     finally:

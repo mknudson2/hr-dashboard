@@ -9,12 +9,15 @@ import sqlite3
 import os
 from datetime import datetime, timedelta
 import random
+import logging
+
+logger = logging.getLogger(__name__)
 
 # Get the database path
 backend_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 db_path = os.path.join(backend_dir, "data", "hr_dashboard.db")
 
-print(f"Fixing offboarding termination dates at: {db_path}")
+logger.info(f"Fixing offboarding termination dates at: {db_path}")
 
 # Connect to database
 conn = sqlite3.connect(db_path)
@@ -29,7 +32,7 @@ cursor.execute("""
 """)
 
 employees_to_fix = cursor.fetchall()
-print(f"Found {len(employees_to_fix)} employees in offboarding without termination dates")
+logger.info(f"Found {len(employees_to_fix)} employees in offboarding without termination dates")
 
 # Reference date: Feb 3, 2026
 reference_date = datetime(2026, 2, 3).date()
@@ -40,7 +43,7 @@ try:
         days_in_future = random.randint(12, 330)  # 12 to 330 days from Feb 3
         new_termination_date = reference_date + timedelta(days=days_in_future)
 
-        print(f"  Setting termination date for {first_name} {last_name} (ID: {emp_id}): {new_termination_date}")
+        logger.info(f"Setting termination date for {first_name} {last_name} (ID: {emp_id}): {new_termination_date}")
 
         # Update employee record
         cursor.execute("""
@@ -59,11 +62,11 @@ try:
         """, (new_termination_date.isoformat(), emp_id))
 
     conn.commit()
-    print(f"\nSuccessfully fixed termination dates for {len(employees_to_fix)} employees")
+    logger.info(f"\nSuccessfully fixed termination dates for {len(employees_to_fix)} employees")
 
 except Exception as e:
     conn.rollback()
-    print(f"Error: {e}")
+    logger.error(f"Error: {e}")
     raise
 
 finally:

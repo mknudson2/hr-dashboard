@@ -3631,6 +3631,24 @@ class InAppNotification(Base):
     created_by = relationship("User", foreign_keys=[created_by_user_id])
 
 
+class TeamRequest(Base):
+    """Tracks requests from hiring managers to create new team names."""
+    __tablename__ = "team_requests"
+
+    id = Column(Integer, primary_key=True, index=True, autoincrement=True)
+    team_name = Column(String, nullable=False)
+    position_title = Column(String, nullable=True)
+    requested_by_user_id = Column(Integer, ForeignKey("users.id"), nullable=True)
+    status = Column(String, nullable=False, default="Pending")  # Pending, Approved, Denied
+    reviewed_by_user_id = Column(Integer, ForeignKey("users.id"), nullable=True)
+    review_notes = Column(String, nullable=True)
+    created_at = Column(DateTime, server_default=func.now())
+    reviewed_at = Column(DateTime, nullable=True)
+
+    requested_by = relationship("User", foreign_keys=[requested_by_user_id])
+    reviewed_by = relationship("User", foreign_keys=[reviewed_by_user_id])
+
+
 # ============================================================================
 # RECRUITING & APPLICANT TRACKING MODELS
 # ============================================================================
@@ -4137,6 +4155,9 @@ class Interview(Base):
     # Status
     status = Column(String, default="Scheduled")  # "Scheduled", "Confirmed", "Completed", "Cancelled", "No Show"
     cancelled_reason = Column(String, nullable=True)
+
+    # Alternative times offered to candidate (2nd/3rd choice)
+    alternative_times = Column(JSON, nullable=True)  # [{"scheduled_at": "...", "duration_minutes": 60}]
 
     # Notifications
     applicant_notified = Column(Boolean, default=False)
@@ -4778,7 +4799,8 @@ class RequisitionStakeholder(Base):
 
     id = Column(Integer, primary_key=True, index=True, autoincrement=True)
     requisition_id = Column(Integer, ForeignKey("job_requisitions.id"), nullable=False, index=True)
-    user_id = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=True, index=True)
+    employee_id = Column(String, ForeignKey("employees.employee_id"), nullable=True, index=True)
 
     # Role determines access level:
     #   "vp_svp"         → Full pipeline, scorecards, offer/comp, messages
@@ -4791,15 +4813,13 @@ class RequisitionStakeholder(Base):
     assigned_by = Column(Integer, ForeignKey("users.id"), nullable=True)
     assigned_at = Column(DateTime, server_default=func.now())
     is_active = Column(Boolean, default=True)
+    opted_out_of_availability = Column(Boolean, default=False)
 
     # Relationships
     requisition = relationship("JobRequisition", backref="stakeholders")
     user = relationship("User", foreign_keys=[user_id])
+    employee = relationship("Employee", foreign_keys=[employee_id])
     assigned_by_user = relationship("User", foreign_keys=[assigned_by])
-
-    __table_args__ = (
-        Index('ix_stakeholder_unique', 'requisition_id', 'user_id', unique=True),
-    )
 
 
 class ApplicantMessage(Base):

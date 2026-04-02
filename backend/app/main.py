@@ -1,6 +1,7 @@
 from fastapi import FastAPI, Depends, Request
 from fastapi.responses import JSONResponse
 from sqlalchemy.orm import Session
+from sqlalchemy import text
 from fastapi.middleware.cors import CORSMiddleware
 from starlette.middleware.base import BaseHTTPMiddleware
 from slowapi import Limiter, _rate_limit_exceeded_handler
@@ -16,7 +17,10 @@ from app.services.scheduler_service import scheduler as sftp_scheduler
 from app.services.csrf_service import csrf_service, should_validate_csrf
 from contextlib import asynccontextmanager
 from dotenv import load_dotenv
+import logging
 import os
+
+logger = logging.getLogger(__name__)
 
 # Load environment variables from .env file
 load_dotenv()
@@ -185,12 +189,12 @@ def custom_rate_limit_exceeded_handler(request: Request, exc: RateLimitExceeded)
 @asynccontextmanager
 async def lifespan(_app: FastAPI):
     # Startup
-    print("Starting HR Dashboard API...")
+    logger.info("Starting HR Dashboard API...")
     start_scheduler()
     sftp_scheduler.start()
     yield
     # Shutdown
-    print("Shutting down HR Dashboard API...")
+    logger.info("Shutting down HR Dashboard API...")
     stop_scheduler()
     sftp_scheduler.stop()
 
@@ -267,10 +271,10 @@ def backfill_international_flag():
                     emp.is_international = False
         if updated > 0:
             db.commit()
-            print(f"Backfilled is_international for {updated} employees")
+            logger.info("Backfilled is_international for %d employees", updated)
         db.close()
     except Exception as e:
-        print(f"Warning: is_international backfill skipped: {e}")
+        logger.warning("is_international backfill skipped: %s", e)
 
 backfill_international_flag()
 
@@ -281,11 +285,13 @@ def seed_ats_defaults():
         db = database.SessionLocal()
         from app.api.scorecard_templates import seed_default_scorecard_templates
         from app.api.approval_chains import seed_default_approval_chains
+        from app.db.seed_interview_slots import seed_interview_availability
         seed_default_scorecard_templates(db)
         seed_default_approval_chains(db)
+        seed_interview_availability(db)
         db.close()
     except Exception as e:
-        print(f"Warning: ATS default seed skipped: {e}")
+        logger.warning("ATS default seed skipped: %s", e)
 
 seed_ats_defaults()
 
@@ -305,6 +311,27 @@ def get_db():
 @app.get("/")
 def root():
     return {"message": "HR Dashboard API is running successfully!"}
+
+
+@app.get("/health")
+def health_check():
+    """Health check endpoint for load balancers and monitoring.
+
+    Returns database connectivity status alongside application liveness.
+    """
+    from app.db.database import SessionLocal
+    try:
+        db = SessionLocal()
+        db.execute(text("SELECT 1"))
+        db.close()
+        db_status = "connected"
+    except Exception:
+        db_status = "unavailable"
+    return {
+        "status": "healthy" if db_status == "connected" else "degraded",
+        "database": db_status,
+        "version": "1.0.0",
+    }
 
 
 # Include Routers

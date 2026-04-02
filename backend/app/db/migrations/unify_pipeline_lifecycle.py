@@ -14,8 +14,11 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 
+import logging
 from sqlalchemy import text
 from app.db.database import engine
+
+logger = logging.getLogger(__name__)
 
 
 def upgrade():
@@ -31,9 +34,9 @@ def upgrade():
                 "ALTER TABLE pipeline_stages ADD COLUMN lifecycle_stage_key VARCHAR;"
             ))
             conn.commit()
-            print("  Added column: pipeline_stages.lifecycle_stage_key")
+            logger.info("Added column: pipeline_stages.lifecycle_stage_key")
         else:
-            print("  Skipped (already exists): pipeline_stages.lifecycle_stage_key")
+            logger.info("Skipped (already exists): pipeline_stages.lifecycle_stage_key")
 
         # --- 2. Add new columns to applications ---
         result = conn.execute(text("PRAGMA table_info(applications)"))
@@ -49,11 +52,11 @@ def upgrade():
         ]
         for col_name, sql in app_migrations:
             if col_name in existing_cols:
-                print(f"  Skipped (already exists): applications.{col_name}")
+                logger.info(f"Skipped (already exists): applications.{col_name}")
             else:
                 conn.execute(text(sql))
                 conn.commit()
-                print(f"  Added column: applications.{col_name}")
+                logger.info(f"Added column: applications.{col_name}")
 
         # --- 3. Backfill disposition_stage_id for rejected applications ---
         result = conn.execute(text(
@@ -61,7 +64,7 @@ def upgrade():
             "WHERE status = 'Rejected' AND disposition_stage_id IS NULL AND current_stage_id IS NOT NULL"
         ))
         conn.commit()
-        print(f"  Backfilled disposition_stage_id for {result.rowcount} rejected applications")
+        logger.info(f"Backfilled disposition_stage_id for {result.rowcount} rejected applications")
 
         # --- 4. Update existing default pipeline stages ---
         # Check if pipeline_stages table exists and has data
@@ -69,7 +72,7 @@ def upgrade():
             "SELECT name FROM sqlite_master WHERE type='table' AND name='pipeline_stages'"
         ))
         if not result.fetchone():
-            print("  pipeline_stages table not found — skipping stage updates")
+            logger.warning("pipeline_stages table not found — skipping stage updates")
             return
 
         # Get the default template ID
@@ -78,11 +81,11 @@ def upgrade():
         ))
         row = result.fetchone()
         if not row:
-            print("  No default pipeline template found — skipping stage updates")
+            logger.warning("No default pipeline template found — skipping stage updates")
             return
 
         template_id = row[0]
-        print(f"  Updating stages for default template (id={template_id})")
+        logger.info(f"Updating stages for default template (id={template_id})")
 
         # Update HR Screening Interview — set lifecycle key
         conn.execute(text(
@@ -127,9 +130,9 @@ def upgrade():
                 "is_required, auto_advance, days_sla, lifecycle_stage_key) "
                 "VALUES (:tid, 'Offer Accepted', 'offer_accepted', 6, 1, 0, 3, 'offer_response')"
             ), {"tid": template_id})
-            print("  Added new stage: Offer Accepted")
+            logger.info("Added new stage: Offer Accepted")
         else:
-            print("  Skipped (already exists): Offer Accepted stage")
+            logger.info("Skipped (already exists): Offer Accepted stage")
 
         # Ensure Application Review has order_index=1
         conn.execute(text(
@@ -144,16 +147,16 @@ def upgrade():
         ), {"tid": template_id})
 
         conn.commit()
-        print("  Pipeline stages updated successfully")
+        logger.info("Pipeline stages updated successfully")
 
         # Print final state
         result = conn.execute(text(
             "SELECT name, stage_type, order_index, is_required, lifecycle_stage_key "
             "FROM pipeline_stages WHERE template_id = :tid ORDER BY order_index"
         ), {"tid": template_id})
-        print("\n  Final pipeline stages:")
+        logger.info("Final pipeline stages:")
         for row in result:
-            print(f"    {row[2]}. {row[0]} ({row[1]}) → lifecycle:{row[4] or '—'} required:{row[3]}")
+            logger.info(f"{row[2]}. {row[0]} ({row[1]}) → lifecycle:{row[4] or '—'} required:{row[3]}")
 
 
 def downgrade():
@@ -203,7 +206,7 @@ def downgrade():
         ), {"tid": template_id})
 
         conn.commit()
-        print("  Reverted pipeline stages to previous state")
+        logger.info("Reverted pipeline stages to previous state")
 
 
 if __name__ == "__main__":
@@ -214,9 +217,9 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     if args.rollback:
-        print("Rolling back migration...")
+        logger.info("Rolling back migration...")
         downgrade()
     else:
-        print("Running migration...")
+        logger.info("Running migration...")
         upgrade()
-    print("Done!")
+    logger.info("Done!")

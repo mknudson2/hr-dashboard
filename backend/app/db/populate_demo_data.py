@@ -6,6 +6,9 @@ Populate comprehensive demo data for Employee Portal demonstration.
 import random
 from app.db import database, models
 from app.services.auth_service import get_password_hash
+import logging
+
+logger = logging.getLogger(__name__)
 
 # Benefits plan options
 MEDICAL_PLANS = ["PPO Gold", "PPO Silver", "HDHP Bronze", "HMO Basic"]
@@ -28,7 +31,7 @@ def populate_demo_data():
 
     try:
         # 1. Create a user account for one of test_supervisor's direct reports
-        print("=== Setting up demo user accounts ===")
+        logger.info("=== Setting up demo user accounts ===")
 
         test_supervisor_user = db.query(models.User).filter(
             models.User.username == 'test_supervisor'
@@ -66,13 +69,13 @@ def populate_demo_data():
                             employee_id=first_report.employee_id
                         )
                         db.add(new_user)
-                        print(f"Created user '{username}' for {first_report.first_name} {first_report.last_name}")
-                        print(f"  This employee reports to test_supervisor ({supervisor_name})")
+                        logger.info(f"Created user '{username}' for {first_report.first_name} {first_report.last_name}")
+                        logger.info(f"This employee reports to test_supervisor ({supervisor_name})")
                     else:
-                        print(f"User already exists for {first_report.first_name} {first_report.last_name}: {existing_user.username}")
+                        logger.info(f"User already exists for {first_report.first_name} {first_report.last_name}: {existing_user.username}")
 
         # 2. Populate benefits data for employees
-        print("\n=== Populating benefits data ===")
+        logger.info("=== Populating benefits data ===")
 
         # Get all active employees
         employees = db.query(models.Employee).filter(
@@ -149,10 +152,10 @@ def populate_demo_data():
 
             benefits_updated += 1
 
-        print(f"Updated benefits for {benefits_updated} employees")
+        logger.info(f"Updated benefits for {benefits_updated} employees")
 
         # 3. Ensure test accounts have good demo data
-        print("\n=== Ensuring test accounts have complete data ===")
+        logger.info("=== Ensuring test accounts have complete data ===")
 
         test_usernames = ['test_employee', 'test_supervisor', 'test_supervisor_employee']
         for username in test_usernames:
@@ -200,22 +203,22 @@ def populate_demo_data():
                             (emp.retirement_er_contribution or 0)
                         )
 
-                    print(f"{username} ({emp.first_name} {emp.last_name}):")
-                    print(f"  Medical: {emp.medical_plan} ({emp.medical_tier})")
-                    print(f"    Employee: ${emp.medical_ee_cost:,.0f}/yr, Employer: ${emp.medical_er_cost:,.0f}/yr")
-                    print(f"  401k: {emp.retirement_contribution_pct}% contribution")
-                    print(f"  Total Employee Benefits Cost: ${emp.benefits_cost:,.0f}/yr")
-                    print(f"  Total Employer Benefits Cost: ${emp.benefits_cost_annual:,.0f}/yr")
+                    logger.info(f"{username} ({emp.first_name} {emp.last_name}):")
+                    logger.info(f"Medical: {emp.medical_plan} ({emp.medical_tier})")
+                    logger.info(f"Employee: ${emp.medical_ee_cost:,.0f}/yr, Employer: ${emp.medical_er_cost:,.0f}/yr")
+                    logger.info(f"401k: {emp.retirement_contribution_pct}% contribution")
+                    logger.info(f"Total Employee Benefits Cost: ${emp.benefits_cost:,.0f}/yr")
+                    logger.info(f"Total Employer Benefits Cost: ${emp.benefits_cost_annual:,.0f}/yr")
 
         db.commit()
 
         # Print final summary
-        print("\n" + "="*60)
-        print("DEMO ACCOUNTS READY FOR PRESENTATION")
-        print("="*60)
+        logger.info("=" * 60)
+        logger.info("DEMO ACCOUNTS READY FOR PRESENTATION")
+        logger.info("=" * 60)
 
-        print("\n📋 Employee Portal Demo Scenarios:")
-        print("-" * 40)
+        logger.info("Employee Portal Demo Scenarios:")
+        logger.info("-" * 40)
 
         # Get the newly created user for demo
         george_user = db.query(models.User).filter(
@@ -224,29 +227,29 @@ def populate_demo_data():
         ).first()
 
         if george_user:
-            print(f"\n1. EMPLOYEE VIEW (reports to supervisor):")
-            print(f"   Username: {george_user.username}")
-            print(f"   Password: password123")
-            print(f"   -> Can submit requests, view own compensation, see supervisor")
+            logger.info(f"\n1. EMPLOYEE VIEW (reports to supervisor):")
+            logger.info(f"Username: {george_user.username}")
+            logger.info(f"Password: password123")
+            logger.info(f"-> Can submit requests, view own compensation, see supervisor")
 
-        print(f"\n2. EMPLOYEE VIEW (HR Manager, no supervisor):")
-        print(f"   Username: test_employee")
-        print(f"   Password: password123")
-        print(f"   -> View compensation, benefits, 23 direct reports")
+        logger.info(f"\n2. EMPLOYEE VIEW (HR Manager, no supervisor):")
+        logger.info(f"Username: test_employee")
+        logger.info(f"Password: password123")
+        logger.info(f"-> View compensation, benefits, 23 direct reports")
 
-        print(f"\n3. SUPERVISOR VIEW:")
-        print(f"   Username: test_supervisor")
-        print(f"   Password: password123")
-        print(f"   -> View team, approve requests, see direct reports")
+        logger.info(f"\n3. SUPERVISOR VIEW:")
+        logger.info(f"Username: test_supervisor")
+        logger.info(f"Password: password123")
+        logger.info(f"-> View team, approve requests, see direct reports")
 
-        print("\n📊 HR Portal Access:")
-        print("-" * 40)
-        print(f"   Username: test_supervisor (manager role)")
-        print(f"   Password: password123")
+        logger.info("HR Portal Access:")
+        logger.info("-" * 40)
+        logger.info(f"Username: test_supervisor (manager role)")
+        logger.info(f"Password: password123")
 
     except Exception as e:
         db.rollback()
-        print(f"Error: {e}")
+        logger.error(f"Error: {e}")
         raise
     finally:
         db.close()

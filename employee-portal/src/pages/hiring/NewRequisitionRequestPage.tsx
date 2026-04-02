@@ -52,7 +52,14 @@ interface TeamMember {
   department: string;
   position: string;
   is_hiring_manager?: boolean;
+  role?: string;
 }
+
+const STAKEHOLDER_ROLES = [
+  { value: 'vp_svp', label: 'VP / SVP' },
+  { value: 'interviewer', label: 'Interviewer' },
+  { value: 'observer', label: 'Observer' },
+] as const;
 
 const urgencyOptions = [
   { value: 'Low', label: 'Low', color: 'bg-gray-100 text-gray-700' },
@@ -201,8 +208,10 @@ export default function NewRequisitionRequestPage() {
     setSelectedJD(jd);
     handleChange('title', jd.position_title);
     handleChange('job_description_id', jd.id as unknown as string);
-    if (jd.description) handleChange('description', jd.description);
-    if (jd.requirements) handleChange('requirements', jd.requirements);
+    // Description & requirements come from the JD read-only display;
+    // clear editable fields so requester can add supplemental info
+    handleChange('description', jd.description || '');
+    handleChange('requirements', '');
     if (jd.skills_tags && jd.skills_tags.length > 0) handleChange('skills_tags', jd.skills_tags);
     setJdOpen(false);
     setJdSearch('');
@@ -212,6 +221,8 @@ export default function NewRequisitionRequestPage() {
     setSelectedJD(null);
     handleChange('title', '');
     handleChange('job_description_id', null as unknown as string);
+    handleChange('description', '');
+    handleChange('requirements', '');
     setJdSearch('');
   };
 
@@ -549,12 +560,18 @@ export default function NewRequisitionRequestPage() {
         ...prev,
         visibility_employee_ids: [...prev.visibility_employee_ids, member.employee_id],
       }));
-      setSelectedMembers(prev => [...prev, member]);
+      setSelectedMembers(prev => [...prev, { ...member, role: member.role || 'observer' }]);
     }
     setMemberSearch('');
     setMemberResults([]);
     setPendingMember(null);
     setShowHmWarning(false);
+  };
+
+  const updateMemberRole = (employeeId: string, role: string) => {
+    setSelectedMembers(prev => prev.map(m =>
+      m.employee_id === employeeId ? { ...m, role } : m
+    ));
   };
 
   const removeMember = (employeeId: string) => {
@@ -572,6 +589,7 @@ export default function NewRequisitionRequestPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     // Validate all required fields (everything except notes)
+    // When a JD is selected, description & requirements come from the JD — not required from the form
     const requiredFields: { field: keyof FormData; label: string }[] = [
       { field: 'title', label: 'Position Title' },
       { field: 'department', label: 'Department' },
@@ -585,8 +603,10 @@ export default function NewRequisitionRequestPage() {
       { field: 'salary_max', label: 'Salary Range Max' },
       { field: 'target_start_date', label: 'Target Start Date' },
       { field: 'urgency', label: 'Urgency' },
-      { field: 'description', label: 'Job Description' },
-      { field: 'requirements', label: 'Requirements' },
+      ...(!selectedJD ? [
+        { field: 'description' as keyof FormData, label: 'Job Description' },
+        { field: 'requirements' as keyof FormData, label: 'Requirements' },
+      ] : []),
     ];
     const missing = requiredFields.filter(({ field }) => {
       const val = formData[field];
@@ -615,6 +635,11 @@ export default function NewRequisitionRequestPage() {
         target_fill_date: formData.target_fill_date || null,
         openings: formData.openings || 1,
         job_description_id: formData.job_description_id || null,
+        stakeholders: selectedMembers.map(m => ({
+          employee_id: m.employee_id,
+          user_id: m.user_id,
+          role: m.role || 'observer',
+        })),
       };
       const result = await apiPost<{ id: number; requisition_id: string }>(
         '/portal/hiring-manager/requisitions',
@@ -1450,15 +1475,26 @@ export default function NewRequisitionRequestPage() {
 
             <div className="flex flex-wrap gap-2 mb-2">
               {selectedMembers.map(m => (
-                <span
+                <div
                   key={m.employee_id}
-                  className="inline-flex items-center gap-1 px-2.5 py-1 bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-300 rounded-full text-sm"
+                  className="flex items-center gap-2 px-2.5 py-1.5 bg-purple-50 dark:bg-purple-900/20 border border-purple-200 dark:border-purple-700 rounded-lg text-sm"
                 >
-                  {m.first_name} {m.last_name}
-                  <button type="button" onClick={() => removeMember(m.employee_id)}>
-                    <X className="w-3 h-3" />
+                  <span className="text-purple-700 dark:text-purple-300 font-medium">
+                    {m.first_name} {m.last_name}
+                  </span>
+                  <select
+                    value={m.role || 'observer'}
+                    onChange={e => updateMemberRole(m.employee_id, e.target.value)}
+                    className="text-xs border border-purple-200 dark:border-purple-600 rounded px-1.5 py-0.5 bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-300"
+                  >
+                    {STAKEHOLDER_ROLES.map(r => (
+                      <option key={r.value} value={r.value}>{r.label}</option>
+                    ))}
+                  </select>
+                  <button type="button" onClick={() => removeMember(m.employee_id)} className="text-purple-400 hover:text-purple-600">
+                    <X className="w-3.5 h-3.5" />
                   </button>
-                </span>
+                </div>
               ))}
             </div>
             <div className="relative" ref={visibilityRef}>
@@ -1509,24 +1545,76 @@ export default function NewRequisitionRequestPage() {
         {/* Section 7: Additional Notes */}
         <div className={sectionClass}>
           <h2 className="text-lg font-semibold text-gray-900 dark:text-white">Additional Information</h2>
-          <div>
-            <label className={labelClass}>Job Description *</label>
-            <textarea
-              value={formData.description}
-              onChange={e => handleChange('description', e.target.value)}
-              className={`${inputClass} h-24`}
-              placeholder="Describe the role and responsibilities..."
-            />
-          </div>
-          <div>
-            <label className={labelClass}>Requirements *</label>
-            <textarea
-              value={formData.requirements}
-              onChange={e => handleChange('requirements', e.target.value)}
-              className={`${inputClass} h-20`}
-              placeholder="Required qualifications and experience..."
-            />
-          </div>
+
+          {/* Show JD-sourced description & requirements as read-only when a JD is selected */}
+          {selectedJD && (
+            <div className="space-y-3 p-4 bg-gray-50 dark:bg-gray-800/50 border border-gray-200 dark:border-gray-700 rounded-lg">
+              <p className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">From Job Description: {selectedJD.position_title}</p>
+              {selectedJD.description ? (
+                <div>
+                  <label className="block text-sm font-medium text-gray-600 dark:text-gray-400 mb-1">Description</label>
+                  <p className="text-sm text-gray-700 dark:text-gray-300 whitespace-pre-wrap">{selectedJD.description}</p>
+                </div>
+              ) : (
+                <p className="text-sm text-gray-400 dark:text-gray-500 italic">No description on file — HR can add one in the Job Descriptions library.</p>
+              )}
+              {selectedJD.requirements && (
+                <div>
+                  <label className="block text-sm font-medium text-gray-600 dark:text-gray-400 mb-1">Requirements</label>
+                  <p className="text-sm text-gray-700 dark:text-gray-300 whitespace-pre-wrap">{selectedJD.requirements}</p>
+                </div>
+              )}
+              {selectedJD.responsibilities && (
+                <div>
+                  <label className="block text-sm font-medium text-gray-600 dark:text-gray-400 mb-1">Responsibilities</label>
+                  <p className="text-sm text-gray-700 dark:text-gray-300 whitespace-pre-wrap">{selectedJD.responsibilities}</p>
+                </div>
+              )}
+              {selectedJD.preferred_qualifications && (
+                <div>
+                  <label className="block text-sm font-medium text-gray-600 dark:text-gray-400 mb-1">Preferred Qualifications</label>
+                  <p className="text-sm text-gray-700 dark:text-gray-300 whitespace-pre-wrap">{selectedJD.preferred_qualifications}</p>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Editable fields only when no JD is selected */}
+          {!selectedJD && (
+            <>
+              <div>
+                <label className={labelClass}>Job Description *</label>
+                <textarea
+                  value={formData.description}
+                  onChange={e => handleChange('description', e.target.value)}
+                  className={`${inputClass} h-24`}
+                  placeholder="Describe the role and responsibilities..."
+                />
+              </div>
+              <div>
+                <label className={labelClass}>Requirements *</label>
+                <textarea
+                  value={formData.requirements}
+                  onChange={e => handleChange('requirements', e.target.value)}
+                  className={`${inputClass} h-20`}
+                  placeholder="Required qualifications and experience..."
+                />
+              </div>
+            </>
+          )}
+
+          {selectedJD && (
+            <div>
+              <label className={labelClass}>Additional Requirements</label>
+              <textarea
+                value={formData.requirements}
+                onChange={e => handleChange('requirements', e.target.value)}
+                className={`${inputClass} h-20`}
+                placeholder="Any additional requirements beyond the job description..."
+              />
+            </div>
+          )}
+
           <div>
             <label className={labelClass}>Additional Notes</label>
             <textarea

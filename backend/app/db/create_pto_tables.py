@@ -5,6 +5,9 @@ Migration script to create PTO tracking tables
 from sqlalchemy import create_engine, text
 from sqlalchemy.orm import sessionmaker
 from pathlib import Path
+import logging
+
+logger = logging.getLogger(__name__)
 
 # Get database path
 DB_PATH = Path(__file__).parent.parent.parent / "data" / "hr_dashboard.db"
@@ -17,13 +20,13 @@ SessionLocal = sessionmaker(bind=engine)
 
 def migrate():
     """Create PTO tracking tables"""
-    print("Starting migration to create PTO tracking tables...")
+    logger.info("Starting migration to create PTO tracking tables...")
 
     db = SessionLocal()
 
     try:
         # Create pto_records table
-        print("\n1. Creating pto_records table...")
+        logger.info("1. Creating pto_records table...")
         db.execute(text("""
             CREATE TABLE IF NOT EXISTS pto_records (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -41,10 +44,10 @@ def migrate():
             )
         """))
         db.commit()
-        print("   ✓ Created pto_records table")
+        logger.info("Created pto_records table")
 
         # Create indexes
-        print("\n2. Creating indexes...")
+        logger.info("2. Creating indexes...")
         db.execute(text("""
             CREATE INDEX IF NOT EXISTS idx_pto_employee_id
             ON pto_records (employee_id)
@@ -58,10 +61,10 @@ def migrate():
             ON pto_records (pay_period_date)
         """))
         db.commit()
-        print("   ✓ Created indexes")
+        logger.info("Created indexes")
 
         # Create pto_import_history table to track imports
-        print("\n3. Creating pto_import_history table...")
+        logger.info("3. Creating pto_import_history table...")
         db.execute(text("""
             CREATE TABLE IF NOT EXISTS pto_import_history (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -76,12 +79,12 @@ def migrate():
             )
         """))
         db.commit()
-        print("   ✓ Created pto_import_history table")
+        logger.info("Created pto_import_history table")
 
-        print("\n✅ Migration completed successfully!")
+        logger.info("Migration completed successfully!")
 
     except Exception as e:
-        print(f"\n❌ Migration failed: {e}")
+        logger.error(f"\n Migration failed: {e}")
         db.rollback()
         raise
     finally:

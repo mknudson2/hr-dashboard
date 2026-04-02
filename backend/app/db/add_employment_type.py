@@ -1,8 +1,11 @@
 """
 Add employment_type column to employees table
 """
+import logging
 from sqlalchemy import create_engine, text
 from app.db.database import SQLALCHEMY_DATABASE_URL
+
+logger = logging.getLogger(__name__)
 
 def add_employment_type_column():
     """Add employment_type column to employees table"""
@@ -13,12 +16,12 @@ def add_employment_type_column():
             # Add employment_type column
             connection.execute(text("ALTER TABLE employees ADD COLUMN employment_type VARCHAR"))
             connection.commit()
-            print("✓ Added column: employment_type")
+            logger.info("Added column: employment_type")
         except Exception as e:
             if "duplicate column name" in str(e).lower():
-                print("  Column employment_type already exists, skipping")
+                logger.info("Column employment_type already exists, skipping")
             else:
-                print(f"✗ Error adding column employment_type: {e}")
+                logger.error("Error adding column employment_type: %s", e)
                 return
 
         # Populate employment_type based on existing 'type' field if it exists
@@ -30,11 +33,11 @@ def add_employment_type_column():
                 WHERE employment_type IS NULL AND status = 'Active'
             """))
             connection.commit()
-            print("✓ Set default employment_type for active employees")
+            logger.info("Set default employment_type for active employees")
         except Exception as e:
-            print(f"  Note: Could not set defaults: {e}")
+            logger.warning("Could not set defaults: %s", e)
 
-    print("\n✓ Employment type column migration completed successfully")
+    logger.info("Employment type column migration completed successfully")
 
 if __name__ == "__main__":
     add_employment_type_column()

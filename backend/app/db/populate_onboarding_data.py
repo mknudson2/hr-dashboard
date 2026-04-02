@@ -7,12 +7,15 @@ This script creates onboarding tasks for employees hired within the last 90 days
 import sqlite3
 import os
 from datetime import datetime, timedelta
+import logging
+
+logger = logging.getLogger(__name__)
 
 # Get the database path
 backend_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 db_path = os.path.join(backend_dir, "data", "hr_dashboard.db")
 
-print(f"Populating onboarding data at: {db_path}")
+logger.info(f"Populating onboarding data at: {db_path}")
 
 # Connect to database
 conn = sqlite3.connect(db_path)
@@ -21,7 +24,7 @@ cursor = conn.cursor()
 # Clear existing onboarding tasks
 cursor.execute("DELETE FROM onboarding_tasks")
 conn.commit()
-print("Cleared existing onboarding tasks")
+logger.info("Cleared existing onboarding tasks")
 
 # Get recent hires (hired within last 90 days from Feb 3, 2026)
 reference_date = datetime(2026, 2, 3).date()
@@ -35,7 +38,7 @@ cursor.execute("""
 """, (ninety_days_ago.isoformat(),))
 
 recent_hires = cursor.fetchall()
-print(f"Found {len(recent_hires)} recent hires for onboarding")
+logger.info(f"Found {len(recent_hires)} recent hires for onboarding")
 
 # Standard onboarding tasks template
 standard_tasks = [
@@ -60,7 +63,7 @@ try:
         hire_date = datetime.strptime(hire_date_str, "%Y-%m-%d").date()
         days_since_hire = (reference_date - hire_date).days
 
-        print(f"\nCreating tasks for {first_name} {last_name} (ID: {emp_id}, hired {hire_date_str}, {days_since_hire} days ago)")
+        logger.info(f"\nCreating tasks for {first_name} {last_name} (ID: {emp_id}, hired {hire_date_str}, {days_since_hire} days ago)")
 
         for task_template in standard_tasks:
             task_count += 1
@@ -103,14 +106,14 @@ try:
                 datetime.now().isoformat()
             ))
 
-            print(f"  - {task_template['name']} ({status})")
+            logger.info(f"- {task_template['name']} ({status})")
 
     conn.commit()
-    print(f"\nSuccessfully created {task_count} onboarding tasks for {len(recent_hires)} employees")
+    logger.info(f"\nSuccessfully created {task_count} onboarding tasks for {len(recent_hires)} employees")
 
 except Exception as e:
     conn.rollback()
-    print(f"Error: {e}")
+    logger.error(f"Error: {e}")
     raise
 
 finally:

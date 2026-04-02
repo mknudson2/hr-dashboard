@@ -4,10 +4,13 @@ Add 2FA columns to users table
 """
 import sys
 import os
+import logging
 sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(__file__))))
 
 from sqlalchemy import create_engine, text
 from app.db.database import SQLALCHEMY_DATABASE_URL
+
+logger = logging.getLogger(__name__)
 
 def add_2fa_columns():
     """Add 2FA-related columns to users table"""
@@ -19,39 +22,39 @@ def add_2fa_columns():
             conn.execute(text("""
                 ALTER TABLE users ADD COLUMN totp_secret VARCHAR(32)
             """))
-            print("✓ Added totp_secret column")
+            logger.info("Added totp_secret column")
         except Exception as e:
             if "duplicate column name" in str(e).lower():
-                print("✓ totp_secret column already exists")
+                logger.info("totp_secret column already exists")
             else:
-                print(f"Error adding totp_secret: {e}")
+                logger.error("Error adding totp_secret: %s", e)
 
         try:
             # Add totp_enabled column
             conn.execute(text("""
                 ALTER TABLE users ADD COLUMN totp_enabled BOOLEAN DEFAULT 0
             """))
-            print("✓ Added totp_enabled column")
+            logger.info("Added totp_enabled column")
         except Exception as e:
             if "duplicate column name" in str(e).lower():
-                print("✓ totp_enabled column already exists")
+                logger.info("totp_enabled column already exists")
             else:
-                print(f"Error adding totp_enabled: {e}")
+                logger.error("Error adding totp_enabled: %s", e)
 
         try:
             # Add backup_codes column (JSON array of hashed backup codes)
             conn.execute(text("""
                 ALTER TABLE users ADD COLUMN backup_codes TEXT
             """))
-            print("✓ Added backup_codes column")
+            logger.info("Added backup_codes column")
         except Exception as e:
             if "duplicate column name" in str(e).lower():
-                print("✓ backup_codes column already exists")
+                logger.info("backup_codes column already exists")
             else:
-                print(f"Error adding backup_codes: {e}")
+                logger.error("Error adding backup_codes: %s", e)
 
         conn.commit()
-        print("\n✅ 2FA columns migration completed successfully!")
+        logger.info("2FA columns migration completed successfully!")
 
 if __name__ == "__main__":
     add_2fa_columns()

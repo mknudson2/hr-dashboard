@@ -9,6 +9,9 @@ import bcrypt
 import secrets
 import string
 import os
+import logging
+
+logger = logging.getLogger(__name__)
 
 # Get database path
 DB_PATH = Path(__file__).parent.parent.parent / "data" / "hr_dashboard.db"
@@ -59,13 +62,13 @@ def generate_secure_password(length: int = 16) -> str:
 
 def migrate():
     """Create authentication tables"""
-    print("Starting migration to create authentication tables...")
+    logger.info("Starting migration to create authentication tables...")
 
     db = SessionLocal()
 
     try:
         # Create users table
-        print("\n1. Creating users table...")
+        logger.info("1. Creating users table...")
         db.execute(text("""
             CREATE TABLE IF NOT EXISTS users (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -84,10 +87,10 @@ def migrate():
             )
         """))
         db.commit()
-        print("   ✓ Created users table")
+        logger.info("Created users table")
 
         # Create sessions table for tracking active sessions
-        print("\n2. Creating sessions table...")
+        logger.info("2. Creating sessions table...")
         db.execute(text("""
             CREATE TABLE IF NOT EXISTS sessions (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -101,10 +104,10 @@ def migrate():
             )
         """))
         db.commit()
-        print("   ✓ Created sessions table")
+        logger.info("Created sessions table")
 
         # Create indexes
-        print("\n3. Creating indexes...")
+        logger.info("3. Creating indexes...")
         db.execute(text("""
             CREATE INDEX IF NOT EXISTS idx_users_username ON users (username)
         """))
@@ -121,10 +124,10 @@ def migrate():
             CREATE INDEX IF NOT EXISTS idx_sessions_user_id ON sessions (user_id)
         """))
         db.commit()
-        print("   ✓ Created indexes")
+        logger.info("Created indexes")
 
         # Create default admin user
-        print("\n4. Creating default admin user...")
+        logger.info("4. Creating default admin user...")
 
         # Check if admin already exists
         result = db.execute(text("SELECT COUNT(*) as count FROM users WHERE username = 'admin'"))
@@ -156,13 +159,13 @@ def migrate():
 
             db.commit()
             # NOTE: Password must be changed on first login - do NOT print password to console
-            print("   Password generated - check secure logs or reset via admin")
-            print("   IMPORTANT: Password must be changed on first login!")
+            logger.info("Password generated - check secure logs or reset via admin")
+            logger.info("IMPORTANT: Password must be changed on first login!")
         else:
-            print("   - Admin user already exists, skipping")
+            logger.warning("- Admin user already exists, skipping")
 
         # Create Michael Knudson user
-        print("\n5. Creating Michael Knudson user...")
+        logger.info("5. Creating Michael Knudson user...")
         result = db.execute(text("SELECT COUNT(*) as count FROM users WHERE username = 'mknudson'"))
         count = result.fetchone()[0]
 
@@ -186,17 +189,17 @@ def migrate():
 
             db.commit()
             # NOTE: Password must be changed on first login - do NOT print password to console
-            print("   Password generated - check secure logs or reset via admin")
-            print("   IMPORTANT: Password must be changed on first login!")
+            logger.info("Password generated - check secure logs or reset via admin")
+            logger.info("IMPORTANT: Password must be changed on first login!")
         else:
-            print("   - Michael Knudson user already exists, skipping")
+            logger.warning("- Michael Knudson user already exists, skipping")
 
-        print("\n Migration completed successfully!")
-        print("\n NOTE: All generated passwords must be changed on first login.")
-        print("   Use the admin password reset function or check secure deployment logs.")
+        logger.info("Migration completed successfully!")
+        logger.warning("NOTE: All generated passwords must be changed on first login.")
+        logger.info("Use the admin password reset function or check secure deployment logs.")
 
     except Exception as e:
-        print(f"\n❌ Migration failed: {e}")
+        logger.error(f"\n Migration failed: {e}")
         db.rollback()
         raise
     finally:

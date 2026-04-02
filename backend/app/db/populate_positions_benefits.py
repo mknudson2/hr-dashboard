@@ -7,6 +7,9 @@ import random
 from datetime import datetime
 from app.db.database import SessionLocal
 from app.db import models
+import logging
+
+logger = logging.getLogger(__name__)
 
 # Position titles by department
 POSITIONS_BY_DEPARTMENT = {
@@ -115,7 +118,7 @@ def populate_data():
             models.Employee.status != "Terminated"
         ).all()
 
-        print(f"Found {len(employees)} active employees to update")
+        logger.info(f"Found {len(employees)} active employees to update")
 
         updated_count = 0
 
@@ -206,34 +209,33 @@ def populate_data():
             updated_count += 1
 
             if updated_count % 50 == 0:
-                print(f"Updated {updated_count} employees...")
+                logger.info(f"Updated {updated_count} employees...")
 
         db.commit()
-        print(f"\nSuccessfully updated {updated_count} employees with positions and benefits data")
+        logger.info(f"\nSuccessfully updated {updated_count} employees with positions and benefits data")
 
         # Show a sample
         sample = db.query(models.Employee).filter(
             models.Employee.status != "Terminated"
         ).limit(5).all()
 
-        print("\nSample of updated employees:")
+        logger.info("Sample of updated employees:")
         for emp in sample:
-            print(f"  {emp.first_name} {emp.last_name} ({emp.department})")
-            print(f"    Position: {emp.position}")
-            print(f"    Medical: {emp.medical_plan} ({emp.medical_tier}) - EE: ${emp.medical_ee_cost}/mo, ER: ${emp.medical_er_cost}/mo")
-            print(f"    Dental: {emp.dental_plan} - EE: ${emp.dental_ee_cost}/mo")
-            print(f"    Vision: {emp.vision_plan} - EE: ${emp.vision_ee_cost}/mo")
-            print(f"    401k: {emp.retirement_ee_contribution_pct}% (ER match: {emp.retirement_er_match_pct}%)")
-            print()
+            logger.info(f"{emp.first_name} {emp.last_name} ({emp.department})")
+            logger.info(f"Position: {emp.position}")
+            logger.info(f"Medical: {emp.medical_plan} ({emp.medical_tier}) - EE: ${emp.medical_ee_cost}/mo, ER: ${emp.medical_er_cost}/mo")
+            logger.info(f"Dental: {emp.dental_plan} - EE: ${emp.dental_ee_cost}/mo")
+            logger.info(f"Vision: {emp.vision_plan} - EE: ${emp.vision_ee_cost}/mo")
+            logger.info(f"401k: {emp.retirement_ee_contribution_pct}% (ER match: {emp.retirement_er_match_pct}%)")
 
     except Exception as e:
         db.rollback()
-        print(f"Error: {e}")
+        logger.error(f"Error: {e}")
         raise
     finally:
         db.close()
 
 if __name__ == "__main__":
-    print("Populating positions and benefits data...")
-    print("=" * 60)
+    logger.info("Populating positions and benefits data...")
+    logger.info("=" * 60)
     populate_data()

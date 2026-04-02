@@ -213,7 +213,7 @@ async def initiate_i9_verification(
 
 
 @router.post("/ms_teams_calendar/connect")
-async def connect_ms_teams_calendar(
+def connect_ms_teams_calendar(
     current_user: models.User = Depends(
         require_any_permission(Permissions.RECRUITING_ADMIN)
     ),

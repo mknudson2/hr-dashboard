@@ -12,6 +12,9 @@ sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 
 from sqlalchemy import text, inspect
 from app.db.database import engine
+import logging
+
+logger = logging.getLogger(__name__)
 
 
 def upgrade():
@@ -37,7 +40,7 @@ def upgrade():
             )
         """))
         conn.commit()
-        print("  Created table: offer_letter_templates")
+        logger.info("Created table: offer_letter_templates")
 
         # --- 2. Add FK columns to offer_letters ---
         inspector = inspect(engine)
@@ -49,9 +52,9 @@ def upgrade():
                 ADD COLUMN offer_letter_template_id INTEGER REFERENCES offer_letter_templates(id)
             """))
             conn.commit()
-            print("  Added column: offer_letters.offer_letter_template_id")
+            logger.info("Added column: offer_letters.offer_letter_template_id")
         else:
-            print("  Column offer_letters.offer_letter_template_id already exists")
+            logger.info("Column offer_letters.offer_letter_template_id already exists")
 
         if "email_template_id" not in existing_cols:
             conn.execute(text("""
@@ -59,9 +62,9 @@ def upgrade():
                 ADD COLUMN email_template_id INTEGER REFERENCES custom_email_templates(id)
             """))
             conn.commit()
-            print("  Added column: offer_letters.email_template_id")
+            logger.info("Added column: offer_letters.email_template_id")
         else:
-            print("  Column offer_letters.email_template_id already exists")
+            logger.info("Column offer_letters.email_template_id already exists")
 
         # --- 3. Create index on template_id ---
         conn.execute(text("""
@@ -69,9 +72,9 @@ def upgrade():
             ON offer_letter_templates(template_id)
         """))
         conn.commit()
-        print("  Created index: ix_offer_letter_templates_template_id")
+        logger.info("Created index: ix_offer_letter_templates_template_id")
 
-    print("\nMigration complete: offer_letter_templates")
+    logger.info("Migration complete: offer_letter_templates")
 
 
 if __name__ == "__main__":

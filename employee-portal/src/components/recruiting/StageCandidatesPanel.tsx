@@ -5,8 +5,9 @@ import { API_URL } from '@/config/api';
 import {
   Users, ChevronDown, ChevronUp, Star, FileText, Download, Video, Phone,
   MapPin, CheckCircle, Clock, AlertCircle, ClipboardList, ExternalLink,
-  User, Briefcase, ArrowRight,
+  User, Briefcase, ArrowRight, Eye,
 } from 'lucide-react';
+import ScorecardDrawer from './scorecard/ScorecardDrawer';
 
 // --- Types ---
 
@@ -179,6 +180,7 @@ export default function StageCandidatesPanel({
   const [showAdvanceModal, setShowAdvanceModal] = useState(false);
   const [advanceNotes, setAdvanceNotes] = useState('');
   const [advancing, setAdvancing] = useState(false);
+  const [viewScorecardId, setViewScorecardId] = useState<number | null>(null);
 
   useEffect(() => { loadCandidates(); }, [requisitionId, stageKey]);
 
@@ -323,6 +325,7 @@ export default function StageCandidatesPanel({
             currentUserId={user?.id ?? 0}
             onMarkComplete={markInterviewComplete}
             actionLoading={actionLoading}
+            onViewScorecard={setViewScorecardId}
           />
         ))}
       </div>
@@ -376,6 +379,12 @@ export default function StageCandidatesPanel({
           </div>
         </div>
       )}
+
+      {/* Scorecard Drawer */}
+      <ScorecardDrawer
+        scorecardId={viewScorecardId}
+        onClose={() => setViewScorecardId(null)}
+      />
     </div>
   );
 }
@@ -389,6 +398,7 @@ function CandidateCard({
   currentUserId,
   onMarkComplete,
   actionLoading,
+  onViewScorecard,
 }: {
   candidate: Candidate;
   expanded: boolean;
@@ -396,9 +406,10 @@ function CandidateCard({
   currentUserId: number;
   onMarkComplete: (id: number) => void;
   actionLoading: number | null;
+  onViewScorecard: (id: number) => void;
 }) {
   const ra = c.resume_analysis;
-  const raScore = ra?.status === 'completed' ? ra.overall_score : null;
+  const raScore = ra?.status?.toLowerCase() === 'completed' ? ra.overall_score : null;
 
   // Summary: pick first interview status and first scorecard status
   const ivSummary = c.interviews.length > 0
@@ -464,28 +475,6 @@ function CandidateCard({
       {/* Expanded Detail */}
       {expanded && (
         <div className="border-t border-gray-200 dark:border-gray-700 px-4 py-3 space-y-4 bg-gray-50/50 dark:bg-gray-800/50">
-          {/* Resume Analysis */}
-          {ra && ra.status === 'completed' && raScore !== null && (
-            <div>
-              <h4 className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-2">Resume Analysis</h4>
-              <div className="flex items-center gap-3">
-                <div className="flex-1">
-                  <div className="h-2 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
-                    <div className={`h-full rounded-full ${scoreBgColor(raScore)}`} style={{ width: `${raScore}%` }} />
-                  </div>
-                </div>
-                <span className={`text-sm font-bold ${scoreColor(raScore)}`}>{Math.round(raScore)}/100</span>
-                {ra.threshold_label && (
-                  <span className={`text-[10px] px-1.5 py-0.5 rounded font-medium ${
-                    ra.threshold_label === 'Promising' ? 'bg-green-100 text-green-700 dark:bg-green-900/40 dark:text-green-300' : 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/40 dark:text-yellow-300'
-                  }`}>
-                    {ra.threshold_label}
-                  </span>
-                )}
-              </div>
-            </div>
-          )}
-
           {/* Interviews */}
           {c.interviews.length > 0 && (
             <div>
@@ -542,12 +531,43 @@ function CandidateCard({
           )}
 
           {/* Scorecards */}
-          {c.scorecards.length > 0 && (
+          {(c.scorecards.length > 0 || (ra && ra.status === 'completed' && raScore !== null)) && (
             <div>
               <h4 className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-2">Scorecards</h4>
               <div className="space-y-2">
+                {/* AI Resume Analysis */}
+                {ra && ra.status === 'completed' && raScore !== null && (
+                  <div className="bg-white dark:bg-gray-700 rounded-lg p-3 border border-gray-200 dark:border-gray-600">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <ClipboardList className="w-3.5 h-3.5 text-blue-500" />
+                        <span className="text-sm text-gray-900 dark:text-white">AI Resume Analysis</span>
+                        <span className="text-[10px] px-1.5 py-0.5 rounded font-medium bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300">
+                          AI
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <span className={`text-sm font-bold ${scoreColor(raScore)}`}>{Math.round(raScore)}/100</span>
+                        {ra.threshold_label && (
+                          <span className={`text-[10px] px-1.5 py-0.5 rounded font-medium ${
+                            ra.threshold_label === 'Promising' ? 'bg-green-100 text-green-700 dark:bg-green-900/40 dark:text-green-300' : 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/40 dark:text-yellow-300'
+                          }`}>
+                            {ra.threshold_label}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                    <div className="mt-2 h-1.5 bg-gray-200 dark:bg-gray-600 rounded-full overflow-hidden">
+                      <div className={`h-full rounded-full ${scoreBgColor(raScore)}`} style={{ width: `${raScore}%` }} />
+                    </div>
+                  </div>
+                )}
                 {c.scorecards.map(sc => (
-                  <div key={sc.id} className="bg-white dark:bg-gray-700 rounded-lg p-3 border border-gray-200 dark:border-gray-600">
+                  <button
+                    key={sc.id}
+                    onClick={() => onViewScorecard(sc.id)}
+                    className="w-full text-left bg-white dark:bg-gray-700 rounded-lg p-3 border border-gray-200 dark:border-gray-600 hover:border-purple-300 dark:hover:border-purple-600 hover:shadow-sm transition-all cursor-pointer group"
+                  >
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-2">
                         <ClipboardList className="w-3.5 h-3.5 text-purple-500" />
@@ -575,6 +595,7 @@ function CandidateCard({
                             href={`/recruiting/scorecards/${sc.id}`}
                             target="_blank"
                             rel="noopener noreferrer"
+                            onClick={(e) => e.stopPropagation()}
                             className="text-xs px-2 py-1 bg-purple-100 text-purple-700 dark:bg-purple-900/40 dark:text-purple-300 rounded hover:bg-purple-200 dark:hover:bg-purple-900/60 flex items-center gap-1"
                           >
                             <ExternalLink className="w-3 h-3" /> Complete Scorecard
@@ -582,15 +603,16 @@ function CandidateCard({
                         )}
                         {(sc.status === 'Pending' || sc.status === 'In Progress') && sc.interviewer_id !== currentUserId && (
                           <span className="text-xs text-gray-400 dark:text-gray-500 italic">
-                            Awaiting {sc.interviewer_name?.split(' ')[0]}'s scorecard
+                            Awaiting {sc.interviewer_name?.split(' ')[0]}&apos;s scorecard
                           </span>
                         )}
+                        <Eye className="w-3.5 h-3.5 text-gray-300 group-hover:text-purple-500 transition-colors" />
                       </div>
                     </div>
                     {sc.submitted_at && (
                       <p className="text-[10px] text-gray-400 mt-1">Submitted {formatDate(sc.submitted_at)}</p>
                     )}
-                  </div>
+                  </button>
                 ))}
               </div>
             </div>

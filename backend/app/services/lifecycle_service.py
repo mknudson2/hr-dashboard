@@ -186,6 +186,11 @@ class LifecycleService:
                 next_stage.status = "active"
                 next_stage.entered_at = now
 
+                # Notify stakeholders to submit availability for HM Interview
+                if next_stage.stage_key == "hiring_manager_interview":
+                    self._notify_availability_needed(db, stage.requisition_id, next_stage, user_id)
+                    self._auto_create_hm_scorecards(db, stage.requisition_id)
+
         db.flush()
         return stage
 
@@ -476,6 +481,138 @@ class LifecycleService:
             "recommendation_reason": note.recommendation_reason,
             "created_at": note.created_at.isoformat() if note.created_at else None,
         }
+
+    def _auto_create_hm_scorecards(
+        self,
+        db: Session,
+        requisition_id: int,
+    ):
+        """Auto-create pending scorecards for HM Interview stage for each interviewer/HM."""
+        try:
+            requisition = db.query(models.JobRequisition).filter(
+                models.JobRequisition.id == requisition_id
+            ).first()
+            if not requisition or not requisition.pipeline_template_id:
+                return
+
+            # Find the HM Interview pipeline stage
+            hm_pipeline_stage = db.query(models.PipelineStage).filter(
+                models.PipelineStage.template_id == requisition.pipeline_template_id,
+                models.PipelineStage.lifecycle_stage_key == "hiring_manager_interview",
+            ).first()
+            if not hm_pipeline_stage:
+                return
+
+            # Collect interviewer user_ids: stakeholders with role interviewer/hiring_manager + requested_by
+            interviewer_ids: set[int] = set()
+
+            stakeholders = db.query(models.RequisitionStakeholder).filter(
+                models.RequisitionStakeholder.requisition_id == requisition_id,
+                models.RequisitionStakeholder.is_active == True,
+                models.RequisitionStakeholder.role.in_(["interviewer", "hiring_manager"]),
+            ).all()
+            for s in stakeholders:
+                if s.user_id:
+                    interviewer_ids.add(s.user_id)
+
+            # Include the HM (requested_by is the user_id)
+            if requisition.requested_by:
+                interviewer_ids.add(requisition.requested_by)
+
+            if not interviewer_ids:
+                return
+
+            # Get all active applications
+            applications = db.query(models.Application).filter(
+                models.Application.requisition_id == requisition_id,
+                models.Application.status.notin_(["Rejected", "Withdrawn"]),
+            ).all()
+
+            # Build criteria template from stage's scorecard_template
+            criteria_template = None
+            if hm_pipeline_stage.scorecard_template and "criteria" in hm_pipeline_stage.scorecard_template:
+                criteria_template = [
+                    {"criteria": c["name"], "rating": None, "notes": ""}
+                    for c in hm_pipeline_stage.scorecard_template["criteria"]
+                ]
+
+            # Create scorecards — skip if one already exists for this (app, stage, interviewer)
+            for app in applications:
+                existing = db.query(models.InterviewScorecard).filter(
+                    models.InterviewScorecard.application_id == app.id,
+                    models.InterviewScorecard.stage_id == hm_pipeline_stage.id,
+                ).all()
+                existing_interviewer_ids = {sc.interviewer_id for sc in existing}
+
+                for uid in interviewer_ids:
+                    if uid in existing_interviewer_ids:
+                        continue
+                    scorecard = models.InterviewScorecard(
+                        application_id=app.id,
+                        stage_id=hm_pipeline_stage.id,
+                        interviewer_id=uid,
+                        status="Pending",
+                        criteria_ratings=criteria_template,
+                    )
+                    db.add(scorecard)
+
+            db.flush()
+            logger.info(
+                "Auto-created HM Interview scorecards for req %s: %d interviewers x %d apps",
+                requisition_id, len(interviewer_ids), len(applications),
+            )
+        except Exception:
+            logger.exception("Failed to auto-create HM Interview scorecards")
+
+    def _notify_availability_needed(
+        self,
+        db: Session,
+        requisition_id: int,
+        next_stage: models.RequisitionLifecycleStage,
+        triggered_by: int,
+    ):
+        """Notify all stakeholders to submit interview availability for HM Interview."""
+        try:
+            if not hasattr(models, 'InAppNotification'):
+                return
+
+            requisition = db.query(models.JobRequisition).filter(
+                models.JobRequisition.id == requisition_id
+            ).first()
+            if not requisition:
+                return
+
+            # Collect stakeholder user IDs from RequisitionStakeholder table
+            stakeholder_ids = set()
+            stakeholders = db.query(models.RequisitionStakeholder).filter(
+                models.RequisitionStakeholder.requisition_id == requisition_id,
+                models.RequisitionStakeholder.is_active == True,
+            ).all()
+            for s in stakeholders:
+                if s.user_id:
+                    stakeholder_ids.add(s.user_id)
+
+            # Also include HM and recruiter from requisition record
+            if requisition.hiring_manager_id:
+                stakeholder_ids.add(requisition.hiring_manager_id)
+            if requisition.recruiter_id:
+                stakeholder_ids.add(requisition.recruiter_id)
+
+            for uid in stakeholder_ids:
+                notification = models.InAppNotification(
+                    user_id=uid,
+                    title="Submit Your Availability",
+                    message=f"The \"{requisition.title}\" position has moved to the Hiring Manager Interview stage. Please submit your available times.",
+                    notification_type="recruiting",
+                    priority="high",
+                    resource_type="requisition",
+                    resource_id=requisition.id,
+                    action_url=f"/hiring/requisitions/{requisition.id}/availability",
+                    created_by_user_id=triggered_by,
+                )
+                db.add(notification)
+        except Exception:
+            logger.exception("Failed to send availability notifications")
 
     def notify_stakeholders(
         self,

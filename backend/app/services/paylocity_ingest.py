@@ -1,3 +1,4 @@
+import logging
 import os
 import math
 import pandas as pd
@@ -6,6 +7,8 @@ from sqlalchemy.orm import Session
 from app.db import models, database
 from typing import Dict, Tuple
 from datetime import datetime
+
+logger = logging.getLogger(__name__)
 
 # --- Directory paths ---
 UPLOAD_DIR = "./data/paylocity_uploads/"
@@ -48,12 +51,12 @@ def process_paylocity_files():
             UPLOAD_DIR) if f.endswith(('.xlsx', '.csv'))]
 
         if not files:
-            print("No files to process.")
+            logger.info("No files to process.")
             return
 
         for file in files:
             path = os.path.join(UPLOAD_DIR, file)
-            print(f"Processing {file}...")
+            logger.info("Processing %s...", file)
 
             try:
                 # Read file based on extension
@@ -145,17 +148,17 @@ def process_paylocity_files():
                 processed_path = os.path.join(PROCESSED_DIR, file)
                 os.rename(path, processed_path)
 
-                print(f"✓ {file} processed successfully.")
-                print(f"  → {processed_count} employees imported/updated")
+                logger.info("%s processed successfully.", file)
+                logger.info("  %d employees imported/updated", processed_count)
                 if skipped_count:
-                    print(
-                        f"  → {skipped_count} rows skipped (missing Employee ID)")
-                print(f"  File moved to {PROCESSED_DIR}\n")
+                    logger.info(
+                        "  %d rows skipped (missing Employee ID)", skipped_count)
+                logger.info("  File moved to %s", PROCESSED_DIR)
 
             except Exception as e:
                 db.rollback()
-                print(f"Error processing {file}: {e}")
-                print(f"  File left in upload directory for review\n")
+                logger.error("Error processing %s: %s", file, e)
+                logger.error("  File left in upload directory for review")
 
     finally:
         db.close()

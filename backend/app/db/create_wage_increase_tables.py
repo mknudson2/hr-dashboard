@@ -13,10 +13,13 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(__file__))))
 from sqlalchemy import text
 from app.db.database import engine, SessionLocal
 from app.db import models
+import logging
+
+logger = logging.getLogger(__name__)
 
 def create_tables():
     """Create the wage increase cycle tables."""
-    print("Creating wage increase cycle tables...")
+    logger.info("Creating wage increase cycle tables...")
 
     with engine.begin() as conn:
         # Create wage_increase_cycles table
@@ -50,7 +53,7 @@ def create_tables():
             )
         """))
 
-        print("✓ Created wage_increase_cycles table")
+        logger.info("Created wage_increase_cycles table")
 
         # Add cycle_id column to compensation_reviews if it doesn't exist
         try:
@@ -59,12 +62,12 @@ def create_tables():
                 ADD COLUMN cycle_id INTEGER
                 REFERENCES wage_increase_cycles(id)
             """))
-            print("✓ Added cycle_id column to compensation_reviews")
+            logger.info("Added cycle_id column to compensation_reviews")
         except Exception as e:
             if "duplicate column" in str(e).lower():
-                print("✓ cycle_id column already exists in compensation_reviews")
+                logger.info("cycle_id column already exists in compensation_reviews")
             else:
-                print(f"⚠ Warning adding cycle_id: {e}")
+                logger.warning(f"Warning adding cycle_id: {e}")
 
 def seed_sample_data():
     """Add sample wage increase cycle data."""
@@ -73,7 +76,7 @@ def seed_sample_data():
         # Check if any cycles exist
         existing = db.query(models.WageIncreaseCycle).first()
         if existing:
-            print("Sample data already exists. Skipping...")
+            logger.warning("Sample data already exists. Skipping...")
             return
 
         # Create a sample cycle for 2025
@@ -101,24 +104,22 @@ def seed_sample_data():
 
         db.add(sample_cycle)
         db.commit()
-        print("✓ Created sample 2025 wage increase cycle")
+        logger.info("Created sample 2025 wage increase cycle")
 
     except Exception as e:
-        print(f"Error seeding data: {e}")
+        logger.error(f"Error seeding data: {e}")
         db.rollback()
     finally:
         db.close()
 
 if __name__ == "__main__":
-    print("=" * 60)
-    print("Wage Increase Cycle Migration")
-    print("=" * 60)
+    logger.info("=" * 60)
+    logger.info("Wage Increase Cycle Migration")
+    logger.info("=" * 60)
 
     create_tables()
-    print()
     seed_sample_data()
 
-    print()
-    print("=" * 60)
-    print("Migration complete!")
-    print("=" * 60)
+    logger.info("=" * 60)
+    logger.info("Migration complete!")
+    logger.info("=" * 60)

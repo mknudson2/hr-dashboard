@@ -4,6 +4,7 @@ import { ChevronLeft, Clock, CheckCircle, XCircle } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { apiGet } from '@/utils/api';
 import ApplicantPipelineTracker from '@/components/ApplicantPipelineTracker';
+import InterviewCalendar from '@/components/scheduling/InterviewCalendar';
 import type { ApplicantFacingStage } from '@/types/ats';
 
 interface TimelineEvent {
@@ -88,14 +89,19 @@ export default function ApplicationStatusPage() {
     return <Clock className="w-5 h-5 text-blue-500" />;
   };
 
+  const showInterviewCalendar = pipelineStages.some(
+    s => (s.status === 'current' || s.status === 'completed') &&
+         s.label.toLowerCase().includes('interview'),
+  );
+
   return (
-    <div className="max-w-2xl mx-auto space-y-6">
-      <Link to="/my-applications" className="flex items-center gap-1 text-sm text-gray-500 hover:text-gray-700">
+    <div className="max-w-5xl mx-auto">
+      <Link to="/my-applications" className="flex items-center gap-1 text-sm text-gray-500 hover:text-gray-700 mb-6">
         <ChevronLeft className="w-4 h-4" /> Back to applications
       </Link>
 
       {/* Header */}
-      <div className="bg-white rounded-lg border p-6">
+      <div className="bg-white rounded-lg border p-6 mb-6">
         <div className="flex items-start justify-between">
           <div>
             <h1 className="text-xl font-bold text-gray-900">{application.job_title}</h1>
@@ -116,55 +122,52 @@ export default function ApplicationStatusPage() {
         </div>
       </div>
 
-      {/* Pipeline Progress */}
-      {pipelineStages.length > 0 && (
-        <div className="bg-white rounded-lg border p-6">
-          <h2 className="font-semibold mb-4">Application Progress</h2>
-          <ApplicantPipelineTracker stages={pipelineStages} />
-        </div>
-      )}
+      {/* Two-column layout: Pipeline + Timeline (left) | Calendar (right) */}
+      <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
+        {/* Left column */}
+        <div className={`${showInterviewCalendar ? 'lg:col-span-3' : 'lg:col-span-5'} space-y-6`}>
+          {/* Pipeline Progress */}
+          {pipelineStages.length > 0 && (
+            <div className="bg-white rounded-lg border p-6">
+              <h2 className="font-semibold mb-4">Application Progress</h2>
+              <ApplicantPipelineTracker stages={pipelineStages} />
+            </div>
+          )}
 
-      {/* Interview Scheduling CTA */}
-      {pipelineStages.some(s => s.status === 'current' && s.label.toLowerCase().includes('interview')) && (
-        <div className="bg-bifrost-violet/5 border border-bifrost-violet/10 rounded-lg p-5 flex items-center justify-between">
-          <div>
-            <h3 className="font-semibold text-[#1A1A2E]">Schedule Your Interview</h3>
-            <p className="text-sm text-[#4A4A62] mt-0.5">Choose a time that works best for you.</p>
-          </div>
-          <Link
-            to={`/my-applications/${application.id}/schedule-interview`}
-            className="px-5 py-2.5 bg-bifrost-violet text-white rounded-xl text-sm font-medium hover:bg-bifrost-violet-dark transition-colors"
-          >
-            Choose a Time
-          </Link>
-        </div>
-      )}
-
-      {/* Timeline */}
-      <div className="bg-white rounded-lg border p-6">
-        <h2 className="font-semibold mb-4">Timeline</h2>
-        {application.timeline.length === 0 ? (
-          <p className="text-sm text-gray-500">No updates yet. We'll update you as your application progresses.</p>
-        ) : (
-          <div className="space-y-4">
-            {application.timeline.map((event, i) => (
-              <div key={i} className="flex gap-3">
-                <div className="flex flex-col items-center">
-                  <div className="w-2 h-2 rounded-full bg-blue-500 mt-2" />
-                  {i < application.timeline.length - 1 && (
-                    <div className="w-px flex-1 bg-gray-200 mt-1" />
-                  )}
-                </div>
-                <div className="pb-4">
-                  <p className="text-sm font-medium text-gray-900">{event.description}</p>
-                  {event.created_at && (
-                    <p className="text-xs text-gray-400 mt-0.5">
-                      {new Date(event.created_at).toLocaleDateString()} at {new Date(event.created_at).toLocaleTimeString()}
-                    </p>
-                  )}
-                </div>
+          {/* Timeline */}
+          <div className="bg-white rounded-lg border p-6">
+            <h2 className="font-semibold mb-4">Timeline</h2>
+            {application.timeline.length === 0 ? (
+              <p className="text-sm text-gray-500">No updates yet. We'll update you as your application progresses.</p>
+            ) : (
+              <div className="space-y-4">
+                {application.timeline.map((event, i) => (
+                  <div key={i} className="flex gap-3">
+                    <div className="flex flex-col items-center">
+                      <div className="w-2 h-2 rounded-full bg-blue-500 mt-2" />
+                      {i < application.timeline.length - 1 && (
+                        <div className="w-px flex-1 bg-gray-200 mt-1" />
+                      )}
+                    </div>
+                    <div className="pb-4">
+                      <p className="text-sm font-medium text-gray-900">{event.description}</p>
+                      {event.created_at && (
+                        <p className="text-xs text-gray-400 mt-0.5">
+                          {new Date(event.created_at).toLocaleDateString()} at {new Date(event.created_at).toLocaleTimeString()}
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                ))}
               </div>
-            ))}
+            )}
+          </div>
+        </div>
+
+        {/* Right column: Interview Calendar */}
+        {showInterviewCalendar && id && (
+          <div className="lg:col-span-2">
+            <InterviewCalendar applicationId={id} />
           </div>
         )}
       </div>

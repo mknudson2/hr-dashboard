@@ -1,6 +1,9 @@
 """Create benefit_enrollments table for storing per-line carrier enrollment data."""
 import sqlite3
 import os
+import logging
+
+logger = logging.getLogger(__name__)
 
 # Get the database path
 backend_dir = os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
@@ -10,7 +13,7 @@ db_path = os.path.join(backend_dir, "data", "hr_dashboard.db")
 conn = sqlite3.connect(db_path)
 cursor = conn.cursor()
 
-print("Creating benefit_enrollments table...")
+logger.info("Creating benefit_enrollments table...")
 
 try:
     cursor.execute("""
@@ -51,13 +54,13 @@ try:
     """)
 
     conn.commit()
-    print("  benefit_enrollments table created successfully!")
+    logger.info("benefit_enrollments table created successfully!")
 
 except sqlite3.OperationalError as e:
     if "already exists" in str(e).lower():
-        print("  benefit_enrollments table already exists, skipping.")
+        logger.info("benefit_enrollments table already exists, skipping.")
     else:
-        print(f"  Error: {e}")
+        logger.error("Error: %s", e)
 
 # Add new columns (idempotent — skips if already present)
 new_columns = [
@@ -72,19 +75,19 @@ new_columns = [
     ("hsa_limit_level", "TEXT"),
 ]
 
-print("\nAdding new columns to benefit_enrollments...")
+logger.info("Adding new columns to benefit_enrollments...")
 added = 0
 for col_name, col_type in new_columns:
     try:
         cursor.execute(f"ALTER TABLE benefit_enrollments ADD COLUMN {col_name} {col_type}")
-        print(f"  + Added: {col_name}")
+        logger.info("Added: %s", col_name)
         added += 1
     except sqlite3.OperationalError as e:
         if "duplicate column" in str(e).lower():
-            print(f"  - Already exists: {col_name}")
+            logger.info("Already exists: %s", col_name)
         else:
-            print(f"  ! Error adding {col_name}: {e}")
+            logger.error("Error adding %s: %s", col_name, e)
 
 conn.commit()
 conn.close()
-print(f"\nMigration completed! ({added} columns added)")
+logger.info("Migration completed! (%d columns added)", added)

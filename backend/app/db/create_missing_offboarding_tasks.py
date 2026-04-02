@@ -9,6 +9,9 @@ from app.db.database import SQLALCHEMY_DATABASE_URL
 from app.db import models
 from datetime import datetime, timedelta
 import json
+import logging
+
+logger = logging.getLogger(__name__)
 
 
 def create_missing_offboarding_tasks():
@@ -23,7 +26,7 @@ def create_missing_offboarding_tasks():
             models.Employee.termination_date.isnot(None)
         ).all()
 
-        print(f"Found {len(employees)} employees with termination dates")
+        logger.info(f"Found {len(employees)} employees with termination dates")
 
         created_count = 0
 
@@ -47,10 +50,10 @@ def create_missing_offboarding_tasks():
             ).first()
 
             if existing_tasks:
-                print(f"  ✓ {employee.first_name} {employee.last_name} ({employee.employee_id}) - tasks already exist")
+                logger.info(f"{employee.first_name} {employee.last_name} ({employee.employee_id}) - tasks already exist")
                 continue
 
-            print(f"  Creating tasks for {employee.first_name} {employee.last_name} ({employee.employee_id})...")
+            logger.info(f"Creating tasks for {employee.first_name} {employee.last_name} ({employee.employee_id})...")
 
             # Load the default offboarding checklist
             config_path = os.path.join(os.path.dirname(__file__), "..", "config", "default_offboarding_checklist.json")
@@ -178,18 +181,18 @@ def create_missing_offboarding_tasks():
 
             db.commit()
             created_count += 1
-            print(f"    ✓ Created offboarding tasks for {employee.first_name} {employee.last_name}")
+            logger.info(f"Created offboarding tasks for {employee.first_name} {employee.last_name}")
 
-        print(f"\n✅ Successfully created offboarding tasks for {created_count} employees")
+        logger.info(f"\n Successfully created offboarding tasks for {created_count} employees")
 
     except Exception as e:
-        print(f"❌ Error: {e}")
+        logger.error(f"Error: {e}")
         db.rollback()
     finally:
         db.close()
 
 
 if __name__ == "__main__":
-    print("Creating missing offboarding tasks...")
-    print("=" * 60)
+    logger.info("Creating missing offboarding tasks...")
+    logger.info("=" * 60)
     create_missing_offboarding_tasks()

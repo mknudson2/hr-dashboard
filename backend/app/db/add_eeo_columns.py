@@ -1,8 +1,11 @@
 """
 Add EEO (Equal Employment Opportunity) classification columns to employees table
 """
+import logging
 from sqlalchemy import create_engine, text
 from app.db.database import SQLALCHEMY_DATABASE_URL
+
+logger = logging.getLogger(__name__)
 
 def add_eeo_columns():
     """Add EEO classification columns to employees table"""
@@ -22,14 +25,14 @@ def add_eeo_columns():
             try:
                 connection.execute(text(f"ALTER TABLE employees ADD COLUMN {column_name} {column_type}"))
                 connection.commit()
-                print(f"✓ Added column: {column_name}")
+                logger.info("Added column: %s", column_name)
             except Exception as e:
                 if "duplicate column name" in str(e).lower():
-                    print(f"  Column {column_name} already exists, skipping")
+                    logger.info("Column %s already exists, skipping", column_name)
                 else:
-                    print(f"✗ Error adding column {column_name}: {e}")
+                    logger.error("Error adding column %s: %s", column_name, e)
 
-    print("\n✓ EEO columns migration completed successfully")
+    logger.info("EEO columns migration completed successfully")
 
 if __name__ == "__main__":
     add_eeo_columns()

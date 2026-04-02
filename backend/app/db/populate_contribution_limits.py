@@ -7,6 +7,9 @@ from datetime import date
 from sqlalchemy.orm import Session
 from app.db.database import SessionLocal, engine
 from app.db import models
+import logging
+
+logger = logging.getLogger(__name__)
 
 # Create tables
 models.Base.metadata.create_all(bind=engine)
@@ -179,26 +182,26 @@ def populate_contribution_limits(db: Session):
             # Update existing record
             for key, value in limit_data.items():
                 setattr(existing, key, value)
-            print(f"Updated {limit_data['year']} {limit_data['account_type']}: ${limit_data['annual_limit']:,.0f}")
+            logger.info(f"Updated {limit_data['year']} {limit_data['account_type']}: ${limit_data['annual_limit']:,.0f}")
         else:
             # Create new record
             new_limit = models.ContributionLimit(**limit_data)
             db.add(new_limit)
-            print(f"Created {limit_data['year']} {limit_data['account_type']}: ${limit_data['annual_limit']:,.0f}")
+            logger.info(f"Created {limit_data['year']} {limit_data['account_type']}: ${limit_data['annual_limit']:,.0f}")
 
     db.commit()
-    print("\n✅ Contribution limits populated successfully!")
+    logger.info("Contribution limits populated successfully!")
 
 
 def main():
     """Main function to run the population script."""
     db = SessionLocal()
     try:
-        print("Populating contribution limits...")
-        print("=" * 60)
+        logger.info("Populating contribution limits...")
+        logger.info("=" * 60)
         populate_contribution_limits(db)
     except Exception as e:
-        print(f"\n❌ Error populating contribution limits: {e}")
+        logger.error(f"\n Error populating contribution limits: {e}")
         db.rollback()
     finally:
         db.close()

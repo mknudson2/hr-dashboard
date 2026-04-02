@@ -2,6 +2,9 @@
 import sqlite3
 import os
 import random
+import logging
+
+logger = logging.getLogger(__name__)
 
 # Get the database path
 backend_dir = os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
@@ -27,7 +30,7 @@ cursor.execute("""
 """)
 employees = cursor.fetchall()
 
-print(f"Found {len(employees)} active employees to update...")
+logger.info(f"Found {len(employees)} active employees to update...")
 
 updated_count = 0
 
@@ -224,15 +227,15 @@ for emp_id, annual_wage, emp_type in employees:
     updated_count += 1
 
     if updated_count % 50 == 0:
-        print(f"  Updated {updated_count} employees...")
+        logger.info(f"Updated {updated_count} employees...")
 
 # Commit changes
 conn.commit()
 conn.close()
 
-print(f"\n✓ Successfully updated {updated_count} employees!")
-print("  - Added medical, dental, vision insurance elections")
-print("  - Added 401k/retirement contributions and vesting")
-print("  - Added HSA/FSA elections")
-print("  - Added life and disability insurance")
-print("  - Added commuter and wellness benefits")
+logger.info(f"\n Successfully updated {updated_count} employees!")
+logger.info("- Added medical, dental, vision insurance elections")
+logger.info("- Added 401k/retirement contributions and vesting")
+logger.info("- Added HSA/FSA elections")
+logger.info("- Added life and disability insurance")
+logger.info("- Added commuter and wellness benefits")

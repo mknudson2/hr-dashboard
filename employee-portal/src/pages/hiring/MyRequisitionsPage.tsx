@@ -19,6 +19,7 @@ interface Requisition {
   target_start_date: string | null;
   closed_at: string | null;
   close_reason: string | null;
+  my_role: string | null;
 }
 
 interface RequisitionDetail {
@@ -62,6 +63,22 @@ const urgencyColors: Record<string, string> = {
 
 const closedStatuses = ['Filled', 'Cancelled'];
 
+const roleLabels: Record<string, string> = {
+  hiring_manager: 'Hiring Manager',
+  interviewer: 'Interviewer',
+  observer: 'Observer',
+  vp_svp: 'VP / SVP',
+  stakeholder: 'Stakeholder',
+};
+
+const roleBadgeColors: Record<string, string> = {
+  hiring_manager: 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300',
+  interviewer: 'bg-violet-100 text-violet-700 dark:bg-violet-900/30 dark:text-violet-300',
+  observer: 'bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300',
+  vp_svp: 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300',
+  stakeholder: 'bg-teal-100 text-teal-700 dark:bg-teal-900/30 dark:text-teal-300',
+};
+
 const closeReasonLabels: Record<string, string> = {
   filled: 'Filled',
   rescinded: 'Rescinded',
@@ -88,6 +105,7 @@ export default function MyRequisitionsPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [closedFilter, setClosedFilter] = useState('');
+  const [roleFilter, setRoleFilter] = useState<string | null>(null);
 
   useEffect(() => {
     fetchRequisitions();
@@ -120,8 +138,15 @@ export default function MyRequisitionsPage() {
     }
   };
 
-  const activeReqs = requisitions.filter(r => !closedStatuses.includes(r.status));
-  const closedReqs = requisitions.filter(r => closedStatuses.includes(r.status));
+  // Compute the set of roles the user has across all requisitions
+  const availableRoles = [...new Set(requisitions.map(r => r.my_role).filter(Boolean))] as string[];
+
+  const roleFiltered = roleFilter
+    ? requisitions.filter(r => r.my_role === roleFilter)
+    : requisitions;
+
+  const activeReqs = roleFiltered.filter(r => !closedStatuses.includes(r.status));
+  const closedReqs = roleFiltered.filter(r => closedStatuses.includes(r.status));
 
   const filteredClosedReqs = closedFilter
     ? closedReqs.filter(r => {
@@ -172,6 +197,11 @@ export default function MyRequisitionsPage() {
                   </span>
                 )}
               </>
+            )}
+            {req.my_role && (
+              <span className={`px-2 py-0.5 rounded-full text-[10px] font-semibold uppercase tracking-wide ${roleBadgeColors[req.my_role] || 'bg-gray-100 text-gray-600'}`}>
+                {roleLabels[req.my_role] || req.my_role}
+              </span>
             )}
           </div>
           <h3 className="text-base font-semibold text-gray-900 dark:text-white truncate">
@@ -264,6 +294,39 @@ export default function MyRequisitionsPage() {
             <CheckSquare className="w-4 h-4" />
             Pending Approvals
           </button>
+        </div>
+      )}
+
+      {/* Role Filter */}
+      {availableRoles.length > 1 && (
+        <div className="flex items-center gap-2 flex-wrap">
+          <span className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">My Role:</span>
+          <button
+            onClick={() => setRoleFilter(null)}
+            className={`px-3 py-1 rounded-full text-xs font-medium transition-colors ${
+              !roleFilter
+                ? 'bg-gray-900 text-white dark:bg-white dark:text-gray-900'
+                : 'bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'
+            }`}
+          >
+            All ({requisitions.length})
+          </button>
+          {availableRoles.map(role => {
+            const count = requisitions.filter(r => r.my_role === role).length;
+            return (
+              <button
+                key={role}
+                onClick={() => setRoleFilter(roleFilter === role ? null : role)}
+                className={`px-3 py-1 rounded-full text-xs font-medium transition-colors ${
+                  roleFilter === role
+                    ? 'bg-gray-900 text-white dark:bg-white dark:text-gray-900'
+                    : 'bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'
+                }`}
+              >
+                {roleLabels[role] || role} ({count})
+              </button>
+            );
+          })}
         </div>
       )}
 

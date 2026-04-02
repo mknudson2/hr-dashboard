@@ -5,6 +5,9 @@ Assigns department managers and supervisors to employees.
 import random
 from datetime import date
 from app.db import database, models
+import logging
+
+logger = logging.getLogger(__name__)
 
 def populate_supervisors():
     db = database.SessionLocal()
@@ -16,7 +19,7 @@ def populate_supervisors():
         ).all()
 
         if not employees:
-            print("No active employees found.")
+            logger.info("No active employees found.")
             return
 
         # Group employees by department
@@ -27,7 +30,7 @@ def populate_supervisors():
                 dept_employees[dept] = []
             dept_employees[dept].append(emp)
 
-        print(f"Found {len(employees)} active employees across {len(dept_employees)} departments")
+        logger.info(f"Found {len(employees)} active employees across {len(dept_employees)} departments")
 
         # For each department, assign the most senior employee as the department manager
         department_managers = {}
@@ -47,7 +50,7 @@ def populate_supervisors():
                 elif not manager.position:
                     manager.position = f"{dept} Manager"
 
-                print(f"  {dept}: Manager = {manager.first_name} {manager.last_name} (ID: {manager.employee_id})")
+                logger.info(f"{dept}: Manager = {manager.first_name} {manager.last_name} (ID: {manager.employee_id})")
 
         # Now assign supervisors to all employees
         supervisor_count = 0
@@ -76,18 +79,18 @@ def populate_supervisors():
 
         db.commit()
 
-        print(f"\nSuccessfully assigned supervisors to {supervisor_count} employees")
-        print(f"Department managers: {len(department_managers)}")
+        logger.info(f"\nSuccessfully assigned supervisors to {supervisor_count} employees")
+        logger.info(f"Department managers: {len(department_managers)}")
 
         # Print summary
-        print("\nDepartment Manager Summary:")
+        logger.info("Department Manager Summary:")
         for dept, manager in sorted(department_managers.items()):
             emp_count = len(dept_employees.get(dept, []))
-            print(f"  {dept}: {manager.first_name} {manager.last_name} ({emp_count} employees)")
+            logger.info(f"{dept}: {manager.first_name} {manager.last_name} ({emp_count} employees)")
 
     except Exception as e:
         db.rollback()
-        print(f"Error: {e}")
+        logger.error(f"Error: {e}")
         raise
     finally:
         db.close()

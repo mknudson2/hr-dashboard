@@ -24,6 +24,9 @@ This migration is idempotent — safe to run multiple times.
 
 import sqlite3
 import os
+import logging
+
+logger = logging.getLogger(__name__)
 
 DB_PATH = os.path.join(
     os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))),
@@ -238,11 +241,11 @@ def run_migration():
                     VALUES (?, 'candidate_selection', 'Candidate Selection', 5, 'pending')
                 """, (req_id,))
 
-            print(f"  Backfilled candidate_selection stage for {len(req_ids)} requisitions")
+            logger.info(f"Backfilled candidate_selection stage for {len(req_ids)} requisitions")
 
     conn.commit()
     conn.close()
-    print("ATS Phase 0 migration completed successfully.")
+    logger.info("ATS Phase 0 migration completed successfully.")
 
 
 if __name__ == "__main__":

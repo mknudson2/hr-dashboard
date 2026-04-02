@@ -3,6 +3,9 @@ import sqlite3
 import os
 import random
 from datetime import date, timedelta
+import logging
+
+logger = logging.getLogger(__name__)
 
 # Get the database path
 backend_dir = os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
@@ -20,7 +23,7 @@ cursor.execute("""
 """)
 employees = cursor.fetchall()
 
-print(f"Found {len(employees)} employees to update...")
+logger.info(f"Found {len(employees)} employees to update...")
 
 updated_count = 0
 
@@ -66,12 +69,12 @@ for emp_id, hire_date_str in employees:
     updated_count += 1
 
     if updated_count % 50 == 0:
-        print(f"  Updated {updated_count} employees...")
+        logger.info(f"Updated {updated_count} employees...")
 
 # Commit changes
 conn.commit()
 conn.close()
 
-print(f"\n✓ Successfully updated {updated_count} employees!")
-print("  - Added random birth dates (ages 22-65)")
-print("  - Set privacy preferences (mostly showing data)")
+logger.info(f"\n Successfully updated {updated_count} employees!")
+logger.info("- Added random birth dates (ages 22-65)")
+logger.info("- Set privacy preferences (mostly showing data)")

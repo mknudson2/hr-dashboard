@@ -12,6 +12,9 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(__file__))))
 from datetime import date
 from app.db.database import SessionLocal
 from app.db import models
+import logging
+
+logger = logging.getLogger(__name__)
 
 
 SAMPLE_DOCS = [
@@ -42,7 +45,7 @@ def seed():
     try:
         existing = db.query(models.EmployeeDocument).count()
         if existing > 0:
-            print(f"employee_documents table already has {existing} records, skipping seed.")
+            logger.warning(f"employee_documents table already has {existing} records, skipping seed.")
             return
 
         for doc_data in SAMPLE_DOCS:
@@ -50,7 +53,7 @@ def seed():
             db.add(doc)
 
         db.commit()
-        print(f"Seeded {len(SAMPLE_DOCS)} employee documents successfully.")
+        logger.info(f"Seeded {len(SAMPLE_DOCS)} employee documents successfully.")
     finally:
         db.close()
 

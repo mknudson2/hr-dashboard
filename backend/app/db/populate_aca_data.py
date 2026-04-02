@@ -1,12 +1,15 @@
 """
 Populate ACA Compliance Data with realistic dummy data
 """
+import logging
 from sqlalchemy import create_engine, text
 from sqlalchemy.orm import sessionmaker
 from datetime import datetime, date, timedelta
 import random
 from app.db.database import SQLALCHEMY_DATABASE_URL
 from app.db import models
+
+logger = logging.getLogger(__name__)
 
 def populate_aca_data():
     """Populate comprehensive ACA compliance data"""
@@ -15,8 +18,8 @@ def populate_aca_data():
     db = SessionLocal()
 
     try:
-        print("\n🏥 Populating ACA Compliance Data...")
-        print("=" * 60)
+        logger.info("Populating ACA Compliance Data...")
+        logger.info("=" * 60)
 
         # Get all active employees
         employees = db.query(models.Employee).filter(
@@ -24,15 +27,15 @@ def populate_aca_data():
         ).all()
 
         if not employees:
-            print("⚠ No active employees found. Please populate employees first.")
+            logger.warning("No active employees found. Please populate employees first.")
             return
 
-        print(f"✓ Found {len(employees)} active employees")
+        logger.info(f"Found {len(employees)} active employees")
 
         # ============================================================
         # 1. MONTHLY HOURS DATA
         # ============================================================
-        print("\n📊 Populating Monthly Hours Data...")
+        logger.info("Populating Monthly Hours Data...")
 
         monthly_hours_added = 0
         current_year = 2026
@@ -86,12 +89,12 @@ def populate_aca_data():
                 monthly_hours_added += 1
 
         db.commit()
-        print(f"✓ Added {monthly_hours_added} monthly hours records")
+        logger.info(f"Added {monthly_hours_added} monthly hours records")
 
         # ============================================================
         # 2. COVERAGE OFFERS
         # ============================================================
-        print("\n💼 Populating Coverage Offers...")
+        logger.info("Populating Coverage Offers...")
 
         coverage_offers_added = 0
         offer_codes = ["1A", "1B", "1C", "1E"]  # Different offer types
@@ -152,12 +155,12 @@ def populate_aca_data():
             coverage_offers_added += 1
 
         db.commit()
-        print(f"✓ Added {coverage_offers_added} coverage offers")
+        logger.info(f"Added {coverage_offers_added} coverage offers")
 
         # ============================================================
         # 3. FORM 1095-C RECORDS
         # ============================================================
-        print("\n📋 Populating Form 1095-C Records...")
+        logger.info("Populating Form 1095-C Records...")
 
         forms_added = 0
         tax_years = [2025, 2024]
@@ -221,12 +224,12 @@ def populate_aca_data():
                 forms_added += 1
 
         db.commit()
-        print(f"✓ Added {forms_added} Form 1095-C records")
+        logger.info(f"Added {forms_added} Form 1095-C records")
 
         # ============================================================
         # 4. COMPLIANCE ALERTS
         # ============================================================
-        print("\n⚠ Populating Compliance Alerts...")
+        logger.warning("Populating Compliance Alerts...")
 
         alerts_added = 0
 
@@ -312,22 +315,22 @@ def populate_aca_data():
         alerts_added += 1
 
         db.commit()
-        print(f"✓ Added {alerts_added} compliance alerts")
+        logger.info(f"Added {alerts_added} compliance alerts")
 
         # ============================================================
         # SUMMARY
         # ============================================================
-        print("\n" + "=" * 60)
-        print("✅ ACA Data Population Complete!")
-        print("=" * 60)
-        print(f"  📊 Monthly Hours Records: {monthly_hours_added}")
-        print(f"  💼 Coverage Offers: {coverage_offers_added}")
-        print(f"  📋 Form 1095-C Records: {forms_added}")
-        print(f"  ⚠  Compliance Alerts: {alerts_added}")
-        print("=" * 60)
+        logger.info("=" * 60)
+        logger.info("ACA Data Population Complete!")
+        logger.info("=" * 60)
+        logger.info(f"Monthly Hours Records: {monthly_hours_added}")
+        logger.info(f"Coverage Offers: {coverage_offers_added}")
+        logger.info(f"Form 1095-C Records: {forms_added}")
+        logger.warning(f"Compliance Alerts: {alerts_added}")
+        logger.info("=" * 60)
 
         # Display some stats
-        print("\n📈 ACA Compliance Statistics:")
+        logger.info("ACA Compliance Statistics:")
 
         # Count full-time employees by month
         current_month_ft = db.query(models.ACAMonthlyHours).filter(
@@ -336,20 +339,20 @@ def populate_aca_data():
             models.ACAMonthlyHours.is_full_time == True
         ).count()
 
-        print(f"  • Full-time employees (Jan 2026): {current_month_ft}")
-        print(f"  • Coverage acceptance rate: ~80%")
-        print(f"  • Affordability compliance: ~95%")
+        logger.info(f"• Full-time employees (Jan 2026): {current_month_ft}")
+        logger.info(f"• Coverage acceptance rate: ~80%")
+        logger.info(f"• Affordability compliance: ~95%")
 
         total_alerts_active = db.query(models.ACAAlert).filter(
             models.ACAAlert.status == "Active"
         ).count()
-        print(f"  • Active compliance alerts: {total_alerts_active}")
+        logger.info(f"• Active compliance alerts: {total_alerts_active}")
 
-        print("\n✓ Ready to view in ACA Compliance Dashboard!")
+        logger.info("Ready to view in ACA Compliance Dashboard!")
 
     except Exception as e:
         db.rollback()
-        print(f"\n❌ Error populating ACA data: {e}")
+        logger.error(f"\n Error populating ACA data: {e}")
         import traceback
         traceback.print_exc()
     finally:

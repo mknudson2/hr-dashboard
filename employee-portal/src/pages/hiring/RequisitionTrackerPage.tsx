@@ -1,12 +1,23 @@
 import { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { apiGet, apiPost, apiPostFormData } from '@/utils/api';
-import { ArrowLeft, Send, FileText, MessageSquare, User, Clock, Building, Upload, Download, Paperclip, XCircle } from 'lucide-react';
+import { ArrowLeft, Send, FileText, MessageSquare, User, Clock, Building, Upload, Download, Paperclip, XCircle, Calendar } from 'lucide-react';
 import LifecycleTracker, { type LifecycleStage } from '@/components/recruiting/LifecycleTracker';
 import StageCandidatesPanel from '@/components/recruiting/StageCandidatesPanel';
 import StakeholderPanel from '@/components/recruiting/StakeholderPanel';
 
 const INTERVIEW_STAGE_KEYS = new Set(['hr_interview', 'hiring_manager_interview', 'tech_screen']);
+
+interface StakeholderInfo {
+  id: number;
+  user_id: number;
+  user_name: string | null;
+  role: string;
+  access_level: string;
+  assigned_by_name: string | null;
+  assigned_at: string | null;
+  is_active: boolean;
+}
 
 interface RequisitionDetail {
   id: number;
@@ -36,6 +47,7 @@ interface RequisitionDetail {
   recruiter_name: string | null;
   hiring_manager_name: string | null;
   visibility_names: string[] | null;
+  stakeholders?: StakeholderInfo[];
 }
 
 interface StageNote {
@@ -307,6 +319,25 @@ export default function RequisitionTrackerPage() {
         />
       </div>
 
+      {/* Availability Submission Banner — HM Interview stage only */}
+      {selectedStage?.stage_key === 'hiring_manager_interview' && selectedStage?.status === 'active' && requisition && (
+        <div className="bg-violet-50 dark:bg-violet-900/20 border border-violet-200 dark:border-violet-800 rounded-xl p-4 flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <Calendar className="w-5 h-5 text-violet-600 dark:text-violet-400" />
+            <div>
+              <p className="text-sm font-semibold text-violet-800 dark:text-violet-300">Interview panel availability needed</p>
+              <p className="text-xs text-violet-600 dark:text-violet-400">Submit your available times so HR can schedule the Hiring Manager interview.</p>
+            </div>
+          </div>
+          <button
+            onClick={() => navigate(`/hiring/requisitions/${requisition.id}/availability`)}
+            className="px-4 py-2 bg-violet-600 hover:bg-violet-700 text-white text-sm font-medium rounded-lg transition-colors whitespace-nowrap"
+          >
+            Submit Availability
+          </button>
+        </div>
+      )}
+
       {/* Stage Detail Panel */}
       {selectedStage && (
         <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-6">
@@ -493,16 +524,12 @@ export default function RequisitionTrackerPage() {
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         {/* Key Stakeholders */}
         <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-4">
-          <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3">Stakeholders</h3>
-          <div className="space-y-2 text-sm">
+          <div className="space-y-2 text-sm mb-3">
             {requisition.hiring_manager_name && (
               <div className="flex justify-between">
                 <span className="text-gray-500">Hiring Manager</span>
                 <span className="text-gray-700 dark:text-gray-300">{requisition.hiring_manager_name}</span>
               </div>
-            )}
-            {requisition.hiring_manager_name && (requisition.recruiter_name || requisition.position_supervisor) && (
-              <hr className="border-gray-200 dark:border-gray-700" />
             )}
             {requisition.recruiter_name && (
               <div className="flex justify-between">
@@ -515,21 +542,6 @@ export default function RequisitionTrackerPage() {
                 <span className="text-gray-500">Supervisor</span>
                 <span className="text-gray-700 dark:text-gray-300">{requisition.position_supervisor}</span>
               </div>
-            )}
-            {requisition.visibility_names && requisition.visibility_names.length > 0 && (
-              <>
-                <hr className="border-gray-200 dark:border-gray-700" />
-                <div>
-                  <span className="text-gray-500">Collaborators</span>
-                  <div className="mt-1 flex flex-wrap gap-1">
-                    {requisition.visibility_names.map(name => (
-                      <span key={name} className="inline-block px-2 py-0.5 bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-300 rounded-full text-xs">
-                        {name}
-                      </span>
-                    ))}
-                  </div>
-                </div>
-              </>
             )}
           </div>
           <StakeholderPanel requisitionId={requisition.id} />

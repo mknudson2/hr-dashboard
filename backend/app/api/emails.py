@@ -547,7 +547,7 @@ async def send_anniversary_email(request: AnniversaryEmailRequest):
 # =============================================================================
 
 @router.get("/templates")
-async def get_available_templates():
+def get_available_templates():
     """Get list of available email templates."""
     return {
         "onboarding": ["welcome", "first_day_info", "week_one_checklist"],
@@ -560,7 +560,7 @@ async def get_available_templates():
 
 
 @router.get("/config")
-async def get_email_config():
+def get_email_config():
     """Get current email configuration (without sensitive data)."""
     return {
         "provider": email_service.provider,

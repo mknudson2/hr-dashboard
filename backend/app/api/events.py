@@ -14,7 +14,7 @@ router = APIRouter(
 
 
 @router.get("/events")
-async def get_events(
+def get_events(
     db: Session = Depends(get_db),
     start_date: Optional[str] = None,
     end_date: Optional[str] = None,
@@ -81,7 +81,7 @@ async def get_events(
 
 
 @router.get("/events/{event_id}")
-async def get_event(event_id: int, db: Session = Depends(get_db)):
+def get_event(event_id: int, db: Session = Depends(get_db)):
     """Get a specific event by ID."""
     event = db.query(Event).filter(Event.event_id == event_id).first()
 
@@ -123,7 +123,7 @@ async def get_event(event_id: int, db: Session = Depends(get_db)):
 
 
 @router.post("/events")
-async def create_event(event_data: dict, db: Session = Depends(get_db)):
+def create_event(event_data: dict, db: Session = Depends(get_db)):
     """Create a new event."""
     # Parse dates
     start_date = datetime.strptime(event_data["start_date"], "%Y-%m-%d").date() if event_data.get("start_date") else None
@@ -168,7 +168,7 @@ async def create_event(event_data: dict, db: Session = Depends(get_db)):
 
 
 @router.put("/events/{event_id}")
-async def update_event(event_id: int, event_data: dict, db: Session = Depends(get_db)):
+def update_event(event_id: int, event_data: dict, db: Session = Depends(get_db)):
     """Update an existing event."""
     event = db.query(Event).filter(Event.event_id == event_id).first()
 
@@ -224,7 +224,7 @@ async def update_event(event_id: int, event_data: dict, db: Session = Depends(ge
 
 
 @router.delete("/events/{event_id}")
-async def delete_event(event_id: int, db: Session = Depends(get_db)):
+def delete_event(event_id: int, db: Session = Depends(get_db)):
     """Delete an event."""
     event = db.query(Event).filter(Event.event_id == event_id).first()
 
@@ -238,7 +238,7 @@ async def delete_event(event_id: int, db: Session = Depends(get_db)):
 
 
 @router.get("/events/upcoming/summary")
-async def get_upcoming_events(
+def get_upcoming_events(
     db: Session = Depends(get_db),
     days: int = Query(default=30, description="Number of days to look ahead")
 ):
@@ -271,7 +271,7 @@ async def get_upcoming_events(
 
 
 @router.get("/event-types")
-async def get_event_types(db: Session = Depends(get_db)):
+def get_event_types(db: Session = Depends(get_db)):
     """Get all event types."""
     event_types = db.query(EventType).all()
 
@@ -291,7 +291,7 @@ async def get_event_types(db: Session = Depends(get_db)):
 
 
 @router.get("/events/by-type/{event_type}")
-async def get_events_by_type(event_type: str, db: Session = Depends(get_db)):
+def get_events_by_type(event_type: str, db: Session = Depends(get_db)):
     """Get all events of a specific type."""
     events = db.query(Event).filter(Event.event_type == event_type).order_by(Event.start_date.desc()).all()
 

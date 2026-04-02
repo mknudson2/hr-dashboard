@@ -20,6 +20,9 @@ from app.db.models import (
     Employee
 )
 import random
+import logging
+
+logger = logging.getLogger(__name__)
 
 def get_employees(db: Session):
     """Get all employees from the database"""
@@ -27,7 +30,7 @@ def get_employees(db: Session):
 
 def create_review_cycles(db: Session):
     """Create sample review cycles"""
-    print("Creating review cycles...")
+    logger.info("Creating review cycles...")
 
     cycles = [
         {
@@ -107,15 +110,15 @@ def create_review_cycles(db: Session):
         created_cycles.append(cycle)
 
     db.commit()
-    print(f"✓ Created {len(created_cycles)} review cycles")
+    logger.info(f"Created {len(created_cycles)} review cycles")
     return created_cycles
 
 def create_performance_reviews(db: Session, cycles, employees):
     """Create sample performance reviews"""
-    print("Creating performance reviews...")
+    logger.info("Creating performance reviews...")
 
     if len(employees) == 0:
-        print("⚠ No employees found. Skipping performance review creation.")
+        logger.warning("No employees found. Skipping performance review creation.")
         return []
 
     review_types = ["Annual", "Mid-Year", "Quarterly", "Probationary", "Project"]
@@ -209,15 +212,15 @@ def create_performance_reviews(db: Session, cycles, employees):
             reviews.append(self_review)
 
     db.commit()
-    print(f"✓ Created {len(reviews)} performance reviews")
+    logger.info(f"Created {len(reviews)} performance reviews")
     return reviews
 
 def create_goals(db: Session, cycles, employees):
     """Create sample goals and OKRs"""
-    print("Creating goals and OKRs...")
+    logger.info("Creating goals and OKRs...")
 
     if len(employees) == 0:
-        print("⚠ No employees found. Skipping goal creation.")
+        logger.warning("No employees found. Skipping goal creation.")
         return []
 
     goal_types = ["OKR", "SMART", "Personal Development", "Project", "Annual"]
@@ -311,15 +314,15 @@ def create_goals(db: Session, cycles, employees):
             goal_counter += 1
 
     db.commit()
-    print(f"✓ Created {len(goals)} goals and OKRs")
+    logger.info(f"Created {len(goals)} goals and OKRs")
     return goals
 
 def create_feedback(db: Session, employees):
     """Create sample 360-degree feedback"""
-    print("Creating 360-degree feedback...")
+    logger.info("Creating 360-degree feedback...")
 
     if len(employees) == 0:
-        print("⚠ No employees found. Skipping feedback creation.")
+        logger.warning("No employees found. Skipping feedback creation.")
         return []
 
     feedback_types = ["360 Review", "Upward Feedback", "Peer Feedback", "Direct Report Feedback"]
@@ -370,15 +373,15 @@ def create_feedback(db: Session, employees):
             feedback_list.append(feedback)
 
     db.commit()
-    print(f"✓ Created {len(feedback_list)} 360-degree feedback entries")
+    logger.info(f"Created {len(feedback_list)} 360-degree feedback entries")
     return feedback_list
 
 def create_pips(db: Session, employees):
     """Create sample Performance Improvement Plans"""
-    print("Creating Performance Improvement Plans...")
+    logger.info("Creating Performance Improvement Plans...")
 
     if len(employees) == 0:
-        print("⚠ No employees found. Skipping PIP creation.")
+        logger.warning("No employees found. Skipping PIP creation.")
         return []
 
     statuses = ["Active", "In Progress", "Successful", "Extended", "Terminated"]
@@ -432,12 +435,12 @@ def create_pips(db: Session, employees):
         pips.append(pip)
 
     db.commit()
-    print(f"✓ Created {len(pips)} Performance Improvement Plans")
+    logger.info(f"Created {len(pips)} Performance Improvement Plans")
     return pips
 
 def create_review_templates(db: Session):
     """Create sample review templates"""
-    print("Creating review templates...")
+    logger.info("Creating review templates...")
 
     templates = [
         {
@@ -470,14 +473,14 @@ def create_review_templates(db: Session):
         created_templates.append(template)
 
     db.commit()
-    print(f"✓ Created {len(created_templates)} review templates")
+    logger.info(f"Created {len(created_templates)} review templates")
     return created_templates
 
 def main():
     """Main function to populate all performance data"""
-    print("\n" + "="*60)
-    print("Performance Management Data Population Script")
-    print("="*60 + "\n")
+    logger.info("=" * 60)
+    logger.info("Performance Management Data Population Script")
+    logger.info("="*60 + "\n")
 
     # Create tables if they don't exist
     Base.metadata.create_all(bind=engine)
@@ -488,11 +491,11 @@ def main():
     try:
         # Get existing employees
         employees = get_employees(db)
-        print(f"Found {len(employees)} employees in database\n")
+        logger.info(f"Found {len(employees)} employees in database\n")
 
         if len(employees) == 0:
-            print("⚠ WARNING: No employees found in database!")
-            print("Please run the employee data population script first.\n")
+            logger.warning("WARNING: No employees found in database!")
+            logger.info("Please run the employee data population script first.\n")
             return
 
         # Create all sample data
@@ -503,21 +506,21 @@ def main():
         pips = create_pips(db, employees)
         templates = create_review_templates(db)
 
-        print("\n" + "="*60)
-        print("✓ Performance data population completed successfully!")
-        print("="*60)
-        print(f"\nSummary:")
-        print(f"  • Review Cycles: {len(cycles)}")
-        print(f"  • Performance Reviews: {len(reviews)}")
-        print(f"  • Goals/OKRs: {len(goals)}")
-        print(f"  • 360° Feedback: {len(feedback)}")
-        print(f"  • PIPs: {len(pips)}")
-        print(f"  • Review Templates: {len(templates)}")
-        print(f"\nYou can now access the Performance page in the HR Dashboard!")
-        print(f"Navigate to: http://localhost:5175/performance\n")
+        logger.info("=" * 60)
+        logger.info("Performance data population completed successfully!")
+        logger.info("=" * 60)
+        logger.info(f"\nSummary:")
+        logger.info(f"• Review Cycles: {len(cycles)}")
+        logger.info(f"• Performance Reviews: {len(reviews)}")
+        logger.info(f"• Goals/OKRs: {len(goals)}")
+        logger.info(f"• 360° Feedback: {len(feedback)}")
+        logger.info(f"• PIPs: {len(pips)}")
+        logger.info(f"• Review Templates: {len(templates)}")
+        logger.info(f"\nYou can now access the Performance page in the HR Dashboard!")
+        logger.info(f"Navigate to: http://localhost:5175/performance\n")
 
     except Exception as e:
-        print(f"\n❌ Error: {e}")
+        logger.error(f"\n Error: {e}")
         db.rollback()
         raise
     finally:

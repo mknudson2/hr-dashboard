@@ -11,16 +11,13 @@
   ],
   "settings": {
     "python.defaultInterpreterPath": "${workspaceFolder:Backend}/venv/bin/python",
-    "python.analysis.extraPaths": [
-      "${workspaceFolder:Backend}"
-    ],
-    "python.autoComplete.extraPaths": [
-      "${workspaceFolder:Backend}"
-    ],
+    "python.analysis.extraPaths": ["${workspaceFolder:Backend}"],
+    "python.autoComplete.extraPaths": ["${workspaceFolder:Backend}"],
     "pylint.args": [
       "--init-hook=import sys; sys.path.insert(0, '${workspaceFolder:Backend}')"
     ],
     "python.linting.enabled": true,
-    "python.linting.pylintEnabled": true
+    "python.linting.pylintEnabled": true,
+    "cursorpyright.analysis.extraPaths": ["${workspaceFolder:Backend}"]
   }
 }

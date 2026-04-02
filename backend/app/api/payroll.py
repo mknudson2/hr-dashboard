@@ -204,7 +204,7 @@ def add_to_history(current_history: Optional[dict], field: str, old_value: any, 
 # Endpoints
 
 @router.get("/dashboard", response_model=PayrollDashboardMetrics)
-async def get_dashboard_metrics(
+def get_dashboard_metrics(
     db: Session = Depends(get_db),
     current_user: models.User = Depends(get_current_user)
 ):
@@ -290,7 +290,7 @@ async def get_dashboard_metrics(
 
 
 @router.get("/periods", response_model=List[PayrollPeriodResponse])
-async def get_payroll_periods(
+def get_payroll_periods(
     year: Optional[int] = None,
     status: Optional[str] = None,
     db: Session = Depends(get_db),
@@ -336,7 +336,7 @@ async def get_payroll_periods(
 
 
 @router.get("/periods/{period_id}", response_model=PayrollPeriodResponse)
-async def get_payroll_period(
+def get_payroll_period(
     period_id: int,
     db: Session = Depends(get_db),
     current_user: models.User = Depends(get_current_user)
@@ -372,7 +372,7 @@ async def get_payroll_period(
 
 
 @router.patch("/periods/{period_id}", response_model=PayrollPeriodResponse)
-async def update_payroll_period(
+def update_payroll_period(
     period_id: int,
     update: PayrollPeriodUpdate,
     db: Session = Depends(get_db),
@@ -436,7 +436,7 @@ async def update_payroll_period(
 
 
 @router.patch("/periods/{period_id}/notes/{note_index}")
-async def update_period_note(
+def update_period_note(
     period_id: int,
     note_index: int,
     update_data: dict,
@@ -471,7 +471,7 @@ async def update_period_note(
 
 
 @router.delete("/periods/{period_id}/notes/{note_index}")
-async def delete_period_note(
+def delete_period_note(
     period_id: int,
     note_index: int,
     db: Session = Depends(get_db),
@@ -504,7 +504,7 @@ async def delete_period_note(
 
 
 @router.patch("/tasks/{task_id}", response_model=PayrollTaskResponse)
-async def update_payroll_task(
+def update_payroll_task(
     task_id: int,
     update: PayrollTaskUpdate,
     db: Session = Depends(get_db),
@@ -613,7 +613,7 @@ async def update_payroll_task(
 
 
 @router.post("/tasks/{task_id}/uncheck", response_model=PayrollTaskResponse)
-async def uncheck_payroll_task(
+def uncheck_payroll_task(
     task_id: int,
     request: UncheckRequest,
     db: Session = Depends(get_db),
@@ -708,7 +708,7 @@ async def uncheck_payroll_task(
 
 
 @router.post("/periods/{period_id}/send-email/{template_name}")
-async def send_payroll_email(
+def send_payroll_email(
     period_id: int,
     template_name: str,
     db: Session = Depends(get_db),

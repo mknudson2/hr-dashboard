@@ -12,16 +12,19 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from db.database import Base, engine, SQLALCHEMY_DATABASE_URL
 from db import models
+import logging
+
+logger = logging.getLogger(__name__)
 
 
 def create_capitalized_labor_tables():
     """Create capitalized labor tracking tables in the database"""
-    print("Creating capitalized labor tracking tables...")
+    logger.info("Creating capitalized labor tracking tables...")
 
     try:
         # Create tables
         Base.metadata.create_all(bind=engine)
-        print("✅ Capitalized labor tables created successfully!")
+        logger.info("Capitalized labor tables created successfully!")
 
         # Create session
         SessionLocal = sessionmaker(bind=engine)
@@ -31,11 +34,11 @@ def create_capitalized_labor_tables():
             # Check if we already have projects
             existing = db.query(models.Project).first()
             if existing:
-                print("⚠️  Projects already exist. Skipping sample data initialization.")
+                logger.warning("Projects already exist. Skipping sample data initialization.")
                 return
 
             # Create sample data for testing
-            print("Creating sample data...")
+            logger.info("Creating sample data...")
 
             # Sample project 1: Software Development (capitalizable)
             project1 = models.Project(
@@ -109,24 +112,24 @@ def create_capitalized_labor_tables():
                 )
                 db.add(period)
                 db.flush()
-                print(f"✅ Created current pay period: {period_start} to {period_end}")
+                logger.info(f"Created current pay period: {period_start} to {period_end}")
 
             db.commit()
-            print("✅ Sample data created successfully!")
-            print("\nCreated projects:")
-            print("  1. HR Dashboard Development (Capitalizable)")
-            print("  2. General Maintenance & Support (Non-capitalizable)")
-            print("  3. Cloud Infrastructure Upgrade (Capitalizable)")
+            logger.info("Sample data created successfully!")
+            logger.info("Created projects:")
+            logger.info("1. HR Dashboard Development (Capitalizable)")
+            logger.info("2. General Maintenance & Support (Non-capitalizable)")
+            logger.info("3. Cloud Infrastructure Upgrade (Capitalizable)")
 
         except Exception as e:
-            print(f"❌ Error creating sample data: {e}")
+            logger.error(f"Error creating sample data: {e}")
             db.rollback()
             raise
         finally:
             db.close()
 
     except Exception as e:
-        print(f"❌ Error creating tables: {e}")
+        logger.error(f"Error creating tables: {e}")
         raise
 
 

@@ -1,4 +1,5 @@
 """Email service for sending notifications with template support."""
+import logging
 import os
 from typing import List, Dict, Any, Optional
 from datetime import datetime
@@ -8,6 +9,8 @@ from jinja2 import Environment, FileSystemLoader, TemplateNotFound
 from fastapi_mail import FastMail, MessageSchema, ConnectionConfig, MessageType
 from pydantic import EmailStr
 from dotenv import load_dotenv
+
+logger = logging.getLogger(__name__)
 
 # Load environment variables
 load_dotenv()
@@ -134,9 +137,9 @@ class EmailService:
             bcc_emails: List of BCC email addresses
         """
         if not self.enabled:
-            print(f"[EMAIL DISABLED] Would send to {to_emails}: {subject}")
+            logger.info("[EMAIL DISABLED] Would send to %s: %s", to_emails, subject)
             if template_name:
-                print(f"  Template: {template_name}")
+                logger.info("  Template: %s", template_name)
             return
 
         # Ensure to_emails is a list
@@ -168,10 +171,10 @@ class EmailService:
             # Send email
             await self.fastmail.send_message(message)
 
-            print(f"Email sent to {to_emails}: {subject}")
+            logger.info("Email sent to %s: %s", to_emails, subject)
 
         except Exception as e:
-            print(f"Error sending email to {to_emails}: {str(e)}")
+            logger.error("Error sending email to %s: %s", to_emails, str(e))
             raise
 
     # ==========================================================================
@@ -995,11 +998,11 @@ class EmailService:
         # Log attachment info
         attachment_count = len(attachments)
         if attachments:
-            print(f"Attaching {attachment_count} document(s) for {employee_name}:")
+            logger.info("Attaching %d document(s) for %s:", attachment_count, employee_name)
             for att in attachments:
-                print(f"   - {os.path.basename(att)}")
+                logger.info("   - %s", os.path.basename(att))
         else:
-            print(f"Warning: No exit documents found for {employee_name}")
+            logger.warning("No exit documents found for %s", employee_name)
 
         # Run async send in sync context
         async def _send():
@@ -1045,7 +1048,7 @@ class EmailService:
         storage_path = Path(__file__).parent.parent / "storage" / "filled_forms"
 
         if not storage_path.exists():
-            print(f"Warning: Storage path does not exist: {storage_path}")
+            logger.warning("Storage path does not exist: %s", storage_path)
             return attachments
 
         # Parse employee name - handle "FirstName LastName" format

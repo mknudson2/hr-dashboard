@@ -2,6 +2,9 @@
 import sqlite3
 import os
 import random
+import logging
+
+logger = logging.getLogger(__name__)
 
 # Get the database path
 backend_dir = os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
@@ -48,7 +51,7 @@ INTERNATIONAL = {
 cursor.execute("SELECT employee_id, location FROM employees")
 employees = cursor.fetchall()
 
-print(f"Updating locations for {len(employees)} employees...")
+logger.info(f"Updating locations for {len(employees)} employees...")
 
 # Distribute employees across US states and international locations
 # 70% US, 30% International for a remote company
@@ -79,14 +82,14 @@ for i, (emp_id, old_location) in enumerate(employees):
     updated_count += 1
 
     if updated_count % 50 == 0:
-        print(f"  Updated {updated_count} employees...")
+        logger.info(f"Updated {updated_count} employees...")
 
 # Commit changes
 conn.commit()
 
 # Show distribution
-print(f"\n✓ Updated {updated_count} employee locations")
-print("\nDistribution:")
+logger.info(f"\n Updated {updated_count} employee locations")
+logger.info("Distribution:")
 
 # US States
 cursor.execute("""
@@ -105,9 +108,9 @@ cursor.execute("""
 """)
 us_results = cursor.fetchall()
 
-print("\n📍 US States:")
+logger.info("US States:")
 for state, count in us_results:
-    print(f"  {state}: {count} employees")
+    logger.info(f"{state}: {count} employees")
 
 # International
 cursor.execute("""
@@ -125,13 +128,13 @@ cursor.execute("""
 """)
 intl_results = cursor.fetchall()
 
-print("\n🌍 International:")
+logger.info("International:")
 for country, count in intl_results:
-    print(f"  {country}: {count} employees")
+    logger.info(f"{country}: {count} employees")
 
 total_us = sum([count for _, count in us_results])
 total_intl = sum([count for _, count in intl_results])
-print(f"\n📊 Total US: {total_us} ({total_us/len(employees)*100:.1f}%)")
-print(f"📊 Total International: {total_intl} ({total_intl/len(employees)*100:.1f}%)")
+logger.info(f"\n Total US: {total_us} ({total_us/len(employees)*100:.1f}%)")
+logger.info(f"Total International: {total_intl} ({total_intl/len(employees)*100:.1f}%)")
 
 conn.close()

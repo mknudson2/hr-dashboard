@@ -3,6 +3,9 @@ Script to create PIP-related tables (notes, milestones, audit, documents)
 """
 import sqlite3
 import os
+import logging
+
+logger = logging.getLogger(__name__)
 
 # Get the database path
 DB_PATH = os.path.join(os.path.dirname(__file__), "hr_dashboard.db")
@@ -79,7 +82,7 @@ def create_pip_tables():
 
     conn.commit()
     conn.close()
-    print("PIP tables created successfully!")
+    logger.info("PIP tables created successfully!")
 
 if __name__ == "__main__":
     create_pip_tables()

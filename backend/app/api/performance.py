@@ -2216,7 +2216,7 @@ PIP_DOCUMENTS_DIR = os.path.join(os.path.dirname(os.path.dirname(__file__)), "st
 
 
 @router.post("/pips/{pip_id}/documents")
-async def upload_pip_document(
+def upload_pip_document(
     pip_id: int,
     file: UploadFile = File(...),
     document_type: str = Form("Supporting Document"),

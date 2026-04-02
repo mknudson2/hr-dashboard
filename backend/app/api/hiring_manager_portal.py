@@ -60,15 +60,25 @@ class RequisitionRequestCreate(BaseModel):
 
     # Timeline
     target_start_date: Optional[str] = None
+    target_fill_date: Optional[str] = None
     urgency: Optional[str] = "Normal"
 
-    # Visibility
+    # Visibility (legacy — prefer stakeholders array)
     visibility_user_ids: Optional[List[int]] = None
+
+    # Stakeholders with roles
+    stakeholders: Optional[List["StakeholderInput"]] = None
 
     # Description
     description: Optional[str] = None
     requirements: Optional[str] = None
     notes: Optional[str] = None
+
+
+class StakeholderInput(BaseModel):
+    employee_id: str
+    user_id: Optional[int] = None
+    role: str = "observer"  # vp_svp, interviewer, observer
 
 
 class AddNoteRequest(BaseModel):
@@ -246,6 +256,252 @@ def check_access(
     }
 
 
+@router.get("/my-hiring-stats")
+def my_hiring_stats(
+    current_user: models.User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """Return summary stats for requisitions the current user is involved in."""
+    from sqlalchemy import text
+
+    # Find reqs via visibility_user_ids (legacy JSON column)
+    vis_req_ids = [
+        row[0] for row in db.execute(
+            text(
+                "SELECT id FROM job_requisitions "
+                "WHERE visibility_user_ids IS NOT NULL "
+                "AND visibility_user_ids LIKE :pattern"
+            ),
+            {"pattern": f"%{current_user.id}%"},
+        ).fetchall()
+    ]
+
+    # Also find reqs via RequisitionStakeholder table (canonical source)
+    stakeholder_req_ids = [
+        s.requisition_id for s in db.query(models.RequisitionStakeholder).filter(
+            models.RequisitionStakeholder.user_id == current_user.id,
+            models.RequisitionStakeholder.is_active == True,
+        ).all()
+    ]
+
+    all_req_ids = list(set(vis_req_ids + stakeholder_req_ids))
+
+    query = db.query(models.JobRequisition).filter(
+        or_(
+            models.JobRequisition.requested_by == current_user.id,
+            models.JobRequisition.hiring_manager_id == current_user.id,
+            models.JobRequisition.id.in_(all_req_ids) if all_req_ids else False,
+        )
+    )
+
+    all_reqs = query.all()
+    open_count = sum(1 for r in all_reqs if r.status in ("Open", "Approved"))
+    in_process_count = sum(1 for r in all_reqs if r.status in ("In Review", "Interviewing", "Offer Extended"))
+    total = len(all_reqs)
+
+    return {
+        "open_count": open_count,
+        "in_process_count": in_process_count,
+        "total": total,
+    }
+
+
+@router.get("/action-items")
+def get_hiring_action_items(
+    current_user: models.User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """Aggregate hiring-related action items for the current user's dashboard."""
+    from datetime import timedelta
+
+    items: list[dict] = []
+    now = datetime.now()
+    seven_days = now + timedelta(days=7)
+
+    # --- 1) Upcoming Interviews (within 7 days) ---
+    try:
+        upcoming = (
+            db.query(models.Interview)
+            .options(joinedload(models.Interview.stage))
+            .filter(
+                models.Interview.status.in_(["Scheduled", "Confirmed"]),
+                models.Interview.scheduled_at >= now,
+                models.Interview.scheduled_at <= seven_days,
+            )
+            .all()
+        )
+        for iv in upcoming:
+            # Check if current user is in the interviewers JSON
+            if not iv.interviewers:
+                continue
+            interviewer_ids = [
+                e["user_id"] if isinstance(e, dict) else e
+                for e in iv.interviewers
+            ]
+            if current_user.id not in interviewer_ids:
+                continue
+
+            candidate_name = "a candidate"
+            req_id = None
+            req_title = None
+            if iv.application_id:
+                app = (
+                    db.query(models.Application)
+                    .options(
+                        joinedload(models.Application.applicant),
+                        joinedload(models.Application.requisition),
+                    )
+                    .filter(models.Application.id == iv.application_id)
+                    .first()
+                )
+                if app and app.applicant:
+                    candidate_name = f"{app.applicant.first_name} {app.applicant.last_name}"
+                if app and app.requisition:
+                    req_id = app.requisition.id
+                    req_title = app.requisition.title
+
+            scheduled_str = iv.scheduled_at.strftime("%b %d at %-I:%M %p") if iv.scheduled_at else "TBD"
+
+            items.append({
+                "id": f"interview-{iv.interview_id or iv.id}",
+                "action_type": "upcoming_interview",
+                "title": f"Interview with {candidate_name}",
+                "description": scheduled_str + (f" — {req_title}" if req_title else ""),
+                "priority": 1,
+                "due_date": iv.scheduled_at.isoformat() if iv.scheduled_at else None,
+                "link_hint": f"/hiring/requisitions/{req_id}" if req_id else "/hiring/my-requisitions",
+            })
+    except Exception:
+        pass
+
+    # --- 2) Pending Scorecards ---
+    try:
+        pending_sc = (
+            db.query(models.InterviewScorecard)
+            .options(joinedload(models.InterviewScorecard.stage))
+            .filter(
+                models.InterviewScorecard.interviewer_id == current_user.id,
+                models.InterviewScorecard.status.in_(["Pending", "In Progress"]),
+            )
+            .all()
+        )
+        for sc in pending_sc:
+            candidate_name = "a candidate"
+            req_id = None
+            req_title = None
+            if sc.application_id:
+                app = (
+                    db.query(models.Application)
+                    .options(
+                        joinedload(models.Application.applicant),
+                        joinedload(models.Application.requisition),
+                    )
+                    .filter(models.Application.id == sc.application_id)
+                    .first()
+                )
+                if app and app.applicant:
+                    candidate_name = f"{app.applicant.first_name} {app.applicant.last_name}"
+                if app and app.requisition:
+                    req_id = app.requisition.id
+                    req_title = app.requisition.title
+
+            stage_name = sc.stage.name if sc.stage else "Interview"
+            due_str = f" — due {sc.due_date.strftime('%b %d')}" if sc.due_date else ""
+            overdue = sc.due_date and sc.due_date < now
+
+            items.append({
+                "id": f"scorecard-{sc.id}",
+                "action_type": "pending_scorecard",
+                "title": f"Complete scorecard for {candidate_name}",
+                "description": stage_name + due_str + (f" ({req_title})" if req_title else ""),
+                "priority": 1 if overdue else 2,
+                "due_date": sc.due_date.isoformat() if sc.due_date else None,
+                "link_hint": f"/hiring/requisitions/{req_id}" if req_id else "/hiring/my-requisitions",
+            })
+    except Exception:
+        pass
+
+    # --- 3) Submit Availability ---
+    try:
+        active_stakes = (
+            db.query(models.RequisitionStakeholder)
+            .filter(
+                models.RequisitionStakeholder.user_id == current_user.id,
+                models.RequisitionStakeholder.is_active == True,
+                models.RequisitionStakeholder.opted_out_of_availability == False,
+            )
+            .all()
+        )
+        for stake in active_stakes:
+            # Only if hiring_manager_interview lifecycle stage is active
+            hm_stage = (
+                db.query(models.RequisitionLifecycleStage)
+                .filter(
+                    models.RequisitionLifecycleStage.requisition_id == stake.requisition_id,
+                    models.RequisitionLifecycleStage.stage_key == "hiring_manager_interview",
+                    models.RequisitionLifecycleStage.status == "active",
+                )
+                .first()
+            )
+            if not hm_stage:
+                continue
+
+            # Skip if user already submitted slots
+            slot_count = (
+                db.query(models.InterviewerAvailability)
+                .filter(
+                    models.InterviewerAvailability.user_id == current_user.id,
+                    models.InterviewerAvailability.requisition_id == stake.requisition_id,
+                )
+                .count()
+            )
+            if slot_count > 0:
+                continue
+
+            req = db.query(models.JobRequisition).filter(
+                models.JobRequisition.id == stake.requisition_id
+            ).first()
+            req_title = req.title if req else "a position"
+
+            items.append({
+                "id": f"availability-{stake.requisition_id}",
+                "action_type": "submit_availability",
+                "title": "Submit interview availability",
+                "description": f"Your availability is needed for {req_title}",
+                "priority": 2,
+                "due_date": None,
+                "link_hint": f"/hiring/requisitions/{stake.requisition_id}/availability",
+            })
+    except Exception:
+        pass
+
+    # --- 4) Pending Approvals ---
+    try:
+        pending_approvals = approval_service.get_pending_for_user(db, current_user.id)
+        for ar in pending_approvals:
+            requested_by_name = None
+            if ar.requested_by:
+                user = db.query(models.User).filter(models.User.id == ar.requested_by).first()
+                requested_by_name = user.full_name if user else None
+
+            items.append({
+                "id": f"approval-{ar.id}",
+                "action_type": "pending_approval",
+                "title": f"Pending {ar.resource_type.replace('_', ' ').title()} Approval",
+                "description": f"Requested by {requested_by_name or 'Unknown'}",
+                "priority": 2,
+                "due_date": None,
+                "link_hint": "/hiring/approvals",
+            })
+    except Exception:
+        pass
+
+    # Sort by priority (urgent first), then due_date (soonest first)
+    items.sort(key=lambda x: (x["priority"], x["due_date"] or "9999"))
+
+    return {"action_items": items, "total_count": len(items)}
+
+
 @router.get("/field-options")
 def get_field_options(
     current_user: models.User = Depends(_require_hiring_manager),
@@ -280,12 +536,20 @@ def request_custom_team(
     current_user: models.User = Depends(_require_hiring_manager),
     db: Session = Depends(get_db),
 ):
-    """Create a notification for HR admins when a hiring manager proposes a new team."""
+    """Create a team request record and notify HR admins."""
     requester_name = (
         current_user.full_name
         if hasattr(current_user, "full_name") and current_user.full_name
         else "A hiring manager"
     )
+    team_req = models.TeamRequest(
+        team_name=data.team_name,
+        position_title=data.position_title,
+        requested_by_user_id=current_user.id,
+    )
+    db.add(team_req)
+    db.flush()
+
     create_notification(
         db=db,
         title="New Team Request",
@@ -294,8 +558,86 @@ def request_custom_team(
         priority="normal",
         user_id=None,
         created_by_user_id=current_user.id,
+        resource_type="team_request",
+        resource_id=team_req.id,
+        action_url="/recruiting?tab=team-requests",
     )
+    db.commit()
     return {"message": "Custom team request submitted for HR review"}
+
+
+@router.get("/hiring-updates")
+def get_hiring_updates(
+    current_user: models.User = Depends(_require_hiring_manager_or_stakeholder),
+    db: Session = Depends(get_db),
+):
+    """Return recent hiring activity for requisitions the user is associated with."""
+    from sqlalchemy import text
+
+    # Get IDs of requisitions where user is a stakeholder (same pattern as list_requisitions)
+    stakeholder_req_ids = [
+        row[0] for row in db.execute(
+            text(
+                "SELECT id FROM job_requisitions "
+                "WHERE visibility_user_ids IS NOT NULL "
+                "AND visibility_user_ids LIKE :pattern"
+            ),
+            {"pattern": f"%{current_user.id}%"},
+        ).fetchall()
+    ]
+
+    user_req_ids_query = db.query(models.JobRequisition.id).filter(
+        or_(
+            models.JobRequisition.requested_by == current_user.id,
+            models.JobRequisition.hiring_manager_id == current_user.id,
+            models.JobRequisition.id.in_(stakeholder_req_ids) if stakeholder_req_ids else False,
+        )
+    )
+    user_req_ids = [row[0] for row in user_req_ids_query.all()]
+
+    if not user_req_ids:
+        return {"updates": []}
+
+    RELEVANT_TYPES = [
+        "interview_scheduled", "interview_self_scheduled", "scorecard_submitted",
+        "stage_change", "candidate_selected", "offer_extended", "status_change",
+    ]
+
+    activities = (
+        db.query(models.ApplicationActivity)
+        .join(models.Application, models.ApplicationActivity.application_id == models.Application.id)
+        .filter(
+            models.Application.requisition_id.in_(user_req_ids),
+            models.ApplicationActivity.activity_type.in_(RELEVANT_TYPES),
+        )
+        .options(
+            joinedload(models.ApplicationActivity.application)
+                .joinedload(models.Application.applicant),
+            joinedload(models.ApplicationActivity.application)
+                .joinedload(models.Application.requisition),
+        )
+        .order_by(models.ApplicationActivity.created_at.desc())
+        .limit(10)
+        .all()
+    )
+
+    return {
+        "updates": [
+            {
+                "id": a.id,
+                "activity_type": a.activity_type,
+                "description": a.description or a.activity_type.replace("_", " ").title(),
+                "candidate_name": (
+                    f"{a.application.applicant.first_name} {a.application.applicant.last_name}"
+                    if a.application and a.application.applicant else None
+                ),
+                "requisition_id": a.application.requisition.id if a.application and a.application.requisition else None,
+                "requisition_title": a.application.requisition.title if a.application and a.application.requisition else None,
+                "created_at": a.created_at.isoformat() if a.created_at else None,
+            }
+            for a in activities
+        ],
+    }
 
 
 @router.get("/requisitions")
@@ -309,8 +651,8 @@ def list_requisitions(
     """List requisitions where user is hiring manager, requester, or stakeholder."""
     from sqlalchemy import text
 
-    # Get IDs of requisitions where user is a stakeholder
-    stakeholder_req_ids = [
+    # Get IDs of requisitions where user is a stakeholder (visibility_user_ids)
+    vis_req_ids = [
         row[0] for row in db.execute(
             text(
                 "SELECT id FROM job_requisitions "
@@ -320,6 +662,16 @@ def list_requisitions(
             {"pattern": f"%{current_user.id}%"},
         ).fetchall()
     ]
+
+    # Also check RequisitionStakeholder table (canonical source)
+    stakeholder_table_req_ids = [
+        s.requisition_id for s in db.query(models.RequisitionStakeholder).filter(
+            models.RequisitionStakeholder.user_id == current_user.id,
+            models.RequisitionStakeholder.is_active == True,
+        ).all()
+    ]
+
+    stakeholder_req_ids = list(set(vis_req_ids + stakeholder_table_req_ids))
 
     query = db.query(models.JobRequisition).filter(
         or_(
@@ -334,6 +686,21 @@ def list_requisitions(
 
     total = query.count()
     requisitions = query.order_by(models.JobRequisition.created_at.desc()).offset(skip).limit(limit).all()
+
+    # Build a lookup of stakeholder roles for the current user
+    stakeholder_roles: dict[int, str] = {}
+    if hasattr(models, 'RequisitionStakeholder'):
+        stakes = db.query(models.RequisitionStakeholder).filter(
+            models.RequisitionStakeholder.user_id == current_user.id,
+            models.RequisitionStakeholder.is_active == True,
+        ).all()
+        for s in stakes:
+            stakeholder_roles[s.requisition_id] = s.role
+
+    def _user_role(r: models.JobRequisition) -> str:
+        if r.hiring_manager_id == current_user.id or r.requested_by == current_user.id:
+            return "hiring_manager"
+        return stakeholder_roles.get(r.id, "stakeholder")
 
     return {
         "total": total,
@@ -353,6 +720,7 @@ def list_requisitions(
                 "target_start_date": r.target_start_date.isoformat() if r.target_start_date else None,
                 "closed_at": r.closed_at.isoformat() if r.closed_at else None,
                 "close_reason": r.close_reason,
+                "my_role": _user_role(r),
             }
             for r in requisitions
         ],
@@ -376,10 +744,35 @@ def create_requisition_request(
         except ValueError:
             raise HTTPException(status_code=400, detail="Invalid target_start_date format")
 
+    # Parse target fill date if provided
+    target_fill = None
+    if data.target_fill_date:
+        try:
+            target_fill = date.fromisoformat(data.target_fill_date)
+        except ValueError:
+            raise HTTPException(status_code=400, detail="Invalid target_fill_date format")
+
     # Auto-set early tech screen if Bloom is selected
     requires_tech_screen = data.requires_early_tech_screen
     if data.posting_channels and "bloom" in data.posting_channels:
         requires_tech_screen = True
+
+    # If a JD is linked, pull content fields from it as defaults
+    jd_description = data.description
+    jd_requirements = data.requirements
+    jd_responsibilities = None
+    jd_preferred_qualifications = None
+    if data.job_description_id:
+        jd = db.query(models.JobDescription).filter(
+            models.JobDescription.id == data.job_description_id
+        ).first()
+        if jd:
+            if not jd_description:
+                jd_description = jd.description
+            if not jd_requirements:
+                jd_requirements = jd.requirements
+            jd_responsibilities = jd.responsibilities
+            jd_preferred_qualifications = jd.preferred_qualifications
 
     requisition = models.JobRequisition(
         requisition_id=req_id,
@@ -401,10 +794,13 @@ def create_requisition_request(
         wage_type=data.wage_type,
         skills_tags=data.skills_tags,
         target_start_date=target_start,
+        target_fill_date=target_fill,
         urgency=data.urgency,
         visibility_user_ids=data.visibility_user_ids,
-        description=data.description,
-        requirements=data.requirements,
+        description=jd_description,
+        requirements=jd_requirements,
+        responsibilities=jd_responsibilities,
+        preferred_qualifications=jd_preferred_qualifications,
         notes=data.notes,
         status="Pending Approval",
         request_source="employee_portal",
@@ -416,6 +812,33 @@ def create_requisition_request(
 
     # Create lifecycle stages
     lifecycle_service.create_lifecycle_for_requisition(db, requisition.id)
+
+    # Create stakeholder records
+    if data.stakeholders:
+        for s in data.stakeholders:
+            access = _DEFAULT_ACCESS_LEVELS.get(s.role, "pipeline_view_only")
+            stakeholder = models.RequisitionStakeholder(
+                requisition_id=requisition.id,
+                employee_id=s.employee_id,
+                user_id=s.user_id,
+                role=s.role,
+                access_level=access,
+                assigned_by=current_user.id,
+            )
+            db.add(stakeholder)
+    elif data.visibility_user_ids:
+        # Legacy fallback: create from user IDs only
+        for uid in data.visibility_user_ids:
+            user = db.query(models.User).filter(models.User.id == uid).first()
+            stakeholder = models.RequisitionStakeholder(
+                requisition_id=requisition.id,
+                user_id=uid,
+                employee_id=user.employee_id if user else None,
+                role="observer",
+                access_level="pipeline_view_only",
+                assigned_by=current_user.id,
+            )
+            db.add(stakeholder)
 
     # Send notification to recruiting team
     _notify_recruiting_team(db, requisition, current_user)
@@ -445,6 +868,28 @@ def get_requisition_detail(
 
     if not _check_requisition_access(req, current_user):
         raise HTTPException(status_code=403, detail="Not authorized")
+
+    # Load stakeholders for this requisition
+    stakeholders = (
+        db.query(models.RequisitionStakeholder)
+        .options(
+            joinedload(models.RequisitionStakeholder.user),
+            joinedload(models.RequisitionStakeholder.employee),
+            joinedload(models.RequisitionStakeholder.assigned_by_user),
+        )
+        .filter(
+            models.RequisitionStakeholder.requisition_id == req.id,
+            models.RequisitionStakeholder.is_active == True,  # noqa: E712
+        )
+        .all()
+    )
+
+    # Resolve hiring manager name from the user who submitted
+    hm_name = None
+    if req.hiring_manager:
+        hm_name = req.hiring_manager.full_name
+    elif req.requested_by_user:
+        hm_name = req.requested_by_user.full_name
 
     return {
         "id": req.id,
@@ -478,11 +923,27 @@ def get_requisition_detail(
         "recruiter_name": (
             req.recruiter.full_name if req.recruiter else None
         ),
-        "hiring_manager_name": (
-            req.hiring_manager.full_name if req.hiring_manager else None
-        ),
+        "hiring_manager_name": hm_name,
         "closed_at": req.closed_at.isoformat() if req.closed_at else None,
         "close_reason": req.close_reason,
+        "stakeholders": [
+            {
+                "id": s.id,
+                "user_id": s.user_id,
+                "employee_id": s.employee_id,
+                "user_name": (
+                    s.user.full_name if s.user
+                    else f"{s.employee.first_name} {s.employee.last_name}" if s.employee
+                    else None
+                ),
+                "role": s.role,
+                "access_level": s.access_level,
+                "assigned_by_name": s.assigned_by_user.full_name if s.assigned_by_user else None,
+                "assigned_at": s.assigned_at.isoformat() if s.assigned_at else None,
+                "is_active": s.is_active,
+            }
+            for s in stakeholders
+        ],
     }
 
 
@@ -1550,7 +2011,7 @@ def download_applicant_document(
 @router.get("/requisitions/{req_id}/stakeholders")
 def hm_list_stakeholders(
     req_id: int,
-    current_user: models.User = Depends(_require_hiring_manager),
+    current_user: models.User = Depends(_require_hiring_manager_or_stakeholder),
     db: Session = Depends(get_db),
 ):
     """View stakeholders for a requisition (HM view)."""
@@ -1566,6 +2027,7 @@ def hm_list_stakeholders(
         db.query(models.RequisitionStakeholder)
         .options(
             joinedload(models.RequisitionStakeholder.user),
+            joinedload(models.RequisitionStakeholder.employee),
             joinedload(models.RequisitionStakeholder.assigned_by_user),
         )
         .filter(
@@ -1575,11 +2037,19 @@ def hm_list_stakeholders(
         .all()
     )
 
+    def _stakeholder_name(s):
+        if s.user:
+            return s.user.full_name
+        if s.employee:
+            return f"{s.employee.first_name} {s.employee.last_name}"
+        return None
+
     return [
         {
             "id": s.id,
             "user_id": s.user_id,
-            "user_name": s.user.full_name if s.user else None,
+            "employee_id": s.employee_id,
+            "user_name": _stakeholder_name(s),
             "role": s.role,
             "access_level": s.access_level,
             "assigned_by_name": s.assigned_by_user.full_name if s.assigned_by_user else None,
@@ -1591,8 +2061,14 @@ def hm_list_stakeholders(
 
 
 class AddStakeholderRequest(BaseModel):
-    user_id: int
+    user_id: Optional[int] = None
+    employee_id: Optional[str] = None
     role: str  # one of: "vp_svp", "hiring_manager", "interviewer", "observer"
+    access_level: Optional[str] = None
+
+
+class UpdateStakeholderRequest(BaseModel):
+    role: Optional[str] = None
     access_level: Optional[str] = None
 
 
@@ -1628,33 +2104,47 @@ def hm_add_stakeholder(
             detail=f"Invalid role. Must be one of: {', '.join(valid_roles)}",
         )
 
-    # Validate user exists
-    target_user = db.query(models.User).filter(models.User.id == body.user_id).first()
-    if not target_user:
-        raise HTTPException(status_code=404, detail="User not found")
+    if not body.user_id and not body.employee_id:
+        raise HTTPException(status_code=422, detail="Must provide user_id or employee_id")
+
+    # Resolve names
+    target_user = None
+    target_employee = None
+    if body.user_id:
+        target_user = db.query(models.User).filter(models.User.id == body.user_id).first()
+        if not target_user:
+            raise HTTPException(status_code=404, detail="User not found")
+    if body.employee_id:
+        target_employee = db.query(models.Employee).filter(
+            models.Employee.employee_id == body.employee_id
+        ).first()
+        if not target_employee:
+            raise HTTPException(status_code=404, detail="Employee not found")
 
     # Check not already an active stakeholder
-    existing = (
-        db.query(models.RequisitionStakeholder)
-        .filter(
-            models.RequisitionStakeholder.requisition_id == req_id,
-            models.RequisitionStakeholder.user_id == body.user_id,
-            models.RequisitionStakeholder.is_active == True,  # noqa: E712
-        )
-        .first()
-    )
+    dup_filter = [
+        models.RequisitionStakeholder.requisition_id == req_id,
+        models.RequisitionStakeholder.is_active == True,  # noqa: E712
+    ]
+    if body.employee_id:
+        dup_filter.append(models.RequisitionStakeholder.employee_id == body.employee_id)
+    elif body.user_id:
+        dup_filter.append(models.RequisitionStakeholder.user_id == body.user_id)
+
+    existing = db.query(models.RequisitionStakeholder).filter(*dup_filter).first()
     if existing:
         raise HTTPException(
             status_code=409,
-            detail="User is already an active stakeholder for this requisition",
+            detail="Already an active stakeholder for this requisition",
         )
 
     # Determine access level
-    access_level = body.access_level if body.access_level else _DEFAULT_ACCESS_LEVELS[body.role]
+    access_level = body.access_level if body.access_level else _DEFAULT_ACCESS_LEVELS.get(body.role, "pipeline_view_only")
 
     stakeholder = models.RequisitionStakeholder(
         requisition_id=req_id,
         user_id=body.user_id,
+        employee_id=body.employee_id,
         role=body.role,
         access_level=access_level,
         assigned_by=current_user.id,
@@ -1663,11 +2153,18 @@ def hm_add_stakeholder(
     db.commit()
     db.refresh(stakeholder)
 
+    display_name = None
+    if target_user:
+        display_name = target_user.full_name
+    elif target_employee:
+        display_name = f"{target_employee.first_name} {target_employee.last_name}"
+
     return {
         "id": stakeholder.id,
         "requisition_id": stakeholder.requisition_id,
         "user_id": stakeholder.user_id,
-        "user_name": target_user.full_name,
+        "employee_id": stakeholder.employee_id,
+        "user_name": display_name,
         "role": stakeholder.role,
         "access_level": stakeholder.access_level,
         "assigned_by": stakeholder.assigned_by,
@@ -1675,6 +2172,101 @@ def hm_add_stakeholder(
         "assigned_at": stakeholder.assigned_at.isoformat() if stakeholder.assigned_at else None,
         "is_active": stakeholder.is_active,
     }
+
+
+@router.put("/requisitions/{req_id}/stakeholders/{stakeholder_id}")
+def hm_update_stakeholder(
+    req_id: int,
+    stakeholder_id: int,
+    body: UpdateStakeholderRequest,
+    current_user: models.User = Depends(_require_hiring_manager),
+    db: Session = Depends(get_db),
+):
+    """HM updates a stakeholder's role/access level."""
+    req = db.query(models.JobRequisition).filter(
+        models.JobRequisition.id == req_id,
+    ).first()
+    if not req:
+        raise HTTPException(status_code=404, detail="Requisition not found")
+    if not _check_requisition_access(req, current_user):
+        raise HTTPException(status_code=403, detail="Not authorized")
+
+    stakeholder = (
+        db.query(models.RequisitionStakeholder)
+        .options(
+            joinedload(models.RequisitionStakeholder.user),
+            joinedload(models.RequisitionStakeholder.employee),
+            joinedload(models.RequisitionStakeholder.assigned_by_user),
+        )
+        .filter(
+            models.RequisitionStakeholder.id == stakeholder_id,
+            models.RequisitionStakeholder.requisition_id == req_id,
+            models.RequisitionStakeholder.is_active == True,  # noqa: E712
+        )
+        .first()
+    )
+    if not stakeholder:
+        raise HTTPException(status_code=404, detail="Stakeholder not found")
+
+    if body.role is not None:
+        stakeholder.role = body.role
+    if body.access_level is not None:
+        stakeholder.access_level = body.access_level
+
+    db.commit()
+    db.refresh(stakeholder)
+
+    display_name = None
+    if stakeholder.user:
+        display_name = stakeholder.user.full_name
+    elif stakeholder.employee:
+        display_name = f"{stakeholder.employee.first_name} {stakeholder.employee.last_name}"
+
+    return {
+        "id": stakeholder.id,
+        "user_id": stakeholder.user_id,
+        "employee_id": stakeholder.employee_id,
+        "user_name": display_name,
+        "role": stakeholder.role,
+        "access_level": stakeholder.access_level,
+        "assigned_by_name": stakeholder.assigned_by_user.full_name if stakeholder.assigned_by_user else None,
+        "assigned_at": stakeholder.assigned_at.isoformat() if stakeholder.assigned_at else None,
+        "is_active": stakeholder.is_active,
+    }
+
+
+@router.delete("/requisitions/{req_id}/stakeholders/{stakeholder_id}")
+def hm_remove_stakeholder(
+    req_id: int,
+    stakeholder_id: int,
+    current_user: models.User = Depends(_require_hiring_manager),
+    db: Session = Depends(get_db),
+):
+    """HM removes a stakeholder from a requisition."""
+    req = db.query(models.JobRequisition).filter(
+        models.JobRequisition.id == req_id,
+    ).first()
+    if not req:
+        raise HTTPException(status_code=404, detail="Requisition not found")
+    if not _check_requisition_access(req, current_user):
+        raise HTTPException(status_code=403, detail="Not authorized")
+
+    stakeholder = (
+        db.query(models.RequisitionStakeholder)
+        .filter(
+            models.RequisitionStakeholder.id == stakeholder_id,
+            models.RequisitionStakeholder.requisition_id == req_id,
+            models.RequisitionStakeholder.is_active == True,  # noqa: E712
+        )
+        .first()
+    )
+    if not stakeholder:
+        raise HTTPException(status_code=404, detail="Stakeholder not found")
+
+    stakeholder.is_active = False
+    db.commit()
+
+    return {"message": "Stakeholder removed"}
 
 
 @router.get("/approval-requests/pending")
@@ -2248,3 +2840,366 @@ def hm_negotiation_history(
         "applicant_proposals": applicant_proposals,
         "approval_requests": approval_data,
     }
+
+
+# ============================================================================
+# STAKEHOLDER AVAILABILITY FOR INTERVIEWS
+# ============================================================================
+
+class AvailabilitySlotInput(BaseModel):
+    start_time: str  # ISO datetime
+    end_time: str    # ISO datetime
+    time_zone: Optional[str] = None
+
+class AvailabilitySubmission(BaseModel):
+    slots: List[AvailabilitySlotInput]
+
+
+@router.post("/requisitions/{req_id}/availability")
+def submit_availability(
+    req_id: int,
+    data: AvailabilitySubmission,
+    current_user: models.User = Depends(_require_hiring_manager_or_stakeholder),
+    db: Session = Depends(get_db),
+):
+    """Submit interview availability slots for a requisition.
+
+    Replaces all existing unbooked slots for this user+requisition.
+    """
+    req = db.query(models.JobRequisition).filter(models.JobRequisition.id == req_id).first()
+    if not req:
+        raise HTTPException(status_code=404, detail="Requisition not found")
+    if not _check_requisition_access(req, current_user):
+        raise HTTPException(status_code=403, detail="Access denied")
+
+    # Remove existing unbooked slots for this user+requisition so resubmission replaces them
+    db.query(models.InterviewerAvailability).filter(
+        models.InterviewerAvailability.user_id == current_user.id,
+        models.InterviewerAvailability.requisition_id == req_id,
+        models.InterviewerAvailability.is_booked == False,
+    ).delete()
+
+    from app.services.availability_service import availability_service
+
+    slot_dicts = [
+        {
+            "start_time": s.start_time,
+            "end_time": s.end_time,
+            "time_zone": s.time_zone,
+            "slot_duration_minutes": 60,
+        }
+        for s in data.slots
+    ]
+
+    created = availability_service.create_slots(
+        db=db,
+        user_id=current_user.id,
+        slots=slot_dicts,
+        requisition_id=req_id,
+    )
+    db.commit()
+
+    return {
+        "message": f"Created {len(created)} availability slots",
+        "slots_created": len(created),
+    }
+
+
+@router.get("/requisitions/{req_id}/my-availability")
+def get_my_availability(
+    req_id: int,
+    current_user: models.User = Depends(_require_hiring_manager_or_stakeholder),
+    db: Session = Depends(get_db),
+):
+    """Get the current user's submitted availability slots for a requisition."""
+    slots = (
+        db.query(models.InterviewerAvailability)
+        .filter(
+            models.InterviewerAvailability.user_id == current_user.id,
+            models.InterviewerAvailability.requisition_id == req_id,
+        )
+        .order_by(models.InterviewerAvailability.start_time)
+        .all()
+    )
+    return {
+        "slots": [
+            {
+                "id": s.id,
+                "start_time": s.start_time.isoformat() if s.start_time else None,
+                "end_time": s.end_time.isoformat() if s.end_time else None,
+                "is_booked": s.is_booked,
+            }
+            for s in slots
+        ]
+    }
+
+
+@router.get("/requisitions/{req_id}/availability-status")
+def get_availability_status(
+    req_id: int,
+    current_user: models.User = Depends(_require_hiring_manager_or_stakeholder),
+    db: Session = Depends(get_db),
+):
+    """Get availability submission status for all stakeholders on a requisition."""
+    req = db.query(models.JobRequisition).filter(models.JobRequisition.id == req_id).first()
+    if not req:
+        raise HTTPException(status_code=404, detail="Requisition not found")
+    if not _check_requisition_access(req, current_user):
+        raise HTTPException(status_code=403, detail="Access denied")
+
+    # Collect all stakeholders (from table + HM/recruiter from requisition)
+    stakeholder_rows = db.query(models.RequisitionStakeholder).filter(
+        models.RequisitionStakeholder.requisition_id == req_id,
+        models.RequisitionStakeholder.is_active == True,
+    ).all()
+
+    seen_user_ids = set()
+    stakeholders = []
+
+    # Add stakeholders from the table
+    for s in stakeholder_rows:
+        if s.user_id and s.user_id not in seen_user_ids:
+            seen_user_ids.add(s.user_id)
+            user = db.query(models.User).filter(models.User.id == s.user_id).first()
+            slot_count = db.query(models.InterviewerAvailability).filter(
+                models.InterviewerAvailability.user_id == s.user_id,
+                models.InterviewerAvailability.requisition_id == req_id,
+            ).count()
+            stakeholders.append({
+                "user_id": s.user_id,
+                "name": user.full_name if user else "Unknown",
+                "role": s.role,
+                "slots_submitted": slot_count,
+                "opted_out": s.opted_out_of_availability,
+            })
+
+    # Add HM and recruiter if not already included
+    for uid, role in [(req.hiring_manager_id, "hiring_manager"), (req.recruiter_id, "recruiter")]:
+        if uid and uid not in seen_user_ids:
+            seen_user_ids.add(uid)
+            user = db.query(models.User).filter(models.User.id == uid).first()
+            slot_count = db.query(models.InterviewerAvailability).filter(
+                models.InterviewerAvailability.user_id == uid,
+                models.InterviewerAvailability.requisition_id == req_id,
+            ).count()
+            stakeholders.append({
+                "user_id": uid,
+                "name": user.full_name if user else "Unknown",
+                "role": role,
+                "slots_submitted": slot_count,
+                "opted_out": False,
+            })
+
+    return {"stakeholders": stakeholders, "requisition_title": req.title}
+
+
+@router.post("/requisitions/{req_id}/opt-out-availability")
+def opt_out_availability(
+    req_id: int,
+    current_user: models.User = Depends(_require_hiring_manager_or_stakeholder),
+    db: Session = Depends(get_db),
+):
+    """Opt out of availability submission (VP/SVP and observers only)."""
+    stakeholder = db.query(models.RequisitionStakeholder).filter(
+        models.RequisitionStakeholder.requisition_id == req_id,
+        models.RequisitionStakeholder.user_id == current_user.id,
+        models.RequisitionStakeholder.is_active == True,
+    ).first()
+
+    if not stakeholder:
+        raise HTTPException(status_code=404, detail="Stakeholder record not found")
+
+    if stakeholder.role not in ("vp_svp", "observer"):
+        raise HTTPException(status_code=403, detail="Only VP/SVP and observers can opt out of availability submission")
+
+    stakeholder.opted_out_of_availability = True
+    db.commit()
+
+    return {"message": "Opted out of availability submission"}
+
+
+# ---------------------------------------------------------------------------
+# Scorecard viewing (for stakeholders)
+# ---------------------------------------------------------------------------
+
+@router.get("/scorecards/{scorecard_id}")
+def get_scorecard_detail(
+    scorecard_id: int,
+    current_user: models.User = Depends(_require_hiring_manager_or_stakeholder),
+    db: Session = Depends(get_db),
+):
+    """Get full scorecard details. Only accessible if user is a stakeholder on the requisition."""
+    from sqlalchemy.orm import joinedload
+
+    sc = db.query(models.InterviewScorecard).options(
+        joinedload(models.InterviewScorecard.interviewer),
+        joinedload(models.InterviewScorecard.stage),
+        joinedload(models.InterviewScorecard.application).joinedload(models.Application.applicant),
+        joinedload(models.InterviewScorecard.application).joinedload(models.Application.requisition),
+    ).filter(models.InterviewScorecard.id == scorecard_id).first()
+
+    if not sc:
+        raise HTTPException(status_code=404, detail="Scorecard not found")
+
+    # Verify user has access to the requisition this scorecard belongs to
+    req = sc.application.requisition if sc.application else None
+    if req and not _check_requisition_access(req, current_user):
+        raise HTTPException(status_code=403, detail="Not authorized to view this scorecard")
+
+    return {
+        "id": sc.id,
+        "application_id": sc.application_id,
+        "applicant_name": f"{sc.application.applicant.first_name} {sc.application.applicant.last_name}" if sc.application and sc.application.applicant else None,
+        "stage": {"id": sc.stage.id, "name": sc.stage.name} if sc.stage else None,
+        "interviewer": {"id": sc.interviewer.id, "name": sc.interviewer.full_name} if sc.interviewer else None,
+        "overall_rating": sc.overall_rating,
+        "recommendation": sc.recommendation,
+        "criteria_ratings": sc.criteria_ratings,
+        "strengths": sc.strengths,
+        "concerns": sc.concerns,
+        "additional_notes": sc.additional_notes,
+        "status": sc.status,
+        "submitted_at": sc.submitted_at.isoformat() if sc.submitted_at else None,
+        "due_date": sc.due_date.isoformat() if sc.due_date else None,
+    }
+
+
+@router.get("/scorecards/{scorecard_id}/pdf")
+def download_scorecard_pdf(
+    scorecard_id: int,
+    current_user: models.User = Depends(_require_hiring_manager_or_stakeholder),
+    db: Session = Depends(get_db),
+):
+    """Download a scorecard as a PDF."""
+    from fpdf import FPDF
+    from io import BytesIO
+    from starlette.responses import StreamingResponse
+    from sqlalchemy.orm import joinedload
+
+    sc = db.query(models.InterviewScorecard).options(
+        joinedload(models.InterviewScorecard.interviewer),
+        joinedload(models.InterviewScorecard.stage),
+        joinedload(models.InterviewScorecard.application).joinedload(models.Application.applicant),
+        joinedload(models.InterviewScorecard.application).joinedload(models.Application.requisition),
+    ).filter(models.InterviewScorecard.id == scorecard_id).first()
+
+    if not sc:
+        raise HTTPException(status_code=404, detail="Scorecard not found")
+
+    req = sc.application.requisition if sc.application else None
+    if req and not _check_requisition_access(req, current_user):
+        raise HTTPException(status_code=403, detail="Not authorized")
+
+    applicant_name = f"{sc.application.applicant.first_name} {sc.application.applicant.last_name}" if sc.application and sc.application.applicant else "Unknown"
+    interviewer_name = sc.interviewer.full_name if sc.interviewer else "Unassigned"
+    stage_name = sc.stage.name if sc.stage else "N/A"
+    req_title = req.title if req else "N/A"
+
+    pdf = FPDF()
+    pdf.add_page()
+    pdf.set_auto_page_break(auto=True, margin=20)
+
+    # Title
+    pdf.set_font("Helvetica", "B", 18)
+    pdf.cell(0, 10, "Interview Scorecard", new_x="LMARGIN", new_y="NEXT")
+    pdf.set_draw_color(108, 63, 160)
+    pdf.line(10, pdf.get_y(), 200, pdf.get_y())
+    pdf.ln(6)
+
+    # Meta info
+    pdf.set_font("Helvetica", "", 10)
+    meta = [
+        ("Candidate", applicant_name),
+        ("Position", req_title),
+        ("Stage", stage_name),
+        ("Interviewer", interviewer_name),
+        ("Status", sc.status),
+    ]
+    if sc.submitted_at:
+        meta.append(("Submitted", sc.submitted_at.strftime("%B %d, %Y at %I:%M %p")))
+
+    for label, value in meta:
+        pdf.set_font("Helvetica", "B", 10)
+        pdf.cell(35, 6, f"{label}:")
+        pdf.set_font("Helvetica", "", 10)
+        pdf.cell(0, 6, value, new_x="LMARGIN", new_y="NEXT")
+
+    pdf.ln(4)
+
+    # Overall Rating & Recommendation
+    if sc.overall_rating is not None:
+        pdf.set_font("Helvetica", "B", 14)
+        pdf.cell(0, 10, f"Overall Rating: {sc.overall_rating:.1f} / 5", new_x="LMARGIN", new_y="NEXT")
+
+    if sc.recommendation:
+        pdf.set_font("Helvetica", "B", 12)
+        pdf.cell(0, 8, f"Recommendation: {sc.recommendation}", new_x="LMARGIN", new_y="NEXT")
+
+    pdf.ln(4)
+
+    # Criteria Ratings
+    if sc.criteria_ratings:
+        pdf.set_font("Helvetica", "B", 12)
+        pdf.cell(0, 8, "Criteria Ratings", new_x="LMARGIN", new_y="NEXT")
+        pdf.set_draw_color(200, 200, 200)
+        pdf.line(10, pdf.get_y(), 200, pdf.get_y())
+        pdf.ln(2)
+
+        for cr in sc.criteria_ratings:
+            pdf.set_font("Helvetica", "B", 10)
+            criteria_name = cr.get("criteria", cr.get("name", "Unknown"))
+            rating = cr.get("rating", "N/A")
+            pdf.cell(80, 6, criteria_name)
+            pdf.set_font("Helvetica", "", 10)
+            rating_str = f"{rating}/5" if isinstance(rating, (int, float)) else str(rating)
+            pdf.cell(0, 6, rating_str, new_x="LMARGIN", new_y="NEXT")
+            notes = cr.get("notes", "")
+            if notes:
+                pdf.set_font("Helvetica", "I", 9)
+                pdf.set_text_color(100, 100, 100)
+                pdf.multi_cell(0, 5, notes)
+                pdf.set_text_color(0, 0, 0)
+            pdf.ln(1)
+
+        pdf.ln(3)
+
+    # Strengths
+    if sc.strengths:
+        pdf.set_font("Helvetica", "B", 12)
+        pdf.cell(0, 8, "Strengths", new_x="LMARGIN", new_y="NEXT")
+        pdf.set_font("Helvetica", "", 10)
+        pdf.multi_cell(0, 5, sc.strengths)
+        pdf.ln(3)
+
+    # Concerns
+    if sc.concerns:
+        pdf.set_font("Helvetica", "B", 12)
+        pdf.cell(0, 8, "Concerns", new_x="LMARGIN", new_y="NEXT")
+        pdf.set_font("Helvetica", "", 10)
+        pdf.multi_cell(0, 5, sc.concerns)
+        pdf.ln(3)
+
+    # Additional Notes
+    if sc.additional_notes:
+        pdf.set_font("Helvetica", "B", 12)
+        pdf.cell(0, 8, "Additional Notes", new_x="LMARGIN", new_y="NEXT")
+        pdf.set_font("Helvetica", "", 10)
+        pdf.multi_cell(0, 5, sc.additional_notes)
+
+    # Footer
+    pdf.ln(10)
+    pdf.set_font("Helvetica", "I", 8)
+    pdf.set_text_color(150, 150, 150)
+    pdf.cell(0, 5, f"Generated from Bifrost ATS", new_x="LMARGIN", new_y="NEXT")
+
+    buf = BytesIO()
+    buf.write(pdf.output())
+    buf.seek(0)
+
+    filename = f"scorecard_{applicant_name.replace(' ', '_')}_{stage_name.replace(' ', '_')}.pdf"
+
+    return StreamingResponse(
+        buf,
+        media_type="application/pdf",
+        headers={"Content-Disposition": f'attachment; filename="{filename}"'},
+    )

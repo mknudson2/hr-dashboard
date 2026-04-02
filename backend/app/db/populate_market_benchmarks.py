@@ -15,12 +15,15 @@ NOTE: This is sample data for demonstration. For production use, you should:
 
 import sqlite3
 import os
+import logging
+
+logger = logging.getLogger(__name__)
 
 # Get the database path
 backend_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 db_path = os.path.join(backend_dir, "data", "hr_dashboard.db")
 
-print(f"Populating market benchmarks at: {db_path}")
+logger.info(f"Populating market benchmarks at: {db_path}")
 
 # Connect to database
 conn = sqlite3.connect(db_path)
@@ -336,7 +339,7 @@ market_benchmarks = [
 
 try:
     # Insert market benchmarks
-    print(f"\nInserting {len(market_benchmarks)} market benchmarks...")
+    logger.info(f"\nInserting {len(market_benchmarks)} market benchmarks...")
 
     for idx, benchmark in enumerate(market_benchmarks, 1):
         cursor.execute("""
@@ -372,42 +375,42 @@ try:
             benchmark["company_size"],
             True
         ))
-        print(f"  {idx}. {benchmark['job_title']} ({benchmark['job_level']}) - Median: ${benchmark['p50']:,}")
+        logger.info(f"{idx}. {benchmark['job_title']} ({benchmark['job_level']}) - Median: ${benchmark['p50']:,}")
 
     # Commit changes
     conn.commit()
-    print(f"\n✅ Successfully inserted {len(market_benchmarks)} market benchmarks!")
+    logger.info(f"\n Successfully inserted {len(market_benchmarks)} market benchmarks!")
 
     # Show summary
     cursor.execute("SELECT COUNT(*) FROM market_benchmarks WHERE is_active = 1")
     total = cursor.fetchone()[0]
-    print(f"\nTotal active benchmarks in database: {total}")
+    logger.info(f"\nTotal active benchmarks in database: {total}")
 
 except Exception as e:
     conn.rollback()
-    print(f"\n❌ Error inserting market benchmarks: {e}")
+    logger.error(f"\n Error inserting market benchmarks: {e}")
     raise
 
 finally:
     conn.close()
 
-print("\n" + "="*60)
-print("NEXT STEPS:")
-print("="*60)
-print("\n1. API Endpoints available:")
-print("   - GET  /market-data/benchmarks")
-print("   - GET  /market-data/benchmarks/{id}")
-print("   - GET  /market-data/compare/{employee_id}")
-print("   - GET  /market-data/job-families")
-print("   - GET  /market-data/locations")
-print("   - GET  /market-data/job-levels")
-print("\n2. Test the API:")
-print("   curl http://localhost:8000/market-data/benchmarks")
-print("\n3. Compare employee to market:")
-print("   curl http://localhost:8000/market-data/compare/1001")
-print("\n4. For production, consider:")
-print("   - Subscribing to professional salary surveys (Mercer, Radford)")
-print("   - Using market data APIs (Salary.com, Payscale, CompAnalyst)")
-print("   - Conducting your own compensation surveys")
-print("   - Updating benchmarks quarterly or semi-annually")
-print("="*60)
+logger.info("=" * 60)
+logger.info("NEXT STEPS:")
+logger.info("=" * 60)
+logger.info("1. API Endpoints available:")
+logger.info("- GET  /market-data/benchmarks")
+logger.info("- GET  /market-data/benchmarks/{id}")
+logger.info("- GET  /market-data/compare/{employee_id}")
+logger.info("- GET  /market-data/job-families")
+logger.info("- GET  /market-data/locations")
+logger.info("- GET  /market-data/job-levels")
+logger.info("2. Test the API:")
+logger.info("curl http://localhost:8000/market-data/benchmarks")
+logger.info("3. Compare employee to market:")
+logger.info("curl http://localhost:8000/market-data/compare/1001")
+logger.info("4. For production, consider:")
+logger.info("- Subscribing to professional salary surveys (Mercer, Radford)")
+logger.info("- Using market data APIs (Salary.com, Payscale, CompAnalyst)")
+logger.info("- Conducting your own compensation surveys")
+logger.info("- Updating benchmarks quarterly or semi-annually")
+logger.info("=" * 60)

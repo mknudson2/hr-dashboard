@@ -1,6 +1,9 @@
 """Create events table for tracking HR events."""
 import sqlite3
 import os
+import logging
+
+logger = logging.getLogger(__name__)
 
 # Get the database path
 backend_dir = os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
@@ -38,7 +41,7 @@ cursor.execute("""
     )
 """)
 
-print("✓ Created events table")
+logger.info("Created events table")
 
 # Create event types reference table
 cursor.execute("""
@@ -53,7 +56,7 @@ cursor.execute("""
     )
 """)
 
-print("✓ Created event_types table")
+logger.info("Created event_types table")
 
 # Insert default event types
 event_types_data = [
@@ -77,15 +80,15 @@ for event_type in event_types_data:
             INSERT INTO event_types (type_name, category, default_duration_days, default_reminder_days, color_code, description)
             VALUES (?, ?, ?, ?, ?, ?)
         """, event_type)
-        print(f"  - Added event type: {event_type[0]}")
+        logger.info(f"- Added event type: {event_type[0]}")
     except sqlite3.IntegrityError:
-        print(f"  - Event type already exists: {event_type[0]}")
+        logger.info(f"- Event type already exists: {event_type[0]}")
 
 # Commit changes
 conn.commit()
 conn.close()
 
-print(f"\n✓ Events database schema created successfully!")
-print("  - events table created")
-print("  - event_types table created")
-print(f"  - {len(event_types_data)} event types configured")
+logger.info(f"\n Events database schema created successfully!")
+logger.info("- events table created")
+logger.info("- event_types table created")
+logger.info(f"- {len(event_types_data)} event types configured")

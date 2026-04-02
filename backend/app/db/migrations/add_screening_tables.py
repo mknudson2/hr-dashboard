@@ -13,6 +13,9 @@ This migration is idempotent — safe to run multiple times.
 
 import sqlite3
 import os
+import logging
+
+logger = logging.getLogger(__name__)
 
 DB_PATH = os.path.join(
     os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))),
@@ -111,7 +114,7 @@ def run_migration():
 
     conn.commit()
     conn.close()
-    print("Screening tables migration complete.")
+    logger.info("Screening tables migration complete.")
 
 
 if __name__ == "__main__":

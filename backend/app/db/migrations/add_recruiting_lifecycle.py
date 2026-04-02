@@ -14,8 +14,11 @@ from pathlib import Path
 # Add parent directory to path
 sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 
+import logging
 from sqlalchemy import text
 from app.db.database import engine
+
+logger = logging.getLogger(__name__)
 
 
 def upgrade():
@@ -31,11 +34,11 @@ def upgrade():
         ]
         for col_name, sql in employee_migrations:
             if col_name in existing_cols:
-                print(f"  Skipped (already exists): employees.{col_name}")
+                logger.info(f"Skipped (already exists): employees.{col_name}")
             else:
                 conn.execute(text(sql))
                 conn.commit()
-                print(f"  Added column: employees.{col_name}")
+                logger.info(f"Added column: employees.{col_name}")
 
         # --- 2. Add new columns to job_requisitions ---
         result = conn.execute(text("PRAGMA table_info(job_requisitions)"))
@@ -53,11 +56,11 @@ def upgrade():
         ]
         for col_name, sql in requisition_migrations:
             if col_name in existing_cols:
-                print(f"  Skipped (already exists): job_requisitions.{col_name}")
+                logger.info(f"Skipped (already exists): job_requisitions.{col_name}")
             else:
                 conn.execute(text(sql))
                 conn.commit()
-                print(f"  Added column: job_requisitions.{col_name}")
+                logger.info(f"Added column: job_requisitions.{col_name}")
 
         # Add close/cancel tracking columns
         close_migrations = [
@@ -67,17 +70,17 @@ def upgrade():
         ]
         for col_name, sql in close_migrations:
             if col_name in existing_cols:
-                print(f"  Skipped (already exists): job_requisitions.{col_name}")
+                logger.info(f"Skipped (already exists): job_requisitions.{col_name}")
             else:
                 conn.execute(text(sql))
                 conn.commit()
-                print(f"  Added column: job_requisitions.{col_name}")
+                logger.info(f"Added column: job_requisitions.{col_name}")
 
         # Rename preferred_salary -> target_salary if needed
         if "preferred_salary" in existing_cols and "target_salary" not in existing_cols:
             conn.execute(text("ALTER TABLE job_requisitions RENAME COLUMN preferred_salary TO target_salary"))
             conn.commit()
-            print("  Renamed column: job_requisitions.preferred_salary -> target_salary")
+            logger.info("Renamed column: job_requisitions.preferred_salary -> target_salary")
 
         # --- 3. Create requisition_lifecycle_stages table ---
         conn.execute(text("""
@@ -102,7 +105,7 @@ def upgrade():
             )
         """))
         conn.commit()
-        print("  Created table: requisition_lifecycle_stages")
+        logger.info("Created table: requisition_lifecycle_stages")
 
         # Create index
         conn.execute(text("""
@@ -126,7 +129,7 @@ def upgrade():
             )
         """))
         conn.commit()
-        print("  Created table: lifecycle_stage_notes")
+        logger.info("Created table: lifecycle_stage_notes")
 
         # --- 5. Create lifecycle_stage_documents table ---
         conn.execute(text("""
@@ -142,7 +145,7 @@ def upgrade():
             )
         """))
         conn.commit()
-        print("  Created table: lifecycle_stage_documents")
+        logger.info("Created table: lifecycle_stage_documents")
 
         # --- 6. Create interview_compliance_tips table ---
         conn.execute(text("""
@@ -158,7 +161,7 @@ def upgrade():
             )
         """))
         conn.commit()
-        print("  Created table: interview_compliance_tips")
+        logger.info("Created table: interview_compliance_tips")
 
         # --- 7. Seed default compliance tips ---
         result = conn.execute(text("SELECT COUNT(*) FROM interview_compliance_tips"))
@@ -186,9 +189,9 @@ def upgrade():
                     "INSERT INTO interview_compliance_tips (category, title, content, severity, order_index) VALUES (:cat, :title, :content, :sev, :idx)"
                 ), {"cat": category, "title": title, "content": content, "sev": severity, "idx": order_idx})
             conn.commit()
-            print(f"  Seeded {len(tips)} compliance tips")
+            logger.info(f"Seeded {len(tips)} compliance tips")
         else:
-            print(f"  Skipped seeding compliance tips ({count} already exist)")
+            logger.info(f"Skipped seeding compliance tips ({count} already exist)")
 
 
 def downgrade():
@@ -204,13 +207,13 @@ def downgrade():
             try:
                 conn.execute(text(f"DROP TABLE IF EXISTS {table}"))
                 conn.commit()
-                print(f"  Dropped table: {table}")
+                logger.info(f"Dropped table: {table}")
             except Exception as e:
-                print(f"  Error dropping {table}: {e}")
+                logger.error(f"Error dropping {table}: {e}")
 
         # Note: SQLite doesn't support DROP COLUMN easily, so new columns on
         # employees and job_requisitions are left in place on rollback.
-        print("  Note: New columns on employees and job_requisitions are retained.")
+        logger.warning("Note: New columns on employees and job_requisitions are retained.")
 
 
 if __name__ == "__main__":
@@ -226,10 +229,10 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     if args.rollback:
-        print("Rolling back migration...")
+        logger.info("Rolling back migration...")
         downgrade()
-        print("Migration rolled back successfully!")
+        logger.info("Migration rolled back successfully!")
     else:
-        print("Running migration...")
+        logger.info("Running migration...")
         upgrade()
-        print("Migration completed successfully!")
+        logger.info("Migration completed successfully!")

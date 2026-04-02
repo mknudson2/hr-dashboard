@@ -10,8 +10,11 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 
+import logging
 from sqlalchemy import text
 from app.db.database import engine
+
+logger = logging.getLogger(__name__)
 
 
 def upgrade():
@@ -38,7 +41,7 @@ def upgrade():
             )
         """))
         conn.commit()
-        print("  Created table: scorecard_analyses")
+        logger.info("Created table: scorecard_analyses")
 
         # Indexes
         conn.execute(text("""
@@ -50,7 +53,7 @@ def upgrade():
             ON scorecard_analyses(status)
         """))
         conn.commit()
-        print("  Created indexes on scorecard_analyses")
+        logger.info("Created indexes on scorecard_analyses")
 
 
 def downgrade():
@@ -58,7 +61,7 @@ def downgrade():
     with engine.connect() as conn:
         conn.execute(text("DROP TABLE IF EXISTS scorecard_analyses"))
         conn.commit()
-        print("  Dropped table: scorecard_analyses")
+        logger.info("Dropped table: scorecard_analyses")
 
 
 if __name__ == "__main__":
@@ -69,9 +72,9 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     if args.rollback:
-        print("Rolling back migration...")
+        logger.info("Rolling back migration...")
         downgrade()
     else:
-        print("Running migration...")
+        logger.info("Running migration...")
         upgrade()
-    print("Done!")
+    logger.info("Done!")

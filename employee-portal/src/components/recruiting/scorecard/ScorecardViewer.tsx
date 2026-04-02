@@ -120,24 +120,24 @@ export default function ScorecardViewer({
                   {sectionAvgs[si] > 0 ? sectionAvgs[si].toFixed(1) : '—'}
                 </span>
               </div>
-              <div className="px-4 py-2 space-y-1.5">
+              <div className="px-4 py-2 space-y-1">
                 {section.criteria.map(criterion => {
                   const cr = criteriaRatings.find(r => r.criteria === criterion.name);
                   return (
-                    <div key={criterion.name} className="flex items-center justify-between text-sm py-1">
-                      <span className="text-gray-700 dark:text-gray-300">{criterion.name}</span>
-                      <div className="flex items-center gap-2">
+                    <div key={criterion.name} className="py-1.5 border-b border-gray-100 dark:border-gray-700/50 last:border-0">
+                      <div className="flex items-center justify-between text-sm">
+                        <span className="text-gray-700 dark:text-gray-300">{criterion.name}</span>
                         {cr?.rating ? (
                           <span className={`font-medium ${ratingColor(cr.rating)}`}>{cr.rating}/5</span>
                         ) : (
                           <span className="text-gray-300 dark:text-gray-600">—</span>
                         )}
-                        {cr?.notes && (
-                          <span className="text-xs text-gray-400 max-w-48 truncate" title={cr.notes}>
-                            {cr.notes}
-                          </span>
-                        )}
                       </div>
+                      {cr?.notes && (
+                        <p className="text-xs text-gray-500 dark:text-gray-400 mt-1 whitespace-pre-wrap leading-relaxed">
+                          {cr.notes}
+                        </p>
+                      )}
                     </div>
                   );
                 })}
@@ -146,17 +146,22 @@ export default function ScorecardViewer({
           ))}
         </div>
       ) : criteriaRatings.length > 0 ? (
-        <div className="border dark:border-gray-700 rounded-lg p-4 space-y-1.5">
+        <div className="border dark:border-gray-700 rounded-lg p-4 space-y-1">
           {criteriaRatings.map(cr => (
-            <div key={cr.criteria} className="flex items-center justify-between text-sm py-1">
-              <span className="text-gray-700 dark:text-gray-300">{cr.criteria}</span>
-              <div className="flex items-center gap-2">
+            <div key={cr.criteria} className="py-1.5 border-b border-gray-100 dark:border-gray-700/50 last:border-0">
+              <div className="flex items-center justify-between text-sm">
+                <span className="text-gray-700 dark:text-gray-300">{cr.criteria}</span>
                 {cr.rating ? (
                   <span className={`font-medium ${ratingColor(cr.rating)}`}>{cr.rating}/5</span>
                 ) : (
                   <span className="text-gray-300 dark:text-gray-600">—</span>
                 )}
               </div>
+              {cr.notes && (
+                <p className="text-xs text-gray-500 dark:text-gray-400 mt-1 whitespace-pre-wrap leading-relaxed">
+                  {cr.notes}
+                </p>
+              )}
             </div>
           ))}
         </div>

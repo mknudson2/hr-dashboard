@@ -1,6 +1,9 @@
 """Add comprehensive benefits columns to employees table."""
 import sqlite3
 import os
+import logging
+
+logger = logging.getLogger(__name__)
 
 # Get the database path
 backend_dir = os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
@@ -60,7 +63,7 @@ columns_to_add = [
     ("wellness_stipend", "REAL"),
 ]
 
-print(f"Adding {len(columns_to_add)} benefits columns to employees table...")
+logger.info("Adding %d benefits columns to employees table...", len(columns_to_add))
 
 # Add each column if it doesn't exist
 added_count = 0
@@ -69,19 +72,19 @@ existing_count = 0
 for column_name, column_type in columns_to_add:
     try:
         cursor.execute(f"ALTER TABLE employees ADD COLUMN {column_name} {column_type}")
-        print(f"✓ Added column: {column_name}")
+        logger.info("Added column: %s", column_name)
         added_count += 1
     except sqlite3.OperationalError as e:
         if "duplicate column name" in str(e).lower():
-            print(f"- Column already exists: {column_name}")
+            logger.info("Column already exists: %s", column_name)
             existing_count += 1
         else:
-            print(f"✗ Error adding {column_name}: {e}")
+            logger.error("Error adding %s: %s", column_name, e)
 
 # Commit changes
 conn.commit()
 conn.close()
 
-print(f"\n✓ Database migration completed!")
-print(f"  - Added {added_count} new columns")
-print(f"  - Skipped {existing_count} existing columns")
+logger.info("Database migration completed!")
+logger.info("Added %d new columns", added_count)
+logger.info("Skipped %d existing columns", existing_count)

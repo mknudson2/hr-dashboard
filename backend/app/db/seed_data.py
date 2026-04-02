@@ -2,6 +2,9 @@ import os
 import random
 from datetime import date
 from app.db import database, models
+import logging
+
+logger = logging.getLogger(__name__)
 
 # Fixed seed for deterministic, reproducible demo data
 random.seed(42)
@@ -378,9 +381,9 @@ db.add_all(employees)
 db.commit()
 db.close()
 
-print(f"✅ Successfully seeded {employee_count} employees!")
-print(f"   - US Employees: 130")
-print(f"   - Congruent (C##): 30")
-print(f"   - Ameripol (AM##): 25")
-print(f"   - Bloom (BH##): 15")
-print(f"   Total: 200 employees")
+logger.info(f"Successfully seeded {employee_count} employees!")
+logger.info(f"- US Employees: 130")
+logger.info(f"- Congruent (C##): 30")
+logger.info(f"- Ameripol (AM##): 25")
+logger.info(f"- Bloom (BH##): 15")
+logger.info(f"Total: 200 employees")

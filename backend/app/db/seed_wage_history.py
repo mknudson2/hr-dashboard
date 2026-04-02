@@ -4,6 +4,9 @@ import random
 from sqlalchemy.orm import Session
 from .database import SessionLocal, engine
 from . import models
+import logging
+
+logger = logging.getLogger(__name__)
 
 # Create tables
 models.Base.metadata.create_all(bind=engine)
@@ -17,7 +20,7 @@ def seed_wage_history():
         # Get all employees
         employees = db.query(models.Employee).all()
 
-        print(f"Creating wage history for {len(employees)} employees...")
+        logger.info(f"Creating wage history for {len(employees)} employees...")
 
         change_reasons = [
             "Initial Hire",
@@ -102,10 +105,10 @@ def seed_wage_history():
         db.bulk_save_objects(wage_history_records)
         db.commit()
 
-        print(f"✅ Created {len(wage_history_records)} wage history records")
+        logger.info(f"Created {len(wage_history_records)} wage history records")
 
     except Exception as e:
-        print(f"❌ Error seeding wage history: {e}")
+        logger.error(f"Error seeding wage history: {e}")
         db.rollback()
     finally:
         db.close()

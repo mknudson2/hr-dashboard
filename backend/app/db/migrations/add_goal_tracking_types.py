@@ -11,6 +11,9 @@ Run this script to update an existing database.
 import sqlite3
 import os
 from datetime import datetime
+import logging
+
+logger = logging.getLogger(__name__)
 
 # Path to the database - check multiple possible locations
 def find_database():
@@ -28,10 +31,10 @@ DB_PATH = find_database()
 
 
 def run_migration():
-    print(f"Running migration on database: {DB_PATH}")
+    logger.info(f"Running migration on database: {DB_PATH}")
 
     if not os.path.exists(DB_PATH):
-        print("Database file not found. Creating tables will happen on first app start.")
+        logger.info("Database file not found. Creating tables will happen on first app start.")
         return
 
     conn = sqlite3.connect(DB_PATH)
@@ -39,7 +42,7 @@ def run_migration():
 
     try:
         # Add new columns to performance_goals table
-        print("Adding new columns to performance_goals table...")
+        logger.info("Adding new columns to performance_goals table...")
 
         new_columns = [
             ("tracking_type", "VARCHAR(50) DEFAULT 'percentage'"),
@@ -54,15 +57,15 @@ def run_migration():
         for col_name, col_type in new_columns:
             try:
                 cursor.execute(f"ALTER TABLE performance_goals ADD COLUMN {col_name} {col_type}")
-                print(f"  Added column: {col_name}")
+                logger.info(f"Added column: {col_name}")
             except sqlite3.OperationalError as e:
                 if "duplicate column name" in str(e).lower():
-                    print(f"  Column {col_name} already exists, skipping")
+                    logger.warning(f"Column {col_name} already exists, skipping")
                 else:
                     raise
 
         # Create goal_progress_entries table
-        print("\nCreating goal_progress_entries table...")
+        logger.info("Creating goal_progress_entries table...")
         cursor.execute("""
             CREATE TABLE IF NOT EXISTS goal_progress_entries (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -78,10 +81,10 @@ def run_migration():
             )
         """)
         cursor.execute("CREATE INDEX IF NOT EXISTS idx_progress_entries_goal_id ON goal_progress_entries(goal_id)")
-        print("  Table created successfully")
+        logger.info("Table created successfully")
 
         # Create goal_progress_attachments table
-        print("\nCreating goal_progress_attachments table...")
+        logger.info("Creating goal_progress_attachments table...")
         cursor.execute("""
             CREATE TABLE IF NOT EXISTS goal_progress_attachments (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -100,10 +103,10 @@ def run_migration():
             )
         """)
         cursor.execute("CREATE INDEX IF NOT EXISTS idx_progress_attachments_entry_id ON goal_progress_attachments(progress_entry_id)")
-        print("  Table created successfully")
+        logger.info("Table created successfully")
 
         # Create goal_milestones table
-        print("\nCreating goal_milestones table...")
+        logger.info("Creating goal_milestones table...")
         cursor.execute("""
             CREATE TABLE IF NOT EXISTS goal_milestones (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -123,19 +126,19 @@ def run_migration():
             )
         """)
         cursor.execute("CREATE INDEX IF NOT EXISTS idx_milestones_goal_id ON goal_milestones(goal_id)")
-        print("  Table created successfully")
+        logger.info("Table created successfully")
 
         # Create storage directory for goal attachments
         attachments_dir = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), "storage", "goal_attachments")
         os.makedirs(attachments_dir, exist_ok=True)
-        print(f"\nCreated attachments directory: {attachments_dir}")
+        logger.info(f"\nCreated attachments directory: {attachments_dir}")
 
         conn.commit()
-        print("\nMigration completed successfully!")
+        logger.info("Migration completed successfully!")
 
     except Exception as e:
         conn.rollback()
-        print(f"\nError during migration: {e}")
+        logger.error(f"\nError during migration: {e}")
         raise
     finally:
         conn.close()

@@ -175,7 +175,7 @@ async def batch_upload_files(
 
 
 @router.get("/", response_model=List[FileUploadResponse])
-async def list_uploads(
+def list_uploads(
     status: Optional[str] = Query(None, description="Filter by status: pending, processing, completed, failed"),
     file_type: Optional[str] = Query(None, description="Filter by file type: csv, xlsx, docx, pdf"),
     uploaded_by: Optional[str] = Query(None, description="Filter by uploader"),
@@ -213,7 +213,7 @@ async def list_uploads(
 
 
 @router.get("/{file_id}", response_model=FileUploadDetailResponse)
-async def get_upload_detail(
+def get_upload_detail(
     file_id: int,
     db: Session = Depends(database.get_db)
 ):
@@ -232,7 +232,7 @@ async def get_upload_detail(
 
 
 @router.get("/{file_id}/logs", response_model=List[ProcessingLogResponse])
-async def get_upload_logs(
+def get_upload_logs(
     file_id: int,
     log_level: Optional[str] = Query(None, description="Filter by log level: info, warning, error, debug"),
     limit: int = Query(100, ge=1, le=1000),
@@ -326,7 +326,7 @@ async def preview_file(
 
 
 @router.delete("/{file_id}")
-async def delete_upload(
+def delete_upload(
     file_id: int,
     db: Session = Depends(database.get_db)
 ):
@@ -351,7 +351,7 @@ async def delete_upload(
 
 
 @router.post("/{file_id}/process")
-async def process_employee_file(
+def process_employee_file(
     file_id: int,
     db: Session = Depends(database.get_db)
 ):
@@ -405,7 +405,7 @@ async def process_employee_file(
 
 
 @router.get("/stats/summary", response_model=FileUploadStatsResponse)
-async def get_upload_stats(
+def get_upload_stats(
     db: Session = Depends(database.get_db)
 ):
     """
@@ -489,7 +489,7 @@ class ColumnMappingResponse(BaseModel):
 
 
 @router.get("/column-mappings", response_model=List[ColumnMappingResponse])
-async def get_column_mappings(
+def get_column_mappings(
     file_type: Optional[str] = Query(None),
     target_table: Optional[str] = Query(None),
     db: Session = Depends(database.get_db)
@@ -526,7 +526,7 @@ async def get_column_mappings(
 
 
 @router.post("/column-mappings", response_model=ColumnMappingResponse)
-async def create_column_mapping(
+def create_column_mapping(
     mapping: ColumnMappingRequest,
     db: Session = Depends(database.get_db)
 ):
@@ -575,7 +575,7 @@ async def create_column_mapping(
 
 
 @router.put("/column-mappings/{mapping_id}", response_model=ColumnMappingResponse)
-async def update_column_mapping(
+def update_column_mapping(
     mapping_id: int,
     mappings: dict,
     db: Session = Depends(database.get_db)
@@ -609,7 +609,7 @@ async def update_column_mapping(
 
 
 @router.delete("/column-mappings/{mapping_id}")
-async def delete_column_mapping(
+def delete_column_mapping(
     mapping_id: int,
     db: Session = Depends(database.get_db)
 ):
@@ -633,7 +633,7 @@ async def delete_column_mapping(
 
 
 @router.get("/column-mappings/default-employee")
-async def get_default_employee_mapping():
+def get_default_employee_mapping():
     """
     Get the default Paylocity employee column mapping
 
@@ -750,7 +750,7 @@ async def import_file_data(
 
 
 @router.get("/categories")
-async def get_file_categories():
+def get_file_categories():
     """
     Get list of supported file categories
 
@@ -777,7 +777,7 @@ async def get_file_categories():
 # ============================================================================
 
 @router.get("/mapping/available-fields")
-async def get_available_fields():
+def get_available_fields():
     """
     Get all available database fields that can be mapped to
 
@@ -989,7 +989,7 @@ async def import_with_custom_mappings(
 
 
 @router.get("/templates/download")
-async def download_template(
+def download_template(
     template_type: str = Query(..., description="Template type: employee, comprehensive"),
 ):
     """

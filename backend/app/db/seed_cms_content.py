@@ -15,13 +15,16 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(__file__))))
 
 from app.db.database import SessionLocal, engine
 from app.db import models
+import logging
+
+logger = logging.getLogger(__name__)
 
 
 def seed_cms_content():
     """Seed all CMS content into the database."""
-    print("=" * 60)
-    print("CMS Content Seeding")
-    print("=" * 60)
+    logger.info("=" * 60)
+    logger.info("CMS Content Seeding")
+    logger.info("=" * 60)
 
     models.Base.metadata.create_all(bind=engine)
 
@@ -37,28 +40,28 @@ def seed_cms_content():
         ).first()
 
         if existing:
-            print("CMS content already exists. Skipping seed.")
+            logger.warning("CMS content already exists. Skipping seed.")
             return
 
-        print("\nSeeding handbook content...")
+        logger.info("Seeding handbook content...")
         seed_handbook(db)
 
-        print("\nSeeding benefits content...")
+        logger.info("Seeding benefits content...")
         seed_benefits(db)
 
-        print("\nSeeding FAQ content...")
+        logger.info("Seeding FAQ content...")
         seed_faqs(db)
 
-        print("\nSeeding forms content...")
+        logger.info("Seeding forms content...")
         seed_forms(db)
 
         db.commit()
-        print("\n" + "=" * 60)
-        print("CMS content seeding completed successfully!")
-        print("=" * 60)
+        logger.info("=" * 60)
+        logger.info("CMS content seeding completed successfully!")
+        logger.info("=" * 60)
 
     except Exception as e:
-        print(f"\nError during seeding: {e}")
+        logger.error(f"\nError during seeding: {e}")
         db.rollback()
         raise
     finally:
@@ -143,7 +146,7 @@ def seed_handbook(db):
         )
         db.add(chapter)
         db.flush()  # Get ID
-        print(f"  + Chapter: {ch['title']}")
+        logger.info(f"+ Chapter: {ch['title']}")
 
         for sec in ch["sections"]:
             section = models.HRResource(
@@ -155,7 +158,7 @@ def seed_handbook(db):
                 is_active=True,
             )
             db.add(section)
-            print(f"    + Section: {sec['title']}")
+            logger.info(f"+ Section: {sec['title']}")
 
 
 def seed_benefits(db):
@@ -248,7 +251,7 @@ def seed_benefits(db):
         )
         db.add(category)
         db.flush()
-        print(f"  + Category: {cat['name']}")
+        logger.info(f"+ Category: {cat['name']}")
 
         for plan in cat["plans"]:
             plan_resource = models.HRResource(
@@ -267,7 +270,7 @@ def seed_benefits(db):
                 is_active=True,
             )
             db.add(plan_resource)
-            print(f"    + Plan: {plan['name']}")
+            logger.info(f"+ Plan: {plan['name']}")
 
     # Benefits config
     config = models.HRResource(
@@ -284,7 +287,7 @@ def seed_benefits(db):
         is_active=True,
     )
     db.add(config)
-    print("  + Benefits config")
+    logger.info("+ Benefits config")
 
 
 def seed_faqs(db):
@@ -338,7 +341,7 @@ def seed_faqs(db):
             is_active=True,
         )
         db.add(resource)
-        print(f"  + FAQ: {faq['question'][:50]}...")
+        logger.info(f"+ FAQ: {faq['question'][:50]}...")
 
 
 def seed_forms(db):
@@ -422,7 +425,7 @@ def seed_forms(db):
             is_active=True,
         )
         db.add(resource)
-        print(f"  + Form: {form['name']}")
+        logger.info(f"+ Form: {form['name']}")
 
 
 if __name__ == "__main__":

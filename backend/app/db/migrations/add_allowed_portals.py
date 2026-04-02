@@ -15,6 +15,9 @@ sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 
 from sqlalchemy import text
 from app.db.database import engine
+import logging
+
+logger = logging.getLogger(__name__)
 
 
 def upgrade():
@@ -26,16 +29,16 @@ def upgrade():
         existing_columns = {row[1] for row in result}
 
         if "allowed_portals" in existing_columns:
-            print("⊘ Skipped (already exists): allowed_portals")
+            logger.info("⊘ Skipped (already exists): allowed_portals")
         else:
             try:
                 conn.execute(text(
                     "ALTER TABLE users ADD COLUMN allowed_portals TEXT DEFAULT '[\"employee-portal\"]';"
                 ))
                 conn.commit()
-                print("✓ Added column: allowed_portals")
+                logger.info("Added column: allowed_portals")
             except Exception as e:
-                print(f"✗ Error adding allowed_portals: {e}")
+                logger.error(f"Error adding allowed_portals: {e}")
                 conn.rollback()
                 return
 
@@ -59,12 +62,12 @@ def upgrade():
                 )
 
         conn.commit()
-        print(f"✓ Backfilled allowed_portals for {len(users)} users")
+        logger.info(f"Backfilled allowed_portals for {len(users)} users")
 
 
 if __name__ == "__main__":
-    print("Running migration: add_allowed_portals")
-    print("=" * 50)
+    logger.info("Running migration: add_allowed_portals")
+    logger.info("=" * 50)
     upgrade()
-    print("=" * 50)
-    print("Migration complete.")
+    logger.info("=" * 50)
+    logger.info("Migration complete.")

@@ -28,10 +28,16 @@ class AvailabilityService:
         """
         created = []
         for slot in slots:
+            start = slot["start_time"]
+            end = slot["end_time"]
+            if isinstance(start, str):
+                start = datetime.fromisoformat(start.replace("Z", "+00:00"))
+            if isinstance(end, str):
+                end = datetime.fromisoformat(end.replace("Z", "+00:00"))
             avail = models.InterviewerAvailability(
                 user_id=user_id,
-                start_time=slot["start_time"],
-                end_time=slot["end_time"],
+                start_time=start,
+                end_time=end,
                 time_zone=slot.get("time_zone"),
                 slot_duration_minutes=slot.get("slot_duration_minutes", 60),
                 requisition_id=requisition_id,
@@ -54,8 +60,7 @@ class AvailabilityService:
         )
         if requisition_id:
             query = query.filter(
-                (models.InterviewerAvailability.requisition_id == requisition_id)
-                | (models.InterviewerAvailability.requisition_id == None)
+                models.InterviewerAvailability.requisition_id == requisition_id
             )
         if after:
             query = query.filter(models.InterviewerAvailability.start_time > after)

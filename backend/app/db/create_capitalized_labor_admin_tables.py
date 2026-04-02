@@ -22,17 +22,20 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from db.database import Base, engine
 from db import models
+import logging
+
+logger = logging.getLogger(__name__)
 
 
 def create_capitalized_labor_admin_tables():
     """Create the admin tables for capitalized labor management."""
-    print("Creating capitalized labor admin tables...")
-    print("=" * 60)
+    logger.info("Creating capitalized labor admin tables...")
+    logger.info("=" * 60)
 
     try:
         # Create all tables (will only create new ones)
         Base.metadata.create_all(bind=engine)
-        print("✅ Database tables created/updated successfully!")
+        logger.info("Database tables created/updated successfully!")
 
         # Create session
         SessionLocal = sessionmaker(bind=engine)
@@ -40,7 +43,7 @@ def create_capitalized_labor_admin_tables():
 
         try:
             # Check if we need to add columns to time_entries
-            print("\nChecking for schema updates...")
+            logger.info("Checking for schema updates...")
 
             # Use raw SQL to check if columns exist and add them if not
             with engine.connect() as conn:
@@ -51,13 +54,13 @@ def create_capitalized_labor_admin_tables():
                 """))
                 row = result.fetchone()
                 if row and row[0] == 0:
-                    print("  Adding labor_rate_at_entry column to time_entries...")
+                    logger.info("Adding labor_rate_at_entry column to time_entries...")
                     conn.execute(text("""
                         ALTER TABLE time_entries
                         ADD COLUMN labor_rate_at_entry FLOAT
                     """))
                     conn.commit()
-                    print("  ✅ labor_rate_at_entry column added")
+                    logger.info("labor_rate_at_entry column added")
 
                 # Check if fully_burdened_cost column exists
                 result = conn.execute(text("""
@@ -66,13 +69,13 @@ def create_capitalized_labor_admin_tables():
                 """))
                 row = result.fetchone()
                 if row and row[0] == 0:
-                    print("  Adding fully_burdened_cost column to time_entries...")
+                    logger.info("Adding fully_burdened_cost column to time_entries...")
                     conn.execute(text("""
                         ALTER TABLE time_entries
                         ADD COLUMN fully_burdened_cost FLOAT
                     """))
                     conn.commit()
-                    print("  ✅ fully_burdened_cost column added")
+                    logger.info("fully_burdened_cost column added")
 
                 # Check if import_source_id column exists
                 result = conn.execute(text("""
@@ -81,22 +84,22 @@ def create_capitalized_labor_admin_tables():
                 """))
                 row = result.fetchone()
                 if row and row[0] == 0:
-                    print("  Adding import_source_id column to time_entries...")
+                    logger.info("Adding import_source_id column to time_entries...")
                     conn.execute(text("""
                         ALTER TABLE time_entries
                         ADD COLUMN import_source_id INTEGER REFERENCES labor_data_imports(id)
                     """))
                     conn.commit()
-                    print("  ✅ import_source_id column added")
+                    logger.info("import_source_id column added")
 
-            print("\n✅ Schema updates complete!")
+            logger.info("Schema updates complete!")
 
             # Create initial capitalization periods for the current year
-            print("\nChecking for initial period setup...")
+            logger.info("Checking for initial period setup...")
             existing_periods = db.query(models.CapitalizationPeriod).first()
 
             if not existing_periods:
-                print("Creating initial capitalization periods for 2025...")
+                logger.info("Creating initial capitalization periods for 2025...")
                 current_year = 2025
 
                 # Create monthly periods for 2025
@@ -117,7 +120,7 @@ def create_capitalized_labor_admin_tables():
                         status="open" if month >= datetime.now().month else "closed"
                     )
                     db.add(period)
-                    print(f"  Created period: CAP-{current_year}-{month:02d}")
+                    logger.info(f"Created period: CAP-{current_year}-{month:02d}")
 
                 # Create quarterly periods
                 for quarter in range(1, 5):
@@ -138,7 +141,7 @@ def create_capitalized_labor_admin_tables():
                         status="open"
                     )
                     db.add(period)
-                    print(f"  Created period: CAP-{current_year}-Q{quarter}")
+                    logger.info(f"Created period: CAP-{current_year}-Q{quarter}")
 
                 # Create annual period
                 annual_period = models.CapitalizationPeriod(
@@ -150,34 +153,34 @@ def create_capitalized_labor_admin_tables():
                     status="open"
                 )
                 db.add(annual_period)
-                print(f"  Created period: CAP-{current_year}-ANNUAL")
+                logger.info(f"Created period: CAP-{current_year}-ANNUAL")
 
                 db.commit()
-                print("\n✅ Initial periods created!")
+                logger.info("Initial periods created!")
             else:
-                print("⚠️  Periods already exist. Skipping initial setup.")
+                logger.warning("Periods already exist. Skipping initial setup.")
 
-            print("\n" + "=" * 60)
-            print("✅ Capitalized Labor Admin tables setup complete!")
-            print("\nNew tables created:")
-            print("  - employee_labor_rates")
-            print("  - labor_data_imports")
-            print("  - capitalization_periods")
-            print("  - employee_capitalization_summaries")
-            print("\nTime entries table updated with:")
-            print("  - labor_rate_at_entry")
-            print("  - fully_burdened_cost")
-            print("  - import_source_id")
+            logger.info("=" * 60)
+            logger.info("Capitalized Labor Admin tables setup complete!")
+            logger.info("New tables created:")
+            logger.info("- employee_labor_rates")
+            logger.info("- labor_data_imports")
+            logger.info("- capitalization_periods")
+            logger.info("- employee_capitalization_summaries")
+            logger.info("Time entries table updated with:")
+            logger.info("- labor_rate_at_entry")
+            logger.info("- fully_burdened_cost")
+            logger.info("- import_source_id")
 
         except Exception as e:
-            print(f"❌ Error during setup: {e}")
+            logger.error(f"Error during setup: {e}")
             db.rollback()
             raise
         finally:
             db.close()
 
     except Exception as e:
-        print(f"❌ Error creating tables: {e}")
+        logger.error(f"Error creating tables: {e}")
         raise
 
 

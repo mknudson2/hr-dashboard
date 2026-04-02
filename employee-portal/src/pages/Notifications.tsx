@@ -9,7 +9,7 @@ import AuroraPageHeader from '@/components/bifrost/AuroraPageHeader';
 // Valid employee portal route prefixes for action_url links
 const PORTAL_ROUTE_PREFIXES = [
   '/dashboard', '/notifications', '/directory', '/announcements', '/schedule',
-  '/my-hr/', '/requests/', '/resources/', '/team', '/admin/',
+  '/my-hr/', '/requests/', '/resources/', '/team', '/admin/', '/hiring/',
 ];
 
 function isPortalRoute(url: string): boolean {

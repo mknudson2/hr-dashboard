@@ -35,6 +35,9 @@ from sqlalchemy.orm import sessionmaker
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))))
 
 from app.services.encryption_service import encryption_service
+import logging
+
+logger = logging.getLogger(__name__)
 
 
 def get_db_session():
@@ -70,7 +73,7 @@ def encrypt_float_value(value):
 
 def migrate_employee_wages(session, dry_run=True):
     """Migrate employee wage fields to encrypted format."""
-    print("\n--- Migrating Employee Wages ---")
+    logger.info("--- Migrating Employee Wages ---")
 
     # Get employees with wage data
     result = session.execute(text("""
@@ -81,7 +84,7 @@ def migrate_employee_wages(session, dry_run=True):
     """))
 
     rows = result.fetchall()
-    print(f"Found {len(rows)} employees with wage data")
+    logger.info(f"Found {len(rows)} employees with wage data")
 
     migrated = 0
     skipped = 0
@@ -95,7 +98,7 @@ def migrate_employee_wages(session, dry_run=True):
             continue
 
         if dry_run:
-            print(f"  Would encrypt Employee {employee_id}: wage={wage}, annual_wage={annual_wage}, hourly_wage={hourly_wage}")
+            logger.info(f"Would encrypt Employee {employee_id}: wage={wage}, annual_wage={annual_wage}, hourly_wage={hourly_wage}")
             migrated += 1
         else:
             try:
@@ -120,22 +123,22 @@ def migrate_employee_wages(session, dry_run=True):
                 })
                 migrated += 1
             except Exception as e:
-                print(f"  ERROR encrypting Employee {employee_id}: {e}")
+                logger.error(f"ERROR encrypting Employee {employee_id}: {e}")
 
-    print(f"  Migrated: {migrated}, Skipped (already encrypted): {skipped}")
+    logger.info(f"Migrated: {migrated}, Skipped (already encrypted): {skipped}")
     return migrated
 
 
 def migrate_wage_history(session, dry_run=True):
     """Migrate wage history records to encrypted format."""
-    print("\n--- Migrating Wage History ---")
+    logger.info("--- Migrating Wage History ---")
 
     result = session.execute(text("""
         SELECT id, employee_id, wage FROM wage_history WHERE wage IS NOT NULL
     """))
 
     rows = result.fetchall()
-    print(f"Found {len(rows)} wage history records")
+    logger.info(f"Found {len(rows)} wage history records")
 
     migrated = 0
     skipped = 0
@@ -148,7 +151,7 @@ def migrate_wage_history(session, dry_run=True):
             continue
 
         if dry_run:
-            print(f"  Would encrypt WageHistory {hist_id} for Employee {employee_id}: wage={wage}")
+            logger.info(f"Would encrypt WageHistory {hist_id} for Employee {employee_id}: wage={wage}")
             migrated += 1
         else:
             try:
@@ -158,15 +161,15 @@ def migrate_wage_history(session, dry_run=True):
                 """), {'wage': enc_wage, 'id': hist_id})
                 migrated += 1
             except Exception as e:
-                print(f"  ERROR encrypting WageHistory {hist_id}: {e}")
+                logger.error(f"ERROR encrypting WageHistory {hist_id}: {e}")
 
-    print(f"  Migrated: {migrated}, Skipped: {skipped}")
+    logger.info(f"Migrated: {migrated}, Skipped: {skipped}")
     return migrated
 
 
 def verify_encryption(session):
     """Verify that sensitive fields are properly encrypted."""
-    print("\n--- Verification ---")
+    logger.info("--- Verification ---")
 
     # Check a sample of employee records
     result = session.execute(text("""
@@ -177,7 +180,7 @@ def verify_encryption(session):
         wage, annual_wage = row
         wage_encrypted = is_already_encrypted(wage) if wage else True
         annual_encrypted = is_already_encrypted(annual_wage) if annual_wage else True
-        print(f"  Sample: wage encrypted={wage_encrypted}, annual_wage encrypted={annual_encrypted}")
+        logger.info(f"Sample: wage encrypted={wage_encrypted}, annual_wage encrypted={annual_encrypted}")
 
 
 def main():
@@ -189,13 +192,13 @@ def main():
 
     if not any([args.dry_run, args.execute, args.verify]):
         parser.print_help()
-        print("\nPlease specify --dry-run, --execute, or --verify")
+        logger.info("Please specify --dry-run, --execute, or --verify")
         sys.exit(1)
 
     # Check encryption key is set
     if not os.getenv('FIELD_ENCRYPTION_KEY'):
-        print("ERROR: FIELD_ENCRYPTION_KEY environment variable not set")
-        print("Generate a key with: python -c \"from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())\"")
+        logger.error("ERROR: FIELD_ENCRYPTION_KEY environment variable not set")
+        logger.info("Generate a key with: python -c \"from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())\"")
         sys.exit(1)
 
     session, engine = get_db_session()
@@ -206,14 +209,14 @@ def main():
         else:
             dry_run = args.dry_run
 
-            print(f"\n{'DRY RUN' if dry_run else 'EXECUTING MIGRATION'}")
-            print(f"Started at: {datetime.now().isoformat()}")
+            logger.info(f"\n{'DRY RUN' if dry_run else 'EXECUTING MIGRATION'}")
+            logger.info(f"Started at: {datetime.now().isoformat()}")
 
             if not dry_run:
-                print("\nWARNING: This will modify your database!")
+                logger.warning("WARNING: This will modify your database!")
                 confirm = input("Type 'yes' to continue: ")
                 if confirm.lower() != 'yes':
-                    print("Aborted.")
+                    logger.info("Aborted.")
                     sys.exit(0)
 
             total_migrated = 0
@@ -222,15 +225,15 @@ def main():
 
             if not dry_run:
                 session.commit()
-                print(f"\n✓ Migration complete! Total records migrated: {total_migrated}")
+                logger.info(f"\n Migration complete! Total records migrated: {total_migrated}")
                 verify_encryption(session)
             else:
-                print(f"\nDry run complete. Would migrate {total_migrated} records.")
-                print("Run with --execute to perform actual migration.")
+                logger.info(f"\nDry run complete. Would migrate {total_migrated} records.")
+                logger.info("Run with --execute to perform actual migration.")
 
     except Exception as e:
         session.rollback()
-        print(f"\nERROR: Migration failed: {e}")
+        logger.error(f"\nERROR: Migration failed: {e}")
         raise
     finally:
         session.close()

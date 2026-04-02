@@ -81,7 +81,7 @@ class ManualPollResponse(BaseModel):
 # ============================================================================
 
 @router.get("/configurations", response_model=List[SFTPConfigResponse])
-async def list_sftp_configurations(
+def list_sftp_configurations(
     is_active: Optional[bool] = Query(None),
     db: Session = Depends(database.get_db)
 ):
@@ -101,7 +101,7 @@ async def list_sftp_configurations(
 
 
 @router.get("/configurations/{config_id}", response_model=SFTPConfigResponse)
-async def get_sftp_configuration(
+def get_sftp_configuration(
     config_id: int,
     db: Session = Depends(database.get_db)
 ):
@@ -119,7 +119,7 @@ async def get_sftp_configuration(
 
 
 @router.post("/configurations", response_model=SFTPConfigResponse)
-async def create_sftp_configuration(
+def create_sftp_configuration(
     config_data: SFTPConfigRequest,
     db: Session = Depends(database.get_db)
 ):
@@ -158,7 +158,7 @@ async def create_sftp_configuration(
 
 
 @router.put("/configurations/{config_id}", response_model=SFTPConfigResponse)
-async def update_sftp_configuration(
+def update_sftp_configuration(
     config_id: int,
     config_data: SFTPConfigRequest,
     db: Session = Depends(database.get_db)
@@ -193,7 +193,7 @@ async def update_sftp_configuration(
 
 
 @router.delete("/configurations/{config_id}")
-async def delete_sftp_configuration(
+def delete_sftp_configuration(
     config_id: int,
     db: Session = Depends(database.get_db)
 ):
@@ -214,7 +214,7 @@ async def delete_sftp_configuration(
 
 
 @router.post("/configurations/{config_id}/test", response_model=ConnectionTestResponse)
-async def test_sftp_connection(
+def test_sftp_connection(
     config_id: int,
     db: Session = Depends(database.get_db)
 ):
@@ -236,7 +236,7 @@ async def test_sftp_connection(
 
 
 @router.post("/configurations/{config_id}/poll", response_model=ManualPollResponse)
-async def manual_poll(
+def manual_poll(
     config_id: int,
     db: Session = Depends(database.get_db)
 ):
@@ -262,7 +262,7 @@ async def manual_poll(
 
 
 @router.post("/configurations/{config_id}/toggle")
-async def toggle_sftp_configuration(
+def toggle_sftp_configuration(
     config_id: int,
     db: Session = Depends(database.get_db)
 ):
@@ -287,7 +287,7 @@ async def toggle_sftp_configuration(
 
 
 @router.get("/scheduler/status")
-async def get_scheduler_status():
+def get_scheduler_status():
     """
     Get status of the SFTP polling scheduler
     """

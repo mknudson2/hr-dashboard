@@ -26,11 +26,14 @@ from sqlalchemy.orm import sessionmaker
 
 from db.database import Base, engine
 from db import models
+import logging
+
+logger = logging.getLogger(__name__)
 
 
 def create_projects(db):
     """Create a mix of capitalizable and non-capitalizable projects."""
-    print("\n--- Creating Projects ---")
+    logger.info("--- Creating Projects ---")
 
     projects_data = [
         # Capitalizable software development projects
@@ -163,18 +166,18 @@ def create_projects(db):
             project = models.Project(**proj_data)
             db.add(project)
             created_count += 1
-            print(f"  Created project: {proj_data['project_code']} - {proj_data['project_name']}")
+            logger.info(f"Created project: {proj_data['project_code']} - {proj_data['project_name']}")
         else:
-            print(f"  Project already exists: {proj_data['project_code']}")
+            logger.info(f"Project already exists: {proj_data['project_code']}")
 
     db.commit()
-    print(f"  Total projects created: {created_count}")
+    logger.info(f"Total projects created: {created_count}")
     return db.query(models.Project).all()
 
 
 def create_pay_periods(db):
     """Create pay periods for 2025 (bi-weekly)."""
-    print("\n--- Creating Pay Periods ---")
+    logger.info("--- Creating Pay Periods ---")
 
     year = 2025
     # Start from the first Monday of January 2025
@@ -204,13 +207,13 @@ def create_pay_periods(db):
             periods_created += 1
 
     db.commit()
-    print(f"  Pay periods created: {periods_created}")
+    logger.info(f"Pay periods created: {periods_created}")
     return db.query(models.PayPeriod).filter(models.PayPeriod.year == year).all()
 
 
 def create_labor_rates(db, employees):
     """Create labor rates from employee compensation data."""
-    print("\n--- Creating Employee Labor Rates ---")
+    logger.info("--- Creating Employee Labor Rates ---")
 
     rates_created = 0
     for emp in employees:
@@ -221,7 +224,7 @@ def create_labor_rates(db, employees):
         ).first()
 
         if existing:
-            print(f"  Rate already exists for: {emp.first_name} {emp.last_name}")
+            logger.info(f"Rate already exists for: {emp.first_name} {emp.last_name}")
             continue
 
         # Calculate hourly rate from compensation
@@ -268,16 +271,16 @@ def create_labor_rates(db, employees):
         )
         db.add(rate)
         rates_created += 1
-        print(f"  Created rate for {emp.first_name} {emp.last_name}: ${round(hourly_rate, 2)}/hr -> ${round(fully_burdened, 2)}/hr fully burdened")
+        logger.info(f"Created rate for {emp.first_name} {emp.last_name}: ${round(hourly_rate, 2)}/hr -> ${round(fully_burdened, 2)}/hr fully burdened")
 
     db.commit()
-    print(f"  Total labor rates created: {rates_created}")
+    logger.info(f"Total labor rates created: {rates_created}")
     return db.query(models.EmployeeLaborRate).all()
 
 
 def create_timesheets_and_entries(db, employees, pay_periods, projects, labor_rates):
     """Create timesheets and time entries for employees."""
-    print("\n--- Creating Timesheets and Time Entries ---")
+    logger.info("--- Creating Timesheets and Time Entries ---")
 
     # Get rates by employee ID
     rates_by_emp = {r.employee_id: r for r in labor_rates}
@@ -389,13 +392,13 @@ def create_timesheets_and_entries(db, employees, pay_periods, projects, labor_ra
                 work_date += timedelta(days=1)
 
     db.commit()
-    print(f"  Timesheets created: {timesheets_created}")
-    print(f"  Time entries created: {entries_created}")
+    logger.info(f"Timesheets created: {timesheets_created}")
+    logger.info(f"Time entries created: {entries_created}")
 
 
 def create_capitalization_summaries(db):
     """Create employee capitalization summaries for each period."""
-    print("\n--- Creating Capitalization Summaries ---")
+    logger.info("--- Creating Capitalization Summaries ---")
 
     # Get capitalization periods
     periods = db.query(models.CapitalizationPeriod).filter(
@@ -491,12 +494,12 @@ def create_capitalization_summaries(db):
             summaries_created += 1
 
     db.commit()
-    print(f"  Capitalization summaries created: {summaries_created}")
+    logger.info(f"Capitalization summaries created: {summaries_created}")
 
 
 def update_period_totals(db):
     """Update capitalization period totals from summaries."""
-    print("\n--- Updating Period Totals ---")
+    logger.info("--- Updating Period Totals ---")
 
     periods = db.query(models.CapitalizationPeriod).filter(
         models.CapitalizationPeriod.period_type == "monthly"
@@ -527,14 +530,14 @@ def update_period_totals(db):
         ).distinct().all()
         period.project_count = len(entries)
 
-        print(f"  Updated {period.period_id}: {period.total_hours:.0f} hrs, ${period.total_capitalized_cost:,.2f} cap cost")
+        logger.info(f"Updated {period.period_id}: {period.total_hours:.0f} hrs, ${period.total_capitalized_cost:,.2f} cap cost")
 
     db.commit()
 
 
 def create_sample_csv_files():
     """Create sample CSV files for upload demonstration."""
-    print("\n--- Creating Sample CSV Files ---")
+    logger.info("--- Creating Sample CSV Files ---")
 
     # Create static directory if it doesn't exist
     static_dir = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "static", "sample_files")
@@ -560,7 +563,7 @@ def create_sample_csv_files():
     with open(time_csv_path, "w", newline="") as f:
         writer = csv.writer(f)
         writer.writerows(time_data)
-    print(f"  Created: {time_csv_path}")
+    logger.info(f"Created: {time_csv_path}")
 
     # Sample Payroll Data CSV
     payroll_data = [
@@ -581,7 +584,7 @@ def create_sample_csv_files():
     with open(payroll_csv_path, "w", newline="") as f:
         writer = csv.writer(f)
         writer.writerows(payroll_data)
-    print(f"  Created: {payroll_csv_path}")
+    logger.info(f"Created: {payroll_csv_path}")
 
     # Sample Labor Rates CSV
     rates_data = [
@@ -600,7 +603,7 @@ def create_sample_csv_files():
     with open(rates_csv_path, "w", newline="") as f:
         writer = csv.writer(f)
         writer.writerows(rates_data)
-    print(f"  Created: {rates_csv_path}")
+    logger.info(f"Created: {rates_csv_path}")
 
     # Sample Project Assignments CSV
     project_data = [
@@ -616,17 +619,17 @@ def create_sample_csv_files():
     with open(project_csv_path, "w", newline="") as f:
         writer = csv.writer(f)
         writer.writerows(project_data)
-    print(f"  Created: {project_csv_path}")
+    logger.info(f"Created: {project_csv_path}")
 
-    print(f"\n  Sample files created in: {static_dir}")
+    logger.info(f"\n  Sample files created in: {static_dir}")
     return static_dir
 
 
 def main():
     """Main function to create all demo data."""
-    print("=" * 60)
-    print("Creating Capitalized Labor Demo Data")
-    print("=" * 60)
+    logger.info("=" * 60)
+    logger.info("Creating Capitalized Labor Demo Data")
+    logger.info("=" * 60)
 
     # Create session
     SessionLocal = sessionmaker(bind=engine)
@@ -639,11 +642,11 @@ def main():
         ).limit(20).all()
 
         if not employees:
-            print("\n ERROR: No active employees found in database!")
-            print("Please ensure employee data exists before running this script.")
+            logger.error("ERROR: No active employees found in database!")
+            logger.info("Please ensure employee data exists before running this script.")
             return
 
-        print(f"\nFound {len(employees)} active employees")
+        logger.info(f"\nFound {len(employees)} active employees")
 
         # Create projects
         projects = create_projects(db)
@@ -666,16 +669,16 @@ def main():
         # Create sample CSV files
         sample_dir = create_sample_csv_files()
 
-        print("\n" + "=" * 60)
-        print("Demo data creation complete!")
-        print("=" * 60)
-        print(f"\nSample CSV files for upload demos are in:")
-        print(f"  {sample_dir}")
-        print("\nYou can now view the Capitalized Labor Management page")
-        print("to see the populated data.")
+        logger.info("=" * 60)
+        logger.info("Demo data creation complete!")
+        logger.info("=" * 60)
+        logger.info(f"\nSample CSV files for upload demos are in:")
+        logger.info(f"{sample_dir}")
+        logger.info("You can now view the Capitalized Labor Management page")
+        logger.info("to see the populated data.")
 
     except Exception as e:
-        print(f"\n ERROR: {e}")
+        logger.error(f"\n ERROR: {e}")
         db.rollback()
         raise
     finally:

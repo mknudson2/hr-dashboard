@@ -3,6 +3,9 @@ import sqlite3
 import os
 from datetime import datetime, timedelta
 import random
+import logging
+
+logger = logging.getLogger(__name__)
 
 # Get the database path
 backend_dir = os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
@@ -16,7 +19,7 @@ cursor = conn.cursor()
 cursor.execute("SELECT employee_id, department FROM employees WHERE status = 'Active' LIMIT 20")
 employees = cursor.fetchall()
 
-print(f"Found {len(employees)} employees for event assignment...")
+logger.info(f"Found {len(employees)} employees for event assignment...")
 
 # Sample event templates
 today = datetime.now().date()
@@ -254,7 +257,7 @@ for emp_id, dept in employees[:10]:
         "notes": "1-on-1 performance discussion"
     })
 
-print(f"\nCreating {len(events_to_create)} events...")
+logger.info(f"\nCreating {len(events_to_create)} events...")
 
 created_count = 0
 for event in events_to_create:
@@ -288,20 +291,20 @@ for event in events_to_create:
     created_count += 1
 
     if created_count % 10 == 0:
-        print(f"  Created {created_count} events...")
+        logger.info(f"Created {created_count} events...")
 
 # Commit changes
 conn.commit()
 conn.close()
 
-print(f"\n✓ Successfully created {created_count} events!")
-print("  Event types included:")
-print("  - Performance Reviews")
-print("  - Open Enrollment")
-print("  - Bonus Distributions")
-print("  - Training Sessions")
-print("  - Company Meetings")
-print("  - Holidays")
-print("  - Compliance Deadlines")
-print("  - Team Events")
-print("  - Department Meetings")
+logger.info(f"\n Successfully created {created_count} events!")
+logger.info("Event types included:")
+logger.info("- Performance Reviews")
+logger.info("- Open Enrollment")
+logger.info("- Bonus Distributions")
+logger.info("- Training Sessions")
+logger.info("- Company Meetings")
+logger.info("- Holidays")
+logger.info("- Compliance Deadlines")
+logger.info("- Team Events")
+logger.info("- Department Meetings")

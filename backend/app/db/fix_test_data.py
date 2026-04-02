@@ -5,6 +5,9 @@ Fix test data for Employee Portal demonstration.
 - Ensure all demo accounts have complete data
 """
 from app.db import database, models
+import logging
+
+logger = logging.getLogger(__name__)
 
 def fix_test_data():
     db = database.SessionLocal()
@@ -21,7 +24,7 @@ def fix_test_data():
             emp.annual_wage = emp.wage
             wage_updates += 1
 
-        print(f"Updated annual_wage for {wage_updates} employees")
+        logger.info(f"Updated annual_wage for {wage_updates} employees")
 
         # 2. Set up test_supervisor (James Morales, C13) as a supervisor with direct reports
         test_supervisor_user = db.query(models.User).filter(
@@ -51,9 +54,9 @@ def fix_test_data():
 
                 for report in potential_reports:
                     report.supervisor = supervisor_name
-                    print(f"  Assigned {report.first_name} {report.last_name} to {supervisor_name}")
+                    logger.info(f"Assigned {report.first_name} {report.last_name} to {supervisor_name}")
 
-                print(f"Set up {len(potential_reports)} direct reports for test_supervisor ({supervisor_name})")
+                logger.info(f"Set up {len(potential_reports)} direct reports for test_supervisor ({supervisor_name})")
 
         # 3. Verify test_employee (Margaret Harris) has all required data
         test_employee_user = db.query(models.User).filter(
@@ -66,16 +69,16 @@ def fix_test_data():
             ).first()
 
             if test_emp:
-                print(f"\ntest_employee data ({test_emp.first_name} {test_emp.last_name}):")
-                print(f"  wage: {test_emp.wage}")
-                print(f"  annual_wage: {test_emp.annual_wage}")
-                print(f"  department: {test_emp.department}")
-                print(f"  position: {test_emp.position}")
+                logger.info(f"\ntest_employee data ({test_emp.first_name} {test_emp.last_name}):")
+                logger.info(f"wage: {test_emp.wage}")
+                logger.info(f"annual_wage: {test_emp.annual_wage}")
+                logger.info(f"department: {test_emp.department}")
+                logger.info(f"position: {test_emp.position}")
 
                 # Ensure annual_wage is set
                 if test_emp.annual_wage is None and test_emp.wage:
                     test_emp.annual_wage = test_emp.wage
-                    print(f"  -> Set annual_wage to {test_emp.wage}")
+                    logger.info(f"-> Set annual_wage to {test_emp.wage}")
 
         # 4. Ensure test_supervisor_employee also has proper setup
         test_sup_emp_user = db.query(models.User).filter(
@@ -107,15 +110,15 @@ def fix_test_data():
                     for report in potential_reports:
                         report.supervisor = supervisor_name
 
-                    print(f"\nSet up {len(potential_reports)} direct reports for test_supervisor_employee ({supervisor_name})")
+                    logger.info(f"\nSet up {len(potential_reports)} direct reports for test_supervisor_employee ({supervisor_name})")
 
         db.commit()
-        print("\nTest data fixes applied successfully!")
+        logger.info("Test data fixes applied successfully!")
 
         # Print summary of test accounts
-        print("\n" + "="*60)
-        print("TEST ACCOUNT SUMMARY")
-        print("="*60)
+        logger.info("=" * 60)
+        logger.info("TEST ACCOUNT SUMMARY")
+        logger.info("=" * 60)
 
         for username in ['test_employee', 'test_supervisor', 'test_supervisor_employee']:
             user = db.query(models.User).filter(models.User.username == username).first()
@@ -128,17 +131,17 @@ def fix_test_data():
                         models.Employee.supervisor == f"{emp.first_name} {emp.last_name}"
                     ).count()
 
-                    print(f"\n{username}:")
-                    print(f"  Employee: {emp.first_name} {emp.last_name} ({emp.employee_id})")
-                    print(f"  Role: {user.role}")
-                    print(f"  Department: {emp.department}")
-                    print(f"  Position: {emp.position}")
-                    print(f"  Annual Wage: ${emp.annual_wage:,.2f}" if emp.annual_wage else "  Annual Wage: Not set")
-                    print(f"  Direct Reports: {reports_count}")
+                    logger.info(f"\n{username}:")
+                    logger.info(f"Employee: {emp.first_name} {emp.last_name} ({emp.employee_id})")
+                    logger.info(f"Role: {user.role}")
+                    logger.info(f"Department: {emp.department}")
+                    logger.info(f"Position: {emp.position}")
+                    logger.info(f"Annual Wage: ${emp.annual_wage:,.2f}" if emp.annual_wage else "  Annual Wage: Not set")
+                    logger.info(f"Direct Reports: {reports_count}")
 
     except Exception as e:
         db.rollback()
-        print(f"Error: {e}")
+        logger.error(f"Error: {e}")
         raise
     finally:
         db.close()

@@ -2,6 +2,7 @@
 SFTP Service for automated file retrieval from Paylocity
 """
 
+import logging
 import paramiko
 import os
 from pathlib import Path
@@ -12,6 +13,8 @@ from sqlalchemy.orm import Session
 from app.db import models
 from app.services.file_upload_service import FileUploadService
 from app.services import paylocity_ingest
+
+logger = logging.getLogger(__name__)
 
 
 class SFTPService:
@@ -162,9 +165,9 @@ class SFTPService:
                                 db=db
                             )
                             if success:
-                                print(f"Auto-processed {remote_file}: {msg}")
+                                logger.info("Auto-processed %s: %s", remote_file, msg)
                         except Exception as e:
-                            print(f"Failed to auto-process {remote_file}: {str(e)}")
+                            logger.error("Failed to auto-process %s: %s", remote_file, str(e))
 
                     files_downloaded += 1
 
@@ -172,7 +175,7 @@ class SFTPService:
                     # sftp.remove(remote_file)
 
                 except Exception as file_error:
-                    print(f"Error downloading {remote_file}: {str(file_error)}")
+                    logger.error("Error downloading %s: %s", remote_file, str(file_error))
                     continue
 
             # Close connections

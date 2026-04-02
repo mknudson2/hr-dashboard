@@ -291,10 +291,10 @@ def bulk_create_tasks_from_template(
     from datetime import datetime as dt
 
     # Generate new employee ID (find highest numeric ID and increment)
-    max_id_result = db.execute(
-        text("SELECT MAX(CAST(employee_id AS INTEGER)) FROM employees WHERE employee_id GLOB '[0-9]*'")
-    ).fetchone()
-    next_id = (max_id_result[0] or 1000) + 1
+    # Use ORM query with regexp for PostgreSQL compatibility (GLOB is SQLite-only)
+    all_emp_ids = db.query(models.Employee.employee_id).all()
+    numeric_ids = [int(r[0]) for r in all_emp_ids if r[0] and r[0].isdigit()]
+    next_id = (max(numeric_ids) if numeric_ids else 1000) + 1
     employee_id = str(next_id)
 
     # Create new employee record

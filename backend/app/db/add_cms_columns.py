@@ -10,10 +10,13 @@ Usage:
 """
 import sys
 import os
+import logging
 sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(__file__))))
 
 from sqlalchemy import create_engine, text
 from app.db.database import SQLALCHEMY_DATABASE_URL
+
+logger = logging.getLogger(__name__)
 
 
 def add_cms_columns():
@@ -25,46 +28,46 @@ def add_cms_columns():
             conn.execute(text("""
                 ALTER TABLE hr_resources ADD COLUMN parent_id INTEGER REFERENCES hr_resources(id)
             """))
-            print("Added parent_id column")
+            logger.info("Added parent_id column")
         except Exception as e:
             if "duplicate column name" in str(e).lower():
-                print("parent_id column already exists")
+                logger.info("parent_id column already exists")
             else:
-                print(f"Error adding parent_id: {e}")
+                logger.error("Error adding parent_id: %s", e)
 
         try:
             conn.execute(text("""
                 ALTER TABLE hr_resources ADD COLUMN description TEXT
             """))
-            print("Added description column")
+            logger.info("Added description column")
         except Exception as e:
             if "duplicate column name" in str(e).lower():
-                print("description column already exists")
+                logger.info("description column already exists")
             else:
-                print(f"Error adding description: {e}")
+                logger.error("Error adding description: %s", e)
 
         try:
             conn.execute(text("""
                 ALTER TABLE hr_resources ADD COLUMN metadata_json TEXT
             """))
-            print("Added metadata_json column")
+            logger.info("Added metadata_json column")
         except Exception as e:
             if "duplicate column name" in str(e).lower():
-                print("metadata_json column already exists")
+                logger.info("metadata_json column already exists")
             else:
-                print(f"Error adding metadata_json: {e}")
+                logger.error("Error adding metadata_json: %s", e)
 
         # Create index on parent_id for efficient hierarchy queries
         try:
             conn.execute(text("""
                 CREATE INDEX IF NOT EXISTS ix_hr_resources_parent_id ON hr_resources(parent_id)
             """))
-            print("Created parent_id index")
+            logger.info("Created parent_id index")
         except Exception as e:
-            print(f"Index note: {e}")
+            logger.info("Index note: %s", e)
 
         conn.commit()
-        print("\nCMS columns migration completed successfully!")
+        logger.info("CMS columns migration completed successfully!")
 
 
 if __name__ == "__main__":

@@ -199,7 +199,7 @@ class CapitalizationCalculationResponse(BaseModel):
 # ==================== PROJECT ENDPOINTS ====================
 
 @router.get("/projects")
-async def get_projects(
+def get_projects(
     db: Session = Depends(get_db),
     status: Optional[str] = None,
     is_capitalizable: Optional[bool] = None,
@@ -244,7 +244,7 @@ async def get_projects(
 
 
 @router.get("/projects/{project_id}")
-async def get_project(project_id: int, db: Session = Depends(get_db)):
+def get_project(project_id: int, db: Session = Depends(get_db)):
     """Get a specific project by ID."""
     project = db.query(Project).filter(Project.id == project_id).first()
 
@@ -287,7 +287,7 @@ async def get_project(project_id: int, db: Session = Depends(get_db)):
 
 
 @router.post("/projects")
-async def create_project(project_data: ProjectCreate, db: Session = Depends(get_db)):
+def create_project(project_data: ProjectCreate, db: Session = Depends(get_db)):
     """Create a new project."""
     # Check if project code already exists
     existing = db.query(Project).filter(Project.project_code == project_data.project_code).first()
@@ -307,7 +307,7 @@ async def create_project(project_data: ProjectCreate, db: Session = Depends(get_
 
 
 @router.put("/projects/{project_id}")
-async def update_project(
+def update_project(
     project_id: int,
     project_data: ProjectUpdate,
     db: Session = Depends(get_db)
@@ -334,7 +334,7 @@ async def update_project(
 # ==================== TIME ENTRY ENDPOINTS ====================
 
 @router.get("/time-entries")
-async def get_time_entries(
+def get_time_entries(
     db: Session = Depends(get_db),
     employee_id: Optional[int] = None,
     project_id: Optional[int] = None,
@@ -393,7 +393,7 @@ async def get_time_entries(
 
 
 @router.post("/time-entries")
-async def create_time_entry(
+def create_time_entry(
     entry_data: TimeEntryCreate,
     employee_id: int = Query(..., description="ID of employee creating the entry"),
     db: Session = Depends(get_db)
@@ -473,7 +473,7 @@ async def create_time_entry(
 
 
 @router.put("/time-entries/{entry_id}")
-async def update_time_entry(
+def update_time_entry(
     entry_id: int,
     entry_data: TimeEntryUpdate,
     user_id: int = Query(..., description="ID of user making the edit"),
@@ -530,7 +530,7 @@ async def update_time_entry(
 
 
 @router.delete("/time-entries/{entry_id}")
-async def delete_time_entry(
+def delete_time_entry(
     entry_id: int,
     user_id: int = Query(..., description="ID of user deleting the entry"),
     db: Session = Depends(get_db)
@@ -573,7 +573,7 @@ async def delete_time_entry(
 # ==================== TIMESHEET ENDPOINTS ====================
 
 @router.get("/timesheets")
-async def get_timesheets(
+def get_timesheets(
     db: Session = Depends(get_db),
     employee_id: Optional[int] = None,
     pay_period_id: Optional[int] = None,
@@ -620,7 +620,7 @@ async def get_timesheets(
 
 
 @router.get("/timesheets/{timesheet_id}")
-async def get_timesheet(timesheet_id: int, db: Session = Depends(get_db)):
+def get_timesheet(timesheet_id: int, db: Session = Depends(get_db)):
     """Get a specific timesheet with all time entries."""
     timesheet = db.query(Timesheet).filter(Timesheet.id == timesheet_id).first()
 
@@ -672,7 +672,7 @@ async def get_timesheet(timesheet_id: int, db: Session = Depends(get_db)):
 
 
 @router.post("/timesheets/{timesheet_id}/submit")
-async def submit_timesheet(timesheet_id: int, db: Session = Depends(get_db)):
+def submit_timesheet(timesheet_id: int, db: Session = Depends(get_db)):
     """Submit a timesheet for approval."""
     timesheet = db.query(Timesheet).filter(Timesheet.id == timesheet_id).first()
 
@@ -691,7 +691,7 @@ async def submit_timesheet(timesheet_id: int, db: Session = Depends(get_db)):
 
 
 @router.post("/timesheets/{timesheet_id}/approve")
-async def approve_timesheet(
+def approve_timesheet(
     timesheet_id: int,
     manager_id: int = Query(..., description="ID of manager approving timesheet"),
     db: Session = Depends(get_db)
@@ -720,7 +720,7 @@ async def approve_timesheet(
 
 
 @router.post("/timesheets/{timesheet_id}/reject")
-async def reject_timesheet(
+def reject_timesheet(
     timesheet_id: int,
     rejection_data: TimesheetReject,
     manager_id: int = Query(..., description="ID of manager rejecting timesheet"),
@@ -762,7 +762,7 @@ def _update_timesheet_totals(timesheet: Timesheet, db: Session):
 # ==================== ANALYTICS ENDPOINTS ====================
 
 @router.get("/analytics/summary")
-async def get_capitalization_summary(
+def get_capitalization_summary(
     db: Session = Depends(get_db),
     start_date: Optional[str] = None,
     end_date: Optional[str] = None
@@ -817,7 +817,7 @@ async def get_capitalization_summary(
 
 
 @router.get("/analytics/by-project")
-async def get_analytics_by_project(
+def get_analytics_by_project(
     db: Session = Depends(get_db),
     start_date: Optional[str] = None,
     end_date: Optional[str] = None
@@ -886,7 +886,7 @@ async def get_analytics_by_project(
 
 
 @router.get("/analytics/by-employee")
-async def get_analytics_by_employee(
+def get_analytics_by_employee(
     db: Session = Depends(get_db),
     start_date: Optional[str] = None,
     end_date: Optional[str] = None

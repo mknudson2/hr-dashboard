@@ -13,12 +13,15 @@ import sqlite3
 import os
 import random
 from datetime import datetime
+import logging
+
+logger = logging.getLogger(__name__)
 
 # Get the database path
 backend_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 db_path = os.path.join(backend_dir, "data", "hr_dashboard.db")
 
-print(f"Populating turnover data at: {db_path}")
+logger.info(f"Populating turnover data at: {db_path}")
 
 # Connect to database
 conn = sqlite3.connect(db_path)
@@ -27,7 +30,7 @@ cursor = conn.cursor()
 # Clear existing terminations
 cursor.execute("DELETE FROM terminations")
 conn.commit()
-print("Cleared existing termination records")
+logger.info("Cleared existing termination records")
 
 # Get all terminated employees
 cursor.execute("""
@@ -43,7 +46,7 @@ cursor.execute("""
 """)
 
 terminated_employees = cursor.fetchall()
-print(f"Found {len(terminated_employees)} terminated employees")
+logger.info(f"Found {len(terminated_employees)} terminated employees")
 
 # Termination reasons by type
 voluntary_reasons = [
@@ -202,7 +205,7 @@ try:
         ))
 
         created_count += 1
-        print(f"  {first_name} {last_name} ({employee_id}): ${total_turnover_cost:,.0f} turnover cost")
+        logger.info(f"{first_name} {last_name} ({employee_id}): ${total_turnover_cost:,.0f} turnover cost")
 
     conn.commit()
 
@@ -218,18 +221,18 @@ try:
     """)
     stats = cursor.fetchone()
 
-    print(f"\n{'='*60}")
-    print(f"Successfully created {created_count} termination records")
-    print(f"{'='*60}")
-    print(f"  Voluntary: {stats[1]}")
-    print(f"  Involuntary: {stats[2]}")
-    print(f"  Total Turnover Cost: ${stats[3]:,.2f}")
-    print(f"  Average Cost per Termination: ${stats[4]:,.2f}")
-    print(f"{'='*60}")
+    logger.info(f"\n{'='*60}")
+    logger.info(f"Successfully created {created_count} termination records")
+    logger.info(f"{'='*60}")
+    logger.info(f"Voluntary: {stats[1]}")
+    logger.info(f"Involuntary: {stats[2]}")
+    logger.info(f"Total Turnover Cost: ${stats[3]:,.2f}")
+    logger.info(f"Average Cost per Termination: ${stats[4]:,.2f}")
+    logger.info(f"{'='*60}")
 
 except Exception as e:
     conn.rollback()
-    print(f"Error: {e}")
+    logger.error(f"Error: {e}")
     raise
 
 finally:

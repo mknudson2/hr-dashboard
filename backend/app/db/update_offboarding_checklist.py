@@ -2,11 +2,14 @@
 Update Offboarding Checklist with Comprehensive Process
 This script updates the default offboarding template with the complete offboarding process
 """
+import logging
 from sqlalchemy import create_engine, text
 from sqlalchemy.orm import sessionmaker
 from datetime import datetime, date
 from app.db.database import SQLALCHEMY_DATABASE_URL
 from app.db import models
+
+logger = logging.getLogger(__name__)
 
 def update_offboarding_checklist():
     """Update offboarding checklist with comprehensive process"""
@@ -15,8 +18,8 @@ def update_offboarding_checklist():
     db = SessionLocal()
 
     try:
-        print("\n📋 Updating Offboarding Checklist...")
-        print("=" * 60)
+        logger.info("Updating Offboarding Checklist...")
+        logger.info("=" * 60)
 
         # Define the comprehensive offboarding checklist
         offboarding_tasks = [
@@ -290,7 +293,7 @@ def update_offboarding_checklist():
 
         if not default_template:
             # Create default template
-            print("Creating new default offboarding template...")
+            logger.info("Creating new default offboarding template...")
             default_template = models.OffboardingTemplate(
                 template_id="OFF-TEMPLATE-001",
                 name="Standard Offboarding Process",
@@ -306,16 +309,16 @@ def update_offboarding_checklist():
             db.add(default_template)
             db.commit()
             db.refresh(default_template)
-            print(f"✓ Created default template: {default_template.template_id}")
+            logger.info(f"Created default template: {default_template.template_id}")
         else:
-            print(f"✓ Found existing default template: {default_template.template_id}")
+            logger.info(f"Found existing default template: {default_template.template_id}")
 
         # Delete existing template items for this template
         db.query(models.OffboardingTemplateItem).filter(
             models.OffboardingTemplateItem.template_id == default_template.id
         ).delete()
         db.commit()
-        print("✓ Cleared existing template items")
+        logger.info("Cleared existing template items")
 
         # Add new template items
         items_added = 0
@@ -337,33 +340,33 @@ def update_offboarding_checklist():
             items_added += 1
 
         db.commit()
-        print(f"✓ Added {items_added} checklist items to template")
+        logger.info(f"Added {items_added} checklist items to template")
 
         # Display summary
-        print("\n" + "=" * 60)
-        print("✅ Offboarding Checklist Updated Successfully!")
-        print("=" * 60)
-        print(f"  Template: {default_template.name}")
-        print(f"  Template ID: {default_template.template_id}")
-        print(f"  Total Tasks: {items_added}")
-        print("=" * 60)
+        logger.info("=" * 60)
+        logger.info("Offboarding Checklist Updated Successfully!")
+        logger.info("=" * 60)
+        logger.info(f"Template: {default_template.name}")
+        logger.info(f"Template ID: {default_template.template_id}")
+        logger.info(f"Total Tasks: {items_added}")
+        logger.info("=" * 60)
 
         # Display tasks by category
-        print("\n📊 Tasks by Category:")
+        logger.info("Tasks by Category:")
         from collections import defaultdict
         categories = defaultdict(int)
         for task in offboarding_tasks:
             categories[task["category"]] += 1
 
         for category, count in sorted(categories.items()):
-            print(f"  • {category}: {count} tasks")
+            logger.info(f"• {category}: {count} tasks")
 
-        print("\n✓ Offboarding checklist is ready to use!")
-        print("  New offboarding processes will automatically use this checklist.")
+        logger.info("Offboarding checklist is ready to use!")
+        logger.info("New offboarding processes will automatically use this checklist.")
 
     except Exception as e:
         db.rollback()
-        print(f"\n❌ Error updating offboarding checklist: {e}")
+        logger.error(f"\n Error updating offboarding checklist: {e}")
         import traceback
         traceback.print_exc()
     finally:

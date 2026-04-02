@@ -2,16 +2,19 @@
 Add uncheck_history column to offboarding_tasks table
 This column will store a JSON array of uncheck events with timestamp and reason
 """
+import logging
 from sqlalchemy import create_engine, text
 from app.db.database import SQLALCHEMY_DATABASE_URL
+
+logger = logging.getLogger(__name__)
 
 def add_uncheck_history_column():
     """Add uncheck_history JSON column to offboarding_tasks"""
     engine = create_engine(SQLALCHEMY_DATABASE_URL, connect_args={"check_same_thread": False})
 
     try:
-        print("\n🔧 Adding uncheck_history column to offboarding_tasks...")
-        print("=" * 60)
+        logger.info("Adding uncheck_history column to offboarding_tasks...")
+        logger.info("=" * 60)
 
         with engine.connect() as connection:
             # Check if column already exists
@@ -24,7 +27,7 @@ def add_uncheck_history_column():
             exists = result.fetchone()[0] > 0
 
             if exists:
-                print("✓ Column 'uncheck_history' already exists. Skipping migration.")
+                logger.info("Column 'uncheck_history' already exists. Skipping migration.")
                 return
 
             # Add the column
@@ -35,11 +38,11 @@ def add_uncheck_history_column():
 
             connection.commit()
 
-            print("✅ Successfully added uncheck_history column!")
-            print("=" * 60)
+            logger.info("Successfully added uncheck_history column!")
+            logger.info("=" * 60)
 
     except Exception as e:
-        print(f"\n❌ Error adding uncheck_history column: {e}")
+        logger.error("Error adding uncheck_history column: %s", e)
         import traceback
         traceback.print_exc()
 

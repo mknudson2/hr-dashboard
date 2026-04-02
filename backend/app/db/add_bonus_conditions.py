@@ -6,7 +6,10 @@ Adds is_conditional field to bonuses table and creates bonus_conditions table
 from sqlalchemy import create_engine, Boolean, Integer, String, Date, Float, DateTime, ForeignKey, Column, text
 from sqlalchemy.orm import sessionmaker
 import os
+import logging
 from pathlib import Path
+
+logger = logging.getLogger(__name__)
 
 # Get database path
 DB_PATH = Path(__file__).parent.parent.parent / "hr_dashboard.db"
@@ -19,29 +22,29 @@ SessionLocal = sessionmaker(bind=engine)
 
 def migrate():
     """Add bonus conditions support"""
-    print("Starting migration to add bonus conditions support...")
+    logger.info("Starting migration to add bonus conditions support...")
 
     db = SessionLocal()
 
     try:
         # Add is_conditional column to bonuses table
-        print("\n1. Adding is_conditional column to bonuses table...")
+        logger.info("1. Adding is_conditional column to bonuses table...")
         try:
             db.execute(text("""
                 ALTER TABLE bonuses
                 ADD COLUMN is_conditional BOOLEAN DEFAULT 0
             """))
             db.commit()
-            print("   ✓ Added is_conditional column")
+            logger.info("Added is_conditional column")
         except Exception as e:
             if "duplicate column name" in str(e).lower():
-                print("   - Column already exists, skipping")
+                logger.info("Column already exists, skipping")
                 db.rollback()
             else:
                 raise
 
         # Create bonus_conditions table
-        print("\n2. Creating bonus_conditions table...")
+        logger.info("2. Creating bonus_conditions table...")
         try:
             db.execute(text("""
                 CREATE TABLE IF NOT EXISTS bonus_conditions (
@@ -63,28 +66,28 @@ def migrate():
                 )
             """))
             db.commit()
-            print("   ✓ Created bonus_conditions table")
+            logger.info("Created bonus_conditions table")
         except Exception as e:
-            print(f"   Error creating table: {e}")
+            logger.error("Error creating table: %s", e)
             db.rollback()
 
         # Create index on bonus_id
-        print("\n3. Creating index on bonus_id...")
+        logger.info("3. Creating index on bonus_id...")
         try:
             db.execute(text("""
                 CREATE INDEX IF NOT EXISTS idx_bonus_conditions_bonus_id
                 ON bonus_conditions (bonus_id)
             """))
             db.commit()
-            print("   ✓ Created index on bonus_id")
+            logger.info("Created index on bonus_id")
         except Exception as e:
-            print(f"   Error creating index: {e}")
+            logger.error("Error creating index: %s", e)
             db.rollback()
 
-        print("\n✅ Migration completed successfully!")
+        logger.info("Migration completed successfully!")
 
     except Exception as e:
-        print(f"\n❌ Migration failed: {e}")
+        logger.error("Migration failed: %s", e)
         db.rollback()
         raise
     finally:

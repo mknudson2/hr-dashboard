@@ -12,6 +12,9 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from db.database import Base, engine, SQLALCHEMY_DATABASE_URL
 from db import models
+import logging
+
+logger = logging.getLogger(__name__)
 
 
 def calculate_biweekly_periods(year: int):
@@ -384,11 +387,11 @@ def create_default_tasks():
 
 def create_payroll_tables():
     """Create payroll tables in the database"""
-    print("Creating payroll tables...")
+    logger.info("Creating payroll tables...")
 
     # Create tables
     Base.metadata.create_all(bind=engine)
-    print("✅ Payroll tables created successfully!")
+    logger.info("Payroll tables created successfully!")
 
     # Create session
     SessionLocal = sessionmaker(bind=engine)
@@ -398,14 +401,14 @@ def create_payroll_tables():
         # Check if we already have payroll periods
         existing = db.query(models.PayrollPeriod).first()
         if existing:
-            print("⚠️  Payroll periods already exist. Skipping initialization.")
+            logger.warning("Payroll periods already exist. Skipping initialization.")
             return
 
         # Initialize payroll periods for current and next year
         current_year = datetime.now().year
         years = [current_year, current_year + 1]
 
-        print(f"Initializing payroll periods for {years}...")
+        logger.info(f"Initializing payroll periods for {years}...")
 
         for year in years:
             # Calculate periods
@@ -440,13 +443,13 @@ def create_payroll_tables():
                     if task.task_type == 'main':
                         parent_task_map[task.order_index] = task
 
-            print(f"✅ Created {len(periods)} payroll periods for {year}")
+            logger.info(f"Created {len(periods)} payroll periods for {year}")
 
         db.commit()
-        print("✅ Payroll initialization complete!")
+        logger.info("Payroll initialization complete!")
 
     except Exception as e:
-        print(f"❌ Error: {e}")
+        logger.error(f"Error: {e}")
         db.rollback()
         raise
     finally:

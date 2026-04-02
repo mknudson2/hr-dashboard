@@ -18,6 +18,8 @@ import {
   BookOpen,
   HelpCircle,
   Palmtree,
+  ClipboardCheck,
+  CheckSquare,
 } from 'lucide-react';
 import { motion } from 'framer-motion';
 import AuroraHero from '@/components/bifrost/AuroraHero';
@@ -65,7 +67,7 @@ interface SupervisorDashboardData {
 
 interface ActionItem {
   id: string;
-  type: 'pto' | 'fmla' | 'performance' | 'approval' | 'document';
+  type: 'pto' | 'fmla' | 'performance' | 'approval' | 'document' | 'hiring';
   title: string;
   description: string;
   link: string;
@@ -82,6 +84,26 @@ interface HiringStats {
   in_process_count: number;
   total: number;
 }
+
+interface HiringActionItemResponse {
+  action_items: Array<{
+    id: string;
+    action_type: string;
+    title: string;
+    description: string;
+    priority: number;
+    due_date: string | null;
+    link_hint: string;
+  }>;
+  total_count: number;
+}
+
+const HIRING_ACTION_ICONS: Record<string, React.ElementType> = {
+  upcoming_interview: Calendar,
+  pending_scorecard: ClipboardCheck,
+  submit_availability: Clock,
+  pending_approval: CheckSquare,
+};
 
 // ---- Accent types ----
 
@@ -158,7 +180,7 @@ export default function BifrostDashboard() {
 
         // Fetch next payroll date
         try {
-          const payroll = await apiGet<PayrollNextDate>('/portal/payroll/next-date');
+          const payroll = await apiGet<PayrollNextDate>('/portal/my-hr/payroll/next-date');
           setPayrollDate(payroll);
         } catch {
           // Payroll endpoint might not exist yet
@@ -172,6 +194,26 @@ export default function BifrostDashboard() {
           }
         } catch {
           // Hiring stats might not be available
+        }
+
+        // Fetch hiring action items for stakeholders
+        try {
+          const hiringActions = await apiGet<HiringActionItemResponse>(
+            '/portal/hiring-manager/action-items'
+          );
+          for (const action of hiringActions.action_items) {
+            attentionCount++;
+            items.push({
+              id: `hiring-${action.id}`,
+              type: 'hiring',
+              title: action.title,
+              description: action.description,
+              link: action.link_hint,
+              icon: HIRING_ACTION_ICONS[action.action_type] || Briefcase,
+            });
+          }
+        } catch {
+          // Hiring action items might not be available
         }
 
         // If supervisor, fetch supervisor dashboard

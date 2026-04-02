@@ -1,11 +1,14 @@
 import sqlite3
 import os
+import logging
+
+logger = logging.getLogger(__name__)
 
 # Get the database path
 backend_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 db_path = os.path.join(backend_dir, "data", "hr_dashboard.db")
 
-print(f"Migrating database at: {db_path}")
+logger.info(f"Migrating database at: {db_path}")
 
 # Connect to database
 conn = sqlite3.connect(db_path)
@@ -13,14 +16,14 @@ cursor = conn.cursor()
 
 try:
     # Migrate events table
-    print("\n1. Migrating events table...")
+    logger.info("1. Migrating events table...")
 
     # Check if the new schema already exists
     cursor.execute("PRAGMA table_info(events)")
     columns = [col[1] for col in cursor.fetchall()]
 
     if 'id' not in columns:
-        print("   Creating new events table with updated schema...")
+        logger.info("Creating new events table with updated schema...")
 
         # Create new table
         cursor.execute("""
@@ -74,18 +77,18 @@ try:
         cursor.execute("DROP TABLE events")
         cursor.execute("ALTER TABLE events_new RENAME TO events")
 
-        print("   ✓ Events table migrated successfully")
+        logger.info("Events table migrated successfully")
     else:
-        print("   Events table already has 'id' column, skipping...")
+        logger.warning("Events table already has 'id' column, skipping...")
 
     # Migrate event_types table
-    print("\n2. Migrating event_types table...")
+    logger.info("2. Migrating event_types table...")
 
     cursor.execute("PRAGMA table_info(event_types)")
     columns = [col[1] for col in cursor.fetchall()]
 
     if 'id' not in columns:
-        print("   Creating new event_types table with updated schema...")
+        logger.info("Creating new event_types table with updated schema...")
 
         # Create new table
         cursor.execute("""
@@ -121,17 +124,17 @@ try:
         cursor.execute("DROP TABLE event_types")
         cursor.execute("ALTER TABLE event_types_new RENAME TO event_types")
 
-        print("   ✓ Event_types table migrated successfully")
+        logger.info("Event_types table migrated successfully")
     else:
-        print("   Event_types table already has 'id' column, skipping...")
+        logger.warning("Event_types table already has 'id' column, skipping...")
 
     # Commit changes
     conn.commit()
-    print("\n✅ Migration completed successfully!")
+    logger.info("Migration completed successfully!")
 
 except Exception as e:
     conn.rollback()
-    print(f"\n❌ Migration failed: {e}")
+    logger.error(f"\n Migration failed: {e}")
     raise
 
 finally:

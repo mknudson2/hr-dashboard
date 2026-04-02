@@ -3,6 +3,9 @@ from datetime import date, timedelta
 from app.db.database import SessionLocal
 from app.db.models import FMLACase, FMLALeaveEntry, Employee
 import random
+import logging
+
+logger = logging.getLogger(__name__)
 
 
 def seed_fmla_data():
@@ -13,13 +16,13 @@ def seed_fmla_data():
         # Check if FMLA data already exists
         existing = db.query(FMLACase).first()
         if existing:
-            print("✅ FMLA data already exists")
+            logger.info("FMLA data already exists")
             return
 
         # Get some employees
         employees = db.query(Employee).limit(15).all()
         if not employees:
-            print("❌ No employees found. Please seed employee data first.")
+            logger.error("No employees found. Please seed employee data first.")
             return
 
         leave_types = [
@@ -119,10 +122,10 @@ def seed_fmla_data():
                     db.add(entry)
 
         db.commit()
-        print("✅ Successfully created 12 sample FMLA cases with leave entries")
+        logger.info("Successfully created 12 sample FMLA cases with leave entries")
 
     except Exception as e:
-        print(f"❌ Error seeding FMLA data: {str(e)}")
+        logger.error(f"Error seeding FMLA data: {str(e)}")
         db.rollback()
     finally:
         db.close()

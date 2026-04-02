@@ -191,6 +191,11 @@ export interface InterviewDetail {
   interviewers: { user_id: number; name: string; role: string }[];
 }
 
+export interface ScheduledInterviewDetail extends InterviewDetail {
+  stageName: string | null;
+  stageLifecycleKey: string | null;
+}
+
 // ============================================================================
 // Offer Letter (enhanced with versioning)
 // ============================================================================

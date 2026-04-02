@@ -1,7 +1,13 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { ChevronLeft, Upload, CheckCircle } from 'lucide-react';
 import { API_URL } from '@/config/api';
+
+interface PostingRequirements {
+  title: string;
+  requires_resume: boolean;
+  requires_cover_letter: boolean;
+}
 
 export default function ApplicationForm() {
   const { postingId } = useParams<{ postingId: string }>();
@@ -11,6 +17,17 @@ export default function ApplicationForm() {
   const [submitted, setSubmitted] = useState(false);
   const [error, setError] = useState('');
   const [applicationId, setApplicationId] = useState('');
+  const [postingReqs, setPostingReqs] = useState<PostingRequirements>({ title: '', requires_resume: true, requires_cover_letter: false });
+
+  // Fetch posting requirements
+  useEffect(() => {
+    if (postingId) {
+      fetch(`${API_URL}/applicant-portal/postings/${postingId}/requirements`)
+        .then(r => r.ok ? r.json() : null)
+        .then(data => { if (data) setPostingReqs(data); })
+        .catch(() => {});
+    }
+  }, [postingId]);
 
   // Form fields
   const [firstName, setFirstName] = useState('');
@@ -97,7 +114,12 @@ export default function ApplicationForm() {
         <ChevronLeft className="w-4 h-4" /> Back
       </button>
 
-      <h1 className="text-2xl font-bold text-gray-900">Apply</h1>
+      <div>
+        <h1 className="text-2xl font-bold text-gray-900">Apply</h1>
+        {postingReqs.title && (
+          <p className="text-sm text-[#4A4A62] mt-1">{postingReqs.title}</p>
+        )}
+      </div>
 
       {/* Progress */}
       <div className="flex gap-1">
@@ -178,9 +200,9 @@ export default function ApplicationForm() {
           <h2 className="text-lg font-semibold">Resume & Cover Letter</h2>
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
-              Resume (Optional)
+              Resume {postingReqs.requires_resume ? <span className="text-red-500">*</span> : '(Optional)'}
             </label>
-            <div className="border-2 border-dashed rounded-lg p-6 text-center">
+            <div className={`border-2 border-dashed rounded-lg p-6 text-center ${postingReqs.requires_resume && !resume ? 'border-red-300' : ''}`}>
               {resume ? (
                 <div className="flex items-center justify-center gap-2">
                   <CheckCircle className="w-5 h-5 text-green-500" />
@@ -201,24 +223,31 @@ export default function ApplicationForm() {
                 </label>
               )}
             </div>
+            {postingReqs.requires_resume && !resume && (
+              <p className="text-xs text-red-500 mt-1">Resume is required for this position.</p>
+            )}
           </div>
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
-              Cover Letter (Optional)
+              Cover Letter {postingReqs.requires_cover_letter ? <span className="text-red-500">*</span> : '(Optional)'}
             </label>
             <textarea
               value={coverLetter}
               onChange={e => setCoverLetter(e.target.value)}
               rows={5}
-              className="w-full border rounded-lg px-3 py-2 text-sm"
+              className={`w-full border rounded-lg px-3 py-2 text-sm ${postingReqs.requires_cover_letter && !coverLetter.trim() ? 'border-red-300' : ''}`}
               placeholder="Tell us why you're interested in this role..."
             />
+            {postingReqs.requires_cover_letter && !coverLetter.trim() && (
+              <p className="text-xs text-red-500 mt-1">Cover letter is required for this position.</p>
+            )}
           </div>
           <div className="flex justify-between">
             <button onClick={() => setStep(1)} className="px-4 py-2 border rounded-lg text-sm hover:bg-gray-50">Back</button>
             <button
               onClick={() => setStep(3)}
-              className="px-6 py-2 bg-blue-600 text-white rounded-lg text-sm hover:bg-blue-700"
+              disabled={(postingReqs.requires_resume && !resume) || (postingReqs.requires_cover_letter && !coverLetter.trim())}
+              className="px-6 py-2 bg-blue-600 text-white rounded-lg text-sm hover:bg-blue-700 disabled:opacity-50"
             >
               Continue
             </button>

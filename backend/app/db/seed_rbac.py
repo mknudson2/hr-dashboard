@@ -12,6 +12,9 @@ Or from the backend directory:
 from sqlalchemy.orm import Session
 from app.db.database import SessionLocal, engine
 from app.db import models
+import logging
+
+logger = logging.getLogger(__name__)
 
 
 # ============================================================================
@@ -297,7 +300,7 @@ ROLES = [
 
 def seed_permissions(db: Session) -> dict:
     """Create all permissions in the database. Returns a dict of name -> Permission."""
-    print("Seeding permissions...")
+    logger.info("Seeding permissions...")
     permission_map = {}
 
     for perm_data in PERMISSIONS:
@@ -307,7 +310,7 @@ def seed_permissions(db: Session) -> dict:
         ).first()
 
         if existing:
-            print(f"  - Permission '{perm_data['name']}' already exists")
+            logger.info(f"- Permission '{perm_data['name']}' already exists")
             permission_map[perm_data["name"]] = existing
         else:
             permission = models.Permission(
@@ -319,7 +322,7 @@ def seed_permissions(db: Session) -> dict:
             )
             db.add(permission)
             permission_map[perm_data["name"]] = permission
-            print(f"  + Created permission '{perm_data['name']}'")
+            logger.info(f"+ Created permission '{perm_data['name']}'")
 
     db.commit()
 
@@ -327,13 +330,13 @@ def seed_permissions(db: Session) -> dict:
     for name in permission_map:
         db.refresh(permission_map[name])
 
-    print(f"  Total: {len(permission_map)} permissions")
+    logger.info(f"Total: {len(permission_map)} permissions")
     return permission_map
 
 
 def seed_roles(db: Session, permission_map: dict) -> dict:
     """Create all roles and assign permissions. Returns a dict of name -> Role."""
-    print("\nSeeding roles...")
+    logger.info("Seeding roles...")
     role_map = {}
 
     for role_data in ROLES:
@@ -343,7 +346,7 @@ def seed_roles(db: Session, permission_map: dict) -> dict:
         ).first()
 
         if existing:
-            print(f"  - Role '{role_data['name']}' already exists, updating permissions...")
+            logger.info(f"- Role '{role_data['name']}' already exists, updating permissions...")
             role = existing
         else:
             role = models.Role(
@@ -355,7 +358,7 @@ def seed_roles(db: Session, permission_map: dict) -> dict:
             )
             db.add(role)
             db.flush()  # Get the role ID
-            print(f"  + Created role '{role_data['name']}'")
+            logger.info(f"+ Created role '{role_data['name']}'")
 
         # Assign permissions to role
         role.permissions = []  # Clear existing permissions
@@ -363,19 +366,19 @@ def seed_roles(db: Session, permission_map: dict) -> dict:
             if perm_name in permission_map:
                 role.permissions.append(permission_map[perm_name])
             else:
-                print(f"    ! Warning: Permission '{perm_name}' not found")
+                logger.warning(f"! Warning: Permission '{perm_name}' not found")
 
         role_map[role_data["name"]] = role
-        print(f"    Assigned {len(role.permissions)} permissions to '{role_data['name']}'")
+        logger.info(f"Assigned {len(role.permissions)} permissions to '{role_data['name']}'")
 
     db.commit()
-    print(f"  Total: {len(role_map)} roles")
+    logger.info(f"Total: {len(role_map)} roles")
     return role_map
 
 
 def assign_roles_to_users(db: Session, role_map: dict):
     """Assign RBAC roles to users based on their legacy role column."""
-    print("\nAssigning roles to users based on legacy role column...")
+    logger.info("Assigning roles to users based on legacy role column...")
 
     # Map legacy role names to RBAC role names
     legacy_to_rbac = {
@@ -395,9 +398,9 @@ def assign_roles_to_users(db: Session, role_map: dict):
             ).first()
             if not existing:
                 db.add(models.UserRole(user_id=user.id, role_id=employee_role.id))
-                print(f"  + Assigned 'employee' base role to user '{user.username}'")
+                logger.info(f"+ Assigned 'employee' base role to user '{user.username}'")
             else:
-                print(f"  - User '{user.username}' already has 'employee' role")
+                logger.info(f"- User '{user.username}' already has 'employee' role")
 
     # Then, assign additional RBAC roles based on legacy role column
     for legacy_role, rbac_role_name in legacy_to_rbac.items():
@@ -406,7 +409,7 @@ def assign_roles_to_users(db: Session, role_map: dict):
 
         rbac_role = role_map.get(rbac_role_name)
         if not rbac_role:
-            print(f"  ! RBAC role '{rbac_role_name}' not found")
+            logger.info(f"! RBAC role '{rbac_role_name}' not found")
             continue
 
         # Find users with this legacy role
@@ -427,18 +430,18 @@ def assign_roles_to_users(db: Session, role_map: dict):
                     role_id=rbac_role.id
                 )
                 db.add(user_role)
-                print(f"  + Assigned '{rbac_role_name}' role to user '{user.username}'")
+                logger.info(f"+ Assigned '{rbac_role_name}' role to user '{user.username}'")
             else:
-                print(f"  - User '{user.username}' already has '{rbac_role_name}' role")
+                logger.info(f"- User '{user.username}' already has '{rbac_role_name}' role")
 
     db.commit()
 
 
 def seed_rbac():
     """Main function to seed all RBAC data."""
-    print("=" * 60)
-    print("RBAC Database Seeding")
-    print("=" * 60)
+    logger.info("=" * 60)
+    logger.info("RBAC Database Seeding")
+    logger.info("=" * 60)
 
     # Create tables if they don't exist
     models.Base.metadata.create_all(bind=engine)
@@ -454,12 +457,12 @@ def seed_rbac():
         # Assign RBAC roles to users based on legacy role column
         assign_roles_to_users(db, role_map)
 
-        print("\n" + "=" * 60)
-        print("RBAC seeding completed successfully!")
-        print("=" * 60)
+        logger.info("=" * 60)
+        logger.info("RBAC seeding completed successfully!")
+        logger.info("=" * 60)
 
     except Exception as e:
-        print(f"\n! Error during seeding: {e}")
+        logger.error(f"\n! Error during seeding: {e}")
         db.rollback()
         raise
     finally:

@@ -1,10 +1,13 @@
 """Notification service for triggering email notifications based on employee events."""
 import asyncio
+import logging
 from sqlalchemy.orm import Session
 from app.db import models
 from app.services.email_service import email_service
 from datetime import datetime, timedelta
 from typing import Optional
+
+logger = logging.getLogger(__name__)
 
 
 class NotificationService:
@@ -182,7 +185,7 @@ class NotificationService:
         ).all()
 
         if not subscribers:
-            print("[FMLA NOTIFICATION] No subscribers for FMLA leave request notifications")
+            logger.info("No subscribers for FMLA leave request notifications")
             return
 
         employee_name = f"{employee.first_name} {employee.last_name}"
@@ -270,7 +273,7 @@ class NotificationService:
                         body_html=html_content
                     )
                 except Exception as e:
-                    print(f"[FMLA NOTIFICATION] Failed to send to {subscriber.email}: {e}")
+                    logger.error("FMLA notification failed to send to %s", subscriber.email, exc_info=True)
 
         # Run async in sync context
         try:
@@ -304,7 +307,7 @@ class NotificationService:
         """
         employee_email = employee.email or employee.work_email
         if not employee_email:
-            print(f"[FMLA NOTIFICATION] No email address for employee {employee.employee_id}")
+            logger.warning("No email address for employee %s", employee.employee_id)
             return
 
         employee_name = f"{employee.first_name} {employee.last_name}"
@@ -427,7 +430,7 @@ class NotificationService:
         """
         employee_email = employee.email or employee.work_email
         if not employee_email:
-            print(f"[GARNISHMENT NOTIFICATION] No email address for employee {employee.employee_id}")
+            logger.warning("Garnishment payment notification skipped: no email address for employee %s", employee.employee_id)
             return
 
         employee_name = f"{employee.first_name} {employee.last_name}"
@@ -491,7 +494,7 @@ class NotificationService:
                     body_html=html_content
                 )
             except Exception as e:
-                print(f"[GARNISHMENT NOTIFICATION] Failed to send payment notification: {e}")
+                logger.error("Failed to send garnishment payment notification", exc_info=True)
 
         # Run async in sync context
         try:
@@ -517,7 +520,7 @@ class NotificationService:
         """
         employee_email = employee.email or employee.work_email
         if not employee_email:
-            print(f"[GARNISHMENT NOTIFICATION] No email address for employee {employee.employee_id}")
+            logger.warning("Garnishment document notification skipped: no email address for employee %s", employee.employee_id)
             return
 
         upload_date = document.uploaded_date.strftime("%B %d, %Y") if document.uploaded_date else "Today"
@@ -561,7 +564,7 @@ class NotificationService:
                     body_html=html_content
                 )
             except Exception as e:
-                print(f"[GARNISHMENT NOTIFICATION] Failed to send document notification: {e}")
+                logger.error("Failed to send garnishment document notification", exc_info=True)
 
         # Run async in sync context
         try:
@@ -589,7 +592,7 @@ class NotificationService:
         """
         employee_email = employee.email or employee.work_email
         if not employee_email:
-            print(f"[GARNISHMENT NOTIFICATION] No email address for employee {employee.employee_id}")
+            logger.warning("Garnishment status notification skipped: no email address for employee %s", employee.employee_id)
             return
 
         # Determine color based on status
@@ -668,7 +671,7 @@ class NotificationService:
                     body_html=html_content
                 )
             except Exception as e:
-                print(f"[GARNISHMENT NOTIFICATION] Failed to send status notification: {e}")
+                logger.error("Failed to send garnishment status notification", exc_info=True)
 
         # Run async in sync context
         try:

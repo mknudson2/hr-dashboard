@@ -507,7 +507,11 @@ def list_requisitions(
     query = db.query(models.JobRequisition)
 
     if status:
-        query = query.filter(models.JobRequisition.status == status)
+        statuses = [s.strip() for s in status.split(",")]
+        if len(statuses) == 1:
+            query = query.filter(models.JobRequisition.status == statuses[0])
+        else:
+            query = query.filter(models.JobRequisition.status.in_(statuses))
     if department:
         query = query.filter(models.JobRequisition.department == department)
     if search:
@@ -716,6 +720,43 @@ def update_requisition(
     return {"message": "Requisition updated"}
 
 
+@router.post("/requisitions/{req_id}/populate-from-jd")
+def populate_requisition_from_jd(
+    req_id: int,
+    current_user: models.User = Depends(require_any_permission(
+        Permissions.RECRUITING_WRITE, Permissions.RECRUITING_ADMIN
+    )),
+    db: Session = Depends(get_db),
+):
+    """Populate a requisition's content fields from its linked Job Description."""
+    req = db.query(models.JobRequisition).filter(models.JobRequisition.id == req_id).first()
+    if not req:
+        raise HTTPException(status_code=404, detail="Requisition not found")
+    if not req.job_description_id:
+        raise HTTPException(status_code=400, detail="Requisition has no linked Job Description")
+
+    jd = db.query(models.JobDescription).filter(models.JobDescription.id == req.job_description_id).first()
+    if not jd:
+        raise HTTPException(status_code=404, detail="Linked Job Description not found")
+
+    updated_fields = []
+    if not req.description and jd.description:
+        req.description = jd.description
+        updated_fields.append("description")
+    if not req.requirements and jd.requirements:
+        req.requirements = jd.requirements
+        updated_fields.append("requirements")
+    if not req.responsibilities and jd.responsibilities:
+        req.responsibilities = jd.responsibilities
+        updated_fields.append("responsibilities")
+    if not req.preferred_qualifications and jd.preferred_qualifications:
+        req.preferred_qualifications = jd.preferred_qualifications
+        updated_fields.append("preferred_qualifications")
+
+    db.commit()
+    return {"message": f"Populated {len(updated_fields)} fields from JD", "updated_fields": updated_fields}
+
+
 @router.patch("/requisitions/{req_id}/status")
 def change_requisition_status(
     req_id: int,
@@ -808,6 +849,84 @@ def list_requisition_applications(
             for a in apps
         ],
     }
+
+
+@router.get("/requisitions/{req_id}/stage-interviews")
+def get_stage_interviews(
+    req_id: int,
+    stage_key: str = None,
+    current_user: models.User = Depends(require_any_permission(
+        Permissions.RECRUITING_READ, Permissions.RECRUITING_WRITE, Permissions.RECRUITING_ADMIN
+    )),
+    db: Session = Depends(get_db),
+):
+    """Get interviews for a requisition filtered by pipeline stage lifecycle key."""
+    req = db.query(models.JobRequisition).filter(models.JobRequisition.id == req_id).first()
+    if not req:
+        raise HTTPException(status_code=404, detail="Requisition not found")
+
+    # Get all applications for this requisition
+    app_ids = [
+        a.id for a in
+        db.query(models.Application.id).filter(models.Application.requisition_id == req_id).all()
+    ]
+    if not app_ids:
+        return {"interviews": []}
+
+    # Query interviews for those applications
+    query = db.query(models.Interview).filter(
+        models.Interview.application_id.in_(app_ids),
+        models.Interview.status.in_(["Scheduled", "Confirmed", "Completed"]),
+    )
+
+    # Filter by stage lifecycle key if provided
+    if stage_key:
+        matching_stage_ids = [
+            s.id for s in
+            db.query(models.PipelineStage.id)
+            .filter(models.PipelineStage.lifecycle_stage_key == stage_key)
+            .all()
+        ]
+        if matching_stage_ids:
+            query = query.filter(models.Interview.stage_id.in_(matching_stage_ids))
+        else:
+            return {"interviews": []}
+
+    interviews = query.order_by(models.Interview.scheduled_at).all()
+
+    # Build response with applicant names and scorecard info
+    result = []
+    for iv in interviews:
+        app = db.query(models.Application).filter(models.Application.id == iv.application_id).first()
+        applicant_name = None
+        if app and app.applicant:
+            applicant_name = f"{app.applicant.first_name} {app.applicant.last_name}"
+
+        # Find scorecards for this application + stage
+        scorecards = db.query(models.InterviewScorecard).filter(
+            models.InterviewScorecard.application_id == iv.application_id,
+            models.InterviewScorecard.stage_id == iv.stage_id,
+        ).all() if iv.stage_id else []
+
+        result.append({
+            "id": iv.id,
+            "interview_id": iv.interview_id,
+            "applicant_name": applicant_name,
+            "application_id": iv.application_id,
+            "scheduled_at": iv.scheduled_at.isoformat() if iv.scheduled_at else None,
+            "duration_minutes": iv.duration_minutes,
+            "format": iv.format,
+            "video_link": iv.video_link,
+            "meeting_link_auto": iv.meeting_link_auto,
+            "status": iv.status,
+            "interviewers": iv.interviewers or [],
+            "scorecards": [
+                {"id": sc.id, "status": sc.status, "interviewer_id": sc.interviewer_id}
+                for sc in scorecards
+            ],
+        })
+
+    return {"interviews": result}
 
 
 @router.post("/requisitions/{req_id}/applications")
@@ -924,6 +1043,35 @@ def _run_resume_analysis(application_id: int):
 # POSTING ENDPOINTS
 # ============================================================================
 
+@router.get("/requisitions/{requisition_id}/postings")
+def list_requisition_postings(
+    requisition_id: int,
+    current_user: models.User = Depends(require_any_permission(
+        Permissions.RECRUITING_READ, Permissions.RECRUITING_WRITE, Permissions.RECRUITING_ADMIN
+    )),
+    db: Session = Depends(get_db),
+):
+    """List postings for a specific requisition."""
+    items = db.query(models.JobPosting).filter(
+        models.JobPosting.requisition_id == requisition_id
+    ).order_by(models.JobPosting.created_at.desc()).all()
+    return {
+        "postings": [
+            {
+                "id": p.id,
+                "posting_id": p.posting_id,
+                "channel": p.channel,
+                "is_internal": p.is_internal,
+                "status": p.status,
+                "application_count": p.application_count,
+                "published_at": p.published_at.isoformat() if p.published_at else None,
+                "created_at": p.created_at.isoformat() if p.created_at else None,
+            }
+            for p in items
+        ],
+    }
+
+
 @router.get("/postings")
 def list_postings(
     status: Optional[str] = None,
@@ -981,6 +1129,15 @@ def create_posting(
     if not req:
         raise HTTPException(status_code=404, detail="Requisition not found")
 
+    # Build description with fallback chain: explicit data → requisition → linked JD
+    description = data.description_html or req.description
+    if not description and req.job_description_id:
+        jd = db.query(models.JobDescription).filter(
+            models.JobDescription.id == req.job_description_id
+        ).first()
+        if jd:
+            description = jd.description
+
     title = data.title or req.title
     slug = recruiting_service.generate_slug(db, title)
 
@@ -988,7 +1145,7 @@ def create_posting(
         posting_id=recruiting_service.generate_posting_id(db),
         requisition_id=data.requisition_id,
         title=title,
-        description_html=data.description_html or req.description,
+        description_html=description,
         short_description=data.short_description,
         channel=data.channel,
         is_internal=data.is_internal,
@@ -1003,6 +1160,28 @@ def create_posting(
         status="Draft",
     )
     db.add(posting)
+
+    # Auto-approve requisition if still pending
+    if req.status in ("Pending Approval", "Draft"):
+        req.status = "Approved"
+
+    # Auto-advance lifecycle: complete request_submitted → position_posted
+    for stage_key in ("request_submitted", "position_posted"):
+        stage = (
+            db.query(models.RequisitionLifecycleStage)
+            .filter(
+                models.RequisitionLifecycleStage.requisition_id == req.id,
+                models.RequisitionLifecycleStage.stage_key == stage_key,
+                models.RequisitionLifecycleStage.status.in_(["pending", "active"]),
+            )
+            .first()
+        )
+        if stage:
+            lifecycle_service.advance_stage(
+                db, stage.id, current_user.id,
+                notes="Auto-completed: posting created",
+            )
+
     db.commit()
     db.refresh(posting)
 
@@ -1193,6 +1372,7 @@ class InterviewCreate(BaseModel):
     location: Optional[str] = None
     video_link: Optional[str] = None
     interviewers: Optional[list] = None
+    alternative_times: Optional[list] = None  # [{"scheduled_at": "...", "duration_minutes": 60}]
 
 
 class InterviewUpdate(BaseModel):
@@ -1553,13 +1733,17 @@ def get_application_detail(
         models.ApplicationActivity.application_id == app_id,
     ).order_by(models.ApplicationActivity.created_at.desc()).limit(50).all()
 
-    # Get scorecards
+    # Get scorecards (exclude application_review stage — those aren't real interview scorecards)
     scorecards = db.query(models.InterviewScorecard).options(
         joinedload(models.InterviewScorecard.interviewer),
         joinedload(models.InterviewScorecard.stage),
     ).filter(
         models.InterviewScorecard.application_id == app_id,
     ).all()
+    scorecards = [
+        sc for sc in scorecards
+        if not sc.stage or sc.stage.stage_type != "application_review"
+    ]
 
     # Get interviews
     interviews = db.query(models.Interview).options(
@@ -1596,6 +1780,16 @@ def get_application_detail(
                 stakeholders = db.query(models.User).filter(models.User.id.in_(stakeholder_ids)).all()
                 for s in stakeholders:
                     hiring_team.append({"user_id": s.id, "full_name": s.full_name, "email": s.email, "role": "Stakeholder"})
+
+    # Find active lifecycle stage for the requisition
+    active_lifecycle_key = None
+    if app.requisition:
+        active_ls = db.query(models.RequisitionLifecycleStage).filter(
+            models.RequisitionLifecycleStage.requisition_id == app.requisition.id,
+            models.RequisitionLifecycleStage.status == "active",
+        ).first()
+        if active_ls:
+            active_lifecycle_key = active_ls.stage_key
 
     return {
         "id": app.id,
@@ -1643,6 +1837,7 @@ def get_application_detail(
             "stage_type": app.current_stage.stage_type,
         } if app.current_stage else None,
         "pipeline_stages": pipeline_stages,
+        "active_lifecycle_key": active_lifecycle_key,
         "cover_letter": app.cover_letter,
         "custom_answers": app.custom_answers,
         "source": app.source,
@@ -1912,6 +2107,28 @@ def create_scorecard(
     return {"message": "Scorecard assigned", "id": scorecard.id}
 
 
+@router.delete("/scorecards/{scorecard_id}")
+def delete_scorecard(
+    scorecard_id: int,
+    current_user: models.User = Depends(require_any_permission(
+        Permissions.RECRUITING_WRITE, Permissions.RECRUITING_ADMIN
+    )),
+    db: Session = Depends(get_db),
+):
+    """Delete a scorecard. Only allowed if it has not been submitted."""
+    sc = db.query(models.InterviewScorecard).filter(
+        models.InterviewScorecard.id == scorecard_id
+    ).first()
+    if not sc:
+        raise HTTPException(status_code=404, detail="Scorecard not found")
+    if sc.status == "Submitted":
+        raise HTTPException(status_code=400, detail="Cannot delete a submitted scorecard")
+
+    db.delete(sc)
+    db.commit()
+    return {"message": "Scorecard deleted"}
+
+
 @router.get("/scorecards/{scorecard_id}")
 def get_scorecard(
     scorecard_id: int,
@@ -2030,6 +2247,7 @@ async def schedule_interview(
         interviewers=data.interviewers,
         organizer_id=current_user.id,
         status="Scheduled",
+        alternative_times=data.alternative_times,
     )
     db.add(interview)
 
@@ -3741,6 +3959,46 @@ def update_compliance_tip(
 
 
 # ============================================================================
+# ATS PHASE 0 — EMPLOYEE SEARCH (for stakeholder picker)
+# ============================================================================
+
+@router.get("/team-members")
+def search_team_members_hr(
+    search: str = Query("", min_length=0),
+    limit: int = 20,
+    current_user: models.User = Depends(require_any_permission(
+        Permissions.RECRUITING_ADMIN, Permissions.RECRUITING_READ
+    )),
+    db: Session = Depends(database.get_db),
+):
+    """Search employees for stakeholder picker (HR Hub)."""
+    query = db.query(models.Employee).filter(models.Employee.status == "Active")
+    if search:
+        query = query.filter(
+            or_(
+                models.Employee.first_name.ilike(f"%{search}%"),
+                models.Employee.last_name.ilike(f"%{search}%"),
+                models.Employee.employee_id.ilike(f"%{search}%"),
+            )
+        )
+    employees = query.limit(limit).all()
+    results = []
+    for emp in employees:
+        user = db.query(models.User).filter(
+            models.User.employee_id == emp.employee_id
+        ).first() if hasattr(models.User, 'employee_id') else None
+        results.append({
+            "employee_id": emp.employee_id,
+            "user_id": user.id if user else None,
+            "first_name": emp.first_name,
+            "last_name": emp.last_name,
+            "department": emp.department,
+            "position": getattr(emp, 'position', None),
+        })
+    return {"employees": results}
+
+
+# ============================================================================
 # ATS PHASE 0 — STAKEHOLDER ENDPOINTS
 # ============================================================================
 
@@ -3753,7 +4011,8 @@ _DEFAULT_STAKEHOLDER_ACCESS_LEVELS = {
 
 
 class AddStakeholderRequest(BaseModel):
-    user_id: int
+    user_id: Optional[int] = None
+    employee_id: Optional[str] = None
     role: str  # one of: "vp_svp", "hiring_manager", "interviewer", "observer"
     access_level: Optional[str] = None
 
@@ -3772,10 +4031,51 @@ def list_requisition_stakeholders(
     db: Session = Depends(get_db),
 ):
     """List stakeholders with roles for a requisition."""
+    req = db.query(models.JobRequisition).filter(models.JobRequisition.id == requisition_id).first()
+    if not req:
+        raise HTTPException(status_code=404, detail="Requisition not found")
+
+    result = []
+
+    # Include Hiring Manager from requisition record
+    if req.hiring_manager_id:
+        hm = db.query(models.User).filter(models.User.id == req.hiring_manager_id).first()
+        if hm:
+            result.append({
+                "id": None,
+                "user_id": hm.id,
+                "employee_id": None,
+                "user_name": hm.full_name,
+                "role": "hiring_manager",
+                "access_level": "full_access",
+                "assigned_by_id": None,
+                "assigned_by_name": None,
+                "assigned_at": None,
+                "is_primary": True,
+            })
+
+    # Include Recruiter from requisition record
+    if req.recruiter_id:
+        rec = db.query(models.User).filter(models.User.id == req.recruiter_id).first()
+        if rec:
+            result.append({
+                "id": None,
+                "user_id": rec.id,
+                "employee_id": None,
+                "user_name": rec.full_name,
+                "role": "recruiter",
+                "access_level": "full_access",
+                "assigned_by_id": None,
+                "assigned_by_name": None,
+                "assigned_at": None,
+                "is_primary": True,
+            })
+
     stakeholders = (
         db.query(models.RequisitionStakeholder)
         .options(
             joinedload(models.RequisitionStakeholder.user),
+            joinedload(models.RequisitionStakeholder.employee),
             joinedload(models.RequisitionStakeholder.assigned_by_user),
         )
         .filter(
@@ -3785,19 +4085,31 @@ def list_requisition_stakeholders(
         .all()
     )
 
-    return [
+    # Exclude stakeholders that duplicate the HM or recruiter
+    primary_user_ids = {r["user_id"] for r in result}
+
+    result.extend([
         {
             "id": s.id,
             "user_id": s.user_id,
-            "user_name": s.user.full_name if s.user else None,
+            "employee_id": s.employee_id,
+            "user_name": (
+                s.user.full_name if s.user
+                else f"{s.employee.first_name} {s.employee.last_name}" if s.employee
+                else None
+            ),
             "role": s.role,
             "access_level": s.access_level,
             "assigned_by_id": s.assigned_by,
             "assigned_by_name": s.assigned_by_user.full_name if s.assigned_by_user else None,
             "assigned_at": s.assigned_at.isoformat() if s.assigned_at else None,
+            "is_primary": False,
         }
         for s in stakeholders
-    ]
+        if s.user_id not in primary_user_ids
+    ])
+
+    return result
 
 
 @router.post("/requisitions/{requisition_id}/stakeholders")
@@ -3817,25 +4129,38 @@ def add_requisition_stakeholder(
     if not req:
         raise HTTPException(status_code=404, detail="Requisition not found")
 
-    # Validate user exists
-    target_user = db.query(models.User).filter(models.User.id == request.user_id).first()
-    if not target_user:
-        raise HTTPException(status_code=404, detail="User not found")
+    if not request.user_id and not request.employee_id:
+        raise HTTPException(status_code=422, detail="Must provide user_id or employee_id")
+
+    # Resolve names
+    target_user = None
+    target_employee = None
+    if request.user_id:
+        target_user = db.query(models.User).filter(models.User.id == request.user_id).first()
+        if not target_user:
+            raise HTTPException(status_code=404, detail="User not found")
+    if request.employee_id:
+        target_employee = db.query(models.Employee).filter(
+            models.Employee.employee_id == request.employee_id
+        ).first()
+        if not target_employee:
+            raise HTTPException(status_code=404, detail="Employee not found")
 
     # Check not already an active stakeholder
-    existing = (
-        db.query(models.RequisitionStakeholder)
-        .filter(
-            models.RequisitionStakeholder.requisition_id == requisition_id,
-            models.RequisitionStakeholder.user_id == request.user_id,
-            models.RequisitionStakeholder.is_active == True,  # noqa: E712
-        )
-        .first()
-    )
+    dup_filter = [
+        models.RequisitionStakeholder.requisition_id == requisition_id,
+        models.RequisitionStakeholder.is_active == True,  # noqa: E712
+    ]
+    if request.employee_id:
+        dup_filter.append(models.RequisitionStakeholder.employee_id == request.employee_id)
+    elif request.user_id:
+        dup_filter.append(models.RequisitionStakeholder.user_id == request.user_id)
+
+    existing = db.query(models.RequisitionStakeholder).filter(*dup_filter).first()
     if existing:
         raise HTTPException(
             status_code=409,
-            detail="User is already an active stakeholder for this requisition",
+            detail="Already an active stakeholder for this requisition",
         )
 
     # Determine access level
@@ -3844,6 +4169,7 @@ def add_requisition_stakeholder(
     stakeholder = models.RequisitionStakeholder(
         requisition_id=requisition_id,
         user_id=request.user_id,
+        employee_id=request.employee_id,
         role=request.role,
         access_level=access_level,
         assigned_by=current_user.id,
@@ -3853,10 +4179,17 @@ def add_requisition_stakeholder(
     db.commit()
     db.refresh(stakeholder)
 
+    display_name = None
+    if target_user:
+        display_name = target_user.full_name
+    elif target_employee:
+        display_name = f"{target_employee.first_name} {target_employee.last_name}"
+
     return {
         "id": stakeholder.id,
         "user_id": stakeholder.user_id,
-        "user_name": target_user.full_name,
+        "employee_id": stakeholder.employee_id,
+        "user_name": display_name,
         "role": stakeholder.role,
         "access_level": stakeholder.access_level,
         "assigned_by_id": stakeholder.assigned_by,
@@ -3880,6 +4213,7 @@ def update_requisition_stakeholder(
         db.query(models.RequisitionStakeholder)
         .options(
             joinedload(models.RequisitionStakeholder.user),
+            joinedload(models.RequisitionStakeholder.employee),
             joinedload(models.RequisitionStakeholder.assigned_by_user),
         )
         .filter(
@@ -3903,7 +4237,12 @@ def update_requisition_stakeholder(
     return {
         "id": stakeholder.id,
         "user_id": stakeholder.user_id,
-        "user_name": stakeholder.user.full_name if stakeholder.user else None,
+        "employee_id": stakeholder.employee_id,
+        "user_name": (
+            stakeholder.user.full_name if stakeholder.user
+            else f"{stakeholder.employee.first_name} {stakeholder.employee.last_name}" if stakeholder.employee
+            else None
+        ),
         "role": stakeholder.role,
         "access_level": stakeholder.access_level,
         "assigned_by_id": stakeholder.assigned_by,
@@ -4347,3 +4686,82 @@ Return ONLY the JSON object, no other text."""
         raise HTTPException(status_code=500, detail="Failed to parse AI response")
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"AI comparison failed: {str(e)}")
+
+
+# ============================================================================
+# TEAM REQUEST APPROVAL
+# ============================================================================
+
+
+class TeamRequestReview(BaseModel):
+    notes: Optional[str] = None
+
+
+@router.get("/team-requests")
+def list_team_requests(
+    status_filter: Optional[str] = Query(None, alias="status"),
+    current_user: models.User = Depends(get_current_user),
+    db: Session = Depends(database.get_db),
+):
+    """List team requests for HR review."""
+    query = db.query(models.TeamRequest)
+    if status_filter:
+        query = query.filter(models.TeamRequest.status == status_filter)
+    items = query.order_by(models.TeamRequest.created_at.desc()).all()
+    return {
+        "team_requests": [
+            {
+                "id": tr.id,
+                "team_name": tr.team_name,
+                "position_title": tr.position_title,
+                "status": tr.status,
+                "requested_by": tr.requested_by.full_name if tr.requested_by and hasattr(tr.requested_by, "full_name") else None,
+                "review_notes": tr.review_notes,
+                "created_at": tr.created_at.isoformat() if tr.created_at else None,
+                "reviewed_at": tr.reviewed_at.isoformat() if tr.reviewed_at else None,
+            }
+            for tr in items
+        ]
+    }
+
+
+@router.post("/team-requests/{request_id}/approve")
+def approve_team_request(
+    request_id: int,
+    body: TeamRequestReview = TeamRequestReview(),
+    current_user: models.User = Depends(get_current_user),
+    db: Session = Depends(database.get_db),
+):
+    """Approve a pending team request."""
+    tr = db.query(models.TeamRequest).filter(models.TeamRequest.id == request_id).first()
+    if not tr:
+        raise HTTPException(status_code=404, detail="Team request not found")
+    if tr.status != "Pending":
+        raise HTTPException(status_code=400, detail=f"Request already {tr.status.lower()}")
+    tr.status = "Approved"
+    tr.reviewed_by_user_id = current_user.id
+    tr.review_notes = body.notes
+    tr.reviewed_at = datetime.utcnow()
+    db.commit()
+    return {"message": f"Team '{tr.team_name}' approved", "status": "Approved"}
+
+
+@router.post("/team-requests/{request_id}/deny")
+def deny_team_request(
+    request_id: int,
+    body: TeamRequestReview = TeamRequestReview(),
+    current_user: models.User = Depends(get_current_user),
+    db: Session = Depends(database.get_db),
+):
+    """Deny a pending team request."""
+    tr = db.query(models.TeamRequest).filter(models.TeamRequest.id == request_id).first()
+    if not tr:
+        raise HTTPException(status_code=404, detail="Team request not found")
+    if tr.status != "Pending":
+        raise HTTPException(status_code=400, detail=f"Request already {tr.status.lower()}")
+    tr.status = "Denied"
+    tr.reviewed_by_user_id = current_user.id
+    tr.review_notes = body.notes
+    tr.reviewed_at = datetime.utcnow()
+    db.commit()
+    return {"message": f"Team '{tr.team_name}' denied", "status": "Denied"}

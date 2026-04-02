@@ -12,8 +12,11 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 
+import logging
 from sqlalchemy import text
 from app.db.database import engine
+
+logger = logging.getLogger(__name__)
 
 
 HR_INTERVIEW_TEMPLATE = {
@@ -146,7 +149,7 @@ def upgrade():
             "SELECT name FROM sqlite_master WHERE type='table' AND name='pipeline_stages'"
         ))
         if not result.fetchone():
-            print("  pipeline_stages table not found — skipping template update")
+            logger.warning("pipeline_stages table not found — skipping template update")
             return
 
         # Update Phone Screen stage → HR Interview template
@@ -155,7 +158,7 @@ def upgrade():
             "UPDATE pipeline_stages SET scorecard_template = :template WHERE name = 'Phone Screen'"
         ), {"template": hr_json})
         conn.commit()
-        print(f"  Updated Phone Screen scorecard template ({result.rowcount} rows)")
+        logger.info(f"Updated Phone Screen scorecard template ({result.rowcount} rows)")
 
         # Update Team Interview stage → HM Interview template
         hm_json = json.dumps(HM_INTERVIEW_TEMPLATE)
@@ -163,7 +166,7 @@ def upgrade():
             "UPDATE pipeline_stages SET scorecard_template = :template WHERE name = 'Team Interview'"
         ), {"template": hm_json})
         conn.commit()
-        print(f"  Updated Team Interview scorecard template ({result.rowcount} rows)")
+        logger.info(f"Updated Team Interview scorecard template ({result.rowcount} rows)")
 
 
 def downgrade():
@@ -193,7 +196,7 @@ def downgrade():
             "UPDATE pipeline_stages SET scorecard_template = :template WHERE name = 'Team Interview'"
         ), {"template": simple_team})
         conn.commit()
-        print("  Reverted scorecard templates to simple format")
+        logger.info("Reverted scorecard templates to simple format")
 
 
 if __name__ == "__main__":
@@ -204,9 +207,9 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     if args.rollback:
-        print("Rolling back migration...")
+        logger.info("Rolling back migration...")
         downgrade()
     else:
-        print("Running migration...")
+        logger.info("Running migration...")
         upgrade()
-    print("Done!")
+    logger.info("Done!")

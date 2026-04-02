@@ -24,12 +24,10 @@ interface BifrostTopNavProps {
   mobileMenuOpen?: boolean;
 }
 
-const VIEW_CYCLE: Array<'modern' | 'bifrost'> = ['bifrost', 'modern'];
-const VIEW_LABELS: Record<string, string> = { modern: 'Modern', bifrost: 'Bifröst' };
 
 export default function BifrostTopNav({ onMobileMenuToggle, mobileMenuOpen }: BifrostTopNavProps) {
   const { user, logout, isSupervisor, isEmployee } = useAuth();
-  const { features, viewMode, setViewMode } = useEmployeeFeatures();
+  const { features } = useEmployeeFeatures();
   const { theme, setTheme } = useTheme();
   const navigate = useNavigate();
   const [openDropdown, setOpenDropdown] = useState<string | null>(null);
@@ -270,29 +268,6 @@ export default function BifrostTopNav({ onMobileMenuToggle, mobileMenuOpen }: Bi
                         <User size={18} className="text-gray-400" />
                         My Profile
                       </NavLink>
-
-                      {/* View toggle */}
-                      <div className="px-4 py-2">
-                        <p className="text-xs text-gray-400 mb-1.5">Switch View</p>
-                        <div className="flex gap-1">
-                          {VIEW_CYCLE.map((key) => (
-                            <button
-                              key={key}
-                              onClick={() => {
-                                setViewMode(key);
-                                setUserMenuOpen(false);
-                              }}
-                              className={`flex-1 px-2 py-1.5 text-xs font-medium rounded-md transition-colors ${
-                                viewMode === key
-                                  ? 'bg-bifrost-violet/10 text-bifrost-violet'
-                                  : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700'
-                              }`}
-                            >
-                              {VIEW_LABELS[key]}
-                            </button>
-                          ))}
-                        </div>
-                      </div>
 
                       {/* Dark mode toggle */}
                       {mounted && (

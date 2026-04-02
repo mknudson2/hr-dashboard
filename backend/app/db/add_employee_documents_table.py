@@ -7,10 +7,13 @@ Usage:
 """
 import sys
 import os
+import logging
 sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(__file__))))
 
 from sqlalchemy import create_engine, text
 from app.db.database import SQLALCHEMY_DATABASE_URL
+
+logger = logging.getLogger(__name__)
 
 
 def create_table():
@@ -22,7 +25,7 @@ def create_table():
             "SELECT name FROM sqlite_master WHERE type='table' AND name='employee_documents'"
         ))
         if result.fetchone():
-            print("employee_documents table already exists, skipping.")
+            logger.info("employee_documents table already exists, skipping.")
             return
 
         conn.execute(text("""
@@ -45,7 +48,7 @@ def create_table():
             "CREATE INDEX ix_employee_documents_employee_id ON employee_documents(employee_id)"
         ))
         conn.commit()
-        print("Created employee_documents table successfully.")
+        logger.info("Created employee_documents table successfully.")
 
 
 if __name__ == "__main__":

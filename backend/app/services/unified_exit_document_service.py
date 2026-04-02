@@ -8,6 +8,7 @@ Handles generation of all exit-related documents:
 All forms share common employee data and can be generated from a single unified form.
 """
 
+import logging
 from datetime import datetime, timedelta, date
 from typing import Dict, Any, Optional, List
 from pypdf import PdfWriter, PdfReader
@@ -17,6 +18,8 @@ import io
 from reportlab.lib.pagesizes import letter
 from reportlab.pdfgen import canvas
 from reportlab.lib.units import inch
+
+logger = logging.getLogger(__name__)
 
 
 class UnifiedExitDocumentService:
@@ -570,7 +573,7 @@ class UnifiedExitDocumentService:
                 # Skip unimplemented form types
                 continue
             except Exception as e:
-                print(f"Error generating {form_type}: {e}")
+                logger.error("Error generating %s: %s", form_type, e)
                 continue
 
         return results

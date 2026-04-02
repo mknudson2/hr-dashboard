@@ -144,21 +144,19 @@ export const navigationConfig: NavigationConfig = {
       ],
     },
     {
-      label: 'Team',
-      requiresSupervisor: true,
+      label: 'Hiring',
+      sectionFilter: (flags) => flags.is_hiring_manager || flags.is_recruiting_stakeholder,
       items: [
-        { label: 'Team Dashboard', path: '/team', icon: Users },
-        { label: 'Direct Reports', path: '/team/reports', icon: Users },
-        { label: 'Pending Approvals', path: '/team/approvals', icon: CheckSquare },
-        { label: 'Team Performance', path: '/team/performance', icon: TrendingUp },
-        { label: 'Goals', path: '/team/goals', icon: Target },
-        { label: 'PIPs', path: '/team/pips', icon: AlertTriangle },
-        { label: 'HR Change Requests', path: '/team/hr-changes', icon: FileEdit },
-        { label: 'Team Reports', path: '/team/analytics', icon: BarChart },
         {
-          label: 'Hiring',
+          label: 'My Requisitions',
           path: '/hiring/my-requisitions',
           icon: UserPlus,
+          requiresFeature: (flags) => flags.is_hiring_manager || flags.is_recruiting_stakeholder,
+        },
+        {
+          label: 'New Requisition',
+          path: '/hiring/new-request',
+          icon: PlusCircle,
           requiresFeature: 'is_hiring_manager',
         },
         {
@@ -173,6 +171,20 @@ export const navigationConfig: NavigationConfig = {
           icon: CheckSquare,
           requiresFeature: 'is_hiring_manager',
         },
+      ],
+    },
+    {
+      label: 'Team',
+      requiresSupervisor: true,
+      items: [
+        { label: 'Team Dashboard', path: '/team', icon: Users },
+        { label: 'Direct Reports', path: '/team/reports', icon: Users },
+        { label: 'Pending Approvals', path: '/team/approvals', icon: CheckSquare },
+        { label: 'Team Performance', path: '/team/performance', icon: TrendingUp },
+        { label: 'Goals', path: '/team/goals', icon: Target },
+        { label: 'PIPs', path: '/team/pips', icon: AlertTriangle },
+        { label: 'HR Change Requests', path: '/team/hr-changes', icon: FileEdit },
+        { label: 'Team Reports', path: '/team/analytics', icon: BarChart },
       ],
     },
   ],
@@ -285,6 +297,12 @@ export function getModernNavigation(
   const resources = filtered.sections.find((s) => s.label === 'Resources');
   if (resources) {
     dropdowns.push({ label: 'Resources', items: resources.items });
+  }
+
+  // Hiring dropdown (hiring managers and stakeholders)
+  const hiring = filtered.sections.find((s) => s.label === 'Hiring');
+  if (hiring) {
+    dropdowns.push({ label: 'Hiring', items: hiring.items });
   }
 
   // Team dropdown (supervisor only)

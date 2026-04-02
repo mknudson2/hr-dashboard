@@ -4,7 +4,6 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useEmployeeFeatures } from '@/contexts/EmployeeFeaturesContext';
 import { getFilteredNavigation, type NavItem, type NavSection } from '@/config/navigation';
 import DarkModeToggle from '@/components/DarkModeToggle';
-import ViewToggle from '@/components/ViewToggle';
 
 interface SidebarProps {
   onNavigate?: () => void;
@@ -99,11 +98,6 @@ export default function Sidebar({ onNavigate }: SidebarProps) {
             </p>
             <p className="text-xs text-gray-500 dark:text-gray-400 truncate">{user?.email}</p>
           </div>
-        </div>
-
-        {/* View mode toggle */}
-        <div className="mb-3">
-          <ViewToggle />
         </div>
 
         {/* Dark mode toggle */}
