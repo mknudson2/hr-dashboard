@@ -29,7 +29,7 @@ export const getEvent = async (eventId: number) => {
   return response.json();
 };
 
-export const createEvent = async (eventData: any) => {
+export const createEvent = async (eventData: Record<string, unknown>) => {
   const response = await fetch(`${API_BASE_URL}/events/`, {
     method: 'POST',
     credentials: 'include',
@@ -40,7 +40,7 @@ export const createEvent = async (eventData: any) => {
   return response.json();
 };
 
-export const updateEvent = async (eventId: number, eventData: any) => {
+export const updateEvent = async (eventId: number, eventData: Record<string, unknown>) => {
   const response = await fetch(`${API_BASE_URL}/events/${eventId}`, {
     method: 'PUT',
     credentials: 'include',

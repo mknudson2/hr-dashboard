@@ -99,8 +99,8 @@ export default function AccessRemovalEmailModal({
         setRequesterName("");
         setSuccess(false);
       }, 2000);
-    } catch (err: any) {
-      setError(err.message || "Failed to send email");
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : "Failed to send email");
     } finally {
       setSending(false);
     }

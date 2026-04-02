@@ -23,8 +23,8 @@ import {
 } from '@/utils/exportUtils';
 
 interface ExportPanelProps {
-  data: any[];
-  columns: { key: string; label: string; format?: (value: any) => string }[];
+  data: Record<string, unknown>[];
+  columns: { key: string; label: string; format?: (value: unknown) => string }[];
   title?: string;
   filename?: string;
   onExportStart?: () => void;

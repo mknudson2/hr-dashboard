@@ -26,7 +26,7 @@ interface ReportCard {
 }
 
 export default function ReportsPage() {
-  const [analytics, setAnalytics] = useState<any>(null);
+  const [analytics, setAnalytics] = useState<Record<string, unknown> | null>(null);
   const [loading, setLoading] = useState(true);
   const [selectedCategory, setSelectedCategory] = useState<string>("all");
   const [showCustomReportModal, setShowCustomReportModal] = useState(false);

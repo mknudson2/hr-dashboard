@@ -73,7 +73,7 @@ export default function DepartmentChart() {
             legend: { labels: { color: textColor } },
             tooltip: {
                 callbacks: {
-                    label: (ctx: any) => `${ctx.parsed.y} employees`,
+                    label: (ctx: { parsed: { y: number } }) => `${ctx.parsed.y} employees`,
                 },
             },
         },

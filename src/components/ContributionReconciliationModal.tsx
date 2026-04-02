@@ -19,10 +19,10 @@ interface ReconciliationResults {
     missing_in_file: number;
     accuracy_rate: number;
   };
-  matches: any[];
-  discrepancies: any[];
-  missing_in_system: any[];
-  missing_in_file: any[];
+  matches: Record<string, unknown>[];
+  discrepancies: Record<string, unknown>[];
+  missing_in_system: Record<string, unknown>[];
+  missing_in_file: Record<string, unknown>[];
 }
 
 export default function ContributionReconciliationModal({ isOpen, onClose }: ReconciliationModalProps) {
@@ -74,8 +74,8 @@ export default function ContributionReconciliationModal({ isOpen, onClose }: Rec
       const data = await response.json();
       setResults(data);
       setActiveTab('summary');
-    } catch (err: any) {
-      setError(err.message || 'Failed to reconcile contributions');
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : 'Failed to reconcile contributions');
     } finally {
       setUploading(false);
     }
@@ -386,7 +386,7 @@ export default function ContributionReconciliationModal({ isOpen, onClose }: Rec
                                   </div>
                                 </div>
                                 <div className="space-y-2">
-                                  {Object.entries(disc.differences).map(([key, value]: [string, any]) => (
+                                  {Object.entries(disc.differences as Record<string, { system: number; file: number; difference: number }>).map(([key, value]) => (
                                     <div key={key} className="flex items-center justify-between text-sm bg-yellow-50 dark:bg-yellow-900/10 p-2 rounded">
                                       <span className="font-medium text-gray-700 dark:text-gray-300">
                                         {key.replace(/_/g, ' ').toUpperCase()}:

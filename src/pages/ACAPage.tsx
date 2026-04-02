@@ -10,7 +10,11 @@ interface DashboardData {
   year: number;
   total_employees: number;
   full_time_counts_by_month: { [key: string]: number };
-  current_measurement_period: any;
+  current_measurement_period: {
+    start_date?: string;
+    end_date?: string;
+    type?: string;
+  } | null;
   coverage_summary: {
     employees_offered: number;
     employees_accepted: number;
@@ -22,7 +26,13 @@ interface DashboardData {
     ready: number;
     filed: number;
   };
-  active_alerts: any[];
+  active_alerts: Array<{
+    id: number;
+    alert_type: string;
+    message: string;
+    severity: string;
+    created_at: string;
+  }>;
 }
 
 interface MonthlyHoursRecord {

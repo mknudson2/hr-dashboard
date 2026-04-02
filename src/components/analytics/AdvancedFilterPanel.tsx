@@ -98,7 +98,7 @@ export default function AdvancedFilterPanel({
     groupId: string,
     conditionId: string,
     field: keyof FilterCondition,
-    value: any
+    value: FilterCondition[keyof FilterCondition]
   ) => {
     setFilterGroups((groups) =>
       groups.map((group) =>

@@ -1,5 +1,4 @@
-import { useState } from 'react';
-import { CheckCircle, Circle, SkipForward, AlertCircle, Clock, ChevronRight, Play, Ban } from 'lucide-react';
+import { CheckCircle, Circle, SkipForward, AlertCircle, Clock, Play, Ban } from 'lucide-react';
 
 export interface LifecycleStage {
   id: number;
@@ -29,6 +28,9 @@ interface LifecycleTrackerProps {
   activeStageId?: number;
   onStageClick?: (stage: LifecycleStage) => void;
   readOnly?: boolean;
+  compact?: boolean;
+  animateActive?: boolean;
+  breakpoint?: 'md' | 'lg';
   onAdvance?: (stageId: number) => void;
   onSkip?: (stageId: number) => void;
 }
@@ -71,15 +73,21 @@ export default function LifecycleTracker({
   activeStageId,
   onStageClick,
   readOnly = false,
+  compact = false,
+  animateActive = false,
+  breakpoint = 'lg',
   onAdvance,
   onSkip,
 }: LifecycleTrackerProps) {
   if (!stages || stages.length === 0) return null;
 
+  const horizontalHidden = breakpoint === 'md' ? 'hidden md:flex' : 'hidden lg:flex';
+  const verticalVisible = breakpoint === 'md' ? 'md:hidden' : 'lg:hidden';
+
   return (
     <div className="w-full">
       {/* Horizontal tracker */}
-      <div className="hidden lg:flex items-start justify-between relative">
+      <div className={`${horizontalHidden} items-start justify-between relative`}>
         {/* Background line */}
         <div className="absolute top-5 left-5 right-5 h-0.5 bg-gray-200 dark:bg-gray-700 z-0" />
         {/* Progress line */}
@@ -109,7 +117,7 @@ export default function LifecycleTracker({
                       isSelected ? 'ring-2 ring-offset-2 ring-blue-500 dark:ring-offset-gray-900' : ''
                     }`}
                   >
-                    <Icon className={`w-5 h-5 ${config.color}`} />
+                    <Icon className={`w-5 h-5 ${config.color} ${animateActive && stage.status === 'active' ? 'animate-pulse' : ''}`} />
                   </div>
                   {itemCount > 0 && (
                     <span className="absolute -top-1.5 -right-1.5 min-w-[18px] h-[18px] flex items-center justify-center px-1 rounded-full bg-blue-600 text-white text-[10px] font-bold leading-none shadow-sm">
@@ -125,7 +133,7 @@ export default function LifecycleTracker({
                 }`}>
                   {stage.stage_label}
                 </span>
-                {stage.completed_at && (
+                {!compact && stage.completed_at && (
                   <span className="text-[10px] text-gray-400 mt-0.5">{formatDate(stage.completed_at)}</span>
                 )}
                 {stage.outcome && (
@@ -170,7 +178,7 @@ export default function LifecycleTracker({
       </div>
 
       {/* Vertical tracker for tablet/mobile */}
-      <div className="lg:hidden space-y-1">
+      <div className={`${verticalVisible} space-y-1`}>
         {stages.map((stage, idx) => {
           const config = statusConfig[stage.status] || statusConfig.pending;
           const Icon = config.icon;
@@ -188,7 +196,7 @@ export default function LifecycleTracker({
                       isSelected ? 'ring-2 ring-offset-1 ring-blue-500' : ''
                     }`}
                   >
-                    <Icon className={`w-4 h-4 ${config.color}`} />
+                    <Icon className={`w-4 h-4 ${config.color} ${animateActive && stage.status === 'active' ? 'animate-pulse' : ''}`} />
                   </button>
                   {itemCount > 0 && (
                     <span className="absolute -top-1 -right-1 min-w-[16px] h-[16px] flex items-center justify-center px-0.5 rounded-full bg-blue-600 text-white text-[9px] font-bold leading-none shadow-sm">
@@ -213,7 +221,7 @@ export default function LifecycleTracker({
                   >
                     {stage.stage_label}
                   </button>
-                  {stage.completed_at && (
+                  {!compact && stage.completed_at && (
                     <span className="text-xs text-gray-400 ml-2">{formatDate(stage.completed_at)}</span>
                   )}
                 </div>

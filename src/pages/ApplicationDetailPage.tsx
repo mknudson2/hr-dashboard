@@ -4,13 +4,249 @@ import {
   ChevronLeft, Star, Mail, Phone, Linkedin, Globe, Building,
   MapPin, Clock, FileText, MessageSquare, Calendar, ClipboardList,
   XCircle, ChevronRight, ExternalLink, Plus, CalendarCheck, Link2,
-  Video, Users, Check, FileSignature
+  Video, Users, Check, FileSignature, ShieldCheck, Trash2
 } from 'lucide-react';
 import ResumeAnalysisPanel from '../components/recruiting/ResumeAnalysisPanel';
+import ScorecardAnalysisPanel from '../components/recruiting/ScorecardAnalysisPanel';
+import { OrderScreeningModal } from '../features/screening';
 import UserSearchSelect from '../components/UserSearchSelect';
-import AvailabilityGrid from '../components/AvailabilityGrid';
+// AvailabilityGrid replaced by inline TeamAvailabilityPanel
 
 const BASE_URL = '';
+
+interface AvailSlot {
+  id: number;
+  user_id: number;
+  user_name: string | null;
+  start_time: string;
+  end_time: string;
+  is_booked: boolean;
+}
+
+function TeamAvailabilityPanel({ requisitionId, selectedDate, selectedTime, durationMinutes = 60, onSlotClick, onDateChange }: {
+  requisitionId?: number;
+  selectedDate: string;
+  selectedTime?: string;
+  durationMinutes?: number;
+  onSlotClick: (time: string) => void;
+  onDateChange?: (date: string) => void;
+}) {
+  const [slots, setSlots] = useState<AvailSlot[]>([]);
+  const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    if (!requisitionId) return;
+    setLoading(true);
+    fetch(`${BASE_URL}/recruiting/availability/by-requisition/${requisitionId}`, { credentials: 'include' })
+      .then(r => r.json())
+      .then(data => setSlots(data.slots || []))
+      .catch(() => {})
+      .finally(() => setLoading(false));
+  }, [requisitionId]);
+
+  // Group by user, then by date
+  const userMap = new Map<number, { name: string; slots: AvailSlot[] }>();
+  for (const s of slots) {
+    if (!userMap.has(s.user_id)) userMap.set(s.user_id, { name: s.user_name || 'Unknown', slots: [] });
+    userMap.get(s.user_id)!.slots.push(s);
+  }
+  const users = Array.from(userMap.entries());
+
+  // Filter to selected date
+  const dateSlots = selectedDate
+    ? slots.filter(s => s.start_time.startsWith(selectedDate))
+    : [];
+
+  // Build time grid for selected date (8am-6pm, 30min increments)
+  const timeSlots: string[] = [];
+  for (let h = 8; h < 18; h++) {
+    timeSlots.push(`${h.toString().padStart(2, '0')}:00`);
+    timeSlots.push(`${h.toString().padStart(2, '0')}:30`);
+  }
+
+  const isUserAvailable = (userId: number, time: string) => {
+    const slotStart = new Date(`${selectedDate}T${time}:00`);
+    const slotEnd = new Date(slotStart.getTime() + 30 * 60 * 1000);
+    return dateSlots.some(s => {
+      if (s.user_id !== userId) return false;
+      const start = new Date(s.start_time);
+      const end = new Date(s.end_time);
+      return slotStart >= start && slotEnd <= end;
+    });
+  };
+
+  const isAllAvailable = (time: string) => users.every(([uid]) => isUserAvailable(uid, time));
+
+  // Check if a time slot falls within the selected interview time range
+  const isSlotInSelectedRange = (slot: string) => {
+    if (!selectedTime) return false;
+    const [sh, sm] = selectedTime.split(':').map(Number);
+    const [th, tm] = slot.split(':').map(Number);
+    const startMin = sh * 60 + sm;
+    const slotMin = th * 60 + tm;
+    return slotMin >= startMin && slotMin < startMin + durationMinutes;
+  };
+
+  if (!selectedDate) {
+    return (
+      <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-5 space-y-4">
+        <div className="flex items-center justify-between">
+          <h3 className="font-semibold text-gray-900 dark:text-white flex items-center gap-2">
+            <Clock className="w-4 h-4" /> Team Availability
+          </h3>
+          {onDateChange && (
+            <input
+              type="date"
+              value={selectedDate}
+              onChange={e => onDateChange(e.target.value)}
+              className="border dark:border-gray-600 rounded-lg px-2 py-1 text-xs dark:bg-gray-700 dark:text-white"
+            />
+          )}
+        </div>
+        <div className="text-center py-12 text-gray-400 dark:text-gray-500">
+          <Calendar className="w-10 h-10 mx-auto mb-2 opacity-50" />
+          <p className="text-sm">Select a date to view team availability</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (loading) {
+    return (
+      <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-5">
+        <div className="flex items-center justify-center py-8 text-gray-400">
+          <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-blue-600 mr-2" />
+          Loading availability...
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-5 space-y-4">
+      <div className="flex items-center justify-between">
+        <h3 className="font-semibold text-gray-900 dark:text-white flex items-center gap-2">
+          <Clock className="w-4 h-4" /> Team Availability
+          <span className="text-sm font-normal text-gray-500 dark:text-gray-400">
+            — {new Date(selectedDate + 'T00:00').toLocaleDateString(undefined, {
+              weekday: 'long', month: 'long', day: 'numeric'
+            })}
+          </span>
+        </h3>
+        {onDateChange && (
+          <input
+            type="date"
+            value={selectedDate}
+            onChange={e => onDateChange(e.target.value)}
+            className="border dark:border-gray-600 rounded-lg px-2 py-1 text-xs dark:bg-gray-700 dark:text-white"
+          />
+        )}
+      </div>
+
+      {users.length === 0 ? (
+        <div className="text-center py-12 text-gray-400 dark:text-gray-500">
+          <Users className="w-10 h-10 mx-auto mb-2 opacity-50" />
+          <p className="text-sm">No stakeholders have submitted availability yet</p>
+          <p className="text-xs mt-1">Stakeholders will be prompted to submit when the HM Interview stage begins</p>
+        </div>
+      ) : (
+        <div className="space-y-3">
+          <div className="flex items-center gap-4 text-xs text-gray-500 dark:text-gray-400">
+            <span className="flex items-center gap-1.5">
+              <span className="w-3 h-3 rounded bg-green-200 dark:bg-green-900/40 border border-green-300 dark:border-green-700" />
+              Available
+            </span>
+            <span className="flex items-center gap-1.5">
+              <span className="w-3 h-3 rounded bg-gray-100 dark:bg-gray-700 border border-gray-200 dark:border-gray-600" />
+              Not available
+            </span>
+          </div>
+
+          <div className="overflow-x-auto border dark:border-gray-700 rounded-lg">
+            <table className="min-w-full text-xs">
+              <thead>
+                <tr className="bg-gray-50 dark:bg-gray-700/50">
+                  <th className="sticky left-0 z-10 bg-gray-50 dark:bg-gray-700/50 px-3 py-2 text-left font-medium text-gray-600 dark:text-gray-300 min-w-[120px]">
+                    Person
+                  </th>
+                  {timeSlots.map(slot => {
+                    const [hh] = slot.split(':').map(Number);
+                    const h12 = hh === 0 ? 12 : hh > 12 ? hh - 12 : hh;
+                    const ampm = hh >= 12 ? 'PM' : 'AM';
+                    return (
+                      <th
+                        key={slot}
+                        className={`px-1 py-2 text-center font-normal text-gray-500 dark:text-gray-400 min-w-[40px] ${
+                          slot.endsWith(':00') ? 'border-l dark:border-gray-600' : ''
+                        }`}
+                      >
+                        {slot.endsWith(':00') ? <span className="whitespace-nowrap">{h12}&nbsp;{ampm}</span> : ''}
+                      </th>
+                    );
+                  })}
+                </tr>
+              </thead>
+              <tbody>
+                {users.map(([userId, { name }]) => (
+                  <tr key={userId} className="border-t dark:border-gray-700">
+                    <td className="sticky left-0 z-10 bg-white dark:bg-gray-800 px-3 py-2 font-medium text-gray-800 dark:text-gray-200 whitespace-nowrap">
+                      {name}
+                    </td>
+                    {timeSlots.map(slot => {
+                      const available = isUserAvailable(userId, slot);
+                      const inRange = isSlotInSelectedRange(slot);
+                      return (
+                        <td key={slot} className={`px-0 py-1 ${slot.endsWith(':00') ? 'border-l dark:border-gray-600' : ''}`}>
+                          <div
+                            className={`h-6 mx-0.5 rounded-sm border transition-colors ${
+                              inRange
+                                ? 'bg-blue-300 dark:bg-blue-600 border-blue-400 dark:border-blue-500 ring-1 ring-blue-400 dark:ring-blue-500'
+                                : available
+                                ? 'bg-green-100 dark:bg-green-900/20 border-green-200 dark:border-green-800 hover:bg-green-200 dark:hover:bg-green-800/40 cursor-pointer'
+                                : 'bg-gray-100 dark:bg-gray-700 border-gray-200 dark:border-gray-600'
+                            }`}
+                            onClick={() => { if (available) onSlotClick(slot); }}
+                            title={`${name}: ${slot} — ${inRange ? 'Selected' : available ? 'Available' : 'Not available'}`}
+                          />
+                        </td>
+                      );
+                    })}
+                  </tr>
+                ))}
+                {users.length > 1 && (
+                  <tr className="border-t-2 dark:border-gray-600">
+                    <td className="sticky left-0 z-10 bg-white dark:bg-gray-800 px-3 py-2 font-medium text-gray-500 dark:text-gray-400 text-xs italic">
+                      All free
+                    </td>
+                    {timeSlots.map(slot => {
+                      const allFree = isAllAvailable(slot);
+                      const inRange = isSlotInSelectedRange(slot);
+                      return (
+                        <td key={slot} className={`px-0 py-1 ${slot.endsWith(':00') ? 'border-l dark:border-gray-600' : ''}`}>
+                          <div
+                            className={`h-6 mx-0.5 rounded-sm border transition-colors ${
+                              inRange
+                                ? 'bg-blue-300 dark:bg-blue-600 border-blue-400 dark:border-blue-500 ring-1 ring-blue-400 dark:ring-blue-500'
+                                : allFree
+                                ? 'bg-emerald-300 dark:bg-emerald-700 border-emerald-400 dark:border-emerald-600 cursor-pointer hover:bg-emerald-400 dark:hover:bg-emerald-600'
+                                : 'bg-gray-50 dark:bg-gray-800 border-gray-200 dark:border-gray-700'
+                            }`}
+                            onClick={() => { if (allFree) onSlotClick(slot); }}
+                            title={`${slot} — ${inRange ? 'Selected' : allFree ? 'Everyone available' : 'Conflict'}`}
+                          />
+                        </td>
+                      );
+                    })}
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
 
 interface StageCompletion {
   stage_id: number;
@@ -73,6 +309,7 @@ interface ApplicationDetail {
     stage_type: string;
   } | null;
   pipeline_stages: PipelineStageInfo[];
+  active_lifecycle_key: string | null;
   cover_letter: string | null;
   source: string | null;
   overall_rating: number | null;
@@ -163,18 +400,24 @@ export default function ApplicationDetailPage() {
   const [showWithdrawModal, setShowWithdrawModal] = useState(false);
   const [withdrawReason, setWithdrawReason] = useState('');
   const [withdrawNotes, setWithdrawNotes] = useState('');
+  const [showScreeningModal, setShowScreeningModal] = useState(false);
 
   // Inline interview scheduling state
-  const [scheduledDate, setScheduledDate] = useState('');
+  const [scheduledDate, setScheduledDate] = useState(() => new Date().toISOString().split('T')[0]);
   const [scheduledTime, setScheduledTime] = useState('');
-  const [duration, setDuration] = useState(60);
+  const [duration, setDuration] = useState(30);
   const [timeZone] = useState(Intl.DateTimeFormat().resolvedOptions().timeZone);
   const [interviewers, setInterviewers] = useState<{ user_id: number; name: string; email: string; role: string }[]>([]);
   const [autoCreateScorecard, setAutoCreateScorecard] = useState(true);
+  const [showAltTimes, setShowAltTimes] = useState(false);
+  const [altDate2, setAltDate2] = useState('');
+  const [altTime2, setAltTime2] = useState('');
+  const [altDate3, setAltDate3] = useState('');
+  const [altTime3, setAltTime3] = useState('');
   const [scheduleSubmitting, setScheduleSubmitting] = useState(false);
   const [scheduleError, setScheduleError] = useState('');
   const [scheduleSuccess, setScheduleSuccess] = useState(false);
-  const [calendarConnected, setCalendarConnected] = useState(false);
+  const [calendarConnected] = useState(false); // Kept for future calendar integration
 
   useEffect(() => { loadApplication(); }, [id]);
 
@@ -246,7 +489,12 @@ export default function ApplicationDetailPage() {
     setScheduleError('');
 
     const scheduledAt = `${scheduledDate}T${scheduledTime}:00`;
-    const stageId = app?.current_stage?.id || app?.pipeline_stages?.[0]?.id || null;
+    // Use the pipeline stage matching the requisition's active lifecycle stage
+    const activeKey = app?.active_lifecycle_key;
+    const matchingStage = activeKey
+      ? app?.pipeline_stages?.find(s => s.lifecycle_stage_key === activeKey)
+      : null;
+    const stageId = matchingStage?.id || app?.current_stage?.id || app?.pipeline_stages?.[0]?.id || null;
 
     try {
       const res = await fetch(`${BASE_URL}/recruiting/interviews`, {
@@ -263,6 +511,13 @@ export default function ApplicationDetailPage() {
           interviewers: interviewers.length > 0
             ? interviewers.map(i => ({ user_id: i.user_id, name: i.name, role: i.role }))
             : null,
+          alternative_times: [
+            ...(altDate2 && altTime2 ? [{ scheduled_at: `${altDate2}T${altTime2}:00`, duration_minutes: duration }] : []),
+            ...(altDate3 && altTime3 ? [{ scheduled_at: `${altDate3}T${altTime3}:00`, duration_minutes: duration }] : []),
+          ].length > 0 ? [
+            ...(altDate2 && altTime2 ? [{ scheduled_at: `${altDate2}T${altTime2}:00`, duration_minutes: duration }] : []),
+            ...(altDate3 && altTime3 ? [{ scheduled_at: `${altDate3}T${altTime3}:00`, duration_minutes: duration }] : []),
+          ] : null,
         }),
       });
 
@@ -336,8 +591,11 @@ export default function ApplicationDetailPage() {
   };
 
   const createScorecard = async () => {
-    // Use current stage, or first pipeline stage if available
-    const stageId = app?.current_stage?.id || app?.pipeline_stages?.[0]?.id || null;
+    const activeKey = app?.active_lifecycle_key;
+    const matchingStage = activeKey
+      ? app?.pipeline_stages?.find(s => s.lifecycle_stage_key === activeKey)
+      : null;
+    const stageId = matchingStage?.id || app?.current_stage?.id || app?.pipeline_stages?.[0]?.id || null;
     try {
       const res = await fetch(`${BASE_URL}/recruiting/scorecards`, {
         method: 'POST',
@@ -357,6 +615,24 @@ export default function ApplicationDetailPage() {
       }
     } catch (error) {
       console.error('Failed to create scorecard:', error);
+    }
+  };
+
+  const deleteScorecard = async (scorecardId: number) => {
+    if (!confirm('Delete this scorecard? This cannot be undone.')) return;
+    try {
+      const res = await fetch(`${BASE_URL}/recruiting/scorecards/${scorecardId}`, {
+        method: 'DELETE',
+        credentials: 'include',
+      });
+      if (res.ok) {
+        loadApplication();
+      } else {
+        const data = await res.json().catch(() => ({}));
+        alert(data.detail || 'Failed to delete scorecard');
+      }
+    } catch (error) {
+      console.error('Failed to delete scorecard:', error);
     }
   };
 
@@ -477,6 +753,12 @@ export default function ApplicationDetailPage() {
                   <FileSignature className="w-4 h-4" /> Create Offer
                 </button>
               )}
+              <button
+                onClick={() => setShowScreeningModal(true)}
+                className="flex items-center gap-1 px-3 py-2 border border-violet-200 dark:border-violet-800 text-violet-600 dark:text-violet-400 rounded-lg text-sm hover:bg-violet-50 dark:hover:bg-violet-900/20"
+              >
+                <ShieldCheck className="w-4 h-4" /> Background Check
+              </button>
               <button
                 onClick={() => setShowWithdrawModal(true)}
                 className="flex items-center gap-1 px-3 py-2 border border-amber-200 dark:border-amber-800 text-amber-600 dark:text-amber-400 rounded-lg text-sm hover:bg-amber-50 dark:hover:bg-amber-900/20"
@@ -757,11 +1039,13 @@ export default function ApplicationDetailPage() {
             app.scorecards.map(sc => (
               <div
                 key={sc.id}
-                onClick={() => navigate(`/recruiting/scorecards/${sc.id}`)}
-                className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-5 cursor-pointer hover:border-blue-400 dark:hover:border-blue-500 transition-colors"
+                className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-5 hover:border-blue-400 dark:hover:border-blue-500 transition-colors group"
               >
                 <div className="flex items-start justify-between">
-                  <div>
+                  <div
+                    className="flex-1 cursor-pointer"
+                    onClick={() => navigate(`/recruiting/scorecards/${sc.id}`)}
+                  >
                     <div className="flex items-center gap-2">
                       <span className="font-medium text-gray-900 dark:text-white">{sc.stage?.name || 'Scorecard'}</span>
                       {sc.interviewer?.name && <span className="text-xs text-gray-400 dark:text-gray-500">- {sc.interviewer.name}</span>}
@@ -774,22 +1058,41 @@ export default function ApplicationDetailPage() {
                       {sc.status}
                     </span>
                   </div>
-                  {sc.overall_rating && (
-                    <div className="text-right">
-                      <span className="text-2xl font-bold text-gray-900 dark:text-white">{sc.overall_rating.toFixed(1)}</span>
-                      <span className="text-gray-400 dark:text-gray-500 text-sm">/5</span>
-                    </div>
-                  )}
+                  <div className="flex items-center gap-2">
+                    {sc.overall_rating && (
+                      <div className="text-right cursor-pointer" onClick={() => navigate(`/recruiting/scorecards/${sc.id}`)}>
+                        <span className="text-2xl font-bold text-gray-900 dark:text-white">{sc.overall_rating.toFixed(1)}</span>
+                        <span className="text-gray-400 dark:text-gray-500 text-sm">/5</span>
+                      </div>
+                    )}
+                    {sc.status !== 'Submitted' && (
+                      <button
+                        onClick={() => deleteScorecard(sc.id)}
+                        className="p-1.5 rounded-lg text-gray-300 dark:text-gray-600 hover:text-red-500 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 opacity-0 group-hover:opacity-100 transition-all"
+                        title="Delete scorecard"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    )}
+                  </div>
                 </div>
-                {sc.recommendation && (
-                  <span className={`inline-block mt-2 text-xs px-2 py-1 rounded font-medium ${recommendationColors[sc.recommendation] || 'bg-gray-50 text-gray-700 dark:bg-gray-700 dark:text-gray-300'}`}>
-                    {sc.recommendation}
-                  </span>
-                )}
-                {sc.strengths && <p className="text-sm text-gray-600 dark:text-gray-400 mt-2"><strong>Strengths:</strong> {sc.strengths}</p>}
-                {sc.concerns && <p className="text-sm text-gray-600 dark:text-gray-400 mt-1"><strong>Concerns:</strong> {sc.concerns}</p>}
+                <div className="cursor-pointer" onClick={() => navigate(`/recruiting/scorecards/${sc.id}`)}>
+                  {sc.recommendation && (
+                    <span className={`inline-block mt-2 text-xs px-2 py-1 rounded font-medium ${recommendationColors[sc.recommendation] || 'bg-gray-50 text-gray-700 dark:bg-gray-700 dark:text-gray-300'}`}>
+                      {sc.recommendation}
+                    </span>
+                  )}
+                  {sc.strengths && <p className="text-sm text-gray-600 dark:text-gray-400 mt-2"><strong>Strengths:</strong> {sc.strengths}</p>}
+                  {sc.concerns && <p className="text-sm text-gray-600 dark:text-gray-400 mt-1"><strong>Concerns:</strong> {sc.concerns}</p>}
+                </div>
               </div>
             ))
+          )}
+          {app.scorecards.filter(s => s.status === 'Submitted').length >= 2 && (
+            <ScorecardAnalysisPanel
+              applicationId={app.id}
+              submittedScorecardCount={app.scorecards.filter(s => s.status === 'Submitted').length}
+            />
           )}
         </div>
       )}
@@ -875,6 +1178,37 @@ export default function ApplicationDetailPage() {
                   />
                 </div>
 
+                {/* Alternative Times */}
+                <div>
+                  <button
+                    type="button"
+                    onClick={() => setShowAltTimes(!showAltTimes)}
+                    className="text-sm text-blue-600 dark:text-blue-400 hover:text-blue-700 flex items-center gap-1"
+                  >
+                    <Plus className="w-3.5 h-3.5" />
+                    {showAltTimes ? 'Hide alternative times' : 'Add 2nd / 3rd choice times'}
+                  </button>
+                  {showAltTimes && (
+                    <div className="mt-3 space-y-3 p-3 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
+                      <p className="text-xs text-gray-500 dark:text-gray-400">Offer the candidate backup times if the primary doesn't work</p>
+                      <div>
+                        <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">2nd Choice</label>
+                        <div className="flex gap-2">
+                          <input type="date" value={altDate2} onChange={e => setAltDate2(e.target.value)} className="flex-1 border dark:border-gray-600 rounded-lg px-2 py-1.5 text-sm dark:bg-gray-700 dark:text-white" />
+                          <input type="time" value={altTime2} onChange={e => setAltTime2(e.target.value)} className="flex-1 border dark:border-gray-600 rounded-lg px-2 py-1.5 text-sm dark:bg-gray-700 dark:text-white" />
+                        </div>
+                      </div>
+                      <div>
+                        <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">3rd Choice</label>
+                        <div className="flex gap-2">
+                          <input type="date" value={altDate3} onChange={e => setAltDate3(e.target.value)} className="flex-1 border dark:border-gray-600 rounded-lg px-2 py-1.5 text-sm dark:bg-gray-700 dark:text-white" />
+                          <input type="time" value={altTime3} onChange={e => setAltTime3(e.target.value)} className="flex-1 border dark:border-gray-600 rounded-lg px-2 py-1.5 text-sm dark:bg-gray-700 dark:text-white" />
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </div>
+
                 {/* Auto-create scorecards */}
                 <label className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400">
                   <input
@@ -898,45 +1232,16 @@ export default function ApplicationDetailPage() {
               </div>
             </div>
 
-            {/* Right 2/3: Availability Grid */}
+            {/* Right 2/3: Team Availability from submitted slots */}
             <div className="lg:col-span-2">
-              <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-5 space-y-4">
-                <h3 className="font-semibold text-gray-900 dark:text-white flex items-center gap-2">
-                  <Clock className="w-4 h-4" /> Team Availability
-                  {scheduledDate && (
-                    <span className="text-sm font-normal text-gray-500 dark:text-gray-400">
-                      — {new Date(scheduledDate + 'T00:00').toLocaleDateString(undefined, {
-                        weekday: 'long', month: 'long', day: 'numeric'
-                      })}
-                    </span>
-                  )}
-                </h3>
-
-                {!scheduledDate ? (
-                  <div className="text-center py-12 text-gray-400 dark:text-gray-500">
-                    <Calendar className="w-10 h-10 mx-auto mb-2 opacity-50" />
-                    <p className="text-sm">Select a date to view team availability</p>
-                  </div>
-                ) : interviewers.filter(i => i.email).length === 0 ? (
-                  <div className="text-center py-12 text-gray-400 dark:text-gray-500">
-                    <Users className="w-10 h-10 mx-auto mb-2 opacity-50" />
-                    <p className="text-sm">Add interviewers to view their availability</p>
-                  </div>
-                ) : !calendarConnected ? (
-                  <div className="text-center py-12 text-gray-400 dark:text-gray-500">
-                    <CalendarCheck className="w-10 h-10 mx-auto mb-2 opacity-50" />
-                    <p className="text-sm">Connect your calendar in Settings to view availability</p>
-                  </div>
-                ) : (
-                  <AvailabilityGrid
-                    emails={interviewers.filter(i => i.email).map(i => i.email)}
-                    names={interviewers.filter(i => i.email).map(i => i.name)}
-                    date={scheduledDate}
-                    timeZone={timeZone}
-                    onSlotClick={(time) => setScheduledTime(time)}
-                  />
-                )}
-              </div>
+              <TeamAvailabilityPanel
+                requisitionId={app.requisition?.id}
+                selectedDate={scheduledDate}
+                selectedTime={scheduledTime}
+                durationMinutes={duration}
+                onSlotClick={(time) => setScheduledTime(time)}
+                onDateChange={(date) => setScheduledDate(date)}
+              />
             </div>
           </div>
 
@@ -1094,6 +1399,22 @@ export default function ApplicationDetailPage() {
             </div>
           </div>
         </div>
+      )}
+
+      {/* Background Screening Modal */}
+      {showScreeningModal && app && (
+        <OrderScreeningModal
+          candidate={{
+            id: app.id,
+            firstName: app.applicant.first_name,
+            lastName: app.applicant.last_name,
+            email: app.applicant.email,
+          }}
+          onClose={() => setShowScreeningModal(false)}
+          onOrderSubmitted={() => {
+            setShowScreeningModal(false);
+          }}
+        />
       )}
     </div>
   );

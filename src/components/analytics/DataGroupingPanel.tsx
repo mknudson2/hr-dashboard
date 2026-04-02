@@ -193,7 +193,7 @@ export default function DataGroupingPanel({ fields, onApplyGrouping }: DataGroup
                       value={agg.function}
                       onChange={(e) =>
                         updateAggregation(index, {
-                          function: e.target.value as any,
+                          function: e.target.value as AggregationConfig['function'],
                         })
                       }
                       className="flex-1 text-sm border border-blue-300 dark:border-blue-700 rounded px-2 py-1 bg-white dark:bg-gray-700 text-gray-900 dark:text-white"

@@ -183,7 +183,7 @@ export default function ReviewTemplatesTab() {
   };
   const updateCompetency = (idx: number, field: keyof Competency, value: string | boolean) => {
     const updated = [...competencies];
-    (updated[idx] as any)[field] = value;
+    updated[idx] = { ...updated[idx], [field]: value };
     if (field === 'label') updated[idx].key = (value as string).toLowerCase().replace(/\s+/g, '_').replace(/[^a-z0-9_]/g, '');
     setCompetencies(updated);
   };
@@ -203,7 +203,7 @@ export default function ReviewTemplatesTab() {
   };
   const updateTextField = (idx: number, field: keyof TextField, value: string | boolean | number) => {
     const updated = [...textFields];
-    (updated[idx] as any)[field] = value;
+    updated[idx] = { ...updated[idx], [field]: value };
     if (field === 'label') updated[idx].key = (value as string).toLowerCase().replace(/\s+/g, '_').replace(/[^a-z0-9_]/g, '');
     setTextFields(updated);
   };

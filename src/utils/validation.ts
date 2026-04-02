@@ -9,7 +9,7 @@ export interface ValidationRule {
   min?: number;
   max?: number;
   pattern?: RegExp;
-  custom?: (value: any) => boolean;
+  custom?: (value: unknown) => boolean;
   message?: string;
 }
 
@@ -21,7 +21,7 @@ export interface ValidationResult {
 /**
  * Validate a single field
  */
-export const validateField = (value: any, rules: ValidationRule): string | null => {
+export const validateField = (value: unknown, rules: ValidationRule): string | null => {
   // Required check
   if (rules.required && (!value || (typeof value === 'string' && value.trim() === ''))) {
     return rules.message || 'This field is required';
@@ -69,7 +69,7 @@ export const validateField = (value: any, rules: ValidationRule): string | null 
  * Validate multiple fields
  */
 export const validateFields = (
-  data: Record<string, any>,
+  data: Record<string, unknown>,
   rules: Record<string, ValidationRule>
 ): ValidationResult => {
   const errors: Record<string, string> = {};
@@ -158,7 +158,7 @@ export const isPastDate = (dateString: string): boolean => {
 /**
  * Event-specific validation
  */
-export const validateEvent = (eventData: any): ValidationResult => {
+export const validateEvent = (eventData: Record<string, unknown>): ValidationResult => {
   const rules: Record<string, ValidationRule> = {
     title: {
       required: true,
@@ -211,7 +211,7 @@ export const validateEvent = (eventData: any): ValidationResult => {
 /**
  * Employee-specific validation
  */
-export const validateEmployee = (employeeData: any): ValidationResult => {
+export const validateEmployee = (employeeData: Record<string, unknown>): ValidationResult => {
   const rules: Record<string, ValidationRule> = {
     first_name: {
       required: true,

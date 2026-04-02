@@ -35,6 +35,7 @@ const DOCUMENT_TYPES = [
   'background_check_consent',
   'identification',
   'work_authorization',
+  'i9_verification',
   'other',
 ];
 

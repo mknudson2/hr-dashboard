@@ -94,7 +94,7 @@ export default function WageHistoryChart({ data }: WageHistoryChartProps) {
         borderColor: isDark ? "#374151" : "#e5e7eb",
         displayColors: false,
         callbacks: {
-          title: (context: any) => {
+          title: (context: { dataIndex: number }[]) => {
             const index = context[0].dataIndex;
             const record = data[index];
             return new Date(record.effective_date).toLocaleDateString("en-US", {
@@ -103,7 +103,7 @@ export default function WageHistoryChart({ data }: WageHistoryChartProps) {
               year: "numeric",
             });
           },
-          label: (context: any) => {
+          label: (context: { dataIndex: number }) => {
             const index = context.dataIndex;
             const record = data[index];
             const lines = [

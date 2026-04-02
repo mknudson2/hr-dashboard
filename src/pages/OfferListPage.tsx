@@ -26,9 +26,10 @@ const STATUS_COLORS: Record<string, string> = {
   Declined: 'bg-red-100 text-red-800 dark:bg-red-900/40 dark:text-red-300',
   Expired: 'bg-orange-100 text-orange-800 dark:bg-orange-900/40 dark:text-orange-300',
   Rescinded: 'bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-300',
+  Negotiating: 'bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-300',
 };
 
-const STATUS_OPTIONS = ['All', 'Draft', 'Pending Approval', 'Approved', 'Sent', 'Accepted', 'Declined', 'Rescinded'];
+const STATUS_OPTIONS = ['All', 'Draft', 'Pending Approval', 'Approved', 'Sent', 'Negotiating', 'Accepted', 'Declined', 'Rescinded'];
 
 export default function OfferListPage() {
   const navigate = useNavigate();

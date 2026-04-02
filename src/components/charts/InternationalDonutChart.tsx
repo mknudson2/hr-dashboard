@@ -66,7 +66,7 @@ export default function InternationalDonutChart({
       },
       tooltip: {
         callbacks: {
-          label: (context: any) => {
+          label: (context: { label?: string; parsed: number }) => {
             const label = context.label || "";
             const value = context.parsed || 0;
             const total = data.total;

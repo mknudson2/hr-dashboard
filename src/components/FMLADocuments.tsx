@@ -75,7 +75,7 @@ export default function FMLADocuments({ caseId, employeeId, leaveReason, onDocum
       }
 
       const employees = await employeeResponse.json();
-      const employee = employees.find((emp: any) => emp.employee_id === employeeId);
+      const employee = employees.find((emp: { employee_id: string; id: number }) => emp.employee_id === employeeId);
 
       if (!employee) {
         throw new Error(`Employee with ID ${employeeId} not found`);
@@ -221,9 +221,9 @@ export default function FMLADocuments({ caseId, employeeId, leaveReason, onDocum
         const error = await response.json();
         throw new Error(error.detail || 'Failed to send email');
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Error sending email:', error);
-      alert(error.message || 'Failed to send email. Please try again.');
+      alert(error instanceof Error ? error.message : 'Failed to send email. Please try again.');
     } finally {
       setSendingEmail(false);
     }

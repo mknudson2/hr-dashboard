@@ -87,7 +87,7 @@ const ChangePasswordModal = ({ isOpen, onClose, isRequired = false, onSuccess, t
         if (response.status === 422 && data.detail) {
           if (Array.isArray(data.detail)) {
             // Format validation errors
-            const errorMessages = data.detail.map((err: any) => err.msg).join(', ');
+            const errorMessages = data.detail.map((err: { msg: string }) => err.msg).join(', ');
             throw new Error(errorMessages);
           }
         }

@@ -23,30 +23,84 @@ import BonusConditionsModal from '../components/BonusConditionsModal';
 
 type TabType = 'dashboard' | 'bonuses' | 'equity' | 'reviews' | 'wage-increases' | 'analytics';
 
+interface CompensationDashboardData {
+  total_bonuses_paid_ytd?: number;
+  pending_bonuses?: number;
+  active_equity_grants?: number;
+  total_shares_granted?: number;
+  pending_reviews?: number;
+  avg_salary_increase_pct?: number;
+}
+
+interface BonusRecord {
+  id: number;
+  employee_id: string;
+  employee_name?: string;
+  bonus_type: string;
+  amount: number;
+  target_amount?: number;
+  payment_date?: string;
+  fiscal_year: number;
+  quarter?: string;
+  status: string;
+  notes?: string;
+  approved_by?: string;
+  approved_date?: string;
+  is_conditional?: boolean;
+}
+
+interface EquityGrantRecord {
+  id: number;
+  employee_id: string;
+  grant_type: string;
+  shares_granted: number;
+  grant_date: string;
+  vesting_schedule?: string;
+  status: string;
+}
+
+interface CompensationReviewRecord {
+  id: number;
+  employee_id: string;
+  review_type: string;
+  status: string;
+  reviewer?: string;
+  review_date?: string;
+}
+
+interface CompensationEmployee {
+  employee_id: string;
+  first_name: string;
+  last_name: string;
+  department: string;
+  wage?: number;
+  wage_type?: string;
+}
+
 export default function CompensationPage() {
   const [activeTab, setActiveTab] = useState<TabType>('dashboard');
   const [loading, setLoading] = useState(true);
 
   // Dashboard data
-  const [dashboardData, setDashboardData] = useState<any>(null);
+  const [dashboardData, setDashboardData] = useState<CompensationDashboardData | null>(null);
 
   // Bonuses data
-  const [bonuses, setBonuses] = useState<any[]>([]);
+  const [bonuses, setBonuses] = useState<BonusRecord[]>([]);
   const [showBonusForm, setShowBonusForm] = useState(false);
-  const [editingBonus, setEditingBonus] = useState<any>(null);
+  const [editingBonus, setEditingBonus] = useState<BonusRecord | null>(null);
 
   // Equity data
-  const [equityGrants, setEquityGrants] = useState<any[]>([]);
+  const [equityGrants, setEquityGrants] = useState<EquityGrantRecord[]>([]);
   const [showEquityForm, setShowEquityForm] = useState(false);
-  const [editingEquity, setEditingEquity] = useState<any>(null);
+  const [editingEquity, setEditingEquity] = useState<EquityGrantRecord | null>(null);
 
   // Reviews data
-  const [reviews, setReviews] = useState<any[]>([]);
+  const [reviews, setReviews] = useState<CompensationReviewRecord[]>([]);
   const [showReviewForm, setShowReviewForm] = useState(false);
-  const [editingReview, setEditingReview] = useState<any>(null);
+  const [editingReview, setEditingReview] = useState<CompensationReviewRecord | null>(null);
 
   // Analytics data
-  const [employees, setEmployees] = useState<any[]>([]);
+  const [employees, setEmployees] = useState<CompensationEmployee[]>([]);
 
   useEffect(() => {
     loadData();
@@ -191,7 +245,7 @@ export default function CompensationPage() {
 // DASHBOARD TAB
 // ============================================================================
 
-function DashboardTab({ data }: { data: any }) {
+function DashboardTab({ data }: { data: CompensationDashboardData }) {
   const stats = [
     {
       label: 'Total Bonuses Paid YTD',
@@ -231,7 +285,7 @@ function DashboardTab({ data }: { data: any }) {
     },
   ];
 
-  const colorClasses: any = {
+  const colorClasses: Record<string, string> = {
     green: 'bg-green-100 dark:bg-green-900/20 text-green-700 dark:text-green-400',
     yellow: 'bg-yellow-100 dark:bg-yellow-900/20 text-yellow-700 dark:text-yellow-400',
     blue: 'bg-blue-100 dark:bg-blue-900/20 text-blue-700 dark:text-blue-400',
@@ -274,9 +328,18 @@ function DashboardTab({ data }: { data: any }) {
 // BONUSES TAB
 // ============================================================================
 
-function BonusesTab({ bonuses, showForm, setShowForm, editing, setEditing, onRefresh }: any) {
+interface BonusesTabProps {
+  bonuses: BonusRecord[];
+  showForm: boolean;
+  setShowForm: (show: boolean) => void;
+  editing: BonusRecord | null;
+  setEditing: (bonus: BonusRecord | null) => void;
+  onRefresh: () => void;
+}
+
+function BonusesTab({ bonuses, showForm, setShowForm, editing, setEditing, onRefresh }: BonusesTabProps) {
   const [showConditionsModal, setShowConditionsModal] = useState(false);
-  const [selectedBonus, setSelectedBonus] = useState<any>(null);
+  const [selectedBonus, setSelectedBonus] = useState<BonusRecord | null>(null);
 
   const [formData, setFormData] = useState({
     employee_id: '',
@@ -691,7 +754,16 @@ function BonusesTab({ bonuses, showForm, setShowForm, editing, setEditing, onRef
 // EQUITY TAB (Placeholder - similar structure to Bonuses)
 // ============================================================================
 
-function EquityTab({ grants, showForm, setShowForm, editing, setEditing, onRefresh }: any) {
+interface EquityTabProps {
+  grants: EquityGrantRecord[];
+  showForm: boolean;
+  setShowForm: (show: boolean) => void;
+  editing: EquityGrantRecord | null;
+  setEditing: (grant: EquityGrantRecord | null) => void;
+  onRefresh: () => void;
+}
+
+function EquityTab({ grants, showForm, setShowForm, editing, setEditing, onRefresh }: EquityTabProps) {
   return (
     <div className="bg-white dark:bg-gray-800 rounded-xl shadow-md p-6">
       <p className="text-gray-600 dark:text-gray-400">
@@ -708,7 +780,16 @@ function EquityTab({ grants, showForm, setShowForm, editing, setEditing, onRefre
 // REVIEWS TAB (Placeholder - similar structure to Bonuses)
 // ============================================================================
 
-function ReviewsTab({ reviews, showForm, setShowForm, editing, setEditing, onRefresh }: any) {
+interface ReviewsTabProps {
+  reviews: CompensationReviewRecord[];
+  showForm: boolean;
+  setShowForm: (show: boolean) => void;
+  editing: CompensationReviewRecord | null;
+  setEditing: (review: CompensationReviewRecord | null) => void;
+  onRefresh: () => void;
+}
+
+function ReviewsTab({ reviews, showForm, setShowForm, editing, setEditing, onRefresh }: ReviewsTabProps) {
   return (
     <div className="bg-white dark:bg-gray-800 rounded-xl shadow-md p-6">
       <p className="text-gray-600 dark:text-gray-400">

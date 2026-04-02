@@ -127,9 +127,10 @@ const TimeTrackingPage: React.FC = () => {
 
       // Clear success message after 3 seconds
       setTimeout(() => setSuccessMessage(null), 3000);
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('Error adding time entry:', err);
-      setError(err.response?.data?.detail || 'Failed to add time entry');
+      const axiosErr = err as { response?: { data?: { detail?: string } } };
+      setError(axiosErr.response?.data?.detail || 'Failed to add time entry');
     }
   };
 
@@ -142,9 +143,10 @@ const TimeTrackingPage: React.FC = () => {
       setSuccessMessage('Timesheet submitted for approval');
       await fetchCurrentTimesheet();
       setTimeout(() => setSuccessMessage(null), 3000);
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('Error submitting timesheet:', err);
-      setError(err.response?.data?.detail || 'Failed to submit timesheet');
+      const axiosErr = err as { response?: { data?: { detail?: string } } };
+      setError(axiosErr.response?.data?.detail || 'Failed to submit timesheet');
     }
   };
 
@@ -156,9 +158,10 @@ const TimeTrackingPage: React.FC = () => {
       setSuccessMessage('Time entry deleted');
       await fetchCurrentTimesheet();
       setTimeout(() => setSuccessMessage(null), 3000);
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('Error deleting entry:', err);
-      setError(err.response?.data?.detail || 'Failed to delete entry');
+      const axiosErr = err as { response?: { data?: { detail?: string } } };
+      setError(axiosErr.response?.data?.detail || 'Failed to delete entry');
     }
   };
 

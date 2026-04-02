@@ -6,13 +6,13 @@
 export interface ExportColumn {
   key: string;
   label: string;
-  format?: (value: any) => string;
+  format?: (value: unknown) => string;
 }
 
 export interface ExportOptions {
   filename: string;
   columns: ExportColumn[];
-  data: any[];
+  data: Record<string, unknown>[];
   title?: string;
   includeTimestamp?: boolean;
   includeStats?: boolean;
@@ -330,7 +330,7 @@ const downloadBlob = (blob: Blob, filename: string): void => {
 /**
  * Calculate basic statistics for numeric columns
  */
-const calculateStats = (data: any[], columns: ExportColumn[]): { label: string; value: string }[] => {
+const calculateStats = (data: Record<string, unknown>[], columns: ExportColumn[]): { label: string; value: string }[] => {
   const stats: { label: string; value: string }[] = [];
 
   columns.forEach((col) => {

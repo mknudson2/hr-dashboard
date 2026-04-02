@@ -24,7 +24,7 @@ export default function HeadcountChart({ data }: { data: HeadcountTrend }) {
     const { resolvedTheme } = useTheme();
     const [isDark, setIsDark] = useState(false);
     const [chartColor, setChartColor] = useState("#2563eb");
-    const chartRef = useRef<any>(null);
+    const chartRef = useRef<ChartJS<"line"> | null>(null);
 
     useEffect(() => {
         const isDarkMode = resolvedTheme === "dark";
@@ -108,7 +108,7 @@ export default function HeadcountChart({ data }: { data: HeadcountTrend }) {
                 borderColor: isDark ? "#374151" : "#e5e7eb",
                 displayColors: false,
                 callbacks: {
-                    label: (context: any) => `Headcount: ${context.parsed.y}`,
+                    label: (context: { parsed: { y: number } }) => `Headcount: ${context.parsed.y}`,
                 },
             },
         },

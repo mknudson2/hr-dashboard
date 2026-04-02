@@ -33,7 +33,7 @@ interface OffboardingTask {
     timestamp: string;
     created_by: string;
   }>;
-  task_details?: any;
+  task_details?: Record<string, unknown>;
   parent_task_id?: number | null;
   has_subtasks?: boolean;
   is_subtask?: boolean;
@@ -49,7 +49,13 @@ interface DashboardStats {
   completion_rate: number;
   exit_interviews_completed: number;
   exit_interviews_pending: number;
-  recent_terminations: any[];
+  recent_terminations: Array<{
+    employee_id: string;
+    first_name: string;
+    last_name: string;
+    termination_date: string;
+    department: string;
+  }>;
 }
 
 interface Employee {
@@ -168,7 +174,7 @@ export default function OffboardingPage() {
 
   const handleUpdateTaskStatus = async (taskId: number, newStatus: string, uncheckReason?: string) => {
     try {
-      const updateData: any = {
+      const updateData: Record<string, unknown> = {
         status: newStatus,
         completed_date: newStatus === 'Completed' ? new Date().toISOString() : null
       };
@@ -211,7 +217,7 @@ export default function OffboardingPage() {
     }
   };
 
-  const handleTaskDrawerUpdate = async (taskId: number, updates: any) => {
+  const handleTaskDrawerUpdate = async (taskId: number, updates: Record<string, unknown>) => {
     try {
       const response = await fetch(`${BASE_URL}/offboarding/tasks/${taskId}`, {
         method: 'PATCH',
@@ -1036,7 +1042,7 @@ export default function OffboardingPage() {
         onAddNote={handleAddNote}
         onFileUpload={handleFileUpload}
         isActionLoading={isSendingEmails}
-        employeeId={(selectedParentTask as any)?.employee_id}
+        employeeId={selectedParentTask?.employee_id}
       />
 
       {/* Uncheck Confirmation Modal */}

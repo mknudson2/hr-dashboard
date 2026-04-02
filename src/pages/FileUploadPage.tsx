@@ -46,7 +46,7 @@ interface UploadStats {
 
 interface PreviewData {
   columns: string[];
-  sample_data: any[];
+  sample_data: Record<string, unknown>[];
   row_count: number;
   file_type: string;
 }
@@ -55,7 +55,7 @@ interface ProcessingLog {
   id: number;
   log_level: 'info' | 'warning' | 'error' | 'debug';
   log_message: string;
-  log_details: any;
+  log_details: Record<string, unknown> | null;
   row_number: number | null;
   column_name: string | null;
   created_at: string;

@@ -12,7 +12,7 @@ import ExportPanel from '@/components/analytics/ExportPanel';
 import { getAnalytics } from '../services/analyticsService';
 
 export default function AdvancedAnalyticsPage() {
-  const [analytics, setAnalytics] = useState<any>(null);
+  const [analytics, setAnalytics] = useState<Record<string, unknown> | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {

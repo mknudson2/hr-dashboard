@@ -80,7 +80,7 @@ export default function MultiMetricChart({
     datasets,
   };
 
-  const chartOptions: any = {
+  const chartOptions: Record<string, unknown> = {
     responsive: true,
     maintainAspectRatio: false,
     interaction: {
@@ -97,7 +97,7 @@ export default function MultiMetricChart({
         borderWidth: 1,
         padding: 12,
         callbacks: {
-          label: (context: any) => {
+          label: (context: { dataset: { label?: string }; parsed: { y: number } }) => {
             const label = context.dataset.label || '';
             const value = context.parsed.y.toLocaleString();
             return `${label}: ${value}`;
@@ -119,7 +119,7 @@ export default function MultiMetricChart({
         ticks: {
           color: isDark ? '#9ca3af' : '#6b7280',
           font: { size: 11 },
-          callback: (value: any) => value.toLocaleString(),
+          callback: (value: string | number) => Number(value).toLocaleString(),
         },
         grid: { color: isDark ? '#374151' : '#e5e7eb' },
         beginAtZero: true,
@@ -131,7 +131,7 @@ export default function MultiMetricChart({
           ticks: {
             color: isDark ? '#9ca3af' : '#6b7280',
             font: { size: 11 },
-            callback: (value: any) => value.toLocaleString(),
+            callback: (value: string | number) => Number(value).toLocaleString(),
           },
           grid: { display: false },
           beginAtZero: true,

@@ -100,8 +100,8 @@ export default function ExitDocumentsEmailModal({
         setCcEmails([]);
         setSuccess(false);
       }, 2000);
-    } catch (err: any) {
-      setError(err.message || "Failed to send exit documents");
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : "Failed to send exit documents");
     } finally {
       setSending(false);
     }

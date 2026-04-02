@@ -22,7 +22,7 @@ export default function EmailManagementPage() {
   const [selectedCategory, setSelectedCategory] = useState<string>('onboarding');
   const [selectedTemplate, setSelectedTemplate] = useState<string>('');
   const [templates, setTemplates] = useState<Record<string, string[]>>({});
-  const [emailConfig, setEmailConfig] = useState<any>(null);
+  const [emailConfig, setEmailConfig] = useState<Record<string, unknown> | null>(null);
   const [loading, setLoading] = useState(false);
   const [sendStatus, setSendStatus] = useState<{ type: 'success' | 'error' | null; message: string }>({
     type: null,
@@ -37,7 +37,7 @@ export default function EmailManagementPage() {
   const dropdownRef = useRef<HTMLDivElement>(null);
 
   // Form states for different email types
-  const [formData, setFormData] = useState<any>({
+  const [formData, setFormData] = useState<Record<string, string>>({
     to_email: '',
     employee_name: '',
     employee_id: '',
@@ -159,7 +159,7 @@ export default function EmailManagementPage() {
 
     try {
       let endpoint = '';
-      let payload: any = {};
+      let payload: Record<string, unknown> = {};
 
       // Determine endpoint and payload based on category and template
       if (selectedCategory === 'onboarding') {
@@ -269,8 +269,8 @@ export default function EmailManagementPage() {
       setTimeout(() => {
         setSendStatus({ type: null, message: '' });
       }, 5000);
-    } catch (error: any) {
-      setSendStatus({ type: 'error', message: error.message || 'Failed to send email' });
+    } catch (error: unknown) {
+      setSendStatus({ type: 'error', message: error instanceof Error ? error.message : 'Failed to send email' });
     } finally {
       setLoading(false);
     }

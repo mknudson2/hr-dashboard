@@ -73,7 +73,7 @@ const EventModal = ({ event, eventTypes, onClose, onSave }: EventModalProps) => 
     }
   }, [event]);
 
-  const handleChange = (field: string, value: any) => {
+  const handleChange = (field: string, value: string | number | boolean | null) => {
     setFormData(prev => ({ ...prev, [field]: value }));
     // Clear error when field is edited
     if (errors[field]) {

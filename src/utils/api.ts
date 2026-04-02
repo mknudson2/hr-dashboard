@@ -20,12 +20,12 @@ export async function apiFetch(endpoint: string, options: RequestInit = {}): Pro
   });
 }
 
-export async function apiGet<T = any>(endpoint: string): Promise<T> {
+export async function apiGet<T = unknown>(endpoint: string): Promise<T> {
   const res = await apiFetch(endpoint);
   return res.json();
 }
 
-export async function apiPost<T = any>(endpoint: string, body?: any): Promise<T> {
+export async function apiPost<T = unknown>(endpoint: string, body?: unknown): Promise<T> {
   const res = await apiFetch(endpoint, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
@@ -34,7 +34,7 @@ export async function apiPost<T = any>(endpoint: string, body?: any): Promise<T>
   return res.json();
 }
 
-export async function apiPut<T = any>(endpoint: string, body?: any): Promise<T> {
+export async function apiPut<T = unknown>(endpoint: string, body?: unknown): Promise<T> {
   const res = await apiFetch(endpoint, {
     method: 'PUT',
     headers: { 'Content-Type': 'application/json' },
@@ -43,13 +43,13 @@ export async function apiPut<T = any>(endpoint: string, body?: any): Promise<T> 
   return res.json();
 }
 
-export async function apiDelete<T = any>(endpoint: string): Promise<T> {
+export async function apiDelete<T = unknown>(endpoint: string): Promise<T> {
   const res = await apiFetch(endpoint, { method: 'DELETE' });
   return res.json();
 }
 
 // For file uploads
-export async function apiPostFormData<T = any>(endpoint: string, formData: FormData): Promise<T> {
+export async function apiPostFormData<T = unknown>(endpoint: string, formData: FormData): Promise<T> {
   const res = await apiFetch(endpoint, {
     method: 'POST',
     body: formData,

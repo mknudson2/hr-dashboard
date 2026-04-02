@@ -41,7 +41,7 @@ export const getBonus = async (bonusId: number) => {
   return response.json();
 };
 
-export const createBonus = async (bonus: any) => {
+export const createBonus = async (bonus: Record<string, unknown>) => {
   const response = await fetch(`${API_URL}/compensation/bonuses`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -55,7 +55,7 @@ export const createBonus = async (bonus: any) => {
   return response.json();
 };
 
-export const updateBonus = async (bonusId: number, bonus: any) => {
+export const updateBonus = async (bonusId: number, bonus: Record<string, unknown>) => {
   const response = await fetch(`${API_URL}/compensation/bonuses/${bonusId}`, {
     method: "PUT",
     headers: { "Content-Type": "application/json" },
@@ -101,7 +101,7 @@ export const getEquityGrant = async (grantId: number) => {
   return response.json();
 };
 
-export const createEquityGrant = async (grant: any) => {
+export const createEquityGrant = async (grant: Record<string, unknown>) => {
   const response = await fetch(`${API_URL}/compensation/equity-grants`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -112,7 +112,7 @@ export const createEquityGrant = async (grant: any) => {
   return response.json();
 };
 
-export const updateEquityGrant = async (grantId: number, grant: any) => {
+export const updateEquityGrant = async (grantId: number, grant: Record<string, unknown>) => {
   const response = await fetch(`${API_URL}/compensation/equity-grants/${grantId}`, {
     method: "PUT",
     headers: { "Content-Type": "application/json" },
@@ -157,7 +157,7 @@ export const getCompensationReview = async (reviewId: number) => {
   return response.json();
 };
 
-export const createCompensationReview = async (review: any) => {
+export const createCompensationReview = async (review: Record<string, unknown>) => {
   const response = await fetch(`${API_URL}/compensation/reviews`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -168,7 +168,7 @@ export const createCompensationReview = async (review: any) => {
   return response.json();
 };
 
-export const updateCompensationReview = async (reviewId: number, review: any) => {
+export const updateCompensationReview = async (reviewId: number, review: Record<string, unknown>) => {
   const response = await fetch(`${API_URL}/compensation/reviews/${reviewId}`, {
     method: "PUT",
     headers: { "Content-Type": "application/json" },
@@ -213,7 +213,7 @@ export const getWageIncreaseCycle = async (cycleId: number) => {
   return response.json();
 };
 
-export const createWageIncreaseCycle = async (cycle: any) => {
+export const createWageIncreaseCycle = async (cycle: Record<string, unknown>) => {
   const response = await fetch(`${API_URL}/compensation/wage-increase-cycles`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -224,7 +224,7 @@ export const createWageIncreaseCycle = async (cycle: any) => {
   return response.json();
 };
 
-export const updateWageIncreaseCycle = async (cycleId: number, cycle: any) => {
+export const updateWageIncreaseCycle = async (cycleId: number, cycle: Record<string, unknown>) => {
   const response = await fetch(`${API_URL}/compensation/wage-increase-cycles/${cycleId}`, {
     method: "PUT",
     headers: { "Content-Type": "application/json" },

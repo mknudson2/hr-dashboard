@@ -221,7 +221,7 @@ const UserManagementPage = () => {
     setSubmitting(true);
 
     try {
-      const payload: any = {
+      const payload: Record<string, unknown> = {
         username: formData.username,
         email: formData.email,
         full_name: formData.full_name,

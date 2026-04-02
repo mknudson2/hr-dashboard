@@ -76,7 +76,7 @@ export default function DrillDownChart({
   const chartOptions = {
     responsive: true,
     maintainAspectRatio: false,
-    onClick: (_: any, elements: any[]) => {
+    onClick: (_: unknown, elements: { index: number }[]) => {
       if (elements.length > 0) {
         handleBarClick(elements[0].index);
       }
@@ -92,8 +92,8 @@ export default function DrillDownChart({
         padding: 12,
         displayColors: false,
         callbacks: {
-          label: (context: any) => `${context.parsed.y.toLocaleString()}`,
-          afterLabel: (context: any) => {
+          label: (context: { parsed: { y: number }; dataIndex: number }) => `${context.parsed.y.toLocaleString()}`,
+          afterLabel: (context: { dataIndex: number }) => {
             const item = currentLevel.data[context.dataIndex];
             return item.id && currentLevel.nextLevelFetcher
               ? 'Click to drill down'
@@ -114,7 +114,7 @@ export default function DrillDownChart({
         ticks: {
           color: isDark ? '#9ca3af' : '#6b7280',
           font: { size: 11 },
-          callback: (value: any) => value.toLocaleString(),
+          callback: (value: string | number) => Number(value).toLocaleString(),
         },
         grid: { color: isDark ? '#374151' : '#e5e7eb' },
         beginAtZero: true,

@@ -113,7 +113,7 @@ export default function DepartmentChart() {
                 borderColor: isDark ? "#374151" : "#e5e7eb",
                 displayColors: false,
                 callbacks: {
-                    label: (ctx: any) => `${ctx.label}: ${ctx.parsed.y.toFixed(2)}%`,
+                    label: (ctx: { label: string; parsed: { y: number } }) => `${ctx.label}: ${ctx.parsed.y.toFixed(2)}%`,
                 },
             },
         },

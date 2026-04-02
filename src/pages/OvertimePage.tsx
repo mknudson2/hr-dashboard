@@ -40,7 +40,7 @@ const OvertimePage = () => {
   // Upload state
   const [showUploadModal, setShowUploadModal] = useState(false);
   const [uploading, setUploading] = useState(false);
-  const [uploadResult, setUploadResult] = useState<any>(null);
+  const [uploadResult, setUploadResult] = useState<{ records_created?: number; errors?: string[] } | null>(null);
 
   useEffect(() => {
     fetchData();

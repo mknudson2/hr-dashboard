@@ -35,7 +35,7 @@ interface EmployeeDrawerProps {
 }
 
 export default function EmployeeDrawer({ employee, onClose }: EmployeeDrawerProps) {
-    const [analytics, setAnalytics] = useState<any>(null);
+    const [analytics, setAnalytics] = useState<Record<string, unknown> | null>(null);
 
     useEffect(() => {
         if (employee) {

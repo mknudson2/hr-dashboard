@@ -90,7 +90,7 @@ export default function EmployeesPage() {
                 const employeesArray = data.employees || [];
 
                 // Transform data to include full_name and ensure all fields
-                const transformedData = employeesArray.map((emp: any) => ({
+                const transformedData = employeesArray.map((emp: Record<string, unknown>) => ({
                     employee_id: emp.employee_id,
                     first_name: emp.first_name,
                     last_name: emp.last_name,
@@ -314,8 +314,8 @@ export default function EmployeesPage() {
     // Apply sorting (for compensation view)
     if (viewMode === "compensation") {
         filtered = [...filtered].sort((a, b) => {
-            let compareA: any;
-            let compareB: any;
+            let compareA: string | number;
+            let compareB: string | number;
 
             switch (sortBy) {
                 case "name":
@@ -848,7 +848,7 @@ export default function EmployeesPage() {
                                     <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Sort:</span>
                                     <select
                                         value={sortBy}
-                                        onChange={(e) => setSortBy(e.target.value as any)}
+                                        onChange={(e) => setSortBy(e.target.value as "name" | "employee_id" | "base_rate" | "annual_rate")}
                                         className="border dark:border-gray-700 rounded-lg px-3 py-1.5 text-sm
                                             bg-white dark:bg-gray-800 text-gray-900 dark:text-white
                                             focus:ring-2 focus:ring-blue-500 outline-none"

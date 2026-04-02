@@ -9,7 +9,7 @@ interface CacheEntry<T> {
 }
 
 class Cache {
-  private cache: Map<string, CacheEntry<any>>;
+  private cache: Map<string, CacheEntry<unknown>>;
   private defaultTTL: number;
 
   constructor(defaultTTL: number = 5 * 60 * 1000) {
@@ -114,7 +114,7 @@ export default cache;
 /**
  * Cache decorator for async functions
  */
-export function withCache<T extends (...args: any[]) => Promise<any>>(
+export function withCache<T extends (...args: unknown[]) => Promise<unknown>>(
   fn: T,
   generateKey: (...args: Parameters<T>) => string,
   ttl?: number

@@ -24,7 +24,7 @@ interface OnboardingTask {
   completed_date: string | null;
   days_from_start: number | null;
   notes?: string;
-  task_details?: any;
+  task_details?: Record<string, unknown>;
 }
 
 interface DashboardStats {
@@ -34,7 +34,13 @@ interface DashboardStats {
   in_progress_tasks: number;
   overdue_tasks: number;
   completion_rate: number;
-  recent_hires: any[];
+  recent_hires: Array<{
+    employee_id: string;
+    first_name: string;
+    last_name: string;
+    hire_date: string;
+    department: string;
+  }>;
 }
 
 interface Employee {

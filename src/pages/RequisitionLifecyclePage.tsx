@@ -1,11 +1,12 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import {
-  ChevronLeft, Users, Clock, Building, Globe, Zap, Lock, Plus, FileText,
+  ChevronLeft, Clock, Building, Globe, Zap, Lock, Plus, FileText, Edit3, Save, RefreshCw, Eye,
 } from 'lucide-react';
 import LifecycleTracker, { type LifecycleStage } from '@/components/recruiting/LifecycleTracker';
 import StageDetailPanel from '@/components/recruiting/StageDetailPanel';
 import ComplianceTipsPanel from '@/components/recruiting/ComplianceTipsPanel';
+import StakeholderPanel from '@/components/recruiting/StakeholderPanel';
 
 // --- Interfaces ---
 
@@ -82,6 +83,32 @@ interface Application {
   created_at: string | null;
 }
 
+// --- Helpers ---
+
+/** Render text with "- " prefixed lines as a styled bullet list, other text as paragraphs. */
+function FormattedList({ text }: { text: string }) {
+  const lines = text.split('\n').filter(l => l.trim());
+  const bullets = lines.filter(l => /^\s*[-–•]/.test(l));
+
+  if (bullets.length >= lines.length * 0.5) {
+    return (
+      <ul className="space-y-2">
+        {lines.map((line, i) => {
+          const content = line.replace(/^\s*[-–•]\s*/, '');
+          return (
+            <li key={i} className="flex gap-2.5 text-sm text-gray-700 dark:text-gray-300">
+              <span className="mt-1.5 h-1.5 w-1.5 rounded-full shrink-0" style={{ background: 'linear-gradient(135deg, var(--bifrost-violet), var(--aurora-teal))' }} />
+              <span>{content}</span>
+            </li>
+          );
+        })}
+      </ul>
+    );
+  }
+
+  return <p className="text-sm text-gray-700 dark:text-gray-300 whitespace-pre-wrap">{text}</p>;
+}
+
 // --- Constants ---
 
 const statusColors: Record<string, string> = {
@@ -133,6 +160,18 @@ export default function RequisitionLifecyclePage() {
   const [loading, setLoading] = useState(true);
   const [showPostingModal, setShowPostingModal] = useState(false);
 
+  // Posting content editor state
+  const [editingContent, setEditingContent] = useState(false);
+  const [savingContent, setSavingContent] = useState(false);
+  const [populatingFromJD, setPopulatingFromJD] = useState(false);
+  const [contentFields, setContentFields] = useState({
+    description: '',
+    requirements: '',
+    responsibilities: '',
+    preferred_qualifications: '',
+    benefits_summary: '',
+  });
+
   useEffect(() => {
     if (id) fetchAll();
   }, [id]);
@@ -159,7 +198,15 @@ export default function RequisitionLifecyclePage() {
       }
 
       if (reqRes.ok) {
-        setRequisition(await reqRes.json());
+        const reqData = await reqRes.json();
+        setRequisition(reqData);
+        setContentFields({
+          description: reqData.description || '',
+          requirements: reqData.requirements || '',
+          responsibilities: reqData.responsibilities || '',
+          preferred_qualifications: reqData.preferred_qualifications || '',
+          benefits_summary: reqData.benefits_summary || '',
+        });
       }
 
       if (appRes.ok) {
@@ -246,6 +293,35 @@ export default function RequisitionLifecyclePage() {
       });
       fetchAll();
     } catch { /* silent */ }
+  };
+
+  const savePostingContent = async () => {
+    if (!requisition) return;
+    setSavingContent(true);
+    try {
+      await fetch(`/recruiting/requisitions/${requisition.id}`, {
+        method: 'PUT', credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(contentFields),
+      });
+      setEditingContent(false);
+      fetchAll();
+    } catch { /* silent */ }
+    setSavingContent(false);
+  };
+
+  const populateFromJD = async () => {
+    if (!requisition) return;
+    setPopulatingFromJD(true);
+    try {
+      const res = await fetch(`/recruiting/requisitions/${requisition.id}/populate-from-jd`, {
+        method: 'POST', credentials: 'include',
+      });
+      if (res.ok) {
+        fetchAll();
+      }
+    } catch { /* silent */ }
+    setPopulatingFromJD(false);
   };
 
   // --- Loading / Not Found ---
@@ -514,26 +590,38 @@ export default function RequisitionLifecyclePage() {
                 )}
               </div>
 
-              {(requisition.description || requisition.requirements || requisition.responsibilities) && (
-                <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-6 space-y-4">
-                  {requisition.description && (
-                    <>
-                      <h3 className="font-semibold text-gray-900 dark:text-white">Description</h3>
-                      <p className="text-sm text-gray-700 dark:text-gray-300 whitespace-pre-wrap">{requisition.description}</p>
-                    </>
-                  )}
-                  {requisition.requirements && (
-                    <>
-                      <h4 className="font-medium text-gray-800 dark:text-gray-200">Requirements</h4>
-                      <p className="text-sm text-gray-700 dark:text-gray-300 whitespace-pre-wrap">{requisition.requirements}</p>
-                    </>
-                  )}
-                  {requisition.responsibilities && (
-                    <>
-                      <h4 className="font-medium text-gray-800 dark:text-gray-200">Responsibilities</h4>
-                      <p className="text-sm text-gray-700 dark:text-gray-300 whitespace-pre-wrap">{requisition.responsibilities}</p>
-                    </>
-                  )}
+              {requisition.description && (
+                <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-6 space-y-3">
+                  <h3 className="font-semibold text-gray-900 dark:text-white">Description</h3>
+                  <p className="text-sm text-gray-700 dark:text-gray-300 whitespace-pre-wrap">{requisition.description}</p>
+                </div>
+              )}
+
+              {requisition.responsibilities && (
+                <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-6 space-y-3">
+                  <h3 className="font-semibold text-gray-900 dark:text-white">Responsibilities</h3>
+                  <FormattedList text={requisition.responsibilities} />
+                </div>
+              )}
+
+              {requisition.requirements && (
+                <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-6 space-y-3">
+                  <h3 className="font-semibold text-gray-900 dark:text-white">Requirements</h3>
+                  <FormattedList text={requisition.requirements} />
+                </div>
+              )}
+
+              {requisition.preferred_qualifications && (
+                <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-6 space-y-3">
+                  <h3 className="font-semibold text-gray-900 dark:text-white">Preferred Qualifications</h3>
+                  <FormattedList text={requisition.preferred_qualifications} />
+                </div>
+              )}
+
+              {requisition.benefits_summary && (
+                <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-6 space-y-3">
+                  <h3 className="font-semibold text-gray-900 dark:text-white">Benefits</h3>
+                  <p className="text-sm text-gray-700 dark:text-gray-300 whitespace-pre-wrap">{requisition.benefits_summary}</p>
                 </div>
               )}
             </div>
@@ -541,58 +629,191 @@ export default function RequisitionLifecyclePage() {
 
           {/* Postings */}
           {activeTab === 'postings' && (
-            <div className="space-y-4">
-              <div className="flex justify-end">
-                <button
-                  onClick={() => setShowPostingModal(true)}
-                  className="flex items-center gap-2 bg-blue-600 text-white px-4 py-2 rounded-lg text-sm hover:bg-blue-700"
-                >
-                  <Plus className="w-4 h-4" /> Create Posting
-                </button>
-              </div>
-              {(!requisition.postings || requisition.postings.length === 0) ? (
-                <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-8 text-center text-gray-500 dark:text-gray-400">
-                  No postings yet. Create one to start receiving applications.
+            <div className="space-y-6">
+              {/* Posting Content Editor */}
+              <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700">
+                <div className="flex items-center justify-between px-5 py-3 border-b border-gray-200 dark:border-gray-700">
+                  <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300 flex items-center gap-2">
+                    <FileText className="w-4 h-4" />
+                    Posting Content
+                  </h3>
+                  <div className="flex items-center gap-2">
+                    {requisition.description === null && requisition.requirements === null && (
+                      <button
+                        onClick={populateFromJD}
+                        disabled={populatingFromJD}
+                        className="flex items-center gap-1.5 text-xs px-3 py-1.5 bg-amber-50 text-amber-700 border border-amber-200 rounded-lg hover:bg-amber-100 dark:bg-amber-900/20 dark:text-amber-300 dark:border-amber-800 dark:hover:bg-amber-900/40 disabled:opacity-50"
+                      >
+                        <RefreshCw className={`w-3 h-3 ${populatingFromJD ? 'animate-spin' : ''}`} />
+                        {populatingFromJD ? 'Pulling...' : 'Pull from JD'}
+                      </button>
+                    )}
+                    {editingContent ? (
+                      <>
+                        <button
+                          onClick={() => {
+                            setEditingContent(false);
+                            setContentFields({
+                              description: requisition.description || '',
+                              requirements: requisition.requirements || '',
+                              responsibilities: requisition.responsibilities || '',
+                              preferred_qualifications: requisition.preferred_qualifications || '',
+                              benefits_summary: requisition.benefits_summary || '',
+                            });
+                          }}
+                          className="text-xs px-3 py-1.5 border border-gray-200 dark:border-gray-600 rounded-lg text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-700"
+                        >
+                          Cancel
+                        </button>
+                        <button
+                          onClick={savePostingContent}
+                          disabled={savingContent}
+                          className="flex items-center gap-1.5 text-xs px-3 py-1.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50"
+                        >
+                          <Save className="w-3 h-3" />
+                          {savingContent ? 'Saving...' : 'Save'}
+                        </button>
+                      </>
+                    ) : (
+                      <button
+                        onClick={() => setEditingContent(true)}
+                        className="flex items-center gap-1.5 text-xs px-3 py-1.5 border border-gray-200 dark:border-gray-600 rounded-lg text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-700"
+                      >
+                        <Edit3 className="w-3 h-3" />
+                        Edit
+                      </button>
+                    )}
+                  </div>
                 </div>
-              ) : (
-                <div className="grid gap-4">
-                  {requisition.postings.map(posting => (
-                    <div key={posting.id} className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-4 flex items-center justify-between">
-                      <div className="flex items-center gap-3">
-                        {posting.channel === 'internal' ? (
-                          <Lock className="w-5 h-5 text-amber-500" />
-                        ) : (
-                          <Globe className="w-5 h-5 text-blue-500 dark:text-blue-400" />
-                        )}
-                        <div>
-                          <p className="font-medium text-gray-900 dark:text-white">{posting.title}</p>
-                          <p className="text-sm text-gray-500 dark:text-gray-400">
-                            {posting.posting_id} &middot; {posting.channel} &middot; {posting.application_count} application{posting.application_count !== 1 ? 's' : ''}
+                <div className="p-5 space-y-4">
+                  {((): React.ReactNode => {
+                    const fields = [
+                      { key: 'description' as const, label: 'About This Role' },
+                      { key: 'responsibilities' as const, label: 'Responsibilities' },
+                      { key: 'requirements' as const, label: 'Requirements' },
+                      { key: 'preferred_qualifications' as const, label: 'Preferred Qualifications' },
+                      { key: 'benefits_summary' as const, label: 'Benefits' },
+                    ];
+
+                    const hasAnyContent = fields.some(f => contentFields[f.key]);
+
+                    if (!editingContent && !hasAnyContent) {
+                      return (
+                        <div className="text-center py-6">
+                          <p className="text-sm text-gray-400 dark:text-gray-500 mb-2">
+                            No posting content yet. This is what applicants will see on the job listing.
                           </p>
+                          <button
+                            onClick={populateFromJD}
+                            disabled={populatingFromJD}
+                            className="text-sm text-blue-600 hover:text-blue-700 dark:text-blue-400"
+                          >
+                            {populatingFromJD ? 'Pulling from Job Description...' : 'Pull content from linked Job Description'}
+                          </button>
+                          <span className="mx-2 text-gray-300">or</span>
+                          <button
+                            onClick={() => setEditingContent(true)}
+                            className="text-sm text-blue-600 hover:text-blue-700 dark:text-blue-400"
+                          >
+                            add content manually
+                          </button>
+                        </div>
+                      );
+                    }
+
+                    return fields.map(f => (
+                      <div key={f.key}>
+                        <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-1">
+                          {f.label}
+                        </label>
+                        {editingContent ? (
+                          <textarea
+                            value={contentFields[f.key]}
+                            onChange={e => setContentFields(prev => ({ ...prev, [f.key]: e.target.value }))}
+                            rows={f.key === 'description' ? 6 : 4}
+                            className="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 text-sm bg-white dark:bg-gray-900 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                            placeholder={`Enter ${f.label.toLowerCase()}...`}
+                          />
+                        ) : (
+                          contentFields[f.key] ? (
+                            <div className="text-sm text-gray-700 dark:text-gray-300 whitespace-pre-wrap bg-gray-50 dark:bg-gray-900/50 rounded-lg px-3 py-2">
+                              {contentFields[f.key]}
+                            </div>
+                          ) : (
+                            <p className="text-sm text-gray-300 dark:text-gray-600 italic">Not set</p>
+                          )
+                        )}
+                      </div>
+                    ));
+                  })()}
+                </div>
+              </div>
+
+              {/* Postings List */}
+              <div>
+                <div className="flex items-center justify-between mb-3">
+                  <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300">Active Postings</h3>
+                  <button
+                    onClick={() => setShowPostingModal(true)}
+                    className="flex items-center gap-2 bg-blue-600 text-white px-4 py-2 rounded-lg text-sm hover:bg-blue-700"
+                  >
+                    <Plus className="w-4 h-4" /> Create Posting
+                  </button>
+                </div>
+                {(!requisition.postings || requisition.postings.length === 0) ? (
+                  <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-8 text-center text-gray-500 dark:text-gray-400">
+                    No postings yet. Create one to start receiving applications.
+                  </div>
+                ) : (
+                  <div className="grid gap-3">
+                    {requisition.postings.map(posting => (
+                      <div key={posting.id} className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-4 flex items-center justify-between">
+                        <div className="flex items-center gap-3">
+                          {posting.channel === 'internal' ? (
+                            <Lock className="w-5 h-5 text-amber-500" />
+                          ) : (
+                            <Globe className="w-5 h-5 text-blue-500 dark:text-blue-400" />
+                          )}
+                          <div>
+                            <p className="font-medium text-gray-900 dark:text-white">{posting.title}</p>
+                            <p className="text-sm text-gray-500 dark:text-gray-400">
+                              {posting.posting_id} &middot; {posting.channel} &middot; {posting.application_count} application{posting.application_count !== 1 ? 's' : ''}
+                            </p>
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-3">
+                          <span className={`px-2 py-1 rounded text-xs font-medium ${
+                            posting.status === 'Published' ? 'bg-green-100 text-green-800 dark:bg-green-900/40 dark:text-green-300' :
+                            posting.status === 'Draft' ? 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-200' :
+                            posting.status === 'Closed' ? 'bg-red-100 text-red-800 dark:bg-red-900/40 dark:text-red-300' :
+                            'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/40 dark:text-yellow-300'
+                          }`}>
+                            {posting.status}
+                          </span>
+                          {posting.status === 'Published' && posting.slug && (
+                            <a
+                              href={`http://localhost:5175/jobs/${posting.slug}`}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="flex items-center gap-1 text-xs text-blue-600 hover:text-blue-700 dark:text-blue-400"
+                            >
+                              <Eye className="w-3 h-3" /> View
+                            </a>
+                          )}
+                          {posting.status === 'Draft' && (
+                            <button
+                              onClick={() => publishPosting(posting.id)}
+                              className="px-3 py-1.5 bg-green-600 text-white rounded-lg text-sm hover:bg-green-700"
+                            >
+                              Publish
+                            </button>
+                          )}
                         </div>
                       </div>
-                      <div className="flex items-center gap-3">
-                        <span className={`px-2 py-1 rounded text-xs font-medium ${
-                          posting.status === 'Published' ? 'bg-green-100 text-green-800 dark:bg-green-900/40 dark:text-green-300' :
-                          posting.status === 'Draft' ? 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-200' :
-                          posting.status === 'Closed' ? 'bg-red-100 text-red-800 dark:bg-red-900/40 dark:text-red-300' :
-                          'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/40 dark:text-yellow-300'
-                        }`}>
-                          {posting.status}
-                        </span>
-                        {posting.status === 'Draft' && (
-                          <button
-                            onClick={() => publishPosting(posting.id)}
-                            className="px-3 py-1.5 bg-green-600 text-white rounded-lg text-sm hover:bg-green-700"
-                          >
-                            Publish
-                          </button>
-                        )}
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
+                    ))}
+                  </div>
+                )}
+              </div>
             </div>
           )}
 
@@ -653,11 +874,7 @@ export default function RequisitionLifecyclePage() {
         <div className="space-y-4">
           {/* Stakeholders */}
           <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-4">
-            <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300 flex items-center gap-2 mb-3">
-              <Users className="w-4 h-4" />
-              Stakeholders
-            </h3>
-            <div className="space-y-2 text-sm">
+            <div className="space-y-2 text-sm mb-3">
               {requisition.hiring_manager_name && (
                 <div className="flex justify-between">
                   <span className="text-gray-500 dark:text-gray-400">Hiring Manager</span>
@@ -670,12 +887,8 @@ export default function RequisitionLifecyclePage() {
                   <span className="text-gray-700 dark:text-gray-300">{requisition.recruiter_name}</span>
                 </div>
               )}
-              {requisition.visibility_user_ids && requisition.visibility_user_ids.length > 0 && (
-                <div className="pt-2 border-t border-gray-100 dark:border-gray-700">
-                  <span className="text-xs text-gray-400">{requisition.visibility_user_ids.length} additional stakeholders</span>
-                </div>
-              )}
             </div>
+            <StakeholderPanel requisitionId={requisition.id} />
           </div>
 
           {/* Posting Channels */}
@@ -727,52 +940,63 @@ export default function RequisitionLifecyclePage() {
 
 // --- Create Posting Modal ---
 
+const CHANNEL_OPTIONS = [
+  { value: 'portal', label: 'Applicant Portal' },
+  { value: 'internal', label: 'Internal (Employees Only)' },
+  { value: 'careers_page', label: 'Careers Page' },
+  { value: 'indeed', label: 'Indeed' },
+  { value: 'linkedin', label: 'LinkedIn' },
+];
+
 function CreatePostingModal({ onClose, onCreate }: {
   onClose: () => void;
   onCreate: (data: { channel: string; is_internal: boolean }) => void;
 }) {
-  const [channel, setChannel] = useState('portal');
-  const [isInternal, setIsInternal] = useState(false);
+  const [selectedChannels, setSelectedChannels] = useState<string[]>(['portal']);
+  const [creating, setCreating] = useState(false);
+
+  const toggleChannel = (value: string) => {
+    setSelectedChannels(prev =>
+      prev.includes(value) ? prev.filter(c => c !== value) : [...prev, value]
+    );
+  };
+
+  const handleCreate = async () => {
+    setCreating(true);
+    for (const ch of selectedChannels) {
+      await onCreate({ channel: ch, is_internal: ch === 'internal' });
+    }
+    setCreating(false);
+  };
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50" onClick={onClose}>
       <div className="bg-white dark:bg-gray-800 rounded-xl shadow-xl w-full max-w-md mx-4 p-6" onClick={e => e.stopPropagation()}>
         <h2 className="text-xl font-bold mb-4 text-gray-900 dark:text-white">Create Job Posting</h2>
-        <div className="space-y-4">
-          <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Channel</label>
-            <select
-              value={channel}
-              onChange={e => setChannel(e.target.value)}
-              className="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 text-sm dark:bg-gray-700 dark:text-white"
-            >
-              <option value="portal">Applicant Portal</option>
-              <option value="internal">Internal (Employees Only)</option>
-              <option value="careers_page">Careers Page</option>
-              <option value="indeed">Indeed</option>
-              <option value="linkedin">LinkedIn</option>
-            </select>
-          </div>
-          <label className="flex items-center gap-2">
-            <input
-              type="checkbox"
-              checked={isInternal || channel === 'internal'}
-              onChange={e => setIsInternal(e.target.checked)}
-              disabled={channel === 'internal'}
-              className="rounded"
-            />
-            <span className="text-sm text-gray-700 dark:text-gray-300">Internal posting (employees only)</span>
-          </label>
+        <div className="space-y-3">
+          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Channels</label>
+          {CHANNEL_OPTIONS.map(opt => (
+            <label key={opt.value} className="flex items-center gap-3 p-2 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700/50 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={selectedChannels.includes(opt.value)}
+                onChange={() => toggleChannel(opt.value)}
+                className="rounded"
+              />
+              <span className="text-sm text-gray-700 dark:text-gray-300">{opt.label}</span>
+            </label>
+          ))}
         </div>
         <div className="flex gap-3 mt-6 justify-end">
           <button onClick={onClose} className="px-4 py-2 border border-gray-200 dark:border-gray-700 rounded-lg text-sm hover:bg-gray-50 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300">
             Cancel
           </button>
           <button
-            onClick={() => onCreate({ channel, is_internal: isInternal || channel === 'internal' })}
-            className="px-4 py-2 bg-blue-600 text-white rounded-lg text-sm hover:bg-blue-700"
+            onClick={handleCreate}
+            disabled={selectedChannels.length === 0 || creating}
+            className="px-4 py-2 bg-blue-600 text-white rounded-lg text-sm hover:bg-blue-700 disabled:opacity-50"
           >
-            Create Posting
+            {creating ? 'Creating...' : `Create ${selectedChannels.length > 1 ? `${selectedChannels.length} Postings` : 'Posting'}`}
           </button>
         </div>
       </div>

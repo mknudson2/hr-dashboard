@@ -125,7 +125,7 @@ const ContributionsPage = () => {
     }
   };
 
-  const handleSaveContributions = async (employeeId: string, updates: any) => {
+  const handleSaveContributions = async (employeeId: string, updates: Record<string, unknown>) => {
     try {
       const response = await fetch(`/employees/${employeeId}/contributions`, {
         method: 'PUT',
@@ -176,7 +176,7 @@ const ContributionsPage = () => {
       'Annual Max',
     ];
 
-    const rows: any[] = [];
+    const rows: (string | number)[][] = [];
 
     employees.forEach(emp => {
       // HSA Employee Contribution
@@ -404,7 +404,7 @@ const ContributionsPage = () => {
         emp.medical_tier || 'None',
       ];
 
-      let rowData: any[] = [];
+      let rowData: (string | number)[] = [];
 
       switch (exportType) {
         case 'hsa':
@@ -757,7 +757,7 @@ const ContributionsPage = () => {
                   </label>
                   <select
                     value={calcType}
-                    onChange={(e) => setCalcType(e.target.value as any)}
+                    onChange={(e) => setCalcType(e.target.value as 'hsa' | 'fsa' | 'dcfsa')}
                     className="w-full px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
                   >
                     <option value="hsa">Health Savings Account (HSA)</option>
@@ -773,7 +773,7 @@ const ContributionsPage = () => {
                     </label>
                     <select
                       value={calcTier}
-                      onChange={(e) => setCalcTier(e.target.value as any)}
+                      onChange={(e) => setCalcTier(e.target.value as 'individual' | 'family')}
                       className="w-full px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
                     >
                       <option value="individual">Individual</option>

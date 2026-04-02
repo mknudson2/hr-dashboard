@@ -27,6 +27,23 @@ import BirthdayWidget from "@/components/widgets/BirthdayWidget";
 import TenureAnniversaryWidget from "@/components/widgets/TenureAnniversaryWidget";
 import LocationDistribution from "@/components/LocationDistribution";
 
+interface KpiCard {
+  title: string;
+  value: string | number;
+  icon: React.ReactNode;
+  accent: string;
+  subtitle?: string;
+  badge?: string;
+  badgeColor?: string;
+  showDonut?: boolean;
+  donutData?: {
+    total: number;
+    congruent: number;
+    ameripol: number;
+    bloom: number;
+  };
+}
+
 interface AnalyticsData {
   total_employees: number;
   active_employees: number;
@@ -169,7 +186,7 @@ export default function DashboardPage() {
     red: 'linear-gradient(90deg, #EF4444, #F97316)',
   };
 
-  const kpis = [
+  const kpis: KpiCard[] = [
     {
       title: "Total Employees",
       value: data.active_employees,
@@ -207,23 +224,23 @@ export default function DashboardPage() {
     },
     {
       title: "YTD Avg Headcount",
-      value: (data as any).ytd_avg_headcount ?? "-",
+      value: data.ytd_avg_headcount ?? "-",
       icon: <BarChart className="w-5 h-5 text-mimir-blue dark:text-well-silver" />,
       subtitle: `Current: ${data.active_employees}`,
       badge:
-        (data as any).ytd_avg_headcount &&
-          data.active_employees > (data as any).ytd_avg_headcount
+        data.ytd_avg_headcount &&
+          data.active_employees > data.ytd_avg_headcount
           ? "Growing"
-          : (data as any).ytd_avg_headcount &&
-            data.active_employees < (data as any).ytd_avg_headcount
+          : data.ytd_avg_headcount &&
+            data.active_employees < data.ytd_avg_headcount
             ? "Declining"
             : "Stable",
       badgeColor:
-        (data as any).ytd_avg_headcount &&
-          data.active_employees > (data as any).ytd_avg_headcount
+        data.ytd_avg_headcount &&
+          data.active_employees > data.ytd_avg_headcount
           ? "green"
-          : (data as any).ytd_avg_headcount &&
-            data.active_employees < (data as any).ytd_avg_headcount
+          : data.ytd_avg_headcount &&
+            data.active_employees < data.ytd_avg_headcount
             ? "red"
             : "blue",
       accent: 'navy',
@@ -231,8 +248,8 @@ export default function DashboardPage() {
     {
       title: "Involuntary Turnover %",
       value:
-        (data as any).regrettable_turnover_pct !== undefined
-          ? `${(data as any).regrettable_turnover_pct}%`
+        data.regrettable_turnover_pct !== undefined
+          ? `${data.regrettable_turnover_pct}%`
           : "-",
       icon: <TrendingUp className="w-5 h-5 text-pink-600 dark:text-pink-400" />,
       subtitle:
@@ -240,18 +257,18 @@ export default function DashboardPage() {
           ? `${data.ytd_terminations.involuntary} of ${data.ytd_terminations?.total ?? 0} terms`
           : undefined,
       badge:
-        (data as any).regrettable_turnover_pct !== undefined
-          ? (data as any).regrettable_turnover_pct > 50
+        data.regrettable_turnover_pct !== undefined
+          ? data.regrettable_turnover_pct > 50
             ? "High Risk"
-            : (data as any).regrettable_turnover_pct > 30
+            : data.regrettable_turnover_pct > 30
               ? "Moderate"
               : "Low Risk"
           : undefined,
       badgeColor:
-        (data as any).regrettable_turnover_pct !== undefined
-          ? (data as any).regrettable_turnover_pct > 50
+        data.regrettable_turnover_pct !== undefined
+          ? data.regrettable_turnover_pct > 50
             ? "red"
-            : (data as any).regrettable_turnover_pct > 30
+            : data.regrettable_turnover_pct > 30
               ? "yellow"
               : "green"
           : "blue",
@@ -327,37 +344,37 @@ export default function DashboardPage() {
               </span>
             </div>
 
-            {"showDonut" in kpi && (kpi as any).showDonut ? (
+            {kpi.showDonut && kpi.donutData ? (
               <div className="w-full">
                 <div className="text-center mb-2">
                   <span className="font-display text-3xl font-semibold text-gray-900 dark:text-white">
                     {kpi.value}
                   </span>
                 </div>
-                <InternationalDonutChart data={(kpi as any).donutData as any} />
+                <InternationalDonutChart data={kpi.donutData} />
               </div>
             ) : (
               <div className="flex flex-col items-center w-full">
                 <span className="font-display text-3xl font-semibold text-gray-900 dark:text-white">
                   {kpi.value}
                 </span>
-                {"subtitle" in kpi && (kpi as any).subtitle && (
+                {kpi.subtitle && (
                   <p className="text-[11px] text-gray-400 dark:text-gray-500 mt-2 text-center">
-                    {(kpi as any).subtitle}
+                    {kpi.subtitle}
                   </p>
                 )}
-                {"badge" in kpi && (kpi as any).badge && (
+                {kpi.badge && (
                   <span
-                    className={`mt-3 px-3 py-1 rounded-md text-[10px] font-semibold ${(kpi as any).badgeColor === "green"
+                    className={`mt-3 px-3 py-1 rounded-md text-[10px] font-semibold ${kpi.badgeColor === "green"
                         ? "bg-aurora-teal/12 text-aurora-teal dark:bg-aurora-teal/12 dark:text-aurora-teal"
-                        : (kpi as any).badgeColor === "red"
+                        : kpi.badgeColor === "red"
                           ? "bg-red-100 text-red-700 dark:bg-red-900 dark:text-red-300"
-                          : (kpi as any).badgeColor === "yellow"
+                          : kpi.badgeColor === "yellow"
                             ? "bg-bridge-gold/12 text-bridge-gold-dark dark:bg-bridge-gold/12 dark:text-bridge-gold"
                             : "bg-bifrost-violet/8 text-bifrost-violet dark:bg-bifrost-violet/12 dark:text-bifrost-violet-light"
                       }`}
                   >
-                    {(kpi as any).badge}
+                    {kpi.badge}
                   </span>
                 )}
               </div>

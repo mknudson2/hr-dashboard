@@ -28,7 +28,7 @@ interface Employee {
 interface EmployeeContributionModalProps {
   employee: Employee | null;
   onClose: () => void;
-  onSave: (employeeId: string, updates: any) => void;
+  onSave: (employeeId: string, updates: Record<string, unknown>) => void;
 }
 
 // 2025 IRS Limits
@@ -114,7 +114,7 @@ const EmployeeContributionModal = ({ employee, onClose, onSave }: EmployeeContri
   const disableFSA = hasHSA;
   // LFSA can be used with HSA, so only disabled if HSA + FSA both exist (which shouldn't happen)
 
-  const handleChange = (field: string, value: any) => {
+  const handleChange = (field: string, value: string | number) => {
     setFormData(prev => ({ ...prev, [field]: value }));
     // Clear error when field is edited
     if (errors[field]) {

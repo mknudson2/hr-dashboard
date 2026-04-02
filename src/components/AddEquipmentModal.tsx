@@ -202,8 +202,8 @@ export default function AddEquipmentModal({ isOpen, onClose, onSuccess }: AddEqu
 
       onSuccess();
       onClose();
-    } catch (err: any) {
-      setError(err.message || 'Failed to create equipment');
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : 'Failed to create equipment');
     } finally {
       setSaving(false);
     }

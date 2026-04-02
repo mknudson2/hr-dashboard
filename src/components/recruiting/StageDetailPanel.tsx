@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { MessageSquare, FileText, User, Send, Plus, Upload, Download, ChevronDown, ChevronUp, FileSignature } from 'lucide-react';
+import { MessageSquare, FileText, User, Send, Plus, Upload, Download, ChevronDown, ChevronUp, FileSignature, Globe, CheckCircle, Eye, ExternalLink, Calendar, Clock, Video, ClipboardList } from 'lucide-react';
 import type { LifecycleStage } from './LifecycleTracker';
 
 interface StageNote {
@@ -24,6 +24,21 @@ interface StageDocument {
   description: string | null;
   file_path: string | null;
   created_at: string | null;
+}
+
+interface StageInterview {
+  id: number;
+  interview_id: string;
+  applicant_name: string | null;
+  application_id: number;
+  scheduled_at: string | null;
+  duration_minutes: number;
+  format: string;
+  video_link: string | null;
+  meeting_link_auto: boolean;
+  status: string;
+  interviewers: { user_id: number; name: string; role: string }[];
+  scorecards: { id: number; status: string; interviewer_id: number }[];
 }
 
 interface StageDetailPanelProps {
@@ -56,6 +71,28 @@ export default function StageDetailPanel({
   const fileInputRef = useRef<HTMLInputElement>(null);
   const navigate = useNavigate();
 
+  // Posting-related state for position_posted stage
+  interface PostingItem {
+    id: number;
+    posting_id: string;
+    channel: string;
+    status: string;
+    is_internal: boolean;
+    published_at: string | null;
+    application_count: number;
+  }
+  const [postings, setPostings] = useState<PostingItem[]>([]);
+  const [postingChannels, setPostingChannels] = useState<string[]>(['portal']);
+  const [creatingPostings, setCreatingPostings] = useState(false);
+
+  const CHANNEL_OPTIONS = [
+    { value: 'portal', label: 'Applicant Portal', icon: Globe },
+    { value: 'internal', label: 'Internal (Employees)', icon: User },
+    { value: 'careers_page', label: 'Careers Page', icon: ExternalLink },
+    { value: 'indeed', label: 'Indeed', icon: ExternalLink },
+    { value: 'linkedin', label: 'LinkedIn', icon: ExternalLink },
+  ];
+
   // Offer-related state for offer_extended stage
   interface OfferCandidate {
     id: number;
@@ -66,11 +103,21 @@ export default function StageDetailPanel({
   const [offerCandidates, setOfferCandidates] = useState<OfferCandidate[]>([]);
   const [loadingOffers, setLoadingOffers] = useState(false);
 
+  // Interview-related state for interview stages
+  const [stageInterviews, setStageInterviews] = useState<StageInterview[]>([]);
+  const isInterviewStage = stage.stage_key === 'hr_interview' || stage.stage_key === 'hiring_manager_interview';
+
   useEffect(() => {
     fetchNotes();
     fetchDocuments();
+    if (isInterviewStage) {
+      fetchStageInterviews();
+    }
     if (stage.stage_key === 'offer_extended') {
       fetchOfferCandidates();
+    }
+    if (stage.stage_key === 'position_posted') {
+      fetchPostings();
     }
   }, [stage.id]);
 
@@ -96,6 +143,21 @@ export default function StageDetailPanel({
       if (res.ok) {
         const data = await res.json();
         setDocuments(data.documents);
+      }
+    } catch {
+      // silent
+    }
+  };
+
+  const fetchStageInterviews = async () => {
+    try {
+      const res = await fetch(
+        `/recruiting/requisitions/${requisitionId}/stage-interviews?stage_key=${stage.stage_key}`,
+        { credentials: 'include' },
+      );
+      if (res.ok) {
+        const data = await res.json();
+        setStageInterviews(data.interviews || []);
       }
     } catch {
       // silent
@@ -135,6 +197,54 @@ export default function StageDetailPanel({
     } finally {
       setLoadingOffers(false);
     }
+  };
+
+  const fetchPostings = async () => {
+    try {
+      const res = await fetch(`/recruiting/requisitions/${requisitionId}/postings`, { credentials: 'include' });
+      if (res.ok) {
+        const data = await res.json();
+        setPostings(data.postings || []);
+        // Remove channels that already have postings
+        const existingChannels = (data.postings || []).map((p: PostingItem) => p.channel);
+        setPostingChannels(prev => prev.filter(c => !existingChannels.includes(c)));
+      }
+    } catch { /* silent */ }
+  };
+
+  const togglePostingChannel = (value: string) => {
+    setPostingChannels(prev =>
+      prev.includes(value) ? prev.filter(c => c !== value) : [...prev, value]
+    );
+  };
+
+  const handleCreatePostings = async () => {
+    setCreatingPostings(true);
+    try {
+      for (const ch of postingChannels) {
+        await fetch(`/recruiting/postings`, {
+          method: 'POST', credentials: 'include',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ requisition_id: requisitionId, channel: ch, is_internal: ch === 'internal' }),
+        });
+      }
+      setPostingChannels([]);
+      fetchPostings();
+      onStageUpdated?.();
+    } catch { /* silent */ }
+    setCreatingPostings(false);
+  };
+
+  const handlePublishPosting = async (postingId: number) => {
+    try {
+      await fetch(`/recruiting/postings/${postingId}/publish`, {
+        method: 'PATCH', credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status: 'Published' }),
+      });
+      fetchPostings();
+      onStageUpdated?.();
+    } catch { /* silent */ }
   };
 
   const handleAddNote = async () => {
@@ -289,6 +399,198 @@ export default function StageDetailPanel({
           </div>
         )}
       </div>
+
+      {/* Scheduled Interviews — shown for hr_interview / hiring_manager_interview stages */}
+      {isInterviewStage && (
+        <div className="border-b border-gray-200 dark:border-gray-700">
+          <div className="p-4">
+            <h4 className="flex items-center gap-2 text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3">
+              <Calendar className="w-4 h-4" />
+              Scheduled Interviews ({stageInterviews.length})
+            </h4>
+            {stageInterviews.length === 0 ? (
+              <p className="text-sm text-gray-400 dark:text-gray-500">No interviews scheduled for this stage yet.</p>
+            ) : (
+              <div className="space-y-2">
+                {stageInterviews.map(iv => (
+                  <div key={iv.id} className="bg-gray-50 dark:bg-gray-700/50 rounded-lg p-3">
+                    <div className="flex items-center justify-between mb-2">
+                      <div className="flex items-center gap-2 min-w-0">
+                        <User className="w-4 h-4 text-blue-500 shrink-0" />
+                        <button
+                          onClick={() => navigate(`/recruiting/applications/${iv.application_id}`)}
+                          className="text-sm font-medium text-blue-600 dark:text-blue-400 hover:underline truncate"
+                        >
+                          {iv.applicant_name || 'Unknown Applicant'}
+                        </button>
+                      </div>
+                      <span className={`px-2 py-0.5 rounded-full text-xs font-medium shrink-0 ${
+                        iv.status === 'Completed' ? 'bg-green-100 text-green-700 dark:bg-green-900/40 dark:text-green-300' :
+                        iv.status === 'Cancelled' ? 'bg-red-100 text-red-700' :
+                        iv.status === 'Confirmed' ? 'bg-blue-100 text-blue-700' :
+                        'bg-purple-100 text-purple-700 dark:bg-purple-900/40 dark:text-purple-300'
+                      }`}>
+                        {iv.status}
+                      </span>
+                    </div>
+                    <div className="grid grid-cols-2 lg:grid-cols-4 gap-2 text-xs text-gray-500 dark:text-gray-400">
+                      {iv.scheduled_at && (
+                        <div className="flex items-center gap-1.5">
+                          <Clock className="w-3 h-3" />
+                          <span>
+                            {new Date(iv.scheduled_at).toLocaleDateString()} at{' '}
+                            {new Date(iv.scheduled_at).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true })}
+                          </span>
+                        </div>
+                      )}
+                      <div className="flex items-center gap-1.5">
+                        <Clock className="w-3 h-3" />
+                        <span>{iv.duration_minutes} min</span>
+                      </div>
+                      <div className="flex items-center gap-1.5">
+                        <Video className="w-3 h-3" />
+                        <span>{iv.format}</span>
+                      </div>
+                      {iv.interviewers?.[0]?.name && (
+                        <div className="flex items-center gap-1.5">
+                          <User className="w-3 h-3" />
+                          <span>{iv.interviewers[0].name}</span>
+                        </div>
+                      )}
+                    </div>
+                    <div className="mt-2 flex flex-wrap gap-2">
+                      {iv.video_link && (
+                        <a
+                          href={iv.video_link}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400 rounded-lg hover:bg-blue-200 dark:hover:bg-blue-900/50"
+                        >
+                          <Video className="w-3.5 h-3.5" />
+                          Join Meeting
+                          {iv.meeting_link_auto && (
+                            <span className="text-blue-500 dark:text-blue-500">(Teams)</span>
+                          )}
+                          <ExternalLink className="w-3 h-3" />
+                        </a>
+                      )}
+                      {iv.scorecards.length > 0 ? (
+                        iv.scorecards.map(sc => (
+                          <button
+                            key={sc.id}
+                            onClick={() => navigate(`/recruiting/scorecards/${sc.id}`)}
+                            className={`inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg ${
+                              sc.status === 'Submitted'
+                                ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400 hover:bg-green-200 dark:hover:bg-green-900/50'
+                                : 'bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400 hover:bg-purple-200 dark:hover:bg-purple-900/50'
+                            }`}
+                          >
+                            <ClipboardList className="w-3.5 h-3.5" />
+                            {sc.status === 'Submitted' ? 'View Scorecard' : 'Fill Scorecard'}
+                          </button>
+                        ))
+                      ) : (
+                        <button
+                          onClick={() => navigate(`/recruiting/applications/${iv.application_id}`, { state: { tab: 'scorecards' } })}
+                          className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-400 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600"
+                        >
+                          <ClipboardList className="w-3.5 h-3.5" />
+                          Scorecard
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* Position Posted — inline posting creation + existing postings */}
+      {stage.stage_key === 'position_posted' && (
+        <div className="border-b border-gray-200 dark:border-gray-700">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-0 md:gap-0">
+            {/* Left: Create postings */}
+            <div className="p-4 md:border-r border-gray-200 dark:border-gray-700">
+              <h4 className="flex items-center gap-2 text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3">
+                <Globe className="w-4 h-4" />
+                Create Postings
+              </h4>
+              {(() => {
+                const existingChannels = postings.map(p => p.channel);
+                const available = CHANNEL_OPTIONS.filter(o => !existingChannels.includes(o.value));
+                if (available.length === 0) {
+                  return <p className="text-sm text-gray-400 dark:text-gray-500">All channels have postings.</p>;
+                }
+                return (
+                  <div className="space-y-2">
+                    {available.map(opt => (
+                      <label key={opt.value} className="flex items-center gap-3 p-2 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700/50 cursor-pointer">
+                        <input
+                          type="checkbox"
+                          checked={postingChannels.includes(opt.value)}
+                          onChange={() => togglePostingChannel(opt.value)}
+                          className="rounded text-blue-600"
+                        />
+                        <opt.icon className="w-4 h-4 text-gray-400" />
+                        <span className="text-sm text-gray-700 dark:text-gray-300">{opt.label}</span>
+                      </label>
+                    ))}
+                    <button
+                      onClick={handleCreatePostings}
+                      disabled={postingChannels.length === 0 || creatingPostings}
+                      className="mt-2 w-full px-4 py-2 text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50"
+                    >
+                      {creatingPostings ? 'Creating...' : `Create ${postingChannels.length > 1 ? `${postingChannels.length} Postings` : 'Posting'}`}
+                    </button>
+                  </div>
+                );
+              })()}
+            </div>
+
+            {/* Right: Existing postings */}
+            <div className="p-4">
+              <h4 className="flex items-center gap-2 text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3">
+                <Eye className="w-4 h-4" />
+                Active Postings ({postings.length})
+              </h4>
+              {postings.length === 0 ? (
+                <p className="text-sm text-gray-400 dark:text-gray-500">No postings created yet.</p>
+              ) : (
+                <div className="space-y-2">
+                  {postings.map(p => (
+                    <div key={p.id} className="flex items-center justify-between bg-gray-50 dark:bg-gray-700/50 rounded-lg px-3 py-2.5">
+                      <div className="min-w-0">
+                        <p className="text-sm font-medium text-gray-900 dark:text-white capitalize">{p.channel.replace('_', ' ')}</p>
+                        <p className="text-xs text-gray-400 dark:text-gray-500">
+                          {p.posting_id} · {p.application_count} app{p.application_count !== 1 ? 's' : ''}
+                          {p.is_internal && ' · Internal'}
+                        </p>
+                      </div>
+                      <div className="flex items-center gap-2 ml-2">
+                        {p.status === 'Draft' ? (
+                          <button
+                            onClick={() => handlePublishPosting(p.id)}
+                            className="px-3 py-1.5 text-xs font-medium bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400 rounded-lg hover:bg-green-200 dark:hover:bg-green-900/50"
+                          >
+                            Publish
+                          </button>
+                        ) : (
+                          <span className="flex items-center gap-1 text-xs font-medium text-green-600 dark:text-green-400">
+                            <CheckCircle className="w-3.5 h-3.5" />
+                            {p.status}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Offer Candidates Section — shown for offer_extended stage */}
       {stage.stage_key === 'offer_extended' && (

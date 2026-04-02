@@ -6,8 +6,34 @@ import {
 import LifecycleTracker, { type LifecycleStage } from '@/components/recruiting/LifecycleTracker';
 import StageDetailPanel from '@/components/recruiting/StageDetailPanel';
 import ComplianceTipsPanel from '@/components/recruiting/ComplianceTipsPanel';
+import StakeholderPanel from '@/components/recruiting/StakeholderPanel';
 
 const BASE_URL = '';
+
+/** Render text with "- " prefixed lines as a styled bullet list, other text as paragraphs. */
+function FormattedList({ text }: { text: string }) {
+  const lines = text.split('\n').filter(l => l.trim());
+  const bullets = lines.filter(l => /^\s*[-–•]/.test(l));
+
+  // If most lines are bullet-style, render as a list
+  if (bullets.length >= lines.length * 0.5) {
+    return (
+      <ul className="space-y-2">
+        {lines.map((line, i) => {
+          const content = line.replace(/^\s*[-–•]\s*/, '');
+          return (
+            <li key={i} className="flex gap-2.5 text-sm text-gray-700 dark:text-gray-300">
+              <span className="mt-1.5 h-1.5 w-1.5 rounded-full shrink-0" style={{ background: 'linear-gradient(135deg, var(--bifrost-violet), var(--aurora-teal))' }} />
+              <span>{content}</span>
+            </li>
+          );
+        })}
+      </ul>
+    );
+  }
+
+  return <p className="text-sm text-gray-700 dark:text-gray-300 whitespace-pre-wrap">{text}</p>;
+}
 
 interface Posting {
   id: number;
@@ -33,6 +59,7 @@ interface RequisitionDetail {
   position_type: string;
   salary_min: number | null;
   salary_max: number | null;
+  target_salary: number | null;
   wage_type: string | null;
   show_salary_on_posting: boolean;
   openings: number;
@@ -361,82 +388,97 @@ export default function RequisitionDetailPage() {
         </div>
       )}
 
-      {/* Stage Detail Panel — notes, documents, actions */}
-      {selectedStage && id && (
-        <StageDetailPanel
-          stage={selectedStage}
-          requisitionId={parseInt(id)}
-          readOnly={false}
-          onStageUpdated={reloadAll}
-        />
-      )}
-
       {/* Content + Sidebar Grid */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Main Content */}
-        <div className="lg:col-span-2">
+        <div className="lg:col-span-2 space-y-6">
+          {/* Stage Detail Panel — notes, documents, actions */}
+          {selectedStage && id && (
+            <StageDetailPanel
+              stage={selectedStage}
+              requisitionId={parseInt(id)}
+              readOnly={false}
+              onStageUpdated={reloadAll}
+            />
+          )}
+
           {/* Tab Content */}
           {activeTab === 'details' && (
-            <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
-              <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-6 space-y-4">
-                <h3 className="font-semibold text-gray-900 dark:text-white">Position Details</h3>
-                <div className="grid grid-cols-2 gap-4 text-sm">
-                  <div>
-                    <p className="text-gray-500 dark:text-gray-400">Employment Type</p>
-                    <p className="font-medium text-gray-900 dark:text-white">{requisition.employment_type || '—'}</p>
-                  </div>
-                  <div>
-                    <p className="text-gray-500 dark:text-gray-400">Position Type</p>
-                    <p className="font-medium text-gray-900 dark:text-white">{requisition.position_type}</p>
-                  </div>
-                  <div>
-                    <p className="text-gray-500 dark:text-gray-400">Openings</p>
-                    <p className="font-medium text-gray-900 dark:text-white">{requisition.filled_count} / {requisition.openings} filled</p>
-                  </div>
-                  <div>
-                    <p className="text-gray-500 dark:text-gray-400">Wage Type</p>
-                    <p className="font-medium text-gray-900 dark:text-white">{requisition.wage_type || '—'}</p>
-                  </div>
-                  {(requisition.salary_min || requisition.salary_max) && (
-                    <div className="col-span-2">
-                      <p className="text-gray-500 dark:text-gray-400">Salary Range</p>
-                      <p className="font-medium text-gray-900 dark:text-white">
-                        {requisition.salary_min ? `$${requisition.salary_min.toLocaleString()}` : '—'} - {requisition.salary_max ? `$${requisition.salary_max.toLocaleString()}` : '—'}
-                        {requisition.show_salary_on_posting ? ' (visible on posting)' : ' (hidden)'}
-                      </p>
+            <div className="space-y-6">
+              {/* Top row: Position Details + Description side by side */}
+              <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
+                <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-6 space-y-4">
+                  <h3 className="font-semibold text-gray-900 dark:text-white">Position Details</h3>
+                  <div className="grid grid-cols-2 gap-4 text-sm">
+                    <div>
+                      <p className="text-gray-500 dark:text-gray-400">Employment Type</p>
+                      <p className="font-medium text-gray-900 dark:text-white">{requisition.employment_type || '—'}</p>
                     </div>
+                    <div>
+                      <p className="text-gray-500 dark:text-gray-400">Position Type</p>
+                      <p className="font-medium text-gray-900 dark:text-white">{requisition.position_type}</p>
+                    </div>
+                    <div>
+                      <p className="text-gray-500 dark:text-gray-400">Openings</p>
+                      <p className="font-medium text-gray-900 dark:text-white">{requisition.filled_count} / {requisition.openings} filled</p>
+                    </div>
+                    <div>
+                      <p className="text-gray-500 dark:text-gray-400">Wage Type</p>
+                      <p className="font-medium text-gray-900 dark:text-white">{requisition.wage_type || '—'}</p>
+                    </div>
+                    {(requisition.salary_min || requisition.salary_max) && (
+                      <div>
+                        <p className="text-gray-500 dark:text-gray-400">Salary Range</p>
+                        <p className="font-medium text-gray-900 dark:text-white">
+                          {requisition.salary_min ? `$${requisition.salary_min.toLocaleString()}` : '—'} - {requisition.salary_max ? `$${requisition.salary_max.toLocaleString()}` : '—'}
+                          {requisition.show_salary_on_posting ? ' (visible on posting)' : ' (hidden)'}
+                        </p>
+                      </div>
+                    )}
+                    {requisition.target_salary && (
+                      <div>
+                        <p className="text-gray-500 dark:text-gray-400">Target Salary</p>
+                        <p className="font-medium text-gray-900 dark:text-white">${requisition.target_salary.toLocaleString()}</p>
+                      </div>
+                    )}
+                    <div>
+                      <p className="text-gray-500 dark:text-gray-400">Target Start Date</p>
+                      <p className="font-medium text-gray-900 dark:text-white">{requisition.target_start_date || '—'}</p>
+                    </div>
+                    <div>
+                      <p className="text-gray-500 dark:text-gray-400">Target Fill Date</p>
+                      <p className="font-medium text-gray-900 dark:text-white">{requisition.target_fill_date || '—'}</p>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-6 space-y-3">
+                  <h3 className="font-semibold text-gray-900 dark:text-white">Description</h3>
+                  {requisition.description ? (
+                    <p className="text-sm text-gray-700 dark:text-gray-300 whitespace-pre-wrap">{requisition.description}</p>
+                  ) : (
+                    <p className="text-sm text-gray-400 dark:text-gray-500 italic">No description provided</p>
                   )}
-                  <div>
-                    <p className="text-gray-500 dark:text-gray-400">Target Start Date</p>
-                    <p className="font-medium text-gray-900 dark:text-white">{requisition.target_start_date || '—'}</p>
-                  </div>
-                  <div>
-                    <p className="text-gray-500 dark:text-gray-400">Target Fill Date</p>
-                    <p className="font-medium text-gray-900 dark:text-white">{requisition.target_fill_date || '—'}</p>
-                  </div>
                 </div>
               </div>
 
-              <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-6 space-y-4">
-                <h3 className="font-semibold text-gray-900 dark:text-white">Description</h3>
-                {requisition.description ? (
-                  <p className="text-sm text-gray-700 dark:text-gray-300 whitespace-pre-wrap">{requisition.description}</p>
-                ) : (
-                  <p className="text-sm text-gray-400 dark:text-gray-500 italic">No description provided</p>
-                )}
-                {requisition.requirements && (
-                  <>
-                    <h4 className="font-medium text-gray-800 dark:text-gray-200 mt-4">Requirements</h4>
-                    <p className="text-sm text-gray-700 dark:text-gray-300 whitespace-pre-wrap">{requisition.requirements}</p>
-                  </>
-                )}
-                {requisition.responsibilities && (
-                  <>
-                    <h4 className="font-medium text-gray-800 dark:text-gray-200 mt-4">Responsibilities</h4>
-                    <p className="text-sm text-gray-700 dark:text-gray-300 whitespace-pre-wrap">{requisition.responsibilities}</p>
-                  </>
-                )}
-              </div>
+              {/* Bottom row: Requirements + Responsibilities side by side */}
+              {(requisition.requirements || requisition.responsibilities) && (
+                <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
+                  {requisition.requirements && (
+                    <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-6 space-y-3">
+                      <h3 className="font-semibold text-gray-900 dark:text-white">Requirements</h3>
+                      <FormattedList text={requisition.requirements} />
+                    </div>
+                  )}
+                  {requisition.responsibilities && (
+                    <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-6 space-y-3">
+                      <h3 className="font-semibold text-gray-900 dark:text-white">Responsibilities</h3>
+                      <FormattedList text={requisition.responsibilities} />
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
           )}
 
@@ -607,27 +649,10 @@ export default function RequisitionDetailPage() {
         </div>
 
         {/* Sidebar */}
-        <div className="space-y-4">
+        <div className="space-y-4 lg:self-start">
           {/* Stakeholders */}
           <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-4">
-            <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300 flex items-center gap-2 mb-3">
-              <Users className="w-4 h-4" />
-              Stakeholders
-            </h3>
-            <div className="space-y-2 text-sm">
-              {requisition.hiring_manager_name && (
-                <div className="flex justify-between">
-                  <span className="text-gray-500 dark:text-gray-400">Hiring Manager</span>
-                  <span className="text-gray-700 dark:text-gray-300">{requisition.hiring_manager_name}</span>
-                </div>
-              )}
-              {requisition.recruiter_name && (
-                <div className="flex justify-between">
-                  <span className="text-gray-500 dark:text-gray-400">Recruiter</span>
-                  <span className="text-gray-700 dark:text-gray-300">{requisition.recruiter_name}</span>
-                </div>
-              )}
-            </div>
+            <StakeholderPanel requisitionId={requisition.id} />
           </div>
 
           {/* Posting Channels */}

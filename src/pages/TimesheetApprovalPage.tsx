@@ -63,7 +63,7 @@ const TimesheetApprovalPage: React.FC = () => {
   const fetchTimesheets = async () => {
     try {
       setLoading(true);
-      const params: any = {};
+      const params: Record<string, string> = {};
       if (filterStatus && filterStatus !== 'all') {
         params.status = filterStatus;
       }
@@ -111,9 +111,10 @@ const TimesheetApprovalPage: React.FC = () => {
       }
 
       setTimeout(() => setSuccessMessage(null), 3000);
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('Error approving timesheet:', err);
-      setError(err.response?.data?.detail || 'Failed to approve timesheet');
+      const axiosErr = err as { response?: { data?: { detail?: string } } };
+      setError(axiosErr.response?.data?.detail || 'Failed to approve timesheet');
     }
   };
 
@@ -148,9 +149,10 @@ const TimesheetApprovalPage: React.FC = () => {
       }
 
       setTimeout(() => setSuccessMessage(null), 3000);
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('Error rejecting timesheet:', err);
-      setError(err.response?.data?.detail || 'Failed to reject timesheet');
+      const axiosErr = err as { response?: { data?: { detail?: string } } };
+      setError(axiosErr.response?.data?.detail || 'Failed to reject timesheet');
     }
   };
 

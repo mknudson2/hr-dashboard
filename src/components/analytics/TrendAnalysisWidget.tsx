@@ -112,7 +112,7 @@ export default function TrendAnalysisWidget({
         padding: 12,
         displayColors: false,
         callbacks: {
-          label: (context: any) => `${context.parsed.y.toLocaleString()}`,
+          label: (context: { parsed: { y: number } }) => `${context.parsed.y.toLocaleString()}`,
         },
       },
     },
@@ -125,7 +125,7 @@ export default function TrendAnalysisWidget({
         ticks: {
           color: isDark ? '#9ca3af' : '#6b7280',
           font: { size: 11 },
-          callback: (value: any) => value.toLocaleString(),
+          callback: (value: string | number) => Number(value).toLocaleString(),
         },
         grid: { color: isDark ? '#374151' : '#e5e7eb' },
         beginAtZero: false,

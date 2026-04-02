@@ -7,17 +7,30 @@ import {
 
 const BASE_URL = '';
 
+interface TaskRecord {
+  id: number;
+  task_id: string;
+  employee_id: string;
+  task_name: string;
+  task_description: string | null;
+  category: string;
+  status: string;
+  priority: string;
+  notes?: string;
+  task_details?: Record<string, unknown>;
+}
+
 interface TaskDetailDrawerProps {
   isOpen: boolean;
   onClose: () => void;
-  task: any;
+  task: TaskRecord | null;
   taskType: 'onboarding' | 'offboarding';
   onUpdate: () => void;
 }
 
 export function TaskDetailDrawer({ isOpen, onClose, task, taskType, onUpdate }: TaskDetailDrawerProps) {
   const [notes, setNotes] = useState('');
-  const [taskDetails, setTaskDetails] = useState<any>({});
+  const [taskDetails, setTaskDetails] = useState<Record<string, unknown>>({});
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -131,14 +144,14 @@ export function TaskDetailDrawer({ isOpen, onClose, task, taskType, onUpdate }: 
       });
     };
 
-    const updateEquipment = (index: number, field: string, value: any) => {
+    const updateEquipment = (index: number, field: string, value: string | boolean) => {
       const newList = [...equipmentList];
       newList[index][field] = value;
       setTaskDetails({...taskDetails, equipment_list: newList});
     };
 
     const removeEquipment = (index: number) => {
-      const newList = equipmentList.filter((_: any, i: number) => i !== index);
+      const newList = equipmentList.filter((_: unknown, i: number) => i !== index);
       setTaskDetails({...taskDetails, equipment_list: newList});
     };
 
@@ -154,7 +167,7 @@ export function TaskDetailDrawer({ isOpen, onClose, task, taskType, onUpdate }: 
           </button>
         </div>
 
-        {equipmentList.map((item: any, index: number) => (
+        {equipmentList.map((item: { item?: string; returned?: boolean }, index: number) => (
           <div key={index} className="flex items-center gap-2 p-2 bg-gray-50 dark:bg-gray-700 rounded-lg">
             <input
               type="text"

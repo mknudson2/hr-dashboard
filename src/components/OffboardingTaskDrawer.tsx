@@ -73,7 +73,7 @@ interface OffboardingTaskDrawerProps {
   isOpen: boolean;
   onClose: () => void;
   task: OffboardingTask | null;
-  onUpdate: (taskId: number, updates: any) => void;
+  onUpdate: (taskId: number, updates: Record<string, unknown>) => void;
 }
 
 const BASE_URL = '';
@@ -94,7 +94,7 @@ export default function OffboardingTaskDrawer({
   const [employee, setEmployee] = useState<Employee | null>(null);
   const [hoursWorkedLastPeriod, setHoursWorkedLastPeriod] = useState<string>('');
   const [contributionChecks, setContributionChecks] = useState<{[key: string]: boolean}>({});
-  const [garnishments, setGarnishments] = useState<any[]>([]);
+  const [garnishments, setGarnishments] = useState<Array<{ id: number; case_number?: string; agency_name?: string; agency_email?: string; garnishment_type?: string; amount?: number }>>([]);
   const [isSendingGarnishmentEmail, setIsSendingGarnishmentEmail] = useState(false);
   const [fundsTransfer, setFundsTransfer] = useState({
     payrollDirectDeposits: '',
@@ -362,7 +362,7 @@ export default function OffboardingTaskDrawer({
     setUncheckReason('');
   };
 
-  const handleSendGarnishmentEmail = async (garnishment: any) => {
+  const handleSendGarnishmentEmail = async (garnishment: { id: number; case_number?: string; agency_name?: string; agency_email?: string; garnishment_type?: string; amount?: number }) => {
     if (!employee) return;
 
     setIsSendingGarnishmentEmail(true);

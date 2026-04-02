@@ -122,7 +122,7 @@ export default function WageIncreasesTab() {
   const loadCycles = async () => {
     try {
       setLoading(true);
-      const filters: any = {};
+      const filters: Record<string, string | number> = {};
       if (fiscalYearFilter !== 'All') filters.fiscal_year = parseInt(fiscalYearFilter);
       if (statusFilter !== 'All') filters.status = statusFilter;
       if (typeFilter !== 'All') filters.cycle_type = typeFilter;
@@ -158,9 +158,9 @@ export default function WageIncreasesTab() {
     try {
       await deleteWageIncreaseCycle(id);
       loadCycles();
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Error deleting cycle:', error);
-      alert(error.message || 'Failed to delete cycle');
+      alert(error instanceof Error ? error.message : 'Failed to delete cycle');
     }
   };
 
@@ -179,9 +179,9 @@ export default function WageIncreasesTab() {
       await closeCycle(cycle.id, closedBy, notes || undefined);
       loadCycles();
       alert('Cycle successfully closed');
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Error closing cycle:', error);
-      alert(error.message || 'Failed to close cycle');
+      alert(error instanceof Error ? error.message : 'Failed to close cycle');
     }
   };
 
@@ -996,9 +996,9 @@ function ApprovalModal({ cycle, onClose, onApprove }: {
       setLoading(true);
       await approveCycle(cycle.id, approvedBy, notes || undefined);
       onApprove();
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Error approving cycle:', error);
-      alert(error.message || 'Failed to approve cycle');
+      alert(error instanceof Error ? error.message : 'Failed to approve cycle');
       setLoading(false);
     }
   };

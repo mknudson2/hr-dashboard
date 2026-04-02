@@ -118,6 +118,7 @@ const STATUS_COLORS: Record<string, string> = {
   Declined: 'bg-red-100 text-red-800 dark:bg-red-900/40 dark:text-red-300',
   Expired: 'bg-orange-100 text-orange-800 dark:bg-orange-900/40 dark:text-orange-300',
   Rescinded: 'bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-300',
+  Negotiating: 'bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-300',
 };
 
 export default function OfferBuilderPage() {
@@ -366,6 +367,16 @@ export default function OfferBuilderPage() {
         <div className="mb-4 p-3 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-lg text-sm text-amber-800 dark:text-amber-400">
           This is a counter-offer. Original offer ID: {offer.original_offer_id}
           {offer.negotiation_notes && <p className="mt-1 text-amber-700 dark:text-amber-400">Notes: {offer.negotiation_notes}</p>}
+        </div>
+      )}
+
+      {/* Negotiating banner */}
+      {offer?.status === 'Negotiating' && (
+        <div className="mb-4 p-3 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-lg flex items-center justify-between">
+          <p className="text-sm text-amber-700 dark:text-amber-400">This candidate has submitted a counter-proposal.</p>
+          <button onClick={() => navigate(`/recruiting/offers/${offerId}/negotiation`)} className="text-sm text-amber-700 dark:text-amber-400 font-medium hover:underline">
+            View Negotiation &rarr;
+          </button>
         </div>
       )}
 
