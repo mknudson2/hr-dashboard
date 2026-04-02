@@ -59,6 +59,8 @@ export default defineConfig({
       "/in-app-notifications": hrProxy,
       "/content-management": hrProxy,
       "/recruiting": hrProxy,
+      "/screening": hrProxy,
+      "/webhooks": hrProxy,
     },
   },
 });
