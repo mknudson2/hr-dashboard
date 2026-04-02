@@ -185,16 +185,14 @@ def get_feature_flags(
 
     # Check if user is a recruiting stakeholder (in visibility_user_ids for any requisition)
     if hasattr(models, 'JobRequisition'):
-        from sqlalchemy import text
-        stakeholder_req = db.execute(
-            text(
-                "SELECT COUNT(*) FROM job_requisitions "
-                "WHERE visibility_user_ids IS NOT NULL "
-                "AND visibility_user_ids LIKE :pattern"
-            ),
-            {"pattern": f"%{current_user.id}%"},
-        ).scalar()
-        flags.is_recruiting_stakeholder = (stakeholder_req or 0) > 0
+        rows = db.query(
+            models.JobRequisition.visibility_user_ids,
+        ).filter(
+            models.JobRequisition.visibility_user_ids.isnot(None),
+        ).all()
+        flags.is_recruiting_stakeholder = any(
+            current_user.id in (r.visibility_user_ids or []) for r in rows
+        )
 
     # If user doesn't have an employee_id, return flags now
     if not current_user.employee_id:

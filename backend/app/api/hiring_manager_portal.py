@@ -25,6 +25,22 @@ from app.services.offer_service import offer_service
 from app.api.in_app_notifications import create_notification
 from app.schemas.approval import ApprovalActionRequest
 
+def _get_visibility_req_ids(db: Session, user_id: int) -> list[int]:
+    """Get requisition IDs where user appears in visibility_user_ids JSON list.
+
+    Uses ORM query with Python-side filtering instead of raw SQL LIKE,
+    which avoids false positives (e.g., ID 1 matching 10, 11, 12) and
+    works correctly on both SQLite and PostgreSQL.
+    """
+    rows = db.query(
+        models.JobRequisition.id,
+        models.JobRequisition.visibility_user_ids,
+    ).filter(
+        models.JobRequisition.visibility_user_ids.isnot(None),
+    ).all()
+    return [r.id for r in rows if r.visibility_user_ids and user_id in r.visibility_user_ids]
+
+
 router = APIRouter(
     prefix="/portal/hiring-manager",
     tags=["hiring-manager-portal"],
@@ -162,16 +178,7 @@ def is_hiring_manager(user: models.User, employee: Optional[models.Employee], db
 
 def _is_recruiting_stakeholder(db: Session, user: models.User) -> bool:
     """Check if user is listed as a stakeholder on any requisition."""
-    from sqlalchemy import text
-    result = db.execute(
-        text(
-            "SELECT COUNT(*) FROM job_requisitions "
-            "WHERE visibility_user_ids IS NOT NULL "
-            "AND visibility_user_ids LIKE :pattern"
-        ),
-        {"pattern": f"%{user.id}%"},
-    ).scalar()
-    return (result or 0) > 0
+    return len(_get_visibility_req_ids(db, user.id)) > 0
 
 
 def _require_hiring_manager_or_stakeholder(
@@ -262,19 +269,9 @@ def my_hiring_stats(
     db: Session = Depends(get_db),
 ):
     """Return summary stats for requisitions the current user is involved in."""
-    from sqlalchemy import text
 
     # Find reqs via visibility_user_ids (legacy JSON column)
-    vis_req_ids = [
-        row[0] for row in db.execute(
-            text(
-                "SELECT id FROM job_requisitions "
-                "WHERE visibility_user_ids IS NOT NULL "
-                "AND visibility_user_ids LIKE :pattern"
-            ),
-            {"pattern": f"%{current_user.id}%"},
-        ).fetchall()
-    ]
+    vis_req_ids = _get_visibility_req_ids(db, current_user.id)
 
     # Also find reqs via RequisitionStakeholder table (canonical source)
     stakeholder_req_ids = [
@@ -572,19 +569,9 @@ def get_hiring_updates(
     db: Session = Depends(get_db),
 ):
     """Return recent hiring activity for requisitions the user is associated with."""
-    from sqlalchemy import text
 
     # Get IDs of requisitions where user is a stakeholder (same pattern as list_requisitions)
-    stakeholder_req_ids = [
-        row[0] for row in db.execute(
-            text(
-                "SELECT id FROM job_requisitions "
-                "WHERE visibility_user_ids IS NOT NULL "
-                "AND visibility_user_ids LIKE :pattern"
-            ),
-            {"pattern": f"%{current_user.id}%"},
-        ).fetchall()
-    ]
+    stakeholder_req_ids = _get_visibility_req_ids(db, current_user.id)
 
     user_req_ids_query = db.query(models.JobRequisition.id).filter(
         or_(
@@ -649,19 +636,9 @@ def list_requisitions(
     db: Session = Depends(get_db),
 ):
     """List requisitions where user is hiring manager, requester, or stakeholder."""
-    from sqlalchemy import text
 
     # Get IDs of requisitions where user is a stakeholder (visibility_user_ids)
-    vis_req_ids = [
-        row[0] for row in db.execute(
-            text(
-                "SELECT id FROM job_requisitions "
-                "WHERE visibility_user_ids IS NOT NULL "
-                "AND visibility_user_ids LIKE :pattern"
-            ),
-            {"pattern": f"%{current_user.id}%"},
-        ).fetchall()
-    ]
+    vis_req_ids = _get_visibility_req_ids(db, current_user.id)
 
     # Also check RequisitionStakeholder table (canonical source)
     stakeholder_table_req_ids = [
