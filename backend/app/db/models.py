@@ -3768,7 +3768,7 @@ class JobRequisition(Base):
     visibility_user_ids = Column(JSON, nullable=True)
     # Source of request
     request_source = Column(String, default="manual")  # "manual", "employee_portal"
-    # Early tech screen flag (for Bloom staffing agency)
+    # Early tech screen flag (for Súlnasker staffing agency)
     requires_early_tech_screen = Column(Boolean, default=False)
     # Close/cancel tracking
     closed_at = Column(DateTime, nullable=True)

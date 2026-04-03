@@ -132,8 +132,8 @@ export default function SettingsPage() {
 
     // International settings
     const [intlSettings, setIntlSettings] = useState({
-        id_prefixes: ["C", "AM", "BH"] as string[],
-        prefix_labels: { "C": "Congruent", "AM": "Ameripol", "BH": "Bloom" } as Record<string, string>,
+        id_prefixes: ["NL", "VV", "SN"] as string[],
+        prefix_labels: { "NL": "Norðurljós", "VV": "Vestanvind", "SN": "Súlnasker" } as Record<string, string>,
         contractor_contact_name: "",
         contractor_contact_email: "",
     });
@@ -234,8 +234,8 @@ export default function SettingsPage() {
                 if (response.ok) {
                     const data = await response.json();
                     setIntlSettings({
-                        id_prefixes: data.id_prefixes || ["C", "AM", "BH"],
-                        prefix_labels: data.prefix_labels || { "C": "Congruent", "AM": "Ameripol", "BH": "Bloom" },
+                        id_prefixes: data.id_prefixes || ["NL", "VV", "SN"],
+                        prefix_labels: data.prefix_labels || { "NL": "Norðurljós", "VV": "Vestanvind", "SN": "Súlnasker" },
                         contractor_contact_name: data.contractor_contact_name || "",
                         contractor_contact_email: data.contractor_contact_email || "",
                     });
@@ -1300,7 +1300,7 @@ export default function SettingsPage() {
                                 type="text"
                                 value={newPrefixLabel}
                                 onChange={(e) => setNewPrefixLabel(e.target.value)}
-                                placeholder="Label (e.g. Ameripol)"
+                                placeholder="Label (e.g. Vestanvind)"
                                 className="flex-1 rounded-lg border dark:border-gray-700 px-3 py-2 bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-teal-500 outline-none"
                             />
                             <button
@@ -1344,7 +1344,7 @@ export default function SettingsPage() {
                             </div>
                         </div>
                         <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                            Contact for international employee termination requests (Congruent, Ameripol, Bloom, etc.)
+                            Contact for international employee termination requests (Norðurljós, Vestanvind, Súlnasker, etc.)
                         </p>
                     </div>
 

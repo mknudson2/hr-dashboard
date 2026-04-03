@@ -30,10 +30,10 @@ positions_by_dept = {
 
 # Sample supervisor names
 supervisors = [
-    "Jennifer Smith", "Michael Johnson", "Sarah Williams", "David Brown", "Jessica Jones",
-    "Robert Davis", "Lisa Miller", "James Wilson", "Maria Rodriguez", "John Martinez",
-    "Patricia Anderson", "Christopher Taylor", "Nancy Thomas", "Daniel Moore", "Karen Jackson",
-    "Matthew White", "Betty Harris", "Donald Martin", "Sandra Thompson", "Paul Garcia"
+    "Guðrún Sigurðsson", "Bjarni Jónsdóttir", "Sigríður Magnússon", "Eiríkur Björnsdóttir", "Helga Gunnarsson",
+    "Magnús Kristjánsdóttir", "Kristín Stefánsson", "Jón Þórarinsdóttir", "Anna Einarsson", "Þór Ragnarsdóttir",
+    "Elín Haraldsson", "Ólafur Pálsdóttir", "Margrét Davíðsson", "Gunnar Halldórsdóttir", "Ragnheiður Pétursson",
+    "Stefán Sveinsdóttir", "Björk Jóhannsson", "Arnar Brynjarsdóttir", "Katrín Árnason", "Haukur Helgadóttir",
 ]
 
 # Get all employees

@@ -180,7 +180,7 @@ EMPLOYEE_FIELDS: List[FieldDefinition] = [
         description="Direct supervisor/manager name",
         category=FieldCategory.EMPLOYMENT,
         data_type="string",
-        example="Jane Smith",
+        example="Guðrún Sigurðsson",
         common_aliases=["Supervisor", "Manager", "Reports To", "Direct Manager", "Supervisor Name", "Supervisor's Name", "Supervisor's Name (First Last)"]
     ),
     FieldDefinition(

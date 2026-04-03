@@ -145,9 +145,9 @@ export const COUNTRY_COORDS: Record<string, Coordinates> = {
   "CHN": { lat: 35.86166, lng: 104.195397 },
   "SGP": { lat: 1.352083, lng: 103.819836 },
   // International employer of record companies (approximate regions)
-  "Congruent": { lat: 51.5074, lng: -0.1278 },  // Europe (London)
-  "Ameripol": { lat: -23.5505, lng: -46.6333 }, // Latin America (São Paulo)
-  "Bloom": { lat: 35.6762, lng: 139.6503 }      // Asia Pacific (Tokyo)
+  "Norðurljós": { lat: 51.5074, lng: -0.1278 },  // Europe (London)
+  "Vestanvind": { lat: -23.5505, lng: -46.6333 }, // Latin America (São Paulo)
+  "Súlnasker": { lat: 35.6762, lng: 139.6503 }    // Asia Pacific (Tokyo)
 };
 
 // City coordinates for major cities (subset - can be expanded)

@@ -278,8 +278,8 @@ def update_hr_contacts(settings: HRContactsSettings):
 # ============================================================================
 
 class InternationalSettings(BaseModel):
-    id_prefixes: List[str] = ["C", "AM", "BH"]
-    prefix_labels: Dict[str, str] = {"C": "Congruent", "AM": "Ameripol", "BH": "Bloom"}
+    id_prefixes: List[str] = ["NL", "VV", "SN"]
+    prefix_labels: Dict[str, str] = {"NL": "Norðurljós", "VV": "Vestanvind", "SN": "Súlnasker"}
     contractor_contact_name: str = ""
     contractor_contact_email: str = ""
 

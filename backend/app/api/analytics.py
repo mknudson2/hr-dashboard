@@ -105,9 +105,9 @@ def get_analytics(db: Session = Depends(get_db)):
     intl = get_international_breakdown(db)
     international_breakdown = {
         "total": intl["total_international"],
-        "congruent": intl["by_group"]["Congruent"],
-        "ameripol": intl["by_group"]["Ameripol"],
-        "bloom": intl["by_group"]["Bloom"],
+        "nordurljós": intl["by_group"].get("Norðurljós", 0),
+        "vestanvind": intl["by_group"].get("Vestanvind", 0),
+        "súlnasker": intl["by_group"].get("Súlnasker", 0),
     }
 
     ytd_avg_headcount = get_ytd_average_headcount(db)
@@ -868,7 +868,7 @@ def get_location_distribution(db: Session = Depends(get_db)):
             is_international = True
 
         if is_international:
-            # Handle "International - Company" format (e.g., "International - Congruent")
+            # Handle "International - Company" format (e.g., "International - Norðurljós")
             if location.startswith("International - "):
                 company = location.replace("International - ", "").strip()
                 country = company

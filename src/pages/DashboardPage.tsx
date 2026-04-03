@@ -38,9 +38,9 @@ interface KpiCard {
   showDonut?: boolean;
   donutData?: {
     total: number;
-    congruent: number;
-    ameripol: number;
-    bloom: number;
+    nordurljós: number;
+    vestanvind: number;
+    súlnasker: number;
   };
 }
 
@@ -63,9 +63,9 @@ interface AnalyticsData {
   };
   international_breakdown: {
     total: number;
-    congruent: number;
-    ameripol: number;
-    bloom: number;
+    nordurljós: number;
+    vestanvind: number;
+    súlnasker: number;
   };
   ytd_avg_headcount?: number;
   regrettable_turnover_pct?: number;

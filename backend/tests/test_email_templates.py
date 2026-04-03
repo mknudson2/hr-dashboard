@@ -19,12 +19,12 @@ async def test_template_rendering():
     try:
         await email_service.send_welcome_email(
             to_email="test@example.com",
-            employee_name="John Doe",
+            employee_name="Ísak Sigurðsson",
             role="Software Engineer",
             start_date="2025-01-15",
             department="Engineering",
-            manager_name="Jane Smith",
-            manager_email="jane.smith@example.com"
+            manager_name="Guðrún Magnússon",
+            manager_email="gudrun.magnusson@example.com"
         )
         print("   SUCCESS: Welcome email template rendered\n")
     except Exception as e:
@@ -35,13 +35,13 @@ async def test_template_rendering():
     try:
         await email_service.send_first_day_info(
             to_email="test@example.com",
-            employee_name="John Doe",
+            employee_name="Ísak Sigurðsson",
             start_date="2025-01-15",
             start_time="9:00 AM",
             office_location="Main Office, Building A",
             parking_info="Park in visitor parking, then check in at reception",
             dress_code="Business casual",
-            manager_name="Jane Smith"
+            manager_name="Guðrún Magnússon"
         )
         print("   SUCCESS: First day info template rendered\n")
     except Exception as e:
@@ -53,8 +53,8 @@ async def test_template_rendering():
         await email_service.send_nbs_term_email(
             email_type="401k",
             to_emails=["kath@example.com"],
-            employee_name="John Doe",
-            employee_id="EMP12345",
+            employee_name="Ísak Sigurðsson",
+            employee_id="2001",
             termination_date="2025-01-31",
             verb="has",
             pronoun="their",
@@ -70,8 +70,8 @@ async def test_template_rendering():
         await email_service.send_nbs_term_email(
             email_type="accounting",
             to_emails=["shellim@example.com"],
-            employee_name="Jane Smith",
-            employee_id="EMP67890",
+            employee_name="Bjarni Jónsdóttir",
+            employee_id="2002",
             termination_date="2025-02-15",
             verb="has",
             pronoun="her",
@@ -89,15 +89,15 @@ async def test_template_rendering():
         await email_service.send_nbs_term_email(
             email_type="leadership",
             to_emails=["leadership@example.com"],
-            employee_name="Bob Johnson",
-            employee_id="EMP11111",
+            employee_name="Eiríkur Gunnarsson",
+            employee_id="2003",
             termination_date="2025-03-01",
             verb="has",
             pronoun="his",
             pronoun2="him",
             department="Sales",
             role="Senior Sales Manager",
-            supervisor="Alice Williams",
+            supervisor="Sigríður Björnsdóttir",
             transition_notes="Key accounts have been reassigned to the team."
         )
         print("   SUCCESS: NBS leadership term email template rendered\n")
@@ -109,7 +109,7 @@ async def test_template_rendering():
     try:
         await email_service.send_fmla_approval(
             to_email="test@example.com",
-            employee_name="Mary Johnson",
+            employee_name="Helga Kristjánsdóttir",
             leave_type="Medical Leave",
             start_date="2025-02-01",
             return_date="2025-04-01",
@@ -126,13 +126,13 @@ async def test_template_rendering():
     try:
         await email_service.send_fmla_reminder(
             to_email="test@example.com",
-            employee_name="Mary Johnson",
+            employee_name="Helga Kristjánsdóttir",
             start_date="2025-02-01",
             return_date="2025-04-01",
             days_until_return=7,
             fitness_for_duty_required=True,
-            manager_name="Tom Brown",
-            manager_email="tom.brown@example.com"
+            manager_name="Magnús Einarsson",
+            manager_email="magnus.einarsson@example.com"
         )
         print("   SUCCESS: FMLA reminder template rendered\n")
     except Exception as e:
@@ -143,9 +143,9 @@ async def test_template_rendering():
     try:
         await email_service.send_fmla_return_welcome(
             to_email="test@example.com",
-            employee_name="Mary Johnson",
+            employee_name="Helga Kristjánsdóttir",
             return_date="2025-04-01",
-            manager_name="Tom Brown",
+            manager_name="Magnús Einarsson",
             accommodations="Modified work schedule for first two weeks",
             fitness_for_duty_required=True
         )
@@ -158,7 +158,7 @@ async def test_template_rendering():
     try:
         await email_service.send_birthday_email(
             to_email="test@example.com",
-            employee_name="Sarah Williams",
+            employee_name="Kristín Stefánsson",
             birthday_message="Wishing you a fantastic birthday filled with joy!",
             team_celebration=True,
             celebration_date="Today",
@@ -174,7 +174,7 @@ async def test_template_rendering():
     try:
         await email_service.send_anniversary_email(
             to_email="test@example.com",
-            employee_name="David Martinez",
+            employee_name="Jón Haraldsson",
             years=5,
             start_date="2020-01-15",
             current_role="Senior Developer",
@@ -185,7 +185,7 @@ async def test_template_rendering():
                 "Received Employee of the Year award in 2022"
             ],
             anniversary_message="Your dedication and innovation have been invaluable to our team. Thank you for 5 amazing years!",
-            message_from="CEO John Smith",
+            message_from="CEO Ólafur Þorsteinsson",
             celebration=True,
             celebration_date="Friday, January 15th",
             celebration_time="4:00 PM",

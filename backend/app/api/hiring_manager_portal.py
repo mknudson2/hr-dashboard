@@ -729,9 +729,9 @@ def create_requisition_request(
         except ValueError:
             raise HTTPException(status_code=400, detail="Invalid target_fill_date format")
 
-    # Auto-set early tech screen if Bloom is selected
+    # Auto-set early tech screen if Súlnasker is selected
     requires_tech_screen = data.requires_early_tech_screen
-    if data.posting_channels and "bloom" in data.posting_channels:
+    if data.posting_channels and "sulnasker" in data.posting_channels:
         requires_tech_screen = True
 
     # If a JD is linked, pull content fields from it as defaults

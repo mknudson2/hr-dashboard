@@ -6,9 +6,9 @@ ChartJS.register(ArcElement, Tooltip, Legend);
 
 interface InternationalBreakdown {
   total: number;
-  congruent: number;
-  ameripol: number;
-  bloom: number;
+  nordurljós: number;
+  vestanvind: number;
+  súlnasker: number;
 }
 
 interface InternationalDonutChartProps {
@@ -31,10 +31,10 @@ export default function InternationalDonutChart({
   }
 
   const chartData = {
-    labels: ["Congruent", "Ameripol", "Bloom"],
+    labels: ["Norðurljós", "Vestanvind", "Súlnasker"],
     datasets: [
       {
-        data: [data.congruent, data.ameripol, data.bloom],
+        data: [data.nordurljós, data.vestanvind, data.súlnasker],
         backgroundColor: [
           "rgba(108, 63, 160, 0.85)", // Bifröst violet
           "rgba(42, 191, 191, 0.85)", // Aurora teal

@@ -26,7 +26,7 @@ def fix_test_data():
 
         logger.info(f"Updated annual_wage for {wage_updates} employees")
 
-        # 2. Set up test_supervisor (James Morales, C13) as a supervisor with direct reports
+        # 2. Set up test_supervisor as a supervisor with direct reports
         test_supervisor_user = db.query(models.User).filter(
             models.User.username == 'test_supervisor'
         ).first()

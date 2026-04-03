@@ -7,7 +7,7 @@ import logging
 logger = logging.getLogger(__name__)
 
 # Fixed seed for deterministic, reproducible demo data
-random.seed(42)
+random.seed(91)
 
 # Create a new session
 db = database.SessionLocal()
@@ -19,26 +19,29 @@ db.commit()
 
 # Helper data
 first_names = [
-    "James", "Mary", "John", "Patricia", "Robert", "Jennifer", "Michael", "Linda",
-    "William", "Elizabeth", "David", "Barbara", "Richard", "Susan", "Joseph", "Jessica",
-    "Thomas", "Sarah", "Charles", "Karen", "Christopher", "Nancy", "Daniel", "Lisa",
-    "Matthew", "Betty", "Anthony", "Margaret", "Mark", "Sandra", "Donald", "Ashley",
-    "Steven", "Kimberly", "Paul", "Emily", "Andrew", "Donna", "Joshua", "Michelle",
-    "Kenneth", "Carol", "Kevin", "Amanda", "Brian", "Dorothy", "George", "Melissa",
-    "Edward", "Deborah", "Ronald", "Stephanie", "Timothy", "Rebecca", "Jason", "Sharon",
-    "Jeffrey", "Laura", "Ryan", "Cynthia", "Jacob", "Kathleen", "Gary", "Amy",
-    "Nicholas", "Shirley", "Eric", "Angela", "Jonathan", "Helen", "Stephen", "Anna"
+    "Ísak", "Guðrún", "Bjarni", "Sigríður", "Eiríkur", "Helga", "Magnús", "Kristín",
+    "Jón", "Anna", "Þór", "Elín", "Ólafur", "Margrét", "Gunnar", "Ragnheiður",
+    "Stefán", "Björk", "Arnar", "Katrín", "Haukur", "Sólveig", "Davíð", "Ásta",
+    "Ragnar", "Ingibjörg", "Pétur", "Þóra", "Friðrik", "Hildur", "Sveinbjörn", "Lilja",
+    "Hákon", "Vigdís", "Einar", "Auður", "Sigurður", "Hrefna", "Baldur", "Steinunn",
+    "Tómas", "Unnur", "Kristján", "Elísabet", "Tryggvi", "Valgerður", "Hjálmar", "Aðalbjörg",
+    "Sæmundur", "Birta", "Hallgrímur", "Ása", "Leifur", "Fjóla", "Geir", "Brynhildur",
+    "Andri", "Þórdís", "Kári", "Erla", "Snorri", "Signý", "Viktor", "Guðbjörg",
+    "Birgir", "Drífa", "Haraldur", "Bergljót", "Ingvar", "Herdís", "Rögnvaldur", "Jóhanna",
 ]
 
 last_names = [
-    "Smith", "Johnson", "Williams", "Brown", "Jones", "Garcia", "Miller", "Davis",
-    "Rodriguez", "Martinez", "Hernandez", "Lopez", "Gonzalez", "Wilson", "Anderson", "Thomas",
-    "Taylor", "Moore", "Jackson", "Martin", "Lee", "Perez", "Thompson", "White",
-    "Harris", "Sanchez", "Clark", "Ramirez", "Lewis", "Robinson", "Walker", "Young",
-    "Allen", "King", "Wright", "Scott", "Torres", "Nguyen", "Hill", "Flores",
-    "Green", "Adams", "Nelson", "Baker", "Hall", "Rivera", "Campbell", "Mitchell",
-    "Carter", "Roberts", "Gomez", "Phillips", "Evans", "Turner", "Diaz", "Parker",
-    "Cruz", "Edwards", "Collins", "Reyes", "Stewart", "Morris", "Morales", "Murphy"
+    "Sigurðsson", "Jónsdóttir", "Magnússon", "Guðmundsdóttir", "Ólafsson", "Björnsdóttir",
+    "Gunnarsson", "Kristjánsdóttir", "Stefánsson", "Þórarinsdóttir", "Einarsson", "Ragnarsdóttir",
+    "Haraldsson", "Pálsdóttir", "Davíðsson", "Halldórsdóttir", "Pétursson", "Sveinsdóttir",
+    "Jóhannsson", "Brynjarsdóttir", "Árnason", "Helgadóttir", "Friðriksson", "Oddsdóttir",
+    "Tryggvason", "Ingólfsdóttir", "Bjarnarson", "Sólveigardóttir", "Hákonarson", "Vigfúsdóttir",
+    "Þorsteinsson", "Snorradóttir", "Baldursson", "Gísladóttir", "Leifsson", "Aðalsteinsdóttir",
+    "Hjálmarsson", "Sigmundsdóttir", "Kárason", "Erlendsdóttir", "Andrésson", "Ingvarsdóttir",
+    "Víglundsson", "Hrafnkelsdóttir", "Sæmundsson", "Ásgeirsdóttir", "Hallgrímsson", "Berglindsdóttir",
+    "Snæbjörnsson", "Þórðarsdóttir", "Rögnvaldsson", "Ketilsson", "Unnardóttir", "Grímsson",
+    "Bryndísardóttir", "Finnbogason", "Lovísardóttir", "Benediktsson", "Guðrúnardóttir",
+    "Sigurjónsson", "Katrínardóttir", "Geirdóttir", "Birgisson", "Þorláksson",
 ]
 
 departments = [
@@ -84,18 +87,18 @@ teams = [
 employees = []
 employee_count = 0
 
-# Regular US employees (130 employees, IDs: 1000-1129)
+# Regular US employees (130 employees, IDs: 2000-2129)
 for i in range(130):
     employee_count += 1
-    emp_id = f"{1000 + i}"
+    emp_id = f"{2000 + i}"
 
     # Determine status (95% active, 5% terminated in Q1 2026)
     is_terminated = random.random() < 0.05
     status = "Terminated" if is_terminated else "Active"
 
-    # Random hire date between 2020 and 2025
-    hire_year = random.randint(2020, 2025)
-    hire_month = random.randint(1, 12)
+    # Random hire date between 2021 and 2026
+    hire_year = random.randint(2021, 2026)
+    hire_month = random.randint(1, 3) if hire_year == 2026 else random.randint(1, 12)
     hire_day = random.randint(1, 28)
     hire_date = date(hire_year, hire_month, hire_day)
 
@@ -138,11 +141,11 @@ for i in range(130):
     emp_type = "FT" if random.random() < 0.9 else "PT"
 
     # Wage based on type and tenure
-    base_wage = random.randint(50000, 120000) if emp_type == "FT" else random.randint(30000, 60000)
-    wage = base_wage + (tenure_years * 2000)  # Small annual increases
+    base_wage = random.randint(55000, 130000) if emp_type == "FT" else random.randint(32000, 65000)
+    wage = base_wage + (tenure_years * 2500)  # Small annual increases
 
     # Benefits cost
-    benefits_cost = random.randint(7000, 12000) if emp_type == "FT" else random.randint(2000, 5000)
+    benefits_cost = random.randint(7500, 13000) if emp_type == "FT" else random.randint(2500, 5500)
 
     # PTO metrics
     pto_allotted = 120 if emp_type == "FT" else 80
@@ -178,16 +181,16 @@ for i in range(130):
         address_state=state,
     ))
 
-# Congruent employees (30 employees, IDs: C01-C30)
+# Norðurljós employees (30 employees, IDs: NL01-NL30)
 for i in range(30):
     employee_count += 1
-    emp_id = f"C{i + 1:02d}"
+    emp_id = f"NL{i + 1:02d}"
 
     is_terminated = random.random() < 0.03  # Lower turnover for international
     status = "Terminated" if is_terminated else "Active"
 
-    hire_year = random.randint(2021, 2025)
-    hire_month = random.randint(1, 12)
+    hire_year = random.randint(2022, 2026)
+    hire_month = random.randint(1, 3) if hire_year == 2026 else random.randint(1, 12)
     hire_day = random.randint(1, 28)
     hire_date = date(hire_year, hire_month, hire_day)
 
@@ -205,9 +208,9 @@ for i in range(30):
 
     dept = random.choice(departments)
     emp_type = "FT"
-    base_wage = random.randint(45000, 90000)
-    wage = base_wage + (tenure_years * 1500)
-    benefits_cost = random.randint(6000, 10000)
+    base_wage = random.randint(48000, 95000)
+    wage = base_wage + (tenure_years * 1800)
+    benefits_cost = random.randint(6500, 11000)
     pto_allotted = 100
     if tenure_years > 3:
         pto_allotted += 20
@@ -227,7 +230,7 @@ for i in range(30):
         last_name=random.choice(last_names),
         status=status,
         type=emp_type,
-        location="International - Congruent",
+        location="International - Norðurljós",
         department=dept,
         cost_center=f"0{departments.index(dept) + 1}-{dept[:3]}",
         team=random.choice(teams),
@@ -244,16 +247,16 @@ for i in range(30):
         birth_date=birth_date,
     ))
 
-# Ameripol employees (25 employees, IDs: AM01-AM25)
+# Vestanvind employees (25 employees, IDs: VV01-VV25)
 for i in range(25):
     employee_count += 1
-    emp_id = f"AM{i + 1:02d}"
+    emp_id = f"VV{i + 1:02d}"
 
     is_terminated = random.random() < 0.04
     status = "Terminated" if is_terminated else "Active"
 
-    hire_year = random.randint(2021, 2025)
-    hire_month = random.randint(1, 12)
+    hire_year = random.randint(2022, 2026)
+    hire_month = random.randint(1, 3) if hire_year == 2026 else random.randint(1, 12)
     hire_day = random.randint(1, 28)
     hire_date = date(hire_year, hire_month, hire_day)
 
@@ -271,9 +274,9 @@ for i in range(25):
 
     dept = random.choice(departments)
     emp_type = "FT"
-    base_wage = random.randint(40000, 85000)
-    wage = base_wage + (tenure_years * 1500)
-    benefits_cost = random.randint(5500, 9500)
+    base_wage = random.randint(43000, 90000)
+    wage = base_wage + (tenure_years * 1800)
+    benefits_cost = random.randint(6000, 10000)
     pto_allotted = 100
     if tenure_years > 3:
         pto_allotted += 20
@@ -293,7 +296,7 @@ for i in range(25):
         last_name=random.choice(last_names),
         status=status,
         type=emp_type,
-        location="International - Ameripol",
+        location="International - Vestanvind",
         department=dept,
         cost_center=f"0{departments.index(dept) + 1}-{dept[:3]}",
         team=random.choice(teams),
@@ -310,16 +313,16 @@ for i in range(25):
         birth_date=birth_date,
     ))
 
-# Bloom employees (15 employees, IDs: BH01-BH15)
+# Súlnasker employees (15 employees, IDs: SN01-SN15)
 for i in range(15):
     employee_count += 1
-    emp_id = f"BH{i + 1:02d}"
+    emp_id = f"SN{i + 1:02d}"
 
     is_terminated = random.random() < 0.03
     status = "Terminated" if is_terminated else "Active"
 
-    hire_year = random.randint(2022, 2025)
-    hire_month = random.randint(1, 12)
+    hire_year = random.randint(2023, 2026)
+    hire_month = random.randint(1, 3) if hire_year == 2026 else random.randint(1, 12)
     hire_day = random.randint(1, 28)
     hire_date = date(hire_year, hire_month, hire_day)
 
@@ -337,9 +340,9 @@ for i in range(15):
 
     dept = random.choice(departments)
     emp_type = "FT"
-    base_wage = random.randint(42000, 88000)
-    wage = base_wage + (tenure_years * 1500)
-    benefits_cost = random.randint(5800, 9800)
+    base_wage = random.randint(45000, 92000)
+    wage = base_wage + (tenure_years * 1800)
+    benefits_cost = random.randint(6200, 10500)
     pto_allotted = 100
     if tenure_years > 3:
         pto_allotted += 20
@@ -359,7 +362,7 @@ for i in range(15):
         last_name=random.choice(last_names),
         status=status,
         type=emp_type,
-        location="International - Bloom",
+        location="International - Súlnasker",
         department=dept,
         cost_center=f"0{departments.index(dept) + 1}-{dept[:3]}",
         team=random.choice(teams),
@@ -382,8 +385,8 @@ db.commit()
 db.close()
 
 logger.info(f"Successfully seeded {employee_count} employees!")
-logger.info(f"- US Employees: 130")
-logger.info(f"- Congruent (C##): 30")
-logger.info(f"- Ameripol (AM##): 25")
-logger.info(f"- Bloom (BH##): 15")
+logger.info(f"- US Employees (2###): 130")
+logger.info(f"- Norðurljós (NL##): 30")
+logger.info(f"- Vestanvind (VV##): 25")
+logger.info(f"- Súlnasker (SN##): 15")
 logger.info(f"Total: 200 employees")
