@@ -147,6 +147,9 @@ class Employee(Base):
     eeo_disability_status = Column(String, nullable=True)  # Disability status
     # Categories: "Yes, I Have A Disability", "No, I Don't Have A Disability", "I Don't Wish To Answer"
 
+    # International employee flag (auto-populated from ID prefix at startup)
+    is_international = Column(Boolean, nullable=True)
+
     # Custom tags for role-based features (e.g., ["hiring_manager", "interviewer"])
     custom_tags = Column(JSON, nullable=True)
 
