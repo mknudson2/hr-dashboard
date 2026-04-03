@@ -3,12 +3,19 @@ Populate comprehensive demo data for Employee Portal demonstration.
 - Link test accounts properly for supervisor workflow demos
 - Populate benefits data (health, dental, vision, 401k, etc.)
 """
-import random
-from app.db import database, models
-from app.services.auth_service import get_password_hash
 import logging
+import random
+
+import bcrypt
+
+from app.db import database, models
 
 logger = logging.getLogger(__name__)
+
+
+def get_password_hash(password: str) -> str:
+    return bcrypt.hashpw(password.encode("utf-8"), bcrypt.gensalt()).decode("utf-8")
+
 
 # Benefits plan options
 MEDICAL_PLANS = ["PPO Gold", "PPO Silver", "HDHP Bronze", "HMO Basic"]
