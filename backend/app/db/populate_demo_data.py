@@ -144,7 +144,6 @@ def populate_demo_data():
                 (emp.dental_ee_cost or 0) +
                 (emp.vision_ee_cost or 0) +
                 (emp.retirement_ee_contribution or 0) +
-                (emp.hsa_contribution or 0) +
                 (emp.fsa_contribution or 0)
             )
             total_er_benefits = (
