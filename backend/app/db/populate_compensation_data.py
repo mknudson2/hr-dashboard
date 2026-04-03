@@ -30,10 +30,10 @@ positions_by_dept = {
 
 # Sample supervisor names
 supervisors = [
-    "Guðrún Sigurðsson", "Bjarni Jónsdóttir", "Sigríður Magnússon", "Eiríkur Björnsdóttir", "Helga Gunnarsson",
-    "Magnús Kristjánsdóttir", "Kristín Stefánsson", "Jón Þórarinsdóttir", "Anna Einarsson", "Þór Ragnarsdóttir",
-    "Elín Haraldsson", "Ólafur Pálsdóttir", "Margrét Davíðsson", "Gunnar Halldórsdóttir", "Ragnheiður Pétursson",
-    "Stefán Sveinsdóttir", "Björk Jóhannsson", "Arnar Brynjarsdóttir", "Katrín Árnason", "Haukur Helgadóttir",
+    "Guðrún Jónsdóttir", "Bjarni Sigurðsson", "Sigríður Björnsdóttir", "Eiríkur Magnússon", "Helga Kristjánsdóttir",
+    "Magnús Gunnarsson", "Kristín Þórarinsdóttir", "Jón Stefánsson", "Anna Ragnarsdóttir", "Þór Einarsson",
+    "Elín Pálsdóttir", "Ólafur Haraldsson", "Margrét Halldórsdóttir", "Gunnar Davíðsson", "Ragnheiður Sveinsdóttir",
+    "Stefán Pétursson", "Björk Brynjarsdóttir", "Arnar Jóhannsson", "Katrín Helgadóttir", "Haukur Árnason",
 ]
 
 # Get all employees

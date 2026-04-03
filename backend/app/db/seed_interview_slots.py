@@ -15,9 +15,9 @@ logger = logging.getLogger(__name__)
 
 # Employees with Recruiting/Recruiter in their position title
 _RECRUITER_EMPLOYEES = [
-    {"employee_id": "181", "name": "Þórdís Einarsson", "email": "thordis.einarsson@company.com", "username": "thordis.einarsson"},
-    {"employee_id": "460", "name": "Erla Magnússon", "email": "erla.magnusson@company.com", "username": "erla.magnusson"},
-    {"employee_id": "2040", "name": "Sólveig Haraldsson", "email": "solveig.haraldsson@company.com", "username": "solveig.haraldsson"},
+    {"employee_id": "181", "name": "Þórdís Ragnarsdóttir", "email": "thordis.ragnarsdottir@company.com", "username": "thordis.ragnarsdottir"},
+    {"employee_id": "460", "name": "Erla Pálsdóttir", "email": "erla.palsdottir@company.com", "username": "erla.palsdottir"},
+    {"employee_id": "2040", "name": "Sólveig Ingólfsdóttir", "email": "solveig.ingolfsdottir@company.com", "username": "solveig.ingolfsdottir"},
 ]
 
 

@@ -17,32 +17,49 @@ db.query(models.Employee).delete()
 db.query(models.OnboardingTask).delete()
 db.commit()
 
-# Helper data
-first_names = [
-    "Ísak", "Guðrún", "Bjarni", "Sigríður", "Eiríkur", "Helga", "Magnús", "Kristín",
-    "Jón", "Anna", "Þór", "Elín", "Ólafur", "Margrét", "Gunnar", "Ragnheiður",
-    "Stefán", "Björk", "Arnar", "Katrín", "Haukur", "Sólveig", "Davíð", "Ásta",
-    "Ragnar", "Ingibjörg", "Pétur", "Þóra", "Friðrik", "Hildur", "Sveinbjörn", "Lilja",
-    "Hákon", "Vigdís", "Einar", "Auður", "Sigurður", "Hrefna", "Baldur", "Steinunn",
-    "Tómas", "Unnur", "Kristján", "Elísabet", "Tryggvi", "Valgerður", "Hjálmar", "Aðalbjörg",
-    "Sæmundur", "Birta", "Hallgrímur", "Ása", "Leifur", "Fjóla", "Geir", "Brynhildur",
-    "Andri", "Þórdís", "Kári", "Erla", "Snorri", "Signý", "Viktor", "Guðbjörg",
-    "Birgir", "Drífa", "Haraldur", "Bergljót", "Ingvar", "Herdís", "Rögnvaldur", "Jóhanna",
+# Helper data — split by gender for correct patronymic pairing
+male_first_names = [
+    "Ísak", "Bjarni", "Eiríkur", "Magnús", "Jón", "Þór", "Ólafur", "Gunnar",
+    "Stefán", "Arnar", "Haukur", "Davíð", "Ragnar", "Pétur", "Friðrik", "Sveinbjörn",
+    "Hákon", "Einar", "Sigurður", "Baldur", "Tómas", "Kristján", "Tryggvi", "Hjálmar",
+    "Sæmundur", "Hallgrímur", "Leifur", "Geir", "Andri", "Kári", "Snorri", "Viktor",
+    "Birgir", "Haraldur", "Ingvar", "Rögnvaldur",
 ]
 
-last_names = [
-    "Sigurðsson", "Jónsdóttir", "Magnússon", "Guðmundsdóttir", "Ólafsson", "Björnsdóttir",
-    "Gunnarsson", "Kristjánsdóttir", "Stefánsson", "Þórarinsdóttir", "Einarsson", "Ragnarsdóttir",
-    "Haraldsson", "Pálsdóttir", "Davíðsson", "Halldórsdóttir", "Pétursson", "Sveinsdóttir",
-    "Jóhannsson", "Brynjarsdóttir", "Árnason", "Helgadóttir", "Friðriksson", "Oddsdóttir",
-    "Tryggvason", "Ingólfsdóttir", "Bjarnarson", "Sólveigardóttir", "Hákonarson", "Vigfúsdóttir",
-    "Þorsteinsson", "Snorradóttir", "Baldursson", "Gísladóttir", "Leifsson", "Aðalsteinsdóttir",
-    "Hjálmarsson", "Sigmundsdóttir", "Kárason", "Erlendsdóttir", "Andrésson", "Ingvarsdóttir",
-    "Víglundsson", "Hrafnkelsdóttir", "Sæmundsson", "Ásgeirsdóttir", "Hallgrímsson", "Berglindsdóttir",
-    "Snæbjörnsson", "Þórðarsdóttir", "Rögnvaldsson", "Ketilsson", "Unnardóttir", "Grímsson",
-    "Bryndísardóttir", "Finnbogason", "Lovísardóttir", "Benediktsson", "Guðrúnardóttir",
-    "Sigurjónsson", "Katrínardóttir", "Geirdóttir", "Birgisson", "Þorláksson",
+female_first_names = [
+    "Guðrún", "Sigríður", "Helga", "Kristín", "Anna", "Elín", "Margrét", "Ragnheiður",
+    "Björk", "Katrín", "Sólveig", "Ásta", "Ingibjörg", "Þóra", "Hildur", "Lilja",
+    "Vigdís", "Auður", "Hrefna", "Steinunn", "Unnur", "Elísabet", "Valgerður", "Aðalbjörg",
+    "Birta", "Ása", "Fjóla", "Brynhildur", "Þórdís", "Erla", "Signý", "Guðbjörg",
+    "Drífa", "Bergljót", "Herdís", "Jóhanna",
 ]
+
+# Patronymic surnames: -son for males, -dóttir for females
+male_last_names = [
+    "Sigurðsson", "Magnússon", "Ólafsson", "Gunnarsson", "Stefánsson", "Einarsson",
+    "Haraldsson", "Davíðsson", "Pétursson", "Jóhannsson", "Árnason", "Friðriksson",
+    "Tryggvason", "Bjarnarson", "Hákonarson", "Þorsteinsson", "Baldursson", "Leifsson",
+    "Hjálmarsson", "Kárason", "Andrésson", "Víglundsson", "Sæmundsson", "Hallgrímsson",
+    "Snæbjörnsson", "Rögnvaldsson", "Ketilsson", "Grímsson", "Finnbogason", "Benediktsson",
+    "Sigurjónsson", "Birgisson", "Þorláksson",
+]
+
+female_last_names = [
+    "Jónsdóttir", "Guðmundsdóttir", "Björnsdóttir", "Kristjánsdóttir", "Þórarinsdóttir",
+    "Ragnarsdóttir", "Pálsdóttir", "Halldórsdóttir", "Sveinsdóttir", "Brynjarsdóttir",
+    "Helgadóttir", "Oddsdóttir", "Ingólfsdóttir", "Sólveigardóttir", "Vigfúsdóttir",
+    "Snorradóttir", "Gísladóttir", "Aðalsteinsdóttir", "Sigmundsdóttir", "Erlendsdóttir",
+    "Ingvarsdóttir", "Hrafnkelsdóttir", "Ásgeirsdóttir", "Berglindsdóttir", "Þórðarsdóttir",
+    "Unnardóttir", "Bryndísardóttir", "Lovísardóttir", "Guðrúnardóttir", "Katrínardóttir",
+    "Geirdóttir",
+]
+
+
+def random_name():
+    """Return a (first_name, last_name) tuple with correct patronymic gender pairing."""
+    if random.random() < 0.5:
+        return random.choice(male_first_names), random.choice(male_last_names)
+    return random.choice(female_first_names), random.choice(female_last_names)
 
 departments = [
     "Operations", "HR", "Sales", "IT", "Finance", "Marketing",
@@ -157,10 +174,11 @@ for i in range(130):
     expected_days = 240 if emp_type == "FT" else 180
     attendance_days = random.randint(int(expected_days * 0.85), expected_days)
 
+    first, last = random_name()
     employees.append(models.Employee(
         employee_id=emp_id,
-        first_name=random.choice(first_names),
-        last_name=random.choice(last_names),
+        first_name=first,
+        last_name=last,
         status=status,
         type=emp_type,
         location=loc,
@@ -224,10 +242,11 @@ for i in range(30):
     birth_day = random.randint(1, 28)
     birth_date = date(birth_year, birth_month, birth_day)
 
+    first, last = random_name()
     employees.append(models.Employee(
         employee_id=emp_id,
-        first_name=random.choice(first_names),
-        last_name=random.choice(last_names),
+        first_name=first,
+        last_name=last,
         status=status,
         type=emp_type,
         location="International - Norðurljós",
@@ -290,10 +309,11 @@ for i in range(25):
     birth_day = random.randint(1, 28)
     birth_date = date(birth_year, birth_month, birth_day)
 
+    first, last = random_name()
     employees.append(models.Employee(
         employee_id=emp_id,
-        first_name=random.choice(first_names),
-        last_name=random.choice(last_names),
+        first_name=first,
+        last_name=last,
         status=status,
         type=emp_type,
         location="International - Vestanvind",
@@ -356,10 +376,11 @@ for i in range(15):
     birth_day = random.randint(1, 28)
     birth_date = date(birth_year, birth_month, birth_day)
 
+    first, last = random_name()
     employees.append(models.Employee(
         employee_id=emp_id,
-        first_name=random.choice(first_names),
-        last_name=random.choice(last_names),
+        first_name=first,
+        last_name=last,
         status=status,
         type=emp_type,
         location="International - Súlnasker",

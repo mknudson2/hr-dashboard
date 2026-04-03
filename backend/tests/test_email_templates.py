@@ -23,8 +23,8 @@ async def test_template_rendering():
             role="Software Engineer",
             start_date="2025-01-15",
             department="Engineering",
-            manager_name="Guðrún Magnússon",
-            manager_email="gudrun.magnusson@example.com"
+            manager_name="Guðrún Pálsdóttir",
+            manager_email="gudrun.palsdottir@example.com"
         )
         print("   SUCCESS: Welcome email template rendered\n")
     except Exception as e:
@@ -41,7 +41,7 @@ async def test_template_rendering():
             office_location="Main Office, Building A",
             parking_info="Park in visitor parking, then check in at reception",
             dress_code="Business casual",
-            manager_name="Guðrún Magnússon"
+            manager_name="Guðrún Pálsdóttir"
         )
         print("   SUCCESS: First day info template rendered\n")
     except Exception as e:
@@ -70,7 +70,7 @@ async def test_template_rendering():
         await email_service.send_nbs_term_email(
             email_type="accounting",
             to_emails=["shellim@example.com"],
-            employee_name="Bjarni Jónsdóttir",
+            employee_name="Bjarni Haraldsson",
             employee_id="2002",
             termination_date="2025-02-15",
             verb="has",
@@ -158,7 +158,7 @@ async def test_template_rendering():
     try:
         await email_service.send_birthday_email(
             to_email="test@example.com",
-            employee_name="Kristín Stefánsson",
+            employee_name="Kristín Sveinsdóttir",
             birthday_message="Wishing you a fantastic birthday filled with joy!",
             team_celebration=True,
             celebration_date="Today",
