@@ -134,9 +134,14 @@ A comprehensive HRIS platform built for modern enterprises. Three interconnected
    # Edit .env with your configuration
    ```
 
-4. **Initialize the database**
+4. **Initialize the database and seed data**
    ```bash
    python -m app.db.seed_data
+   python -m app.db.populate_supervisors
+   python -m app.db.populate_compensation_data
+   python -m app.db.populate_benefits_data
+   python -m app.db.populate_demo_data
+   python -m app.db.fix_test_data
    ```
 
 5. **Start the backend server**
@@ -170,6 +175,103 @@ A comprehensive HRIS platform built for modern enterprises. Three interconnected
    - Employee Portal: http://localhost:5174
    - Applicant Portal: http://localhost:5175
    - API Documentation: http://localhost:8000/docs
+
+## Test Accounts
+
+The seed scripts do **not** create user accounts automatically. Test accounts must be created manually after seeding employee data. There are two ways to do this:
+
+### Option 1: Via the API
+
+Start the backend, then use the registration or user management endpoints. New users require an `employee_id` linking them to a seeded employee record.
+
+### Option 2: Via a Python script
+
+After running the seed scripts, create accounts directly in the database:
+
+```bash
+cd backend
+source venv/bin/activate
+python -c "
+import json, bcrypt
+from app.db import database, models
+
+db = database.SessionLocal()
+
+def hash_pw(pw):
+    return bcrypt.hashpw(pw.encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
+
+# Pick employees to link to accounts
+emps = db.query(models.Employee).filter(
+    models.Employee.location.notlike('International%')
+).limit(10).all()
+
+accounts = [
+    {'username': 'admin',                    'role': 'admin',    'portals': ['hr', 'employee-portal'], 'emp_idx': 0},
+    {'username': 'test_employee',            'role': 'employee', 'portals': ['employee-portal'],       'emp_idx': 1},
+    {'username': 'test_supervisor',          'role': 'manager',  'portals': ['employee-portal'],       'emp_idx': 2},
+    {'username': 'test_supervisor_employee', 'role': 'manager',  'portals': ['employee-portal'],       'emp_idx': 3},
+]
+
+for acct in accounts:
+    emp = emps[acct['emp_idx']]
+    user = models.User(
+        username=acct['username'],
+        email=f'{acct[\"username\"]}@company.com',
+        full_name=f'{emp.first_name} {emp.last_name}',
+        password_hash=hash_pw('password123'),
+        role=acct['role'],
+        is_active=True,
+        employee_id=emp.employee_id,
+        password_must_change=False,
+    )
+    db.add(user)
+    db.flush()
+    db.execute(
+        models.User.__table__.update()
+        .where(models.User.__table__.c.id == user.id)
+        .values(allowed_portals=json.dumps(acct['portals']))
+    )
+    print(f'Created {acct[\"username\"]} -> {emp.first_name} {emp.last_name} ({emp.employee_id})')
+
+db.commit()
+db.close()
+"
+```
+
+### Default test accounts
+
+| Username | Password | Role | Portal Access |
+|----------|----------|------|---------------|
+| `admin` | `password123` | Admin | HR Hub + Employee Portal |
+| `test_employee` | `password123` | Employee | Employee Portal |
+| `test_supervisor` | `password123` | Manager | Employee Portal |
+| `test_supervisor_employee` | `password123` | Manager | Employee Portal |
+
+### Key details
+
+- **`allowed_portals`** controls which applications a user can log into. Valid values are `"hr"` (HR Hub) and `"employee-portal"` (Employee Portal). The Applicant Portal has its own separate auth system.
+- **`employee_id`** links the user account to an employee record. This is required for features like viewing your own compensation, PTO balances, and FMLA cases.
+- **`password_must_change`** defaults to `True` on new accounts. Set it to `False` for test accounts to skip the forced password change on first login.
+- **`role`** determines base permissions: `admin` has full access, `manager` can view team data and approve requests, `employee` has self-service access only. Fine-grained permissions are managed through the RBAC system (`python -m app.db.seed_rbac`).
+- After creating accounts, run `python -m app.db.seed_rbac` to populate RBAC roles and assign permissions based on each user's role.
+
+### Resetting the database
+
+To start fresh with a clean database:
+
+```bash
+cd backend
+rm -f data/hr_dashboard.db
+source venv/bin/activate
+python -c "from app.db import database, models; models.Base.metadata.create_all(bind=database.engine)"
+python -m app.db.seed_data
+python -m app.db.populate_supervisors
+python -m app.db.populate_compensation_data
+python -m app.db.populate_benefits_data
+python -m app.db.populate_demo_data
+python -m app.db.fix_test_data
+# Then re-create test accounts using one of the methods above
+```
 
 ## Project Structure
 
