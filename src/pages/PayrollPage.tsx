@@ -1,7 +1,7 @@
-import { useState, useEffect } from 'react';
-import { motion } from 'framer-motion';
+import { useState, useEffect, useCallback } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 import {
-  DollarSign, Calendar, CheckCircle, Clock, ChevronDown, Settings
+  DollarSign, Calendar, CheckCircle, Clock, ChevronDown, Settings, Plus, X, Loader2
 } from 'lucide-react';
 import PayrollDrawer from '@/components/PayrollDrawer';
 import type { PayrollPeriod } from '@/components/payroll';
@@ -18,6 +18,12 @@ interface DashboardMetrics {
   current_period: PayrollPeriod | null;
 }
 
+interface GenerateResult {
+  year: number;
+  periods_created: number;
+  message: string;
+}
+
 export default function PayrollPage() {
   const [periods, setPeriods] = useState<PayrollPeriod[]>([]);
   const [metrics, setMetrics] = useState<DashboardMetrics | null>(null);
@@ -26,6 +32,30 @@ export default function PayrollPage() {
   const [statusFilter, setStatusFilter] = useState<string>('upcoming');
   const [selectedPeriod, setSelectedPeriod] = useState<PayrollPeriod | null>(null);
   const [showDrawer, setShowDrawer] = useState(false);
+  const [availableYears, setAvailableYears] = useState<number[]>([]);
+  const [showGenerateModal, setShowGenerateModal] = useState(false);
+  const [generateYear, setGenerateYear] = useState<number>(new Date().getFullYear() + 1);
+  const [generating, setGenerating] = useState(false);
+  const [generateResult, setGenerateResult] = useState<GenerateResult | null>(null);
+  const [generateError, setGenerateError] = useState<string | null>(null);
+
+  const loadAvailableYears = useCallback(async () => {
+    try {
+      const res = await fetch(`${BASE_URL}/payroll/years`, { credentials: 'include' });
+      if (res.ok) {
+        const years: number[] = await res.json();
+        if (years.length > 0) {
+          setAvailableYears(years);
+        }
+      }
+    } catch {
+      // Fall back to defaults
+    }
+  }, []);
+
+  useEffect(() => {
+    loadAvailableYears();
+  }, [loadAvailableYears]);
 
   useEffect(() => {
     loadData();
@@ -56,6 +86,47 @@ export default function PayrollPage() {
       setLoading(false);
     }
   };
+
+  const handleGenerate = async () => {
+    setGenerating(true);
+    setGenerateResult(null);
+    setGenerateError(null);
+    try {
+      const res = await fetch(`${BASE_URL}/payroll/periods/generate`, {
+        method: 'POST',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ year: generateYear })
+      });
+      if (res.ok) {
+        const data: GenerateResult = await res.json();
+        setGenerateResult(data);
+        if (data.periods_created > 0) {
+          await loadAvailableYears();
+          setSelectedYear(generateYear);
+          setStatusFilter('all');
+          loadData();
+        }
+      } else {
+        const err = await res.json().catch(() => ({ detail: 'Request failed' }));
+        setGenerateError(typeof err.detail === 'string' ? err.detail : 'Failed to generate periods');
+      }
+    } catch {
+      setGenerateError('Network error. Please try again.');
+    } finally {
+      setGenerating(false);
+    }
+  };
+
+  const closeGenerateModal = () => {
+    setShowGenerateModal(false);
+    setGenerateResult(null);
+    setGenerateError(null);
+  };
+
+  const yearOptions = availableYears.length > 0
+    ? availableYears
+    : [new Date().getFullYear() - 1, new Date().getFullYear()];
 
   const handlePeriodClick = (period: PayrollPeriod) => {
     setSelectedPeriod(period);
@@ -127,6 +198,18 @@ export default function PayrollPage() {
           <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Payroll Processing</h1>
           <p className="text-gray-600 dark:text-gray-400 mt-1">Manage biweekly payroll periods and tasks</p>
         </div>
+        <button
+          onClick={() => {
+            setGenerateYear(Math.max(...yearOptions, new Date().getFullYear()) + 1);
+            setGenerateResult(null);
+            setGenerateError(null);
+            setShowGenerateModal(true);
+          }}
+          className="flex items-center gap-2 px-4 py-2 bg-violet-600 hover:bg-violet-700 text-white rounded-lg transition-colors text-sm font-medium"
+        >
+          <Plus className="w-4 h-4" />
+          Generate Periods
+        </button>
       </div>
 
       {/* Metrics Cards */}
@@ -213,8 +296,9 @@ export default function PayrollPage() {
               onChange={(e) => setSelectedYear(parseInt(e.target.value))}
               className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
             >
-              <option value={2025}>2025</option>
-              <option value={2026}>2026</option>
+              {yearOptions.map(y => (
+                <option key={y} value={y}>{y}</option>
+              ))}
             </select>
           </div>
           <div className="flex-1">
@@ -299,6 +383,96 @@ export default function PayrollPage() {
           )}
         </div>
       </div>
+
+      {/* Generate Periods Modal */}
+      <AnimatePresence>
+        {showGenerateModal && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-black/50 flex items-center justify-center z-50"
+            onClick={(e) => { if (e.target === e.currentTarget) closeGenerateModal(); }}
+          >
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.95 }}
+              className="bg-white dark:bg-gray-800 rounded-lg shadow-xl w-full max-w-md mx-4"
+            >
+              <div className="flex items-center justify-between p-4 border-b border-gray-200 dark:border-gray-700">
+                <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Generate Payroll Periods</h3>
+                <button onClick={closeGenerateModal} className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300">
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+
+              <div className="p-4 space-y-4">
+                <p className="text-sm text-gray-600 dark:text-gray-400">
+                  Generate 26 biweekly payroll periods with task checklists for a new year.
+                </p>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Year</label>
+                  <input
+                    type="number"
+                    min={2024}
+                    max={2100}
+                    value={generateYear}
+                    onChange={(e) => setGenerateYear(parseInt(e.target.value) || new Date().getFullYear() + 1)}
+                    disabled={generating}
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white rounded-md focus:outline-none focus:ring-2 focus:ring-violet-500 disabled:opacity-50"
+                  />
+                </div>
+
+                {generateResult && (
+                  <div className={`p-3 rounded-md text-sm ${
+                    generateResult.periods_created > 0
+                      ? 'bg-green-50 dark:bg-green-900/20 text-green-800 dark:text-green-300 border border-green-200 dark:border-green-800'
+                      : 'bg-yellow-50 dark:bg-yellow-900/20 text-yellow-800 dark:text-yellow-300 border border-yellow-200 dark:border-yellow-800'
+                  }`}>
+                    {generateResult.message}
+                  </div>
+                )}
+
+                {generateError && (
+                  <div className="p-3 rounded-md text-sm bg-red-50 dark:bg-red-900/20 text-red-800 dark:text-red-300 border border-red-200 dark:border-red-800">
+                    {generateError}
+                  </div>
+                )}
+              </div>
+
+              <div className="flex justify-end gap-3 p-4 border-t border-gray-200 dark:border-gray-700">
+                <button
+                  onClick={closeGenerateModal}
+                  className="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-md transition-colors"
+                >
+                  {generateResult?.periods_created ? 'Done' : 'Cancel'}
+                </button>
+                {!generateResult?.periods_created && (
+                  <button
+                    onClick={handleGenerate}
+                    disabled={generating}
+                    className="flex items-center gap-2 px-4 py-2 text-sm font-medium bg-violet-600 hover:bg-violet-700 text-white rounded-md transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    {generating ? (
+                      <>
+                        <Loader2 className="w-4 h-4 animate-spin" />
+                        Generating...
+                      </>
+                    ) : (
+                      <>
+                        <Plus className="w-4 h-4" />
+                        Generate {generateYear} Periods
+                      </>
+                    )}
+                  </button>
+                )}
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* Payroll Drawer */}
       {selectedPeriod && (

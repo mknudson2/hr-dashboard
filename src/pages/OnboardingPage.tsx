@@ -1,8 +1,9 @@
 import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import {
   Users, CheckCircle, Clock, AlertTriangle, Plus, Search,
-  Filter, Calendar, User, Briefcase, Mail, ChevronDown, ChevronUp
+  Filter, Calendar, User, Briefcase, Mail, ChevronDown, ChevronUp, ShieldCheck
 } from 'lucide-react';
 import { OnboardingModal } from '@/components/OnboardingOffboardingModals';
 import { TaskDetailDrawer } from '@/components/TaskDetailDrawer';
@@ -52,6 +53,7 @@ interface Employee {
 }
 
 export default function OnboardingPage() {
+  const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState('overview');
   const [tasks, setTasks] = useState<OnboardingTask[]>([]);
   const [stats, setStats] = useState<DashboardStats | null>(null);
@@ -192,13 +194,22 @@ export default function OnboardingPage() {
             Manage new hire onboarding tasks and checklists
           </p>
         </div>
-        <button
-          onClick={() => setShowModal(true)}
-          className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
-        >
-          <Plus className="w-5 h-5" />
-          New Onboarding
-        </button>
+        <div className="flex items-center gap-3">
+          <button
+            onClick={() => navigate('/screening')}
+            className="flex items-center gap-2 px-4 py-2 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-200 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+          >
+            <ShieldCheck className="w-5 h-5" />
+            Background Screening
+          </button>
+          <button
+            onClick={() => setShowModal(true)}
+            className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+          >
+            <Plus className="w-5 h-5" />
+            New Onboarding
+          </button>
+        </div>
       </div>
 
       {/* Stats Cards */}

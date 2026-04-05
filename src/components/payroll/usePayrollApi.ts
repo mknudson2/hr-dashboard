@@ -1,4 +1,4 @@
-import { useCallback } from 'react';
+import { useCallback, useMemo } from 'react';
 import type { PayrollPeriod, PayrollTask } from './types';
 
 const BASE_URL = '';
@@ -98,12 +98,12 @@ export function usePayrollApi(periodId: number) {
     }
   }, [periodId]);
 
-  return {
+  return useMemo(() => ({
     fetchPeriod,
     updatePeriod,
     updateTask,
     editNote,
     deleteNote,
     sendEmail,
-  };
+  }), [fetchPeriod, updatePeriod, updateTask, editNote, deleteNote, sendEmail]);
 }
