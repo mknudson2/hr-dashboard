@@ -295,6 +295,26 @@ def seed_ats_defaults():
 
 seed_ats_defaults()
 
+# Seed RBAC roles and permissions
+def seed_rbac_defaults():
+    try:
+        from app.db.seed_rbac import seed_rbac
+        seed_rbac()
+    except Exception as e:
+        logger.warning("RBAC seed skipped: %s", e)
+
+seed_rbac_defaults()
+
+# Seed payroll periods (biweekly schedule)
+def seed_payroll_periods():
+    try:
+        from app.db.create_payroll_tables import create_payroll_tables
+        create_payroll_tables()
+    except Exception as e:
+        logger.warning("Payroll period seed skipped: %s", e)
+
+seed_payroll_periods()
+
 # Dependency to get DB session
 
 

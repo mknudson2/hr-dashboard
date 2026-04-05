@@ -7,6 +7,8 @@ Access is restricted to users with PAYROLL_READ or PAYROLL_WRITE permissions.
 Roles with access: admin, payroll
 """
 
+import logging
+
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 from sqlalchemy.orm.attributes import flag_modified
@@ -14,6 +16,8 @@ from sqlalchemy import and_, or_, func, extract
 from typing import List, Optional
 from datetime import datetime, date
 from pydantic import BaseModel, Field
+
+logger = logging.getLogger(__name__)
 
 from ..db import models
 from ..db.database import get_db
@@ -289,6 +293,16 @@ def get_dashboard_metrics(
     )
 
 
+@router.get("/years", response_model=List[int])
+def get_payroll_years(
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(get_current_user)
+):
+    """Get distinct years that have payroll periods."""
+    rows = db.query(models.PayrollPeriod.year).distinct().order_by(models.PayrollPeriod.year).all()
+    return [r[0] for r in rows]
+
+
 @router.get("/periods", response_model=List[PayrollPeriodResponse])
 def get_payroll_periods(
     year: Optional[int] = None,
@@ -501,6 +515,79 @@ def delete_period_note(
     db.commit()
 
     return {"message": "Note deleted successfully"}
+
+
+class GeneratePeriodsRequest(BaseModel):
+    year: int = Field(..., ge=2024, le=2100, description="Year to generate periods for")
+
+
+class GeneratePeriodsResponse(BaseModel):
+    year: int
+    periods_created: int
+    message: str
+
+
+@router.post("/periods/generate", response_model=GeneratePeriodsResponse)
+def generate_payroll_periods(
+    request: GeneratePeriodsRequest,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(require_permission(Permissions.PAYROLL_WRITE))
+):
+    """Generate 26 biweekly payroll periods with tasks for a given year.
+
+    Idempotent: skips if periods already exist for the requested year.
+    Requires PAYROLL_WRITE permission.
+    """
+    existing = db.query(models.PayrollPeriod).filter(
+        models.PayrollPeriod.year == request.year
+    ).first()
+
+    if existing:
+        count = db.query(models.PayrollPeriod).filter(
+            models.PayrollPeriod.year == request.year
+        ).count()
+        return GeneratePeriodsResponse(
+            year=request.year,
+            periods_created=0,
+            message=f"Periods already exist for {request.year} ({count} periods). No changes made."
+        )
+
+    from ..db.create_payroll_tables import calculate_biweekly_periods, create_default_tasks
+
+    periods_data = calculate_biweekly_periods(request.year)
+    task_templates = create_default_tasks()
+
+    for period_data in periods_data:
+        period = models.PayrollPeriod(**period_data)
+        db.add(period)
+        db.flush()
+
+        parent_task_map = {}
+        for task_template in task_templates:
+            task_data = task_template.copy()
+            task_data['payroll_period_id'] = period.id
+
+            parent_ref = task_data.pop('parent_ref', None)
+            if parent_ref and parent_ref in parent_task_map:
+                task_data['parent_task_id'] = parent_task_map[parent_ref].id
+
+            task = models.PayrollTask(**task_data)
+            db.add(task)
+            db.flush()
+
+            if task.task_type == 'main':
+                parent_task_map[task.order_index] = task
+
+    db.commit()
+
+    logger.info("Generated %d payroll periods for %d by user %s",
+                len(periods_data), request.year, current_user.username)
+
+    return GeneratePeriodsResponse(
+        year=request.year,
+        periods_created=len(periods_data),
+        message=f"Successfully generated {len(periods_data)} biweekly periods for {request.year}."
+    )
 
 
 @router.patch("/tasks/{task_id}", response_model=PayrollTaskResponse)

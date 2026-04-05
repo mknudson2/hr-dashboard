@@ -652,6 +652,12 @@ def bulk_create_offboarding_tasks(
         models.Garnishment.status == "Active"
     ).first() is not None
 
+    # Check if employee has active equipment assignments
+    has_active_equipment = db.query(models.EquipmentAssignment).filter(
+        models.EquipmentAssignment.employee_id == employee_id,
+        models.EquipmentAssignment.status == "Active"
+    ).first() is not None
+
     # Filter tasks: international employees get ONLY international tasks, others get ONLY non-international tasks
     filtered_tasks = []
     for task in all_tasks:
@@ -761,8 +767,7 @@ def bulk_create_offboarding_tasks(
                         continue
                     if condition == "part_time" and effective_employment_type not in ["Part Time"]:
                         continue
-                    if condition == "has_equipment":
-                        # Skip for now - would need equipment tracking
+                    if condition == "has_equipment" and not has_active_equipment:
                         continue
 
                 task_counter += 1
@@ -876,6 +881,12 @@ def ensure_offboarding_tasks(
         models.Garnishment.status == "Active"
     ).first() is not None
 
+    # Check if employee has active equipment assignments
+    has_active_equipment = db.query(models.EquipmentAssignment).filter(
+        models.EquipmentAssignment.employee_id == employee_id,
+        models.EquipmentAssignment.status == "Active"
+    ).first() is not None
+
     # Filter tasks: international employees get ONLY international tasks, others get ONLY non-international tasks
     filtered_tasks = []
     for task in all_tasks:
@@ -975,6 +986,8 @@ def ensure_offboarding_tasks(
                     if condition == "full_time" and employment_type not in ["Full Time"]:
                         continue
                     if condition == "part_time" and employment_type not in ["Part Time"]:
+                        continue
+                    if condition == "has_equipment" and not has_active_equipment:
                         continue
 
                 task_counter += 1
