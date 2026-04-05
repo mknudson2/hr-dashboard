@@ -224,7 +224,7 @@ export default function FMLACaseDrawer({ caseId, onClose, onUpdate }: FMLACaseDr
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 bg-black/50 z-40"
+            className="fixed top-0 left-0 w-screen h-screen bg-black/50 z-40"
             onClick={onClose}
           />
 
@@ -233,7 +233,7 @@ export default function FMLACaseDrawer({ caseId, onClose, onUpdate }: FMLACaseDr
             animate={{ x: 0 }}
             exit={{ x: "100%" }}
             transition={{ type: "spring", damping: 30, stiffness: 300 }}
-            className="fixed right-0 top-0 h-full w-full max-w-2xl bg-white dark:bg-gray-800 shadow-2xl z-50 overflow-y-auto"
+            className="fixed right-0 top-0 bottom-0 h-screen w-full max-w-2xl bg-white dark:bg-gray-800 shadow-2xl z-50 overflow-y-auto"
           >
             {loading ? (
               <div className="flex items-center justify-center h-full">
