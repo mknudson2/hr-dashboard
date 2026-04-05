@@ -1,4 +1,4 @@
-import { LayoutDashboard, Users, FileBarChart, Settings, Heart, Scale, TrendingDown, Calendar, PiggyBank, BarChart3, DollarSign, Award, UserPlus, UserMinus, Package, Clock, LogOut, User, Shield, UserCheck, Mail, Upload, ClipboardList, CheckSquare, FileEdit, Briefcase, type LucideIcon } from "lucide-react";
+import { LayoutDashboard, Users, FileBarChart, Settings, Heart, Scale, TrendingDown, Calendar, PiggyBank, BarChart3, DollarSign, Award, UserPlus, UserMinus, Package, Clock, LogOut, User, Shield, UserCheck, Mail, Upload, ClipboardList, CheckSquare, Briefcase, type LucideIcon } from "lucide-react";
 import { NavLink, Outlet, useNavigate } from "react-router-dom";
 import { useState, useEffect } from "react";
 import DarkModeToggle from "@/components/DarkModeToggle";
@@ -36,9 +36,6 @@ const links: NavigationLink[] = [
     { to: "/advanced-analytics", text: "Advanced Analytics", icon: BarChart3 },
     { to: "/emails", text: "Email Management", icon: Mail },
     { to: "/file-uploads", text: "File Uploads", icon: Upload },
-    { to: "/content-management", text: "Content Management", icon: FileEdit, adminOnly: true },
-    { to: "/users", text: "User Management", icon: Users, adminOnly: true },
-    { to: "/roles", text: "Role Management", icon: Shield, adminOnly: true },
     { to: "/par-approvals", text: "HR Request Approvals", icon: ClipboardList, adminOnly: true },
     { to: "/settings", text: "Settings", icon: Settings },
 ];

@@ -40,7 +40,11 @@ interface UserFormData {
   allowed_portals: string[];
 }
 
-const UserManagementPage = () => {
+interface UserManagementPageProps {
+  embedded?: boolean;
+}
+
+const UserManagementPage = ({ embedded = false }: UserManagementPageProps = {}) => {
   const [users, setUsers] = useState<User[]>([]);
   const [stats, setStats] = useState<UserStats | null>(null);
   const [loading, setLoading] = useState(true);
@@ -322,7 +326,7 @@ const UserManagementPage = () => {
   }
 
   return (
-    <div className="p-6 space-y-6">
+    <div className={embedded ? "space-y-6" : "p-6 space-y-6"}>
       {/* Header */}
       <motion.div
         initial={{ opacity: 0, y: -20 }}
@@ -330,9 +334,11 @@ const UserManagementPage = () => {
       >
         <div className="flex justify-between items-center mb-4">
           <div>
-            <h1 className="text-4xl font-bold text-gray-900 dark:text-white mb-2">
-              User Management
-            </h1>
+            {!embedded && (
+              <h1 className="text-4xl font-bold text-gray-900 dark:text-white mb-2">
+                User Management
+              </h1>
+            )}
             <p className="text-gray-600 dark:text-gray-400">
               Manage system users, roles, and permissions
             </p>

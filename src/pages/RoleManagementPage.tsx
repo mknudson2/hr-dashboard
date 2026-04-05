@@ -59,7 +59,11 @@ interface RoleStats {
   total_permissions: number;
 }
 
-const RoleManagementPage = () => {
+interface RoleManagementPageProps {
+  embedded?: boolean;
+}
+
+const RoleManagementPage = ({ embedded = false }: RoleManagementPageProps = {}) => {
   // Core data state
   const [roles, setRoles] = useState<Role[]>([]);
   const [permissions, setPermissions] = useState<Permission[]>([]);
@@ -376,10 +380,12 @@ const RoleManagementPage = () => {
         className="flex items-center justify-between"
       >
         <div>
-          <h1 className="text-2xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
-            <Shield className="w-7 h-7" />
-            Role Management
-          </h1>
+          {!embedded && (
+            <h1 className="text-2xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
+              <Shield className="w-7 h-7" />
+              Role Management
+            </h1>
+          )}
           <p className="text-gray-500 dark:text-gray-400 mt-1">
             Manage roles and their permissions
           </p>

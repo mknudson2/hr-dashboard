@@ -25,7 +25,6 @@ const OffboardingPage = lazy(() => import("./pages/OffboardingPage"));
 const EquipmentPage = lazy(() => import("./pages/EquipmentPage"));
 const PayrollPage = lazy(() => import("./pages/PayrollPage"));
 const OvertimePage = lazy(() => import("./pages/OvertimePage"));
-const UserManagementPage = lazy(() => import("./pages/UserManagementPage"));
 const ACAPage = lazy(() => import("./pages/ACAPage"));
 const EEOPage = lazy(() => import("./pages/EEOPage"));
 const EmailManagementPage = lazy(() => import("./pages/EmailManagementPage"));
@@ -34,9 +33,7 @@ const TimeTrackingPage = lazy(() => import("./pages/TimeTrackingPage"));
 const TimesheetApprovalPage = lazy(() => import("./pages/TimesheetApprovalPage"));
 const CapitalizationAnalyticsPage = lazy(() => import("./pages/CapitalizationAnalyticsPage"));
 const CapitalizedLaborPage = lazy(() => import("./pages/CapitalizedLaborPage"));
-const RoleManagementPage = lazy(() => import("./pages/RoleManagementPage"));
 const PARApprovalsPage = lazy(() => import("./pages/PARApprovalsPage"));
-const ContentManagementPage = lazy(() => import("./pages/ContentManagementPage"));
 const RecruitingPage = lazy(() => import("./pages/RecruitingPage"));
 const RequisitionListPage = lazy(() => import("./pages/RequisitionListPage"));
 const RequisitionDetailPage = lazy(() => import("./pages/RequisitionDetailPage"));
@@ -103,13 +100,13 @@ export default function App() {
           <Route path="/pto-tracking" element={<Navigate to="/overtime" replace />} />
           <Route path="/aca" element={<ACAPage />} />
           <Route path="/eeo" element={<EEOPage />} />
-          <Route path="/users" element={<UserManagementPage />} />
-          <Route path="/roles" element={<RoleManagementPage />} />
+          <Route path="/users" element={<Navigate to="/settings?tab=users" replace />} />
+          <Route path="/roles" element={<Navigate to="/settings?tab=roles" replace />} />
           <Route path="/par-approvals" element={<PARApprovalsPage />} />
           <Route path="/emails" element={<EmailManagementPage />} />
           <Route path="/file-uploads" element={<FileUploadPage />} />
           <Route path="/capitalized-labor" element={<CapitalizedLaborPage />} />
-          <Route path="/content-management" element={<ContentManagementPage />} />
+          <Route path="/content-management" element={<Navigate to="/settings?tab=content" replace />} />
           <Route path="/recruiting" element={<RecruitingPage />} />
           <Route path="/recruiting/requisitions" element={<RequisitionListPage />} />
           <Route path="/recruiting/requisitions/:id" element={<RequisitionDetailPage />} />

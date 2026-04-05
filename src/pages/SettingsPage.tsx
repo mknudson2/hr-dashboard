@@ -1,6 +1,7 @@
 import { useTheme } from "next-themes";
 import { useState, useEffect } from "react";
 import { createPortal } from "react-dom";
+import { useSearchParams } from "react-router-dom";
 import {
   Sun,
   Moon,
@@ -28,17 +29,57 @@ import {
   Unlink,
   CheckCircle2,
   XCircle,
+  FileEdit,
+  SlidersHorizontal,
 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import TwoFactorSetupModal from "@/components/TwoFactorSetupModal";
 import ChangePasswordModal from "@/components/ChangePasswordModal";
 import FolderPickerModal from "@/components/FolderPickerModal";
+import UserManagementPage from "./UserManagementPage";
+import RoleManagementPage from "./RoleManagementPage";
+import ContentManagementPage from "./ContentManagementPage";
+
+type SettingsTab = "general" | "content" | "users" | "roles";
+
+const SETTINGS_TABS: Array<{ key: SettingsTab; label: string; icon: typeof SlidersHorizontal; adminOnly?: boolean }> = [
+  { key: "general", label: "General", icon: SlidersHorizontal },
+  { key: "content", label: "Content", icon: FileEdit, adminOnly: true },
+  { key: "users", label: "Users", icon: Users, adminOnly: true },
+  { key: "roles", label: "Roles", icon: Shield, adminOnly: true },
+];
 
 const API_URL = '';
 
 export default function SettingsPage() {
     const { resolvedTheme, setTheme } = useTheme();
     const { user } = useAuth();
+    const [searchParams, setSearchParams] = useSearchParams();
+
+    const isAdmin = user?.role === "admin";
+    const visibleTabs = SETTINGS_TABS.filter((t) => !t.adminOnly || isAdmin);
+    const requestedTab = searchParams.get("tab") as SettingsTab | null;
+    const initialTab: SettingsTab =
+        requestedTab && visibleTabs.some((t) => t.key === requestedTab)
+            ? requestedTab
+            : "general";
+    const [activeTab, setActiveTab] = useState<SettingsTab>(initialTab);
+
+    // Keep URL in sync with active tab
+    useEffect(() => {
+        const currentParam = searchParams.get("tab");
+        if (activeTab === "general") {
+            if (currentParam) {
+                const next = new URLSearchParams(searchParams);
+                next.delete("tab");
+                setSearchParams(next, { replace: true });
+            }
+        } else if (currentParam !== activeTab) {
+            const next = new URLSearchParams(searchParams);
+            next.set("tab", activeTab);
+            setSearchParams(next, { replace: true });
+        }
+    }, [activeTab, searchParams, setSearchParams]);
 
     const [profile, setProfile] = useState({
         name: user?.full_name || "",
@@ -616,6 +657,28 @@ export default function SettingsPage() {
                 </h2>
             </div>
 
+            {/* Tab Navigation */}
+            <div className="border-b border-gray-200 dark:border-gray-700">
+                <nav className="flex gap-1 -mb-px">
+                    {visibleTabs.map(({ key, label, icon: Icon }) => (
+                        <button
+                            key={key}
+                            onClick={() => setActiveTab(key)}
+                            className={`flex items-center gap-2 px-4 py-3 text-sm font-medium border-b-2 transition-colors ${
+                                activeTab === key
+                                    ? "border-blue-600 text-blue-600 dark:text-blue-400"
+                                    : "border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 hover:border-gray-300 dark:hover:border-gray-600"
+                            }`}
+                        >
+                            <Icon className="w-4 h-4" />
+                            {label}
+                        </button>
+                    ))}
+                </nav>
+            </div>
+
+            {activeTab === "general" && (
+            <>
             {/* User Profile Section */}
             <section className="rounded-2xl border dark:border-gray-700 bg-white dark:bg-gray-800 shadow-sm p-6 transition hover:shadow-lg">
                 <div className="flex items-center gap-3 mb-4">
@@ -1654,6 +1717,12 @@ export default function SettingsPage() {
                     </div>
                 )}
             </section>
+            </>
+            )}
+
+            {activeTab === "content" && isAdmin && <ContentManagementPage embedded />}
+            {activeTab === "users" && isAdmin && <UserManagementPage embedded />}
+            {activeTab === "roles" && isAdmin && <RoleManagementPage embedded />}
 
             {/* 2FA Setup Modal */}
             <TwoFactorSetupModal

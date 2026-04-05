@@ -16,21 +16,27 @@ const tabs = [
 
 type TabKey = typeof tabs[number]['key'];
 
-export default function ContentManagementPage() {
+interface ContentManagementPageProps {
+  embedded?: boolean;
+}
+
+export default function ContentManagementPage({ embedded = false }: ContentManagementPageProps = {}) {
   const [activeTab, setActiveTab] = useState<TabKey>('handbook');
 
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div>
-        <div className="flex items-center gap-3">
-          <FileEdit className="w-8 h-8 text-blue-600" />
-          <div>
-            <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Content Management</h1>
-            <p className="text-sm text-gray-500 dark:text-gray-400">Manage Employee Portal resources — handbook, benefits, FAQs, forms, and review templates</p>
+      {!embedded && (
+        <div>
+          <div className="flex items-center gap-3">
+            <FileEdit className="w-8 h-8 text-blue-600" />
+            <div>
+              <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Content Management</h1>
+              <p className="text-sm text-gray-500 dark:text-gray-400">Manage Employee Portal resources — handbook, benefits, FAQs, forms, and review templates</p>
+            </div>
           </div>
         </div>
-      </div>
+      )}
 
       {/* Tab Navigation */}
       <div className="border-b border-gray-200 dark:border-gray-700">
