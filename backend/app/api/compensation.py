@@ -4,6 +4,7 @@ RBAC Protection: Compensation data contains sensitive salary and bonus informati
 Access is restricted to users with COMPENSATION_READ_ALL or COMPENSATION_WRITE permissions.
 Roles with access: admin, hr, payroll, manager (team only)
 """
+import logging
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from sqlalchemy import func, desc
@@ -11,6 +12,8 @@ from typing import Optional
 from datetime import date, datetime
 from pydantic import BaseModel
 from app.db import models, database
+
+logger = logging.getLogger(__name__)
 from app.api.auth import get_current_user
 from app.services.rbac_service import require_any_permission, require_permission, Permissions
 
@@ -337,6 +340,33 @@ def delete_bonus(bonus_id: int, db: Session = Depends(get_db)):
     db.commit()
 
     return {"message": "Bonus deleted successfully"}
+
+
+class BonusMarkPaid(BaseModel):
+    notes: Optional[str] = None
+
+
+@router.post("/bonuses/{bonus_id}/mark-paid")
+def mark_bonus_paid(bonus_id: int, payload: BonusMarkPaid, db: Session = Depends(get_db)):
+    """Mark a bonus as paid/given with today's date and optional notes."""
+    bonus = db.query(models.Bonus).filter(models.Bonus.id == bonus_id).first()
+    if not bonus:
+        raise HTTPException(status_code=404, detail="Bonus not found")
+
+    bonus.status = "Paid"
+    bonus.approved_date = date.today()
+
+    if payload.notes:
+        if bonus.notes:
+            bonus.notes = f"{bonus.notes}\n{payload.notes}"
+        else:
+            bonus.notes = payload.notes
+
+    db.commit()
+    db.refresh(bonus)
+
+    logger.info("Bonus %d marked as paid", bonus_id)
+    return {"message": "Bonus marked as paid", "id": bonus.id}
 
 
 # ============================================================================

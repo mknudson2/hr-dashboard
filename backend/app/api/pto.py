@@ -220,6 +220,83 @@ def get_pto_summary(
     }
 
 
+@router.get("/employee-summary")
+def get_employee_overtime_summary(
+    start_date: Optional[str] = None,
+    end_date: Optional[str] = None,
+    db: Session = Depends(get_db)
+):
+    """Get per-employee YTD overtime aggregates with department/team info.
+
+    Returns one row per employee with:
+    - YTD total hours and cost
+    - Number of pay periods with overtime
+    - Percentage of YTD pay periods with overtime
+    - Average OT cost per YTD pay period
+    """
+    query = db.query(models.PTORecord)
+    if start_date:
+        query = query.filter(models.PTORecord.pay_period_date >= start_date)
+    if end_date:
+        query = query.filter(models.PTORecord.pay_period_date <= end_date)
+    records = query.all()
+
+    # Total distinct YTD pay periods (denominator for % and avg)
+    total_pay_periods = len({r.pay_period_date for r in records})
+
+    # Aggregate per employee
+    per_employee: dict[str, dict] = {}
+    for r in records:
+        emp_id = r.employee_id
+        if emp_id not in per_employee:
+            per_employee[emp_id] = {
+                "employee_id": emp_id,
+                "cost_center": r.cost_center,
+                "ytd_hours": 0.0,
+                "ytd_cost": 0.0,
+                "pay_periods": set(),
+            }
+        per_employee[emp_id]["ytd_hours"] += r.pto_hours
+        per_employee[emp_id]["ytd_cost"] += r.pto_cost
+        per_employee[emp_id]["pay_periods"].add(r.pay_period_date)
+
+    # Attach employee info and compute derived fields
+    result = []
+    for emp_id, agg in per_employee.items():
+        employee = db.query(models.Employee).filter(
+            models.Employee.employee_id == emp_id
+        ).first()
+        pay_periods_with_ot = len(agg["pay_periods"])
+        pct_pay_periods = (
+            round(pay_periods_with_ot / total_pay_periods * 100, 1)
+            if total_pay_periods else 0.0
+        )
+        avg_cost_per_period = (
+            round(agg["ytd_cost"] / total_pay_periods, 2)
+            if total_pay_periods else 0.0
+        )
+        result.append({
+            "employee_id": emp_id,
+            "employee_name": (
+                f"{employee.first_name} {employee.last_name}" if employee else None
+            ),
+            "department": employee.department if employee else None,
+            "team": employee.team if employee else None,
+            "cost_center": agg["cost_center"],
+            "pay_periods_with_ot": pay_periods_with_ot,
+            "total_pay_periods": total_pay_periods,
+            "pct_pay_periods": pct_pay_periods,
+            "ytd_hours": round(agg["ytd_hours"], 2),
+            "ytd_cost": round(agg["ytd_cost"], 2),
+            "avg_cost_per_period": avg_cost_per_period,
+        })
+
+    # Sort by YTD cost descending (highest OT spend first)
+    result.sort(key=lambda r: r["ytd_cost"], reverse=True)
+
+    return {"employees": result, "total_pay_periods": total_pay_periods}
+
+
 # ============================================================================
 # EXCEL EXPORT ENDPOINT
 # ============================================================================
