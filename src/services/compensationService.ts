@@ -79,60 +79,6 @@ export const deleteBonus = async (bonusId: number) => {
 };
 
 // ============================================================================
-// EQUITY GRANTS
-// ============================================================================
-
-export const getEquityGrants = async (filters?: {
-  employee_id?: string;
-  status?: string;
-}) => {
-  const params = new URLSearchParams();
-  if (filters?.employee_id) params.append("employee_id", filters.employee_id);
-  if (filters?.status) params.append("status", filters.status);
-
-  const response = await fetch(`${API_URL}/compensation/equity-grants?${params}`, { credentials: 'include' });
-  if (!response.ok) throw new Error("Failed to fetch equity grants");
-  return response.json();
-};
-
-export const getEquityGrant = async (grantId: number) => {
-  const response = await fetch(`${API_URL}/compensation/equity-grants/${grantId}`, { credentials: 'include' });
-  if (!response.ok) throw new Error("Failed to fetch equity grant");
-  return response.json();
-};
-
-export const createEquityGrant = async (grant: Record<string, unknown>) => {
-  const response = await fetch(`${API_URL}/compensation/equity-grants`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    credentials: 'include',
-    body: JSON.stringify(grant),
-  });
-  if (!response.ok) throw new Error("Failed to create equity grant");
-  return response.json();
-};
-
-export const updateEquityGrant = async (grantId: number, grant: Record<string, unknown>) => {
-  const response = await fetch(`${API_URL}/compensation/equity-grants/${grantId}`, {
-    method: "PUT",
-    headers: { "Content-Type": "application/json" },
-    credentials: 'include',
-    body: JSON.stringify(grant),
-  });
-  if (!response.ok) throw new Error("Failed to update equity grant");
-  return response.json();
-};
-
-export const deleteEquityGrant = async (grantId: number) => {
-  const response = await fetch(`${API_URL}/compensation/equity-grants/${grantId}`, {
-    method: "DELETE",
-    credentials: 'include',
-  });
-  if (!response.ok) throw new Error("Failed to delete equity grant");
-  return response.json();
-};
-
-// ============================================================================
 // COMPENSATION REVIEWS
 // ============================================================================
 

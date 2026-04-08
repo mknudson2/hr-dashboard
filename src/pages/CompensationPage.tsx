@@ -1,27 +1,24 @@
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { DollarSign, TrendingUp, Award, FileText, Plus, Edit2, Trash2, Check, X, BarChart3, CheckSquare } from 'lucide-react';
+import { DollarSign, TrendingUp, Award, FileText, Plus, Edit2, Trash2, Check, X, BarChart3, CheckSquare, Calendar } from 'lucide-react';
 import {
   getCompensationDashboard,
   getBonuses,
-  getEquityGrants,
   getCompensationReviews,
   createBonus,
-  createEquityGrant,
   createCompensationReview,
   updateBonus,
-  updateEquityGrant,
   updateCompensationReview,
   deleteBonus,
-  deleteEquityGrant,
   deleteCompensationReview,
 } from '../services/compensationService';
 import { getEmployees } from '../services/employeeService';
 import CompensationAnalysis from '../components/compensation/CompensationAnalysis';
 import WageIncreasesTab from '../components/compensation/WageIncreasesTab';
+import AnnualIncreaseTab from '../components/compensation/AnnualIncreaseTab';
 import BonusConditionsModal from '../components/BonusConditionsModal';
 
-type TabType = 'dashboard' | 'bonuses' | 'equity' | 'reviews' | 'wage-increases' | 'analytics';
+type TabType = 'dashboard' | 'bonuses' | 'reviews' | 'wage-increases' | 'annual-increase' | 'analytics';
 
 interface CompensationDashboardData {
   total_bonuses_paid_ytd?: number;
@@ -47,16 +44,6 @@ interface BonusRecord {
   approved_by?: string;
   approved_date?: string;
   is_conditional?: boolean;
-}
-
-interface EquityGrantRecord {
-  id: number;
-  employee_id: string;
-  grant_type: string;
-  shares_granted: number;
-  grant_date: string;
-  vesting_schedule?: string;
-  status: string;
 }
 
 interface CompensationReviewRecord {
@@ -89,11 +76,6 @@ export default function CompensationPage() {
   const [showBonusForm, setShowBonusForm] = useState(false);
   const [editingBonus, setEditingBonus] = useState<BonusRecord | null>(null);
 
-  // Equity data
-  const [equityGrants, setEquityGrants] = useState<EquityGrantRecord[]>([]);
-  const [showEquityForm, setShowEquityForm] = useState(false);
-  const [editingEquity, setEditingEquity] = useState<EquityGrantRecord | null>(null);
-
   // Reviews data
   const [reviews, setReviews] = useState<CompensationReviewRecord[]>([]);
   const [showReviewForm, setShowReviewForm] = useState(false);
@@ -115,9 +97,6 @@ export default function CompensationPage() {
       } else if (activeTab === 'bonuses') {
         const data = await getBonuses();
         setBonuses(data.bonuses || []);
-      } else if (activeTab === 'equity') {
-        const data = await getEquityGrants();
-        setEquityGrants(data.equity_grants || []);
       } else if (activeTab === 'reviews') {
         const data = await getCompensationReviews();
         setReviews(data.reviews || []);
@@ -135,13 +114,13 @@ export default function CompensationPage() {
   const tabs = [
     { id: 'dashboard', label: 'Dashboard', icon: DollarSign },
     { id: 'bonuses', label: 'Bonuses', icon: Award },
-    { id: 'equity', label: 'Equity Grants', icon: TrendingUp },
     { id: 'reviews', label: 'Reviews', icon: FileText },
     { id: 'wage-increases', label: 'Wage Increases', icon: TrendingUp },
+    { id: 'annual-increase', label: 'Annual Increase', icon: Calendar },
     { id: 'analytics', label: 'Analytics', icon: BarChart3 },
   ];
 
-  if (loading && !dashboardData && !bonuses.length && !equityGrants.length && !reviews.length) {
+  if (loading && !dashboardData && !bonuses.length && !reviews.length) {
     return (
       <div className="p-6 flex items-center justify-center min-h-screen">
         <div className="text-center">
@@ -163,7 +142,7 @@ export default function CompensationPage() {
           </h1>
         </div>
         <p className="text-gray-600 dark:text-gray-400">
-          Manage salaries, bonuses, equity grants, and compensation reviews
+          Manage salaries, bonuses, and compensation reviews
         </p>
       </div>
 
@@ -207,17 +186,6 @@ export default function CompensationPage() {
           />
         )}
 
-        {activeTab === 'equity' && (
-          <EquityTab
-            grants={equityGrants}
-            showForm={showEquityForm}
-            setShowForm={setShowEquityForm}
-            editing={editingEquity}
-            setEditing={setEditingEquity}
-            onRefresh={loadData}
-          />
-        )}
-
         {activeTab === 'reviews' && (
           <ReviewsTab
             reviews={reviews}
@@ -231,6 +199,10 @@ export default function CompensationPage() {
 
         {activeTab === 'wage-increases' && (
           <WageIncreasesTab />
+        )}
+
+        {activeTab === 'annual-increase' && (
+          <AnnualIncreaseTab />
         )}
 
         {activeTab === 'analytics' && employees.length > 0 && (
@@ -258,18 +230,6 @@ function DashboardTab({ data }: { data: CompensationDashboardData }) {
       value: data.pending_bonuses || 0,
       icon: Award,
       color: 'yellow',
-    },
-    {
-      label: 'Active Equity Grants',
-      value: data.active_equity_grants || 0,
-      icon: TrendingUp,
-      color: 'blue',
-    },
-    {
-      label: 'Total Shares Granted',
-      value: data.total_shares_granted?.toLocaleString() || 0,
-      icon: TrendingUp,
-      color: 'purple',
     },
     {
       label: 'Pending Reviews',
@@ -340,6 +300,29 @@ interface BonusesTabProps {
 function BonusesTab({ bonuses, showForm, setShowForm, editing, setEditing, onRefresh }: BonusesTabProps) {
   const [showConditionsModal, setShowConditionsModal] = useState(false);
   const [selectedBonus, setSelectedBonus] = useState<BonusRecord | null>(null);
+  const [showMarkPaidModal, setShowMarkPaidModal] = useState(false);
+  const [markPaidBonusId, setMarkPaidBonusId] = useState<number | null>(null);
+  const [markPaidNotes, setMarkPaidNotes] = useState('');
+
+  const handleMarkPaid = async () => {
+    if (markPaidBonusId === null) return;
+    try {
+      const today = new Date().toISOString().split('T')[0];
+      await updateBonus(markPaidBonusId, {
+        status: 'Paid',
+        approved_date: today,
+        ...(markPaidNotes.trim() ? { notes: markPaidNotes.trim() } : {}),
+      });
+      setShowMarkPaidModal(false);
+      setMarkPaidBonusId(null);
+      setMarkPaidNotes('');
+      onRefresh();
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : 'Failed to mark bonus as paid';
+      console.error('Error marking bonus as paid:', message);
+      alert(message);
+    }
+  };
 
   const [formData, setFormData] = useState({
     employee_id: '',
@@ -709,6 +692,19 @@ function BonusesTab({ bonuses, showForm, setShowForm, editing, setEditing, onRef
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm">
                       <div className="flex gap-2">
+                        {bonus.status !== 'Paid' && (
+                          <button
+                            onClick={() => {
+                              setMarkPaidBonusId(bonus.id);
+                              setMarkPaidNotes('');
+                              setShowMarkPaidModal(true);
+                            }}
+                            className="text-green-600 hover:text-green-800 dark:text-green-400 dark:hover:text-green-300"
+                            title="Mark as Given"
+                          >
+                            <Check className="w-4 h-4" />
+                          </button>
+                        )}
                         <button
                           onClick={() => setEditing(bonus)}
                           className="text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300"
@@ -746,32 +742,64 @@ function BonusesTab({ bonuses, showForm, setShowForm, editing, setEditing, onRef
           bonusAmount={selectedBonus.amount}
         />
       )}
-    </div>
-  );
-}
 
-// ============================================================================
-// EQUITY TAB (Placeholder - similar structure to Bonuses)
-// ============================================================================
-
-interface EquityTabProps {
-  grants: EquityGrantRecord[];
-  showForm: boolean;
-  setShowForm: (show: boolean) => void;
-  editing: EquityGrantRecord | null;
-  setEditing: (grant: EquityGrantRecord | null) => void;
-  onRefresh: () => void;
-}
-
-function EquityTab({ grants, showForm, setShowForm, editing, setEditing, onRefresh }: EquityTabProps) {
-  return (
-    <div className="bg-white dark:bg-gray-800 rounded-xl shadow-md p-6">
-      <p className="text-gray-600 dark:text-gray-400">
-        Equity grants management - {grants.length} grants found
-      </p>
-      <p className="text-sm text-gray-500 dark:text-gray-500 mt-2">
-        (Form and table similar to Bonuses tab)
-      </p>
+      {/* Mark as Paid Modal */}
+      {showMarkPaidModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
+          <motion.div
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            className="bg-white dark:bg-gray-800 rounded-xl shadow-xl p-6 w-full max-w-md mx-4"
+          >
+            <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
+              Mark Bonus as Given
+            </h3>
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                  Date
+                </label>
+                <input
+                  type="text"
+                  value={new Date().toLocaleDateString()}
+                  readOnly
+                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-white cursor-not-allowed"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                  Notes (optional)
+                </label>
+                <textarea
+                  value={markPaidNotes}
+                  onChange={(e) => setMarkPaidNotes(e.target.value)}
+                  placeholder="Add any notes about this payment..."
+                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                  rows={3}
+                />
+              </div>
+              <div className="flex gap-2 justify-end">
+                <button
+                  onClick={() => {
+                    setShowMarkPaidModal(false);
+                    setMarkPaidBonusId(null);
+                    setMarkPaidNotes('');
+                  }}
+                  className="px-4 py-2 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleMarkPaid}
+                  className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
+                >
+                  Confirm
+                </button>
+              </div>
+            </div>
+          </motion.div>
+        </div>
+      )}
     </div>
   );
 }

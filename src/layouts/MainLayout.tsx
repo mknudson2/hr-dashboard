@@ -1,4 +1,4 @@
-import { LayoutDashboard, Users, FileBarChart, Settings, Heart, Scale, TrendingDown, Calendar, PiggyBank, BarChart3, DollarSign, Award, UserPlus, UserMinus, Package, Clock, LogOut, User, Shield, UserCheck, Mail, Upload, ClipboardList, CheckSquare, Briefcase, type LucideIcon } from "lucide-react";
+import { LayoutDashboard, Users, FileBarChart, Settings, Heart, Scale, TrendingDown, Calendar, PiggyBank, BarChart3, DollarSign, Award, UserPlus, UserMinus, Package, Clock, LogOut, User, Shield, UserCheck, Mail, Upload, ClipboardList, CheckSquare, Briefcase, Network, type LucideIcon } from "lucide-react";
 import { NavLink, Outlet, useNavigate } from "react-router-dom";
 import { useState, useEffect } from "react";
 import DarkModeToggle from "@/components/DarkModeToggle";
@@ -16,6 +16,7 @@ interface NavigationLink {
 const links: NavigationLink[] = [
     { to: "/dashboard", text: "Dashboard", icon: LayoutDashboard },
     { to: "/employees", text: "Employees", icon: Users },
+    { to: "/org-chart", text: "Org Chart", icon: Network },
     { to: "/recruiting", text: "Recruiting", icon: Briefcase },
     { to: "/onboarding", text: "Onboarding", icon: UserPlus },
     { to: "/offboarding", text: "Offboarding", icon: UserMinus },

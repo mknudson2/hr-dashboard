@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { Calendar, DollarSign, Download, Upload, Users, TrendingUp, Filter, FileSpreadsheet, X } from 'lucide-react';
+import { Calendar, DollarSign, Download, Upload, Users, X } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 
 const API_URL = '';
@@ -12,29 +12,34 @@ interface OvertimeSummary {
   employee_count: number;
 }
 
-interface OvertimeRecord {
-  id: number;
+interface EmployeeOvertimeSummary {
   employee_id: string;
   employee_name: string;
+  department: string | null;
+  team: string | null;
   cost_center: string;
-  pay_period_date: string;
-  pto_hours: number;
-  pto_cost: number;
-  hourly_rate: number | null;
-  notes: string | null;
+  pay_periods_with_ot: number;
+  total_pay_periods: number;
+  pct_pay_periods: number;
+  ytd_hours: number;
+  ytd_cost: number;
+  avg_cost_per_period: number;
 }
 
 const OvertimePage = () => {
   const { user } = useAuth();
   const [summary, setSummary] = useState<OvertimeSummary[]>([]);
   const [overallStats, setOverallStats] = useState({ total_hours: 0, total_cost: 0, cost_center_count: 0 });
-  const [records, setRecords] = useState<OvertimeRecord[]>([]);
+  const [employees, setEmployees] = useState<EmployeeOvertimeSummary[]>([]);
   const [loading, setLoading] = useState(true);
 
   // Filters
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
   const [selectedCostCenter, setSelectedCostCenter] = useState('');
+  const [selectedDepartment, setSelectedDepartment] = useState('');
+  const [selectedTeam, setSelectedTeam] = useState('');
+  const [employeeSearch, setEmployeeSearch] = useState('');
   const [showFilters, setShowFilters] = useState(false);
 
   // Upload state
@@ -61,10 +66,10 @@ const OvertimePage = () => {
       setSummary(summaryData.summary_by_cost_center || []);
       setOverallStats(summaryData.overall || { total_hours: 0, total_cost: 0, cost_center_count: 0 });
 
-      // Fetch records
-      const recordsResponse = await fetch(`${API_URL}/pto/records?${params}`, { credentials: 'include' });
-      const recordsData = await recordsResponse.json();
-      setRecords(recordsData.records || []);
+      // Fetch per-employee aggregated summary
+      const empResponse = await fetch(`${API_URL}/pto/employee-summary?${params}`, { credentials: 'include' });
+      const empData = await empResponse.json();
+      setEmployees(empData.employees || []);
     } catch (error) {
       console.error('Error fetching overtime data:', error);
     } finally {
@@ -109,6 +114,9 @@ const OvertimePage = () => {
     setStartDate('');
     setEndDate('');
     setSelectedCostCenter('');
+    setSelectedDepartment('');
+    setSelectedTeam('');
+    setEmployeeSearch('');
     fetchData();
   };
 
@@ -157,9 +165,21 @@ const OvertimePage = () => {
     }
   };
 
-  const filteredRecords = selectedCostCenter
-    ? records.filter(r => r.cost_center === selectedCostCenter)
-    : records;
+  // Derive unique filter options from employees
+  const departmentOptions = Array.from(
+    new Set(employees.map(e => e.department).filter((d): d is string => !!d))
+  ).sort();
+  const teamOptions = Array.from(
+    new Set(employees.map(e => e.team).filter((t): t is string => !!t))
+  ).sort();
+
+  const filteredEmployees = employees.filter(e => {
+    if (selectedCostCenter && e.cost_center !== selectedCostCenter) return false;
+    if (selectedDepartment && e.department !== selectedDepartment) return false;
+    if (selectedTeam && e.team !== selectedTeam) return false;
+    if (employeeSearch.trim() && !e.employee_name.toLowerCase().includes(employeeSearch.trim().toLowerCase())) return false;
+    return true;
+  });
 
   if (loading) {
     return (
@@ -202,8 +222,8 @@ const OvertimePage = () => {
                 onClick={() => setShowFilters(!showFilters)}
                 className="flex items-center gap-2 px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors"
               >
-                <Filter className="w-5 h-5" />
-                Filters
+                <Calendar className="w-5 h-5" />
+                Date Range
               </button>
               <button
                 onClick={handleExport}
@@ -222,8 +242,8 @@ const OvertimePage = () => {
               animate={{ opacity: 1, height: 'auto' }}
               className="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6 mb-6"
             >
-              <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Filter Data</h3>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Date Range</h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                     Start Date
@@ -245,21 +265,6 @@ const OvertimePage = () => {
                     onChange={(e) => setEndDate(e.target.value)}
                     className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
                   />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                    Cost Center
-                  </label>
-                  <select
-                    value={selectedCostCenter}
-                    onChange={(e) => setSelectedCostCenter(e.target.value)}
-                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
-                  >
-                    <option value="">All Cost Centers</option>
-                    {summary.map(s => (
-                      <option key={s.cost_center} value={s.cost_center}>{s.cost_center}</option>
-                    ))}
-                  </select>
                 </div>
               </div>
               <div className="flex gap-2 mt-4">
@@ -384,46 +389,135 @@ const OvertimePage = () => {
           className="bg-white dark:bg-gray-800 rounded-xl shadow-lg overflow-hidden"
         >
           <div className="p-6 border-b border-gray-200 dark:border-gray-700">
-            <h2 className="text-xl font-bold text-gray-900 dark:text-white">Detailed Records</h2>
-            <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
-              Showing {filteredRecords.length} record(s)
-            </p>
+            <div className="flex flex-wrap items-start justify-between gap-4 mb-4">
+              <div>
+                <h2 className="text-xl font-bold text-gray-900 dark:text-white">Detailed Records</h2>
+                <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
+                  Showing {filteredEmployees.length} of {employees.length} employee(s)
+                </p>
+              </div>
+              {(selectedCostCenter || selectedDepartment || selectedTeam || employeeSearch.trim()) && (
+                <button
+                  onClick={() => {
+                    setSelectedCostCenter('');
+                    setSelectedDepartment('');
+                    setSelectedTeam('');
+                    setEmployeeSearch('');
+                  }}
+                  className="flex items-center gap-1.5 px-3 py-1.5 text-sm text-gray-700 dark:text-gray-300 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+                >
+                  <X className="w-4 h-4" />
+                  Clear filters
+                </button>
+              )}
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+              <div>
+                <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">
+                  Cost Center
+                </label>
+                <select
+                  value={selectedCostCenter}
+                  onChange={(e) => setSelectedCostCenter(e.target.value)}
+                  className="w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                >
+                  <option value="">All Cost Centers</option>
+                  {summary.map(s => (
+                    <option key={s.cost_center} value={s.cost_center}>{s.cost_center}</option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">
+                  Department
+                </label>
+                <select
+                  value={selectedDepartment}
+                  onChange={(e) => setSelectedDepartment(e.target.value)}
+                  className="w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                >
+                  <option value="">All Departments</option>
+                  {departmentOptions.map(d => (
+                    <option key={d} value={d}>{d}</option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">
+                  Team
+                </label>
+                <select
+                  value={selectedTeam}
+                  onChange={(e) => setSelectedTeam(e.target.value)}
+                  className="w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                >
+                  <option value="">All Teams</option>
+                  {teamOptions.map(t => (
+                    <option key={t} value={t}>{t}</option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">
+                  Employee
+                </label>
+                <input
+                  type="text"
+                  placeholder="Search by name..."
+                  value={employeeSearch}
+                  onChange={(e) => setEmployeeSearch(e.target.value)}
+                  className="w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                />
+              </div>
+            </div>
           </div>
           <div className="overflow-x-auto">
             <table className="w-full">
               <thead className="bg-gray-50 dark:bg-gray-700">
                 <tr>
                   <th className="px-6 py-3 text-left text-sm font-semibold text-gray-900 dark:text-white">Employee</th>
+                  <th className="px-6 py-3 text-left text-sm font-semibold text-gray-900 dark:text-white">Department</th>
+                  <th className="px-6 py-3 text-left text-sm font-semibold text-gray-900 dark:text-white">Team</th>
                   <th className="px-6 py-3 text-left text-sm font-semibold text-gray-900 dark:text-white">Cost Center</th>
-                  <th className="px-6 py-3 text-left text-sm font-semibold text-gray-900 dark:text-white">Pay Period</th>
-                  <th className="px-6 py-3 text-right text-sm font-semibold text-gray-900 dark:text-white">Hours</th>
-                  <th className="px-6 py-3 text-right text-sm font-semibold text-gray-900 dark:text-white">Cost</th>
+                  <th className="px-6 py-3 text-right text-sm font-semibold text-gray-900 dark:text-white">% of Pay Periods</th>
+                  <th className="px-6 py-3 text-right text-sm font-semibold text-gray-900 dark:text-white">YTD Hours</th>
+                  <th className="px-6 py-3 text-right text-sm font-semibold text-gray-900 dark:text-white">Avg Cost / Period</th>
+                  <th className="px-6 py-3 text-right text-sm font-semibold text-gray-900 dark:text-white">YTD Cost</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
-                {filteredRecords.length === 0 ? (
+                {filteredEmployees.length === 0 ? (
                   <tr>
-                    <td colSpan={5} className="px-6 py-12 text-center text-gray-500 dark:text-gray-400">
+                    <td colSpan={8} className="px-6 py-12 text-center text-gray-500 dark:text-gray-400">
                       No overtime records found. Import data to get started.
                     </td>
                   </tr>
                 ) : (
-                  filteredRecords.map((record) => (
-                    <tr key={record.id} className="hover:bg-gray-50 dark:hover:bg-gray-700/50">
+                  filteredEmployees.map((emp) => (
+                    <tr key={emp.employee_id} className="hover:bg-gray-50 dark:hover:bg-gray-700/50">
                       <td className="px-6 py-4 text-sm font-medium text-gray-900 dark:text-white">
-                        {record.employee_name}
+                        {emp.employee_name}
                       </td>
                       <td className="px-6 py-4 text-sm text-gray-600 dark:text-gray-400">
-                        {record.cost_center}
+                        {emp.department || '—'}
                       </td>
                       <td className="px-6 py-4 text-sm text-gray-600 dark:text-gray-400">
-                        {new Date(record.pay_period_date).toLocaleDateString()}
+                        {emp.team || '—'}
+                      </td>
+                      <td className="px-6 py-4 text-sm text-gray-600 dark:text-gray-400">
+                        {emp.cost_center}
                       </td>
                       <td className="px-6 py-4 text-sm text-right text-gray-900 dark:text-white">
-                        {record.pto_hours.toFixed(2)}
+                        {emp.pct_pay_periods.toFixed(1)}%
                       </td>
                       <td className="px-6 py-4 text-sm text-right text-gray-900 dark:text-white">
-                        ${record.pto_cost.toFixed(2)}
+                        {emp.ytd_hours.toFixed(2)}
+                      </td>
+                      <td className="px-6 py-4 text-sm text-right text-gray-900 dark:text-white">
+                        ${emp.avg_cost_per_period.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                      </td>
+                      <td className="px-6 py-4 text-sm text-right text-gray-900 dark:text-white">
+                        ${emp.ytd_cost.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                       </td>
                     </tr>
                   ))

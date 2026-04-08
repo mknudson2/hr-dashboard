@@ -19,6 +19,7 @@ const EventsPage = lazy(() => import("./pages/EventsPage"));
 const ContributionsPage = lazy(() => import("./pages/ContributionsPage"));
 const AdvancedAnalyticsPage = lazy(() => import("./pages/AdvancedAnalyticsPage"));
 const CompensationPage = lazy(() => import("./pages/CompensationPage"));
+const OrgChartPage = lazy(() => import("./pages/OrgChartPage"));
 const PerformancePage = lazy(() => import("./pages/PerformancePage"));
 const OnboardingPage = lazy(() => import("./pages/OnboardingPage"));
 const OffboardingPage = lazy(() => import("./pages/OffboardingPage"));
@@ -91,6 +92,7 @@ export default function App() {
           <Route path="/contributions" element={<ContributionsPage />} />
           <Route path="/advanced-analytics" element={<AdvancedAnalyticsPage />} />
           <Route path="/compensation" element={<CompensationPage />} />
+          <Route path="/org-chart" element={<OrgChartPage />} />
           <Route path="/performance" element={<PerformancePage />} />
           <Route path="/onboarding" element={<OnboardingPage />} />
           <Route path="/offboarding" element={<OffboardingPage />} />

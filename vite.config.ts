@@ -61,6 +61,7 @@ export default defineConfig({
       "/recruiting": hrProxy,
       "/screening": hrProxy,
       "/webhooks": hrProxy,
+      "/annual-increase": hrProxy,
     },
   },
 });
