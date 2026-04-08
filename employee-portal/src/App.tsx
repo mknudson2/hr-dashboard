@@ -59,6 +59,9 @@ const InternalJobsPage = lazy(() => import('@/pages/InternalJobsPage'));
 const InternalJobDetailPage = lazy(() => import('@/pages/InternalJobDetailPage'));
 const InternalApplicationsPage = lazy(() => import('@/pages/InternalApplicationsPage'));
 
+// Annual Wage Increase
+const AnnualIncreaseDashboard = lazy(() => import('@/pages/AnnualIncreaseDashboard'));
+
 // Hiring Manager pages
 const NewRequisitionRequestPage = lazy(() => import('@/pages/hiring/NewRequisitionRequestPage'));
 const MyRequisitionsPage = lazy(() => import('@/pages/hiring/MyRequisitionsPage'));
@@ -182,6 +185,9 @@ function AppRoutes() {
           <Route path="/resources/benefits" element={<BenefitsGuide />} />
           <Route path="/resources/faqs" element={<FAQs />} />
           <Route path="/resources/forms" element={<Forms />} />
+
+          {/* Annual Wage Increase */}
+          <Route path="/annual-increase" element={<AnnualIncreaseDashboard />} />
 
           {/* Internal Jobs */}
           <Route path="/internal-jobs" element={<InternalJobsPage />} />

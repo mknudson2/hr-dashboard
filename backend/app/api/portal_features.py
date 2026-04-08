@@ -60,6 +60,9 @@ class EmployeeFeatureFlags(BaseModel):
     # User preferences
     preferred_view: str = "og"  # "og" or "modern"
 
+    # Annual wage increase decision maker
+    is_annual_increase_decision_maker: bool = False
+
     # Hiring manager access
     is_hiring_manager: bool = False
 
@@ -251,6 +254,19 @@ def get_feature_flags(
 
     # Benefits enrollment check
     flags.benefits_enrolled = check_benefits_enrolled(employee)
+
+    # Annual wage increase decision maker check
+    if hasattr(models, 'AnnualIncreaseBudgetArea'):
+        try:
+            annual_area = db.query(models.AnnualIncreaseBudgetArea).filter(
+                models.AnnualIncreaseBudgetArea.decision_maker_employee_id == current_user.employee_id,
+                models.AnnualIncreaseBudgetArea.is_dashboard_enabled == True,  # noqa: E712
+            ).first()
+            if annual_area:
+                flags.is_annual_increase_decision_maker = True
+                action_items += 1
+        except Exception:
+            pass
 
     # Get user preference (stored in user settings or default to "og")
     # Check if user has a stored preference

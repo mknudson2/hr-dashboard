@@ -28,6 +28,9 @@ export interface FeatureFlags {
   has_direct_reports: boolean;
   pending_approvals_count: number;
 
+  // Annual wage increase decision maker
+  is_annual_increase_decision_maker: boolean;
+
   // Hiring manager access
   is_hiring_manager: boolean;
 
@@ -62,6 +65,7 @@ const defaultFeatures: FeatureFlags = {
   is_supervisor: false,
   has_direct_reports: false,
   pending_approvals_count: 0,
+  is_annual_increase_decision_maker: false,
   is_hiring_manager: false,
   is_recruiting_stakeholder: false,
   preferred_view: 'bifrost',

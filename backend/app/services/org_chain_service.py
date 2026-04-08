@@ -24,6 +24,9 @@ def resolve_title_level(position: Optional[str]) -> Optional[str]:
     Match an employee's position field against TITLE_KEYWORDS to determine
     their title tier. Case-insensitive, longest-match-first.
 
+    Uses word-boundary matching for short keywords (<=4 chars) to prevent
+    false positives like "coo" matching "coordinator" or "director".
+
     Returns the level name (e.g. "director", "vp") or None if no match.
     """
     if not position:
@@ -31,9 +34,15 @@ def resolve_title_level(position: Optional[str]) -> Optional[str]:
 
     pos_lower = position.lower().strip()
 
+    import re
     for keyword, level in TITLE_KEYWORDS.items():
-        if keyword in pos_lower:
-            return level
+        if len(keyword) <= 4:
+            # Word-boundary match for short acronyms
+            if re.search(r'\b' + re.escape(keyword) + r'\b', pos_lower):
+                return level
+        else:
+            if keyword in pos_lower:
+                return level
 
     return None
 

@@ -11,7 +11,7 @@ from slowapi.middleware import SlowAPIMiddleware
 from app.db import models, database, crud
 from app.db import mimir_models  # noqa: F401 — ensures Mímir tables are created
 from app.db import pto_calendar_models  # noqa: F401 — ensures PTO calendar tables are created
-from app.api import analytics, employees, notifications, fmla, garnishments, turnover, events, compensation, market_data, performance, onboarding, offboarding, equipment, contribution_limits, pto, auth, users, aca, eeo, settings, emails, email_templates, file_uploads, sftp, payroll, capitalized_labor, capitalized_labor_admin, roles, fmla_portal, garnishment_portal, employee_portal, pto_portal, pto_calendar, resources_portal, team_portal, portal_features, hr_admin, in_app_notifications, content_management, review_templates, recruiting, applicant_portal, internal_jobs, mimir, recruiting_lifecycle, hiring_manager_portal, calendar, offer_letter_templates, screening, scorecard_templates, recruiting_messaging, approval_chains, applicant_pool, integrations
+from app.api import analytics, employees, notifications, fmla, garnishments, turnover, events, compensation, market_data, performance, onboarding, offboarding, equipment, contribution_limits, pto, auth, users, aca, eeo, settings, emails, email_templates, file_uploads, sftp, payroll, capitalized_labor, capitalized_labor_admin, roles, fmla_portal, garnishment_portal, employee_portal, pto_portal, pto_calendar, resources_portal, team_portal, portal_features, hr_admin, in_app_notifications, content_management, review_templates, recruiting, applicant_portal, internal_jobs, mimir, recruiting_lifecycle, hiring_manager_portal, calendar, offer_letter_templates, screening, scorecard_templates, recruiting_messaging, approval_chains, applicant_pool, integrations, annual_increase
 from app.services.scheduler import start_scheduler, stop_scheduler
 from app.services.scheduler_service import scheduler as sftp_scheduler
 from app.services.csrf_service import csrf_service, should_validate_csrf
@@ -315,6 +315,36 @@ def seed_payroll_periods():
 
 seed_payroll_periods()
 
+# Seed sample garnishment data (idempotent — skips if any exist)
+def seed_garnishments():
+    try:
+        from app.db.seed_garnishments import seed_garnishment_data
+        seed_garnishment_data()
+    except Exception as e:
+        logger.warning("Garnishment seed skipped: %s", e)
+
+seed_garnishments()
+
+# Seed sample turnover data (terminations + internal changes)
+def seed_turnover():
+    try:
+        from app.db.seed_turnover import seed_turnover_data
+        seed_turnover_data()
+    except Exception as e:
+        logger.warning("Turnover seed skipped: %s", e)
+
+seed_turnover()
+
+# Seed YTD overtime records (FT non-exempt employees)
+def seed_overtime():
+    try:
+        from app.db.seed_overtime import seed_overtime_data
+        seed_overtime_data()
+    except Exception as e:
+        logger.warning("Overtime seed skipped: %s", e)
+
+seed_overtime()
+
 # Dependency to get DB session
 
 
@@ -423,6 +453,9 @@ app.include_router(recruiting_messaging.router)
 app.include_router(approval_chains.router)
 app.include_router(applicant_pool.router)
 app.include_router(integrations.router)
+
+# Annual Wage Increase
+app.include_router(annual_increase.router)
 
 # Mímir AI Assistant
 app.include_router(mimir.router)

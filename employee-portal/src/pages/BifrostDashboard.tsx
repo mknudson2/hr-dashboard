@@ -401,6 +401,35 @@ export default function BifrostDashboard() {
       {/* Aurora Hero */}
       <AuroraHero actionItemCount={totalAttentionCount} />
 
+      {/* Annual Wage Increase Notification */}
+      {features?.is_annual_increase_decision_maker && (
+        <motion.div
+          initial={{ opacity: 0, y: 12 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.15 }}
+        >
+          <Link
+            to="/annual-increase"
+            className="block bg-gradient-to-r from-bifrost-violet/10 to-aurora-teal/10 dark:from-bifrost-violet/20 dark:to-aurora-teal/20 border border-bifrost-violet/30 dark:border-bifrost-violet/40 rounded-xl p-4 hover:shadow-md transition-shadow"
+          >
+            <div className="flex items-center gap-3">
+              <div className="p-2 bg-bifrost-violet/15 rounded-lg">
+                <DollarSign className="w-5 h-5 text-bifrost-violet" />
+              </div>
+              <div className="flex-1">
+                <p className="text-sm font-semibold text-deep-night dark:text-white">
+                  Annual Wage Increase Review
+                </p>
+                <p className="text-xs text-gray-600 dark:text-gray-400 mt-0.5">
+                  Review and submit wage increases for your direct and indirect reports
+                </p>
+              </div>
+              <ChevronRight className="w-5 h-5 text-bifrost-violet/60" />
+            </div>
+          </Link>
+        </motion.div>
+      )}
+
       {/* Action Items */}
       {actionItems.length > 0 && (
         <motion.div

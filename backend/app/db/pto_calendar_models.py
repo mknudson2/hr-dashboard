@@ -32,13 +32,12 @@ TITLE_KEYWORDS = {
     "cfo": "ceo",
     "cto": "ceo",
     "chro": "ceo",
-    "president": "president",
     "senior vice president": "svp",
     "svp": "svp",
     "vice president": "vp",
-    "vp": "vp",
     "senior director": "senior_director",
     "director": "director",
+    "president": "president",
 }
 
 # Available ceiling levels for the UI dropdown

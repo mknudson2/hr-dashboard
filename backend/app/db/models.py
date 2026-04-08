@@ -279,6 +279,9 @@ class WageIncreaseCycle(Base):
     approved_by = Column(String, nullable=True)
     approved_date = Column(Date, nullable=True)
 
+    # Annual auto-populate flag
+    is_annual_auto = Column(Boolean, default=False)  # True for auto-populated annual cycles
+
     created_at = Column(DateTime, server_default=func.now())
     updated_at = Column(DateTime, onupdate=func.now())
 
@@ -308,6 +311,102 @@ class CompensationReview(Base):
     approved_date = Column(Date, nullable=True)
     created_at = Column(DateTime, server_default=func.now())
     updated_at = Column(DateTime, onupdate=func.now())
+
+
+class AnnualIncreaseCycleSettings(Base):
+    """Per-cycle configuration for annual wage increase (lookback date, wage matrix toggle)."""
+    __tablename__ = "annual_increase_cycle_settings"
+
+    id = Column(Integer, primary_key=True, index=True)
+    cycle_id = Column(Integer, ForeignKey("wage_increase_cycles.id"), unique=True, nullable=False)
+
+    lookback_date = Column(Date, nullable=False)  # Default: Oct 1 of previous year
+    wage_matrix_exempt = Column(Boolean, default=True)  # When True, wage matrix increases don't affect eligibility
+
+    created_at = Column(DateTime, server_default=func.now())
+    updated_at = Column(DateTime, onupdate=func.now())
+
+
+class AnnualIncreaseBudgetArea(Base):
+    """Budget area for an annual wage increase, owned by a decision maker (President/SVP/VP)."""
+    __tablename__ = "annual_increase_budget_areas"
+
+    id = Column(Integer, primary_key=True, index=True)
+    cycle_id = Column(Integer, ForeignKey("wage_increase_cycles.id"), nullable=False, index=True)
+    decision_maker_employee_id = Column(String, ForeignKey("employees.employee_id"), nullable=True, index=True)
+
+    area_label = Column(String, nullable=False)  # Decision maker name or "General / Unassigned"
+    title_level = Column(String, nullable=True)  # "president", "svp", "vp", or None for general
+
+    # Counts
+    eligible_count = Column(Integer, default=0)
+    ineligible_count = Column(Integer, default=0)
+
+    # Budget
+    total_budget = Column(Float, default=0.0)  # 3% of eligible annual wages in this area
+    total_allocated = Column(Float, default=0.0)  # Sum of projected increases
+
+    # Dashboard access
+    is_dashboard_enabled = Column(Boolean, default=False)  # HR enables via checkbox
+
+    # Submission workflow
+    submission_status = Column(String, default="draft")  # "draft", "submitted", "approved", "returned"
+    submitted_at = Column(DateTime, nullable=True)
+    overage_justification = Column(Text, nullable=True)  # Required if over budget on submit
+
+    # Review by SVP of HR
+    reviewed_by = Column(String, nullable=True)
+    reviewed_at = Column(DateTime, nullable=True)
+    review_notes = Column(Text, nullable=True)
+
+    created_at = Column(DateTime, server_default=func.now())
+    updated_at = Column(DateTime, onupdate=func.now())
+
+    __table_args__ = (
+        Index("ix_annual_budget_cycle_decision", "cycle_id", "decision_maker_employee_id", unique=True),
+    )
+
+
+class AnnualIncreaseEntry(Base):
+    """Per-employee record within an annual increase budget area."""
+    __tablename__ = "annual_increase_entries"
+
+    id = Column(Integer, primary_key=True, index=True)
+    cycle_id = Column(Integer, ForeignKey("wage_increase_cycles.id"), nullable=False, index=True)
+    budget_area_id = Column(Integer, ForeignKey("annual_increase_budget_areas.id"), nullable=False, index=True)
+    employee_id = Column(String, ForeignKey("employees.employee_id"), nullable=False, index=True)
+
+    # Eligibility
+    is_eligible = Column(Boolean, default=True)
+    ineligibility_reason = Column(String, nullable=True)  # "Hired after lookback" | "Increase after lookback"
+
+    # Eligibility override (decision maker requests ineligible employee be treated as eligible)
+    eligibility_override = Column(Boolean, default=False)
+    override_justification = Column(Text, nullable=True)
+
+    # Snapshot of employee compensation at cycle creation
+    current_base_rate = Column(Float, default=0.0)
+    current_annual_wage = Column(Float, default=0.0)
+    wage_type = Column(String, nullable=True)  # "Hourly" or "Salary"
+    employment_type = Column(String, nullable=True)  # "Full Time" / "Part Time"
+    position = Column(String, nullable=True)
+    supervisor_name = Column(String, nullable=True)
+    team = Column(String, nullable=True)
+
+    # Increase
+    increase_percentage = Column(Float, default=3.0)
+
+    # Projections (computed)
+    projected_base_rate = Column(Float, default=0.0)
+    projected_annual_wage = Column(Float, default=0.0)
+    total_difference = Column(Float, default=0.0)
+
+    created_at = Column(DateTime, server_default=func.now())
+    updated_at = Column(DateTime, onupdate=func.now())
+
+    __table_args__ = (
+        Index("ix_annual_entry_cycle_employee", "cycle_id", "employee_id", unique=True),
+    )
 
 
 class MarketBenchmark(Base):

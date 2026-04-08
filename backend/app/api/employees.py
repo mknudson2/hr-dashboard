@@ -1087,3 +1087,77 @@ def clear_demo_data(
         "message": f"Cleared {emp_count} employees and dependent records",
         "details": counts,
     }
+
+
+@router.get("/org-chart/tree")
+def get_org_chart(db: Session = Depends(get_db)):
+    """
+    Return the full org chart as a tree structure.
+    Each node has: employee_id, name, position, department, team,
+    title_level, and children[].
+    """
+    from app.services.org_chain_service import resolve_title_level, find_employee_by_supervisor_field
+
+    active = db.query(models.Employee).filter(
+        models.Employee.status == "Active"
+    ).all()
+
+    # Build lookup maps
+    emp_map = {e.employee_id: e for e in active}
+    name_map: dict[str, models.Employee] = {}
+    for e in active:
+        full = f"{e.first_name} {e.last_name}"
+        name_map[full] = e
+
+    def serialize(e: models.Employee) -> dict:
+        level = resolve_title_level(e.position)
+        parts = [p.strip() for p in (e.position or "").split(",")] if e.position else []
+        title = parts[0] if parts else (e.position or "")
+        return {
+            "employee_id": e.employee_id,
+            "name": f"{e.first_name} {e.last_name}",
+            "position": e.position,
+            "title": title,
+            "department": e.department,
+            "team": e.team,
+            "title_level": level,
+            "children": [],
+        }
+
+    # Build parent → children mapping
+    children_map: dict[str, list[str]] = {}  # parent_employee_id → [child_ids]
+    roots: list[str] = []
+
+    for e in active:
+        parent = None
+        if e.supervisor:
+            # Try employee_id match first
+            if e.supervisor in emp_map:
+                parent = e.supervisor
+            # Then name match
+            elif e.supervisor in name_map:
+                parent = name_map[e.supervisor].employee_id
+
+        if parent and parent != e.employee_id:
+            children_map.setdefault(parent, []).append(e.employee_id)
+        else:
+            roots.append(e.employee_id)
+
+    # Recursive build
+    def build_tree(emp_id: str) -> dict:
+        e = emp_map[emp_id]
+        node = serialize(e)
+        child_ids = children_map.get(emp_id, [])
+        # Sort children: leadership first (by title_level desc), then alphabetical
+        level_rank = {"president": 6, "svp": 5, "vp": 4, "senior_director": 3, "director": 2, "ceo": 7}
+        def sort_key(cid: str) -> tuple:
+            ce = emp_map[cid]
+            cl = resolve_title_level(ce.position)
+            return (-level_rank.get(cl or "", 0), ce.first_name or "")
+        child_ids.sort(key=sort_key)
+        node["children"] = [build_tree(cid) for cid in child_ids]
+        return node
+
+    tree = [build_tree(r) for r in roots]
+
+    return {"tree": tree, "total_employees": len(active)}
