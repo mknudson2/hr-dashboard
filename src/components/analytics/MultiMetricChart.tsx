@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useId, useState } from 'react';
 import { motion } from 'framer-motion';
 import { Line, Bar } from 'react-chartjs-2';
 import { Eye, EyeOff, BarChart3, TrendingUp } from 'lucide-react';
@@ -28,6 +28,7 @@ export default function MultiMetricChart({
   chartType = 'line',
 }: MultiMetricChartProps) {
   const { resolvedTheme } = useTheme();
+  const chartId = useId();
   const [visibleSeries, setVisibleSeries] = useState<Set<string>>(
     new Set(series.filter((s) => s.visible !== false).map((s) => s.id))
   );
@@ -242,7 +243,7 @@ export default function MultiMetricChart({
             <p className="text-xs">Click on a metric above to show it</p>
           </div>
         ) : (
-          <ChartComponent data={chartData} options={chartOptions} />
+          <ChartComponent key={`${chartId}-${currentChartType}`} data={chartData} options={chartOptions} />
         )}
       </div>
 
