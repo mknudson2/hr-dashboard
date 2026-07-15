@@ -141,12 +141,16 @@ def get_current_user(
     # Determine which portal-specific cookie to prefer based on request source
     portal_source = request.headers.get("X-Portal-Source", "")
     token = None
+    token_channel = None  # which portal cookie actually carried the token
     if portal_source == "employee-portal" and portal_access_token:
         token = portal_access_token
+        token_channel = "employee-portal"
     elif hr_access_token:
         token = hr_access_token
+        token_channel = "hr"
     elif portal_access_token:
         token = portal_access_token
+        token_channel = "employee-portal"
     elif access_token:
         token = access_token  # Legacy fallback
     elif credentials:
@@ -158,9 +162,11 @@ def get_current_user(
             detail="Not authenticated"
         )
 
+    token_portal = None  # portal the token was minted for (None for legacy tokens)
     try:
         payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
         username: str = payload.get("sub")
+        token_portal = payload.get("portal")
         if username is None:
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
@@ -224,6 +230,26 @@ def get_current_user(
             detail="User account is inactive"
         )
 
+    # ── Portal binding (defense in depth) ───────────────────────────────
+    # A token is scoped to the portal it was minted for. This stops an
+    # employee-portal token from being replayed against HR-admin endpoints.
+    # Legacy tokens (no "portal" claim) fall back to the cookie channel they
+    # arrived on — which was itself set by a portal-validated login.
+    # ponytail: bearer/legacy tokens with no portal resolve to None, so
+    # require_portal("hr") rejects them; a fresh login mints the claim.
+    effective_portal = token_portal or token_channel
+    if token_portal and token_channel and token_portal != token_channel:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Token was issued for a different portal"
+        )
+    if effective_portal and effective_portal not in user.allowed_portals_list:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Your account no longer has access to this portal"
+        )
+    request.state.token_portal = effective_portal
+
     return user
 
 
@@ -242,6 +268,28 @@ def require_role(required_role: str):
             )
         return current_user
     return role_checker
+
+
+def require_portal(*allowed_portals: str):
+    """Require the caller's token to have been minted for one of `allowed_portals`.
+
+    Portal scope is about which app issued the token, not the user's role, so
+    admins are NOT exempt — an employee-portal token must never reach HR-admin
+    endpoints even when it authenticates. Relies on `get_current_user` having
+    stashed `request.state.token_portal`.
+    """
+    def portal_checker(
+        request: Request,
+        current_user: models.User = Depends(get_current_user),
+    ) -> models.User:
+        token_portal = getattr(request.state, "token_portal", None)
+        if token_portal not in allowed_portals:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="This endpoint is not available from your portal"
+            )
+        return current_user
+    return portal_checker
 
 
 # ============================================================================
@@ -349,7 +397,7 @@ def login(
 
     # Create access token
     access_token, expires_at = create_access_token(
-        data={"sub": user.username, "role": user.role}
+        data={"sub": user.username, "role": user.role, "portal": portal_source}
     )
 
     # Create session record

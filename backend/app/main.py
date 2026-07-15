@@ -386,16 +386,16 @@ def health_check():
 
 # Include Routers
 app.include_router(auth.router)
-app.include_router(employees.router)
+app.include_router(employees.router, dependencies=[Depends(auth.require_portal("hr"))])
 app.include_router(analytics.router)
 app.include_router(notifications.router)
 app.include_router(fmla.router)
 app.include_router(garnishments.router)
 app.include_router(turnover.router)
 app.include_router(events.router)
-app.include_router(compensation.router)
+app.include_router(compensation.router, dependencies=[Depends(auth.require_portal("hr"))])
 app.include_router(market_data.router)
-app.include_router(performance.router)
+app.include_router(performance.router, dependencies=[Depends(auth.require_portal("hr"))])
 app.include_router(onboarding.router)
 app.include_router(offboarding.router)
 app.include_router(equipment.router)
@@ -444,7 +444,7 @@ app.include_router(offer_letter_templates.router)
 app.include_router(calendar.router)
 
 # Background Screening (TazWorks)
-app.include_router(screening.router)
+app.include_router(screening.router, dependencies=[Depends(auth.require_portal("hr"))])
 app.include_router(screening.webhook_router)
 
 # ATS Phase 0 — new routers
