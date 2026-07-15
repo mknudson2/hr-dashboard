@@ -3543,7 +3543,7 @@ def initiate_hire_conversion(
     application_id: int,
     data: HireConversionInitiate,
     db: Session = Depends(database.get_db),
-    current_user: models.User = Depends(get_current_user),
+    current_user: models.User = Depends(require_permission(Permissions.RECRUITING_ADMIN)),
 ):
     """Initiate hire conversion for an application with accepted offer."""
     try:
@@ -3580,7 +3580,7 @@ def list_hire_conversions(
     skip: int = Query(0, ge=0),
     limit: int = Query(50, ge=1, le=100),
     db: Session = Depends(database.get_db),
-    current_user: models.User = Depends(get_current_user),
+    current_user: models.User = Depends(require_any_permission(Permissions.RECRUITING_READ, Permissions.RECRUITING_WRITE, Permissions.RECRUITING_ADMIN)),
 ):
     """List all hire conversions."""
     query = db.query(models.HireConversion).options(
@@ -3615,7 +3615,7 @@ def list_hire_conversions(
 def get_hire_conversion(
     conversion_id: int,
     db: Session = Depends(database.get_db),
-    current_user: models.User = Depends(get_current_user),
+    current_user: models.User = Depends(require_any_permission(Permissions.RECRUITING_READ, Permissions.RECRUITING_WRITE, Permissions.RECRUITING_ADMIN)),
 ):
     """Get hire conversion detail."""
     conversion = db.query(models.HireConversion).options(
@@ -3656,7 +3656,7 @@ def get_hire_conversion(
 def create_employee_from_conversion(
     conversion_id: int,
     db: Session = Depends(database.get_db),
-    current_user: models.User = Depends(get_current_user),
+    current_user: models.User = Depends(require_permission(Permissions.RECRUITING_ADMIN)),
 ):
     """Create Employee record from hire conversion."""
     conversion = db.query(models.HireConversion).get(conversion_id)
@@ -3682,7 +3682,7 @@ def create_user_from_conversion(
     conversion_id: int,
     email: Optional[str] = None,
     db: Session = Depends(database.get_db),
-    current_user: models.User = Depends(get_current_user),
+    current_user: models.User = Depends(require_permission(Permissions.RECRUITING_ADMIN)),
 ):
     """Create User account for the new employee."""
     conversion = db.query(models.HireConversion).get(conversion_id)
@@ -3712,7 +3712,7 @@ def start_onboarding_from_conversion(
     conversion_id: int,
     data: OnboardingStart,
     db: Session = Depends(database.get_db),
-    current_user: models.User = Depends(get_current_user),
+    current_user: models.User = Depends(require_permission(Permissions.RECRUITING_ADMIN)),
 ):
     """Start onboarding for the new employee using a template."""
     conversion = db.query(models.HireConversion).get(conversion_id)
@@ -3736,7 +3736,7 @@ def start_onboarding_from_conversion(
 def transfer_eeo_from_conversion(
     conversion_id: int,
     db: Session = Depends(database.get_db),
-    current_user: models.User = Depends(get_current_user),
+    current_user: models.User = Depends(require_permission(Permissions.RECRUITING_ADMIN)),
 ):
     """Transfer EEO data from applicant to employee record."""
     conversion = db.query(models.HireConversion).get(conversion_id)
@@ -3759,7 +3759,7 @@ def transfer_eeo_from_conversion(
 def complete_hire_conversion(
     conversion_id: int,
     db: Session = Depends(database.get_db),
-    current_user: models.User = Depends(get_current_user),
+    current_user: models.User = Depends(require_permission(Permissions.RECRUITING_ADMIN)),
 ):
     """Mark hire conversion as completed."""
     conversion = db.query(models.HireConversion).get(conversion_id)

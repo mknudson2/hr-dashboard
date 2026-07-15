@@ -8,7 +8,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session, joinedload
 from app.db.database import get_db
 from app.db import models
-from app.services.rbac_service import Permissions, require_any_permission
+from app.services.rbac_service import Permissions, require_any_permission, rbac_service
 from app.services.approval_service import approval_service
 from app.schemas.approval import (
     ApprovalChainCreate, ApprovalChainUpdate, ApprovalActionRequest,
@@ -240,7 +240,13 @@ def approve_request(
     db: Session = Depends(get_db),
 ):
     """Approve a pending approval request."""
-    req = approval_service.approve(db, request_id, current_user.id, data.notes)
+    try:
+        req = approval_service.approve(
+            db, request_id, current_user.id, data.notes,
+            allow_override=rbac_service.has_permission(db, current_user, Permissions.RECRUITING_ADMIN),
+        )
+    except PermissionError as e:
+        raise HTTPException(status_code=403, detail=str(e))
     if not req:
         raise HTTPException(status_code=404, detail="Approval request not found or not pending")
     db.commit()
@@ -257,7 +263,13 @@ def reject_request(
     db: Session = Depends(get_db),
 ):
     """Reject a pending approval request."""
-    req = approval_service.reject(db, request_id, current_user.id, data.notes)
+    try:
+        req = approval_service.reject(
+            db, request_id, current_user.id, data.notes,
+            allow_override=rbac_service.has_permission(db, current_user, Permissions.RECRUITING_ADMIN),
+        )
+    except PermissionError as e:
+        raise HTTPException(status_code=403, detail=str(e))
     if not req:
         raise HTTPException(status_code=404, detail="Approval request not found or not pending")
     db.commit()

@@ -66,8 +66,13 @@ class ApprovalService:
         request_id: int,
         user_id: int,
         notes: Optional[str] = None,
+        allow_override: bool = False,
     ) -> models.ApprovalRequest:
-        """Approve a pending request and advance to the next step if applicable."""
+        """Approve a pending request and advance to the next step if applicable.
+
+        The acting user must be the approver assigned to the current step, unless
+        `allow_override` is set (e.g. the caller holds recruiting admin).
+        """
         request = db.query(models.ApprovalRequest).filter(
             models.ApprovalRequest.id == request_id,
         ).first()
@@ -80,6 +85,10 @@ class ApprovalService:
 
         # Check if there's a next step
         current_step = db.query(models.ApprovalStep).get(request.current_step_id)
+        if (not allow_override and current_step
+                and current_step.approver_user_id
+                and current_step.approver_user_id != user_id):
+            raise PermissionError("You are not the assigned approver for this step")
         next_step = (
             db.query(models.ApprovalStep)
             .filter(
@@ -113,13 +122,24 @@ class ApprovalService:
         request_id: int,
         user_id: int,
         notes: Optional[str] = None,
+        allow_override: bool = False,
     ) -> models.ApprovalRequest:
-        """Reject a pending request."""
+        """Reject a pending request.
+
+        The acting user must be the approver assigned to the current step, unless
+        `allow_override` is set (e.g. the caller holds recruiting admin).
+        """
         request = db.query(models.ApprovalRequest).filter(
             models.ApprovalRequest.id == request_id,
         ).first()
         if not request:
             raise ValueError("Approval request not found")
+
+        current_step = db.query(models.ApprovalStep).get(request.current_step_id)
+        if (not allow_override and current_step
+                and current_step.approver_user_id
+                and current_step.approver_user_id != user_id):
+            raise PermissionError("You are not the assigned approver for this step")
 
         request.status = "Rejected"
         request.acted_by = user_id
