@@ -62,6 +62,10 @@ class Permissions(str, Enum):
     PAYROLL_READ = "payroll:read"
     PAYROLL_WRITE = "payroll:write"
 
+    # Background Screening (TazWorks — FCRA / SSN sensitive)
+    SCREENING_READ = "screening:read"
+    SCREENING_WRITE = "screening:write"
+
     # FMLA (Protected Health Information - PHI)
     FMLA_READ = "fmla:read"
     FMLA_WRITE = "fmla:write"

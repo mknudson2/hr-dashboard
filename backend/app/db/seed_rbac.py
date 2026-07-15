@@ -151,6 +151,9 @@ PERMISSIONS = [
     {"name": "recruiting:write", "display_name": "Manage Recruiting", "category": "Recruiting", "description": "Create and manage requisitions, advance candidates, schedule interviews"},
     {"name": "recruiting:admin", "display_name": "Recruiting Admin", "category": "Recruiting", "description": "Full recruiting access including pipeline and offer management"},
     {"name": "recruiting:eeo:read", "display_name": "View Recruiting EEO", "category": "Recruiting", "description": "View EEO demographic data for recruiting analytics"},
+    # Background Screening
+    {"name": "screening:read", "display_name": "View Background Screenings", "category": "Screening", "description": "View background check orders, statuses, and results"},
+    {"name": "screening:write", "display_name": "Order Background Screenings", "category": "Screening", "description": "Submit background check orders to the screening provider"},
 
     # ATS Enhancement (Phase 0)
     {"name": "recruiting:stakeholders:manage", "display_name": "Manage Stakeholders", "category": "Recruiting", "description": "Add/remove stakeholders and assign access roles on requisitions"},
@@ -216,6 +219,7 @@ ROLES = [
             "recruiting:approvals:read", "recruiting:approvals:act",
             "recruiting:availability:manage", "recruiting:scorecard_templates:manage",
             "recruiting:pool:read", "recruiting:pool:write",
+            "screening:read", "screening:write",
         ],
     },
     {

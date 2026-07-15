@@ -22,7 +22,7 @@ from pydantic import BaseModel
 from sqlalchemy.orm import Session
 
 from app.db import models, database
-from app.api.auth import get_current_user
+from app.services.rbac_service import require_permission, Permissions
 from app.services.tazworks.service import screening_service
 from app.services.tazworks.models import ApplicantCreate, OrderSubmit
 from app.services.tazworks.webhook_handler import webhook_handler
@@ -78,7 +78,7 @@ async def handle_tazworks_error(exc: TazWorksAPIError):
 # --- Screening Endpoints (authenticated) ---
 
 @router.get("/products")
-async def list_products(current_user: models.User = Depends(get_current_user)):
+async def list_products(current_user: models.User = Depends(require_permission(Permissions.SCREENING_READ))):
     """List available screening packages."""
     try:
         products = await screening_service.list_products()
@@ -88,7 +88,7 @@ async def list_products(current_user: models.User = Depends(get_current_user)):
 
 
 @router.get("/certification")
-async def get_certification_text(current_user: models.User = Depends(get_current_user)):
+async def get_certification_text(current_user: models.User = Depends(require_permission(Permissions.SCREENING_READ))):
     """Retrieve FCRA permissible purpose certification text."""
     try:
         text = await screening_service.get_certification_text()
@@ -101,7 +101,7 @@ async def get_certification_text(current_user: models.User = Depends(get_current
 async def submit_order(
     request: OrderRequest,
     db: Session = Depends(get_db),
-    current_user: models.User = Depends(get_current_user),
+    current_user: models.User = Depends(require_permission(Permissions.SCREENING_WRITE)),
 ):
     """
     Submit a background check order.
@@ -191,7 +191,7 @@ async def submit_order(
 @router.get("/orders")
 def list_orders(
     db: Session = Depends(get_db),
-    current_user: models.User = Depends(get_current_user),
+    current_user: models.User = Depends(require_permission(Permissions.SCREENING_READ)),
 ):
     """List all screening orders from the database."""
     orders = db.query(models.ScreeningOrder).order_by(
@@ -238,7 +238,7 @@ def list_orders(
 def get_order(
     order_id: int,
     db: Session = Depends(get_db),
-    current_user: models.User = Depends(get_current_user),
+    current_user: models.User = Depends(require_permission(Permissions.SCREENING_READ)),
 ):
     """Get a specific screening order with all details."""
     order = db.query(models.ScreeningOrder).filter(
@@ -298,7 +298,7 @@ def get_order(
 async def get_order_status(
     order_id: int,
     db: Session = Depends(get_db),
-    current_user: models.User = Depends(get_current_user),
+    current_user: models.User = Depends(require_permission(Permissions.SCREENING_READ)),
 ):
     """Get current status of a screening order (checks TazWorks live)."""
     order = db.query(models.ScreeningOrder).filter(
@@ -334,7 +334,7 @@ async def get_order_status(
 async def get_order_results(
     order_id: int,
     db: Session = Depends(get_db),
-    current_user: models.User = Depends(get_current_user),
+    current_user: models.User = Depends(require_permission(Permissions.SCREENING_READ)),
 ):
     """Retrieve completed screening results."""
     order = db.query(models.ScreeningOrder).filter(
@@ -357,7 +357,7 @@ async def get_compliance_documents(
     order_id: int,
     doc_type: str = "APPLICANT_AUTHORIZATION",
     db: Session = Depends(get_db),
-    current_user: models.User = Depends(get_current_user),
+    current_user: models.User = Depends(require_permission(Permissions.SCREENING_READ)),
 ):
     """Retrieve signed compliance documents from QuickApp."""
     order = db.query(models.ScreeningOrder).filter(

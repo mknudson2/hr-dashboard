@@ -9,7 +9,7 @@ from pydantic import BaseModel
 from app.db import models, database
 from app.api.auth import get_current_user
 from app.services.audit_service import audit_service
-from app.services.rbac_service import require_permission, Permissions
+from app.services.rbac_service import require_permission, require_any_permission, Permissions
 
 logger = logging.getLogger(__name__)
 
@@ -29,7 +29,10 @@ def get_db():
 
 
 @router.get("/")
-def list_employees(db: Session = Depends(get_db)):
+def list_employees(
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(require_any_permission(Permissions.EMPLOYEES_READ_ALL, Permissions.EMPLOYEES_READ_TEAM)),
+):
     """Return all employees with basic HR info."""
     employees = db.query(models.Employee).all()
 
@@ -72,7 +75,11 @@ def list_employees(db: Session = Depends(get_db)):
 
 
 @router.get("/{employee_id}")
-def get_employee(employee_id: int, db: Session = Depends(get_db)):
+def get_employee(
+    employee_id: int,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(require_any_permission(Permissions.EMPLOYEES_READ_ALL, Permissions.EMPLOYEES_READ_TEAM)),
+):
     """Get a single employee by ID."""
     e = db.query(models.Employee).filter(
         models.Employee.id == employee_id).first()
@@ -105,7 +112,7 @@ def update_custom_tags(
     request: Request,
     employee_id: str,
     tag_data: dict,
-    current_user: models.User = Depends(get_current_user),
+    current_user: models.User = Depends(require_permission(Permissions.EMPLOYEES_WRITE_ALL)),
     db: Session = Depends(get_db),
 ):
     """Update an employee's custom tags (e.g. hiring_manager, interviewer)."""
@@ -140,7 +147,12 @@ def update_custom_tags(
 
 
 @router.put("/{employee_id}/pto")
-def update_pto(employee_id: int, pto_used: float, db: Session = Depends(get_db)):
+def update_pto(
+    employee_id: int,
+    pto_used: float,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(require_permission(Permissions.EMPLOYEES_WRITE_ALL)),
+):
     """Update an employee’s PTO used amount."""
     employee = db.query(models.Employee).filter(
         models.Employee.id == employee_id).first()
@@ -154,7 +166,12 @@ def update_pto(employee_id: int, pto_used: float, db: Session = Depends(get_db))
 
 
 @router.put("/{employee_id}/attendance")
-def update_attendance(employee_id: int, attendance_days: float, db: Session = Depends(get_db)):
+def update_attendance(
+    employee_id: int,
+    attendance_days: float,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(require_permission(Permissions.EMPLOYEES_WRITE_ALL)),
+):
     """Update an employee's attendance days."""
     employee = db.query(models.Employee).filter(
         models.Employee.id == employee_id).first()
@@ -172,7 +189,7 @@ def update_contributions(
     request: Request,
     employee_id: str,
     contribution_data: dict,
-    current_user: models.User = Depends(get_current_user),
+    current_user: models.User = Depends(require_permission(Permissions.EMPLOYEES_WRITE_ALL)),
     db: Session = Depends(get_db)
 ):
     """Update an employee's benefit contributions."""
@@ -244,7 +261,7 @@ def update_employee(
     request: Request,
     employee_id: str,
     update_data: dict,
-    current_user: models.User = Depends(get_current_user),
+    current_user: models.User = Depends(require_permission(Permissions.EMPLOYEES_WRITE_ALL)),
     db: Session = Depends(get_db)
 ):
     """Update an employee. Automatically creates offboarding tasks if status is set to Terminated."""
@@ -520,7 +537,7 @@ def change_employee_status_with_reason(
     http_request: Request,
     employee_id: str,
     request: StatusChangeRequest,
-    current_user: models.User = Depends(get_current_user),
+    current_user: models.User = Depends(require_permission(Permissions.EMPLOYEES_WRITE_ALL)),
     db: Session = Depends(get_db)
 ):
     """
@@ -807,7 +824,11 @@ def change_employee_status_with_reason(
 
 
 @router.post("/contributions/reconcile")
-async def reconcile_contributions(file: UploadFile = File(...), db: Session = Depends(get_db)):
+async def reconcile_contributions(
+    file: UploadFile = File(...),
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(require_any_permission(Permissions.EMPLOYEES_READ_ALL, Permissions.EMPLOYEES_READ_TEAM)),
+):
     """
     Upload a CSV or Excel file with contribution data and reconcile it against the system.
 
@@ -1090,7 +1111,10 @@ def clear_demo_data(
 
 
 @router.get("/org-chart/tree")
-def get_org_chart(db: Session = Depends(get_db)):
+def get_org_chart(
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(require_any_permission(Permissions.EMPLOYEES_READ_ALL, Permissions.EMPLOYEES_READ_TEAM)),
+):
     """
     Return the full org chart as a tree structure.
     Each node has: employee_id, name, position, department, team,

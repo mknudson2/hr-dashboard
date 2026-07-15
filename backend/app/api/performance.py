@@ -14,6 +14,7 @@ import uuid
 from app.db.database import get_db
 from app.db import models
 from app.api.auth import get_current_user
+from app.services.rbac_service import require_permission, require_any_permission, Permissions
 
 router = APIRouter(
     prefix="/performance",
@@ -142,7 +143,10 @@ class PIPCreate(BaseModel):
 # ============================================================================
 
 @router.get("/dashboard")
-def get_performance_dashboard(db: Session = Depends(get_db)):
+def get_performance_dashboard(
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(require_any_permission(Permissions.PERFORMANCE_READ_ALL, Permissions.PERFORMANCE_READ_TEAM))
+):
     """
     Get performance management dashboard metrics
     """
@@ -223,7 +227,8 @@ def get_performance_dashboard(db: Session = Depends(get_db)):
 def get_review_cycles(
     status: Optional[str] = None,
     fiscal_year: Optional[int] = None,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(require_any_permission(Permissions.PERFORMANCE_READ_ALL, Permissions.PERFORMANCE_READ_TEAM))
 ):
     """
     Get all review cycles with optional filters
@@ -260,7 +265,11 @@ def get_review_cycles(
 
 
 @router.get("/cycles/{cycle_id}")
-def get_cycle(cycle_id: int, db: Session = Depends(get_db)):
+def get_cycle(
+    cycle_id: int,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(require_any_permission(Permissions.PERFORMANCE_READ_ALL, Permissions.PERFORMANCE_READ_TEAM))
+):
     """
     Get specific review cycle details
     """
@@ -290,7 +299,11 @@ def get_cycle(cycle_id: int, db: Session = Depends(get_db)):
 
 
 @router.post("/cycles")
-def create_review_cycle(cycle_data: ReviewCycleCreate, db: Session = Depends(get_db)):
+def create_review_cycle(
+    cycle_data: ReviewCycleCreate,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(require_permission(Permissions.PERFORMANCE_WRITE_ALL))
+):
     """
     Create a new review cycle
     """
@@ -340,7 +353,8 @@ def get_reviews(
     cycle_id: Optional[int] = None,
     status: Optional[str] = None,
     review_type: Optional[str] = None,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(require_any_permission(Permissions.PERFORMANCE_READ_ALL, Permissions.PERFORMANCE_READ_TEAM))
 ):
     """
     Get performance reviews with optional filters
@@ -393,7 +407,11 @@ def get_reviews(
 
 
 @router.get("/reviews/{review_id}")
-def get_review(review_id: int, db: Session = Depends(get_db)):
+def get_review(
+    review_id: int,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(require_any_permission(Permissions.PERFORMANCE_READ_ALL, Permissions.PERFORMANCE_READ_TEAM))
+):
     """
     Get detailed performance review
     """
@@ -451,7 +469,11 @@ def get_review(review_id: int, db: Session = Depends(get_db)):
 
 
 @router.get("/reviews/{review_id}/self-review")
-def get_self_review(review_id: int, db: Session = Depends(get_db)):
+def get_self_review(
+    review_id: int,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(require_any_permission(Permissions.PERFORMANCE_READ_ALL, Permissions.PERFORMANCE_READ_TEAM))
+):
     """
     Get the self-review feedback for a performance review
     """
@@ -490,7 +512,11 @@ def get_self_review(review_id: int, db: Session = Depends(get_db)):
 
 
 @router.post("/reviews")
-def create_performance_review(review_data: PerformanceReviewCreate, db: Session = Depends(get_db)):
+def create_performance_review(
+    review_data: PerformanceReviewCreate,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(require_permission(Permissions.PERFORMANCE_WRITE_ALL))
+):
     """
     Create a new performance review
     """
@@ -572,7 +598,8 @@ class PerformanceReviewUpdate(BaseModel):
 def update_performance_review(
     review_id: int,
     update_data: PerformanceReviewUpdate,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(require_permission(Permissions.PERFORMANCE_WRITE_ALL))
 ):
     """
     Update a performance review — supports both legacy and template-driven fields.
@@ -640,7 +667,11 @@ def update_performance_review(
 
 
 @router.get("/reviews/{review_id}/employee-context")
-def get_employee_context(review_id: int, db: Session = Depends(get_db)):
+def get_employee_context(
+    review_id: int,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(require_any_permission(Permissions.PERFORMANCE_READ_ALL, Permissions.PERFORMANCE_READ_TEAM))
+):
     """
     Get employee context for a performance review: goals, KPIs, active PIPs, and template.
     """
@@ -755,7 +786,8 @@ def get_goals(
     cycle_id: Optional[int] = None,
     status: Optional[str] = None,
     goal_type: Optional[str] = None,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(require_any_permission(Permissions.PERFORMANCE_READ_ALL, Permissions.PERFORMANCE_READ_TEAM))
 ):
     """
     Get performance goals with optional filters
@@ -820,7 +852,11 @@ def get_goals(
 
 
 @router.get("/goals/employee/{employee_id}/summary")
-def get_employee_goals_summary(employee_id: str, db: Session = Depends(get_db)):
+def get_employee_goals_summary(
+    employee_id: str,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(require_any_permission(Permissions.PERFORMANCE_READ_ALL, Permissions.PERFORMANCE_READ_TEAM))
+):
     """
     Get goal summary for an employee
     """
@@ -865,7 +901,11 @@ def get_employee_goals_summary(employee_id: str, db: Session = Depends(get_db)):
 
 
 @router.post("/goals")
-def create_performance_goal(goal_data: PerformanceGoalCreate, db: Session = Depends(get_db)):
+def create_performance_goal(
+    goal_data: PerformanceGoalCreate,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(require_permission(Permissions.PERFORMANCE_WRITE_ALL))
+):
     """
     Create a new performance goal
     """
@@ -964,7 +1004,12 @@ def create_performance_goal(goal_data: PerformanceGoalCreate, db: Session = Depe
 
 
 @router.patch("/goals/{goal_id}")
-def update_performance_goal(goal_id: int, db: Session = Depends(get_db), **kwargs):
+def update_performance_goal(
+    goal_id: int,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(require_permission(Permissions.PERFORMANCE_WRITE_ALL)),
+    **kwargs
+):
     """
     Update a performance goal
     """
@@ -979,7 +1024,8 @@ def update_performance_goal(goal_id: int, db: Session = Depends(get_db), **kwarg
 def update_goal_full(
     goal_id: int,
     goal_data: PerformanceGoalCreate,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(require_permission(Permissions.PERFORMANCE_WRITE_ALL))
 ):
     """
     Update a performance goal (full update)
@@ -1025,7 +1071,8 @@ class SimpleProgressUpdate(BaseModel):
 def update_goal_progress_simple(
     goal_id: int,
     progress_data: SimpleProgressUpdate,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(require_permission(Permissions.PERFORMANCE_WRITE_ALL))
 ):
     """
     Simple progress update endpoint for basic percentage updates.
@@ -1084,7 +1131,11 @@ def update_goal_progress_simple(
 
 
 @router.delete("/goals/{goal_id}")
-def delete_performance_goal(goal_id: int, db: Session = Depends(get_db)):
+def delete_performance_goal(
+    goal_id: int,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(require_permission(Permissions.PERFORMANCE_WRITE_ALL))
+):
     """
     Delete a performance goal
     """
@@ -1129,7 +1180,8 @@ async def create_progress_entry(
     status: Optional[str] = Form(None),
     current_value: Optional[str] = Form(None),
     files: List[UploadFile] = File(default=[]),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(require_permission(Permissions.PERFORMANCE_WRITE_ALL))
 ):
     """
     Create a progress entry for a goal with optional file attachments.
@@ -1297,7 +1349,8 @@ def get_goal_history(
     goal_id: int,
     limit: int = Query(default=50, le=100),
     offset: int = Query(default=0),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(require_any_permission(Permissions.PERFORMANCE_READ_ALL, Permissions.PERFORMANCE_READ_TEAM))
 ):
     """
     Get paginated progress history for a goal with attachments
@@ -1342,7 +1395,11 @@ def get_goal_history(
 
 
 @router.get("/goals/attachments/{attachment_id}/download")
-def download_goal_attachment(attachment_id: int, db: Session = Depends(get_db)):
+def download_goal_attachment(
+    attachment_id: int,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(require_any_permission(Permissions.PERFORMANCE_READ_ALL, Permissions.PERFORMANCE_READ_TEAM))
+):
     """
     Download a goal progress attachment
     """
@@ -1368,7 +1425,11 @@ def download_goal_attachment(attachment_id: int, db: Session = Depends(get_db)):
 # ============================================================================
 
 @router.get("/goals/{goal_id}/milestones")
-def get_goal_milestones(goal_id: int, db: Session = Depends(get_db)):
+def get_goal_milestones(
+    goal_id: int,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(require_any_permission(Permissions.PERFORMANCE_READ_ALL, Permissions.PERFORMANCE_READ_TEAM))
+):
     """
     Get all milestones for a goal
     """
@@ -1405,7 +1466,8 @@ def get_goal_milestones(goal_id: int, db: Session = Depends(get_db)):
 def add_goal_milestone(
     goal_id: int,
     milestone_data: GoalMilestoneCreate,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(require_permission(Permissions.PERFORMANCE_WRITE_ALL))
 ):
     """
     Add a new milestone to a goal
@@ -1453,7 +1515,8 @@ def add_goal_milestone(
 def update_goal_milestone(
     milestone_id: int,
     update_data: GoalMilestoneUpdate,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(require_permission(Permissions.PERFORMANCE_WRITE_ALL))
 ):
     """
     Update a goal milestone (status, completion, etc.)
@@ -1527,7 +1590,11 @@ def update_goal_milestone(
 
 
 @router.delete("/goals/milestones/{milestone_id}")
-def delete_goal_milestone(milestone_id: int, db: Session = Depends(get_db)):
+def delete_goal_milestone(
+    milestone_id: int,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(require_permission(Permissions.PERFORMANCE_WRITE_ALL))
+):
     """
     Delete a goal milestone
     """
@@ -1585,7 +1652,8 @@ def get_feedback(
     review_id: Optional[int] = None,
     status: Optional[str] = None,
     feedback_type: Optional[str] = None,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(require_any_permission(Permissions.PERFORMANCE_READ_ALL, Permissions.PERFORMANCE_READ_TEAM))
 ):
     """
     Get feedback with optional filters
@@ -1628,7 +1696,11 @@ def get_feedback(
 
 
 @router.get("/feedback/{feedback_id}")
-def get_feedback_detail(feedback_id: int, db: Session = Depends(get_db)):
+def get_feedback_detail(
+    feedback_id: int,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(require_any_permission(Permissions.PERFORMANCE_READ_ALL, Permissions.PERFORMANCE_READ_TEAM))
+):
     """
     Get detailed feedback
     """
@@ -1667,7 +1739,11 @@ def get_feedback_detail(feedback_id: int, db: Session = Depends(get_db)):
 
 
 @router.post("/feedback")
-def create_feedback_request(feedback_data: FeedbackCreate, db: Session = Depends(get_db)):
+def create_feedback_request(
+    feedback_data: FeedbackCreate,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(require_permission(Permissions.PERFORMANCE_WRITE_ALL))
+):
     """
     Create a new feedback request
     """
@@ -1716,7 +1792,8 @@ def create_feedback_request(feedback_data: FeedbackCreate, db: Session = Depends
 def get_pips(
     employee_id: Optional[str] = None,
     status: Optional[str] = None,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(require_any_permission(Permissions.PERFORMANCE_READ_ALL, Permissions.PERFORMANCE_READ_TEAM))
 ):
     """
     Get Performance Improvement Plans
@@ -1749,7 +1826,11 @@ def get_pips(
 
 
 @router.get("/pips/{pip_id}")
-def get_pip_detail(pip_id: int, db: Session = Depends(get_db)):
+def get_pip_detail(
+    pip_id: int,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(require_any_permission(Permissions.PERFORMANCE_READ_ALL, Permissions.PERFORMANCE_READ_TEAM))
+):
     """
     Get detailed PIP information
     """
@@ -1793,7 +1874,11 @@ def get_pip_detail(pip_id: int, db: Session = Depends(get_db)):
 
 
 @router.post("/pips")
-def create_pip(pip_data: PIPCreate, db: Session = Depends(get_db)):
+def create_pip(
+    pip_data: PIPCreate,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(require_permission(Permissions.PERFORMANCE_WRITE_ALL))
+):
     """
     Create a new Performance Improvement Plan
     """
@@ -1873,7 +1958,11 @@ def create_pip(pip_data: PIPCreate, db: Session = Depends(get_db)):
 # ============================================================================
 
 @router.get("/pips/{pip_id}/full")
-def get_pip_full_detail(pip_id: int, db: Session = Depends(get_db)):
+def get_pip_full_detail(
+    pip_id: int,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(require_any_permission(Permissions.PERFORMANCE_READ_ALL, Permissions.PERFORMANCE_READ_TEAM))
+):
     """
     Get full PIP details including notes, milestones, audit trail, and documents
     """
@@ -1985,7 +2074,8 @@ class PIPStatusUpdate(BaseModel):
 def update_pip_status(
     pip_id: int,
     update_data: PIPStatusUpdate,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(require_permission(Permissions.PERFORMANCE_WRITE_ALL))
 ):
     """
     Update PIP status
@@ -2038,7 +2128,12 @@ class PIPNoteCreate(BaseModel):
 
 
 @router.post("/pips/{pip_id}/notes")
-def add_pip_note(pip_id: int, note_data: PIPNoteCreate, db: Session = Depends(get_db)):
+def add_pip_note(
+    pip_id: int,
+    note_data: PIPNoteCreate,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(require_permission(Permissions.PERFORMANCE_WRITE_ALL))
+):
     """
     Add a note to a PIP
     """
@@ -2082,7 +2177,11 @@ def add_pip_note(pip_id: int, note_data: PIPNoteCreate, db: Session = Depends(ge
 
 
 @router.get("/pips/{pip_id}/notes")
-def get_pip_notes(pip_id: int, db: Session = Depends(get_db)):
+def get_pip_notes(
+    pip_id: int,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(require_any_permission(Permissions.PERFORMANCE_READ_ALL, Permissions.PERFORMANCE_READ_TEAM))
+):
     """
     Get all notes for a PIP
     """
@@ -2115,7 +2214,12 @@ class PIPMilestoneUpdate(BaseModel):
 
 
 @router.post("/pips/{pip_id}/milestones")
-def add_pip_milestone(pip_id: int, milestone_data: PIPMilestoneCreate, db: Session = Depends(get_db)):
+def add_pip_milestone(
+    pip_id: int,
+    milestone_data: PIPMilestoneCreate,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(require_permission(Permissions.PERFORMANCE_WRITE_ALL))
+):
     """
     Add a milestone to a PIP
     """
@@ -2159,7 +2263,12 @@ def add_pip_milestone(pip_id: int, milestone_data: PIPMilestoneCreate, db: Sessi
 
 
 @router.patch("/pips/milestones/{milestone_id}")
-def update_pip_milestone(milestone_id: int, update_data: PIPMilestoneUpdate, db: Session = Depends(get_db)):
+def update_pip_milestone(
+    milestone_id: int,
+    update_data: PIPMilestoneUpdate,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(require_permission(Permissions.PERFORMANCE_WRITE_ALL))
+):
     """
     Update a PIP milestone
     """
@@ -2220,7 +2329,8 @@ def upload_pip_document(
     pip_id: int,
     file: UploadFile = File(...),
     document_type: str = Form("Supporting Document"),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(require_permission(Permissions.PERFORMANCE_WRITE_ALL))
 ):
     """
     Upload a document for a PIP
@@ -2279,7 +2389,11 @@ def upload_pip_document(
 
 
 @router.get("/pips/documents/{document_id}/download")
-def download_pip_document(document_id: int, db: Session = Depends(get_db)):
+def download_pip_document(
+    document_id: int,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(require_any_permission(Permissions.PERFORMANCE_READ_ALL, Permissions.PERFORMANCE_READ_TEAM))
+):
     """
     Download a PIP document
     """
@@ -2301,7 +2415,11 @@ def download_pip_document(document_id: int, db: Session = Depends(get_db)):
 
 
 @router.delete("/pips/documents/{document_id}")
-def delete_pip_document(document_id: int, db: Session = Depends(get_db)):
+def delete_pip_document(
+    document_id: int,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(require_permission(Permissions.PERFORMANCE_WRITE_ALL))
+):
     """
     Delete a PIP document
     """

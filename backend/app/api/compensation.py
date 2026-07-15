@@ -21,10 +21,12 @@ router = APIRouter(
     prefix="/compensation",
     tags=["compensation"],
     # RBAC: Require COMPENSATION_READ permission for all endpoints
+    # NOTE: COMPENSATION_READ_SELF is intentionally excluded here — base employees
+    # hold it and must not reach this HR router. Per-endpoint dependencies below
+    # enforce the correct read/write permission for each route.
     dependencies=[Depends(require_any_permission(
         Permissions.COMPENSATION_READ_ALL,
-        Permissions.COMPENSATION_READ_TEAM,
-        Permissions.COMPENSATION_READ_SELF
+        Permissions.COMPENSATION_READ_TEAM
     ))]
 )
 
@@ -210,7 +212,11 @@ def list_bonuses(
     employee_id: Optional[str] = None,
     fiscal_year: Optional[int] = None,
     status: Optional[str] = None,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(require_any_permission(
+        Permissions.COMPENSATION_READ_ALL,
+        Permissions.COMPENSATION_READ_TEAM
+    ))
 ):
     """Get all bonuses with optional filters."""
     query = db.query(models.Bonus)
@@ -266,7 +272,14 @@ def list_bonuses(
 
 
 @router.get("/bonuses/{bonus_id}")
-def get_bonus(bonus_id: int, db: Session = Depends(get_db)):
+def get_bonus(
+    bonus_id: int,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(require_any_permission(
+        Permissions.COMPENSATION_READ_ALL,
+        Permissions.COMPENSATION_READ_TEAM
+    ))
+):
     """Get a single bonus by ID."""
     bonus = db.query(models.Bonus).filter(models.Bonus.id == bonus_id).first()
     if not bonus:
@@ -296,7 +309,11 @@ def get_bonus(bonus_id: int, db: Session = Depends(get_db)):
 
 
 @router.post("/bonuses")
-def create_bonus(bonus: BonusCreate, db: Session = Depends(get_db)):
+def create_bonus(
+    bonus: BonusCreate,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(require_permission(Permissions.COMPENSATION_WRITE))
+):
     """Create a new bonus."""
     # Verify employee exists
     employee = db.query(models.Employee).filter(
@@ -314,7 +331,12 @@ def create_bonus(bonus: BonusCreate, db: Session = Depends(get_db)):
 
 
 @router.put("/bonuses/{bonus_id}")
-def update_bonus(bonus_id: int, bonus: BonusUpdate, db: Session = Depends(get_db)):
+def update_bonus(
+    bonus_id: int,
+    bonus: BonusUpdate,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(require_permission(Permissions.COMPENSATION_WRITE))
+):
     """Update an existing bonus."""
     db_bonus = db.query(models.Bonus).filter(models.Bonus.id == bonus_id).first()
     if not db_bonus:
@@ -330,7 +352,11 @@ def update_bonus(bonus_id: int, bonus: BonusUpdate, db: Session = Depends(get_db
 
 
 @router.delete("/bonuses/{bonus_id}")
-def delete_bonus(bonus_id: int, db: Session = Depends(get_db)):
+def delete_bonus(
+    bonus_id: int,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(require_permission(Permissions.COMPENSATION_WRITE))
+):
     """Delete a bonus."""
     bonus = db.query(models.Bonus).filter(models.Bonus.id == bonus_id).first()
     if not bonus:
@@ -347,7 +373,12 @@ class BonusMarkPaid(BaseModel):
 
 
 @router.post("/bonuses/{bonus_id}/mark-paid")
-def mark_bonus_paid(bonus_id: int, payload: BonusMarkPaid, db: Session = Depends(get_db)):
+def mark_bonus_paid(
+    bonus_id: int,
+    payload: BonusMarkPaid,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(require_permission(Permissions.COMPENSATION_WRITE))
+):
     """Mark a bonus as paid/given with today's date and optional notes."""
     bonus = db.query(models.Bonus).filter(models.Bonus.id == bonus_id).first()
     if not bonus:
@@ -377,7 +408,11 @@ def mark_bonus_paid(bonus_id: int, payload: BonusMarkPaid, db: Session = Depends
 def list_equity_grants(
     employee_id: Optional[str] = None,
     status: Optional[str] = None,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(require_any_permission(
+        Permissions.COMPENSATION_READ_ALL,
+        Permissions.COMPENSATION_READ_TEAM
+    ))
 ):
     """Get all equity grants with optional filters."""
     query = db.query(models.EquityGrant)
@@ -421,7 +456,14 @@ def list_equity_grants(
 
 
 @router.get("/equity-grants/{grant_id}")
-def get_equity_grant(grant_id: int, db: Session = Depends(get_db)):
+def get_equity_grant(
+    grant_id: int,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(require_any_permission(
+        Permissions.COMPENSATION_READ_ALL,
+        Permissions.COMPENSATION_READ_TEAM
+    ))
+):
     """Get a single equity grant by ID."""
     grant = db.query(models.EquityGrant).filter(models.EquityGrant.id == grant_id).first()
     if not grant:
@@ -454,7 +496,11 @@ def get_equity_grant(grant_id: int, db: Session = Depends(get_db)):
 
 
 @router.post("/equity-grants")
-def create_equity_grant(grant: EquityGrantCreate, db: Session = Depends(get_db)):
+def create_equity_grant(
+    grant: EquityGrantCreate,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(require_permission(Permissions.COMPENSATION_WRITE))
+):
     """Create a new equity grant."""
     # Verify employee exists
     employee = db.query(models.Employee).filter(
@@ -472,7 +518,12 @@ def create_equity_grant(grant: EquityGrantCreate, db: Session = Depends(get_db))
 
 
 @router.put("/equity-grants/{grant_id}")
-def update_equity_grant(grant_id: int, grant: EquityGrantUpdate, db: Session = Depends(get_db)):
+def update_equity_grant(
+    grant_id: int,
+    grant: EquityGrantUpdate,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(require_permission(Permissions.COMPENSATION_WRITE))
+):
     """Update an existing equity grant."""
     db_grant = db.query(models.EquityGrant).filter(models.EquityGrant.id == grant_id).first()
     if not db_grant:
@@ -488,7 +539,11 @@ def update_equity_grant(grant_id: int, grant: EquityGrantUpdate, db: Session = D
 
 
 @router.delete("/equity-grants/{grant_id}")
-def delete_equity_grant(grant_id: int, db: Session = Depends(get_db)):
+def delete_equity_grant(
+    grant_id: int,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(require_permission(Permissions.COMPENSATION_WRITE))
+):
     """Delete an equity grant."""
     grant = db.query(models.EquityGrant).filter(models.EquityGrant.id == grant_id).first()
     if not grant:
@@ -509,7 +564,11 @@ def list_compensation_reviews(
     employee_id: Optional[str] = None,
     status: Optional[str] = None,
     review_type: Optional[str] = None,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(require_any_permission(
+        Permissions.COMPENSATION_READ_ALL,
+        Permissions.COMPENSATION_READ_TEAM
+    ))
 ):
     """Get all compensation reviews with optional filters."""
     query = db.query(models.CompensationReview)
@@ -558,7 +617,14 @@ def list_compensation_reviews(
 
 
 @router.get("/reviews/{review_id}")
-def get_compensation_review(review_id: int, db: Session = Depends(get_db)):
+def get_compensation_review(
+    review_id: int,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(require_any_permission(
+        Permissions.COMPENSATION_READ_ALL,
+        Permissions.COMPENSATION_READ_TEAM
+    ))
+):
     """Get a single compensation review by ID."""
     review = db.query(models.CompensationReview).filter(
         models.CompensationReview.id == review_id
@@ -596,7 +662,11 @@ def get_compensation_review(review_id: int, db: Session = Depends(get_db)):
 
 
 @router.post("/reviews")
-def create_compensation_review(review: CompensationReviewCreate, db: Session = Depends(get_db)):
+def create_compensation_review(
+    review: CompensationReviewCreate,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(require_permission(Permissions.COMPENSATION_WRITE))
+):
     """Create a new compensation review."""
     # Verify employee exists
     employee = db.query(models.Employee).filter(
@@ -617,7 +687,8 @@ def create_compensation_review(review: CompensationReviewCreate, db: Session = D
 def update_compensation_review(
     review_id: int,
     review: CompensationReviewUpdate,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(require_permission(Permissions.COMPENSATION_WRITE))
 ):
     """Update an existing compensation review."""
     db_review = db.query(models.CompensationReview).filter(
@@ -636,7 +707,11 @@ def update_compensation_review(
 
 
 @router.delete("/reviews/{review_id}")
-def delete_compensation_review(review_id: int, db: Session = Depends(get_db)):
+def delete_compensation_review(
+    review_id: int,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(require_permission(Permissions.COMPENSATION_WRITE))
+):
     """Delete a compensation review."""
     review = db.query(models.CompensationReview).filter(
         models.CompensationReview.id == review_id
@@ -659,7 +734,11 @@ def list_wage_increase_cycles(
     fiscal_year: Optional[int] = None,
     status: Optional[str] = None,
     cycle_type: Optional[str] = None,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(require_any_permission(
+        Permissions.COMPENSATION_READ_ALL,
+        Permissions.COMPENSATION_READ_TEAM
+    ))
 ):
     """Get all wage increase cycles with optional filters."""
     query = db.query(models.WageIncreaseCycle)
@@ -717,7 +796,14 @@ def list_wage_increase_cycles(
 
 
 @router.get("/wage-increase-cycles/{cycle_id}")
-def get_wage_increase_cycle(cycle_id: int, db: Session = Depends(get_db)):
+def get_wage_increase_cycle(
+    cycle_id: int,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(require_any_permission(
+        Permissions.COMPENSATION_READ_ALL,
+        Permissions.COMPENSATION_READ_TEAM
+    ))
+):
     """Get a single wage increase cycle by ID."""
     cycle = db.query(models.WageIncreaseCycle).filter(
         models.WageIncreaseCycle.id == cycle_id
@@ -765,7 +851,11 @@ def get_wage_increase_cycle(cycle_id: int, db: Session = Depends(get_db)):
 
 
 @router.post("/wage-increase-cycles")
-def create_wage_increase_cycle(cycle: WageIncreaseCycleCreate, db: Session = Depends(get_db)):
+def create_wage_increase_cycle(
+    cycle: WageIncreaseCycleCreate,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(require_permission(Permissions.COMPENSATION_WRITE))
+):
     """Create a new wage increase cycle."""
 
     # Generate unique cycle_id
@@ -800,7 +890,8 @@ def create_wage_increase_cycle(cycle: WageIncreaseCycleCreate, db: Session = Dep
 def update_wage_increase_cycle(
     cycle_id: int,
     cycle: WageIncreaseCycleUpdate,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(require_permission(Permissions.COMPENSATION_WRITE))
 ):
     """Update an existing wage increase cycle."""
     db_cycle = db.query(models.WageIncreaseCycle).filter(
@@ -824,7 +915,11 @@ def update_wage_increase_cycle(
 
 
 @router.delete("/wage-increase-cycles/{cycle_id}")
-def delete_wage_increase_cycle(cycle_id: int, db: Session = Depends(get_db)):
+def delete_wage_increase_cycle(
+    cycle_id: int,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(require_permission(Permissions.COMPENSATION_WRITE))
+):
     """Delete a wage increase cycle."""
     cycle = db.query(models.WageIncreaseCycle).filter(
         models.WageIncreaseCycle.id == cycle_id
@@ -853,7 +948,11 @@ def delete_wage_increase_cycle(cycle_id: int, db: Session = Depends(get_db)):
 def get_cycle_reviews(
     cycle_id: int,
     status: Optional[str] = None,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(require_any_permission(
+        Permissions.COMPENSATION_READ_ALL,
+        Permissions.COMPENSATION_READ_TEAM
+    ))
 ):
     """Get all compensation reviews for a specific wage increase cycle."""
 
@@ -914,7 +1013,14 @@ def get_cycle_reviews(
 
 
 @router.get("/wage-increase-cycles/{cycle_id}/analytics")
-def get_cycle_analytics(cycle_id: int, db: Session = Depends(get_db)):
+def get_cycle_analytics(
+    cycle_id: int,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(require_any_permission(
+        Permissions.COMPENSATION_READ_ALL,
+        Permissions.COMPENSATION_READ_TEAM
+    ))
+):
     """Get detailed analytics for a wage increase cycle."""
 
     # Verify cycle exists
@@ -1027,7 +1133,8 @@ class CycleApprovalRequest(BaseModel):
 def approve_wage_increase_cycle(
     cycle_id: int,
     approval: CycleApprovalRequest,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(require_permission(Permissions.COMPENSATION_WRITE))
 ):
     """Approve a wage increase cycle and transition it to the next status."""
 
@@ -1080,7 +1187,8 @@ def transition_cycle_status(
     cycle_id: int,
     new_status: str,
     notes: Optional[str] = None,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(require_permission(Permissions.COMPENSATION_WRITE))
 ):
     """Manually transition a wage increase cycle to a different status."""
 
@@ -1126,7 +1234,8 @@ def close_wage_increase_cycle(
     cycle_id: int,
     closed_by: str,
     notes: Optional[str] = None,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(require_permission(Permissions.COMPENSATION_WRITE))
 ):
     """Close a wage increase cycle."""
 
@@ -1171,7 +1280,13 @@ def close_wage_increase_cycle(
 # ============================================================================
 
 @router.get("/dashboard")
-def get_compensation_dashboard(db: Session = Depends(get_db)):
+def get_compensation_dashboard(
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(require_any_permission(
+        Permissions.COMPENSATION_READ_ALL,
+        Permissions.COMPENSATION_READ_TEAM
+    ))
+):
     """Get dashboard metrics for compensation management."""
 
     # Total bonuses paid this year
@@ -1217,7 +1332,14 @@ def get_compensation_dashboard(db: Session = Depends(get_db)):
 
 
 @router.get("/employee/{employee_id}/summary")
-def get_employee_compensation_summary(employee_id: str, db: Session = Depends(get_db)):
+def get_employee_compensation_summary(
+    employee_id: str,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(require_any_permission(
+        Permissions.COMPENSATION_READ_ALL,
+        Permissions.COMPENSATION_READ_TEAM
+    ))
+):
     """Get complete compensation summary for an employee."""
 
     # Verify employee exists
@@ -1291,7 +1413,14 @@ def get_employee_compensation_summary(employee_id: str, db: Session = Depends(ge
 # ============================================================================
 
 @router.get("/bonuses/{bonus_id}/conditions")
-def list_bonus_conditions(bonus_id: int, db: Session = Depends(get_db)):
+def list_bonus_conditions(
+    bonus_id: int,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(require_any_permission(
+        Permissions.COMPENSATION_READ_ALL,
+        Permissions.COMPENSATION_READ_TEAM
+    ))
+):
     """Get all conditions for a bonus."""
     # Verify bonus exists
     bonus = db.query(models.Bonus).filter(models.Bonus.id == bonus_id).first()
@@ -1335,7 +1464,14 @@ def list_bonus_conditions(bonus_id: int, db: Session = Depends(get_db)):
 
 
 @router.get("/bonus-conditions/{condition_id}")
-def get_bonus_condition(condition_id: int, db: Session = Depends(get_db)):
+def get_bonus_condition(
+    condition_id: int,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(require_any_permission(
+        Permissions.COMPENSATION_READ_ALL,
+        Permissions.COMPENSATION_READ_TEAM
+    ))
+):
     """Get a single bonus condition by ID."""
     condition = db.query(models.BonusCondition).filter(
         models.BonusCondition.id == condition_id
@@ -1362,7 +1498,11 @@ def get_bonus_condition(condition_id: int, db: Session = Depends(get_db)):
 
 
 @router.post("/bonus-conditions")
-def create_bonus_condition(condition: BonusConditionCreate, db: Session = Depends(get_db)):
+def create_bonus_condition(
+    condition: BonusConditionCreate,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(require_permission(Permissions.COMPENSATION_WRITE))
+):
     """Create a new bonus condition."""
     # Verify bonus exists
     bonus = db.query(models.Bonus).filter(models.Bonus.id == condition.bonus_id).first()
@@ -1386,7 +1526,8 @@ def create_bonus_condition(condition: BonusConditionCreate, db: Session = Depend
 def update_bonus_condition(
     condition_id: int,
     condition: BonusConditionUpdate,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(require_permission(Permissions.COMPENSATION_WRITE))
 ):
     """Update an existing bonus condition."""
     db_condition = db.query(models.BonusCondition).filter(
@@ -1405,7 +1546,11 @@ def update_bonus_condition(
 
 
 @router.delete("/bonus-conditions/{condition_id}")
-def delete_bonus_condition(condition_id: int, db: Session = Depends(get_db)):
+def delete_bonus_condition(
+    condition_id: int,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(require_permission(Permissions.COMPENSATION_WRITE))
+):
     """Delete a bonus condition."""
     condition = db.query(models.BonusCondition).filter(
         models.BonusCondition.id == condition_id
@@ -1439,7 +1584,8 @@ def complete_bonus_condition(
     completed_by: str,
     actual_value: Optional[str] = None,
     notes: Optional[str] = None,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(require_permission(Permissions.COMPENSATION_WRITE))
 ):
     """Mark a bonus condition as completed."""
     condition = db.query(models.BonusCondition).filter(
@@ -1470,7 +1616,11 @@ def complete_bonus_condition(
 
 
 @router.post("/bonus-conditions/{condition_id}/uncomplete")
-def uncomplete_bonus_condition(condition_id: int, db: Session = Depends(get_db)):
+def uncomplete_bonus_condition(
+    condition_id: int,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(require_permission(Permissions.COMPENSATION_WRITE))
+):
     """Mark a bonus condition as not completed."""
     condition = db.query(models.BonusCondition).filter(
         models.BonusCondition.id == condition_id
